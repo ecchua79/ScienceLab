@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>化学闯关大冒险 ⚗️</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap');
+:root{
+  --bg:#08060f;--panel:#100d1a;--card:#15112000;--cardb:#151120cc;
+  --border:#261f38;--text:#ede8f8;--muted:#4a3f6a;
+  --gold:#fbbf24;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);user-select:none;-webkit-user-select:none;}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── SHARED TOAST ── */
+#toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-14px);
+  background:rgba(15,13,26,.97);border:1px solid var(--border);backdrop-filter:blur(14px);
+  color:var(--text);padding:8px 22px;border-radius:50px;font-weight:800;font-size:.85rem;
+  z-index:900;opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── SHARED TOPBAR ── */
+#topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 16px;background:rgba(8,6,15,.92);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);flex-shrink:0;gap:10px;z-index:20;}
+.t-logo{font-family:'Fredoka One',cursive;font-size:1rem;white-space:nowrap;
+  background:linear-gradient(135deg,#a78bfa,#f472b6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.t-center{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.t-level-name{font-family:'Fredoka One',cursive;font-size:.82rem;color:var(--purple);}
+.t-timer{font-family:'Fredoka One',cursive;font-size:.88rem;color:var(--gold);letter-spacing:.04em;}
+.t-score{font-family:'Fredoka One',cursive;color:var(--gold);font-size:.9rem;white-space:nowrap;}
+.level-dots{display:flex;gap:6px;}
+.ldot{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;transition:all .3s;}
+.ldot.done{background:var(--green);border-color:var(--green);color:#000;}
+.ldot.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(251,191,36,.4);}
+.ldot.locked{color:var(--muted);}
+
+/* ── HOME ── */
+#home{align-items:center;justify-content:center;background:var(--bg);}
+.home-inner{display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px 20px;max-width:460px;width:100%;}
+.home-title{font-family:'Fredoka One',cursive;font-size:clamp(2rem,6vw,3.2rem);
+  background:linear-gradient(135deg,#a78bfa,#f472b6,#fbbf24);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-align:center;line-height:1.1;filter:drop-shadow(0 0 30px rgba(167,139,250,.4));}
+.home-sub{font-size:.9rem;color:var(--muted);text-align:center;}
+.home-levels{display:flex;flex-direction:column;gap:10px;width:100%;}
+.lv-card{border-radius:18px;border:1.5px solid var(--border);padding:16px 20px;
+  cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:14px;
+  background:rgba(255,255,255,.025);position:relative;overflow:hidden;}
+.lv-card:hover:not(.locked-card){transform:translateY(-3px);}
+.lv-card.lv1{border-color:rgba(96,165,250,.3);}  .lv-card.lv1:hover:not(.locked-card){border-color:var(--blue);box-shadow:0 6px 24px rgba(96,165,250,.2);}
+.lv-card.lv2{border-color:rgba(251,191,36,.3);}  .lv-card.lv2:hover:not(.locked-card){border-color:var(--gold);box-shadow:0 6px 24px rgba(251,191,36,.2);}
+.lv-card.lv3{border-color:rgba(167,139,250,.3);} .lv-card.lv3:hover:not(.locked-card){border-color:var(--purple);box-shadow:0 6px 24px rgba(167,139,250,.2);}
+.lv-card.locked-card{opacity:.45;cursor:not-allowed;}
+.lv-icon{font-size:2rem;flex-shrink:0;}
+.lv-info{flex:1;}
+.lv-num{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+.lv-name{font-family:'Fredoka One',cursive;font-size:1.1rem;}
+.lv-desc{font-size:.78rem;color:var(--muted);margin-top:2px;}
+.lv-badge{font-size:.75rem;padding:3px 10px;border-radius:20px;font-weight:800;flex-shrink:0;}
+.lv-badge.done-badge{background:rgba(74,222,128,.15);color:var(--green);border:1px solid rgba(74,222,128,.3);}
+.lv-badge.lock-badge{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);}
+.lv-badge.go-badge{background:rgba(251,191,36,.12);color:var(--gold);border:1px solid rgba(251,191,36,.3);}
+.home-start-btn{
+  background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;
+  font-family:'Fredoka One',cursive;font-size:1.1rem;padding:14px 44px;
+  border-radius:50px;cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 24px rgba(167,139,250,.4);}
+.home-start-btn:hover{transform:scale(1.05);filter:brightness(1.1);}
+
+/* ── GAME WRAPPER ── */
+#game-wrap{background:var(--bg);}
+#game-root{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+
+/* ── LEVEL TRANSITION ── */
+#lvl-transition{
+  position:fixed;inset:0;z-index:500;
+  background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;}
+#lvl-transition.show{display:flex;}
+.lt-emoji{font-size:4rem;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);}
+.lt-title{font-family:'Fredoka One',cursive;font-size:2.2rem;animation:popIn .4s ease .1s both;}
+.lt-sub{color:var(--muted);font-size:.9rem;animation:popIn .4s ease .18s both;}
+.lt-next{background:linear-gradient(135deg,var(--green),#16a34a);color:#000;border:none;
+  font-family:'Fredoka One',cursive;font-size:1.05rem;padding:13px 40px;border-radius:50px;
+  cursor:pointer;transition:all .2s;animation:popIn .4s ease .3s both;
+  box-shadow:0 4px 20px rgba(74,222,128,.35);}
+.lt-next:hover{transform:scale(1.05);}
+
+/* ── NAME DIALOG ── */
+#name-dialog{position:fixed;inset:0;z-index:600;background:rgba(8,6,15,.9);backdrop-filter:blur(14px);
+  display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+#name-dialog.show{display:flex;}
+.nd-box{background:rgba(15,13,26,.98);border:2px solid rgba(167,139,250,.4);border-radius:24px;
+  padding:32px 28px;max-width:380px;width:100%;text-align:center;
+  box-shadow:0 0 40px rgba(167,139,250,.2);animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+.nd-emoji{font-size:3.5rem;margin-bottom:10px;}
+.nd-title{font-family:'Fredoka One',cursive;font-size:1.8rem;margin-bottom:6px;}
+.nd-sub{color:var(--muted);font-size:.85rem;margin-bottom:20px;}
+.nd-input{width:100%;background:rgba(255,255,255,.06);border:2px solid var(--border);
+  color:var(--text);font-family:'Fredoka One',cursive;font-size:1.1rem;
+  padding:12px 16px;border-radius:14px;outline:none;text-align:center;
+  transition:border-color .2s;margin-bottom:14px;}
+.nd-input:focus{border-color:var(--purple);}
+.nd-btn{background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;
+  font-family:'Fredoka One',cursive;font-size:1.05rem;padding:13px;border-radius:14px;
+  cursor:pointer;transition:all .2s;width:100%;box-shadow:0 4px 18px rgba(167,139,250,.35);}
+.nd-btn:hover{transform:scale(1.03);}
+
+/* ── CERTIFICATE ── */
+#cert-screen{background:var(--bg);align-items:center;justify-content:center;overflow-y:auto;}
+.cert-wrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px;gap:16px;max-width:520px;width:100%;margin:auto;}
+.cert-card{
+  width:100%;border-radius:24px;
+  background:linear-gradient(145deg,#1a1130,#0f0d1a);
+  border:2px solid rgba(167,139,250,.4);
+  box-shadow:0 0 50px rgba(167,139,250,.2), inset 0 1px 0 rgba(167,139,250,.15);
+  padding:28px 24px;text-align:center;
+  animation:popIn .6s cubic-bezier(.34,1.56,.64,1);}
+.cert-header{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:18px;}
+.cert-seal{font-size:3rem;}
+.cert-title-top{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+.cert-big{font-family:'Fredoka One',cursive;font-size:clamp(1.4rem,4vw,1.9rem);
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.cert-divider{width:80%;height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,.4),transparent);margin:10px auto;}
+.cert-name-label{font-size:.72rem;color:var(--muted);letter-spacing:.06em;margin-bottom:4px;}
+.cert-name{font-family:'Fredoka One',cursive;font-size:clamp(1.5rem,5vw,2rem);color:#fff;
+  text-shadow:0 0 20px rgba(167,139,250,.5);}
+.cert-sub{font-size:.8rem;color:var(--muted);margin-top:6px;}
+.cert-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.cs-box{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:12px 8px;}
+.cs-val{font-family:'Fredoka One',cursive;font-size:1.4rem;display:block;}
+.cs-lbl{font-size:.65rem;color:var(--muted);margin-top:2px;letter-spacing:.04em;}
+.cert-levels{display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.cl-chip{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
+  font-size:.8rem;font-weight:800;border:1px solid;}
+.cert-footer{font-size:.68rem;color:var(--muted);line-height:1.6;}
+.cert-stars{font-size:1.4rem;margin:4px 0;}
+.cert-play-again{background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;
+  font-family:'Fredoka One',cursive;font-size:1.05rem;padding:13px 40px;border-radius:50px;
+  cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(167,139,250,.35);width:100%;max-width:320px;}
+.cert-play-again:hover{transform:scale(1.04);}
+
+/* ── ANIMATIONS ── */
+@keyframes popIn{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+@keyframes floatUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes shakeX{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+.shake{animation:shakeX .38s ease;}
+.particle{position:fixed;pointer-events:none;z-index:800;animation:pFly .9s ease-out forwards;}
+@keyframes pFly{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.1);}}
+
+/* ════════════════════════════════
+   LEVEL 1 — CHEMICAL VALENCE
+════════════════════════════════ */
+#l1-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#l1-mission{text-align:center;padding:8px 16px 6px;flex-shrink:0;background:rgba(8,6,15,.5);}
+.l1-mlabel{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+#l1-mol{font-family:'Fredoka One',cursive;font-size:1.6rem;color:#fff;text-shadow:0 0 20px rgba(79,195,247,.5);}
+#l1-hint{font-size:.78rem;color:var(--muted);margin-top:2px;}
+#l1-main{flex:1;display:flex;align-items:stretch;overflow:hidden;position:relative;}
+#l1-pool-left,#l1-pool-right{width:90px;flex-shrink:0;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:12px;padding:8px 5px;position:relative;z-index:10;}
+#l1-reaction-zone{flex:1;position:relative;display:flex;align-items:center;justify-content:center;}
+#l1-drop-target{width:clamp(180px,36vw,280px);height:clamp(180px,36vw,280px);border-radius:50%;
+  border:3px dashed rgba(79,195,247,.3);background:radial-gradient(circle,rgba(79,195,247,.04) 0%,transparent 70%);
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:border-color .3s,background .3s;z-index:5;}
+#l1-drop-target.drag-over{border-color:rgba(79,195,247,.8);background:radial-gradient(circle,rgba(79,195,247,.12) 0%,transparent 70%);box-shadow:0 0 50px rgba(79,195,247,.2);}
+.l1-drop-label{font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;position:absolute;bottom:22px;}
+#l1-drop-atoms{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;max-width:82%;min-height:70px;}
+#l1-synth-btn{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#4fc3f7,#0288d1);color:#000;border:none;
+  font-family:'Fredoka One',cursive;font-size:1rem;padding:10px 28px;border-radius:50px;
+  cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(79,195,247,.4);white-space:nowrap;z-index:20;}
+#l1-synth-btn:hover{transform:translateX(-50%) scale(1.06);filter:brightness(1.1);}
+#l1-clear-btn{position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);
+  background:transparent;color:var(--muted);border:1px solid var(--border);
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.78rem;padding:6px 18px;
+  border-radius:50px;cursor:pointer;transition:all .2s;white-space:nowrap;z-index:20;}
+#l1-clear-btn:hover{border-color:var(--red);color:var(--red);}
+.l1-atom-chip{width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:grab;font-family:'Fredoka One',cursive;
+  transition:transform .15s,box-shadow .15s;position:relative;flex-shrink:0;border:2px solid transparent;z-index:10;}
+.l1-atom-chip:hover{transform:scale(1.12);}
+.l1-atom-chip.placed{width:44px;height:44px;cursor:pointer;animation:popIn .2s cubic-bezier(.34,1.56,.64,1);}
+.l1-atom-chip.placed:hover::after{content:'✕';position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.9rem;font-family:'Nunito',sans-serif;color:#fff;}
+.l1-sym{font-size:1.1rem;line-height:1;} .l1-val{font-size:.58rem;opacity:.75;font-family:'Nunito',sans-serif;font-weight:800;}
+.l1-placed-sym{font-size:.95rem;line-height:1;}
+/* atom colors */
+.ac-H{background:radial-gradient(circle at 35% 35%,#ff8a80,#ff6b6b);box-shadow:0 4px 14px rgba(255,107,107,.5);border-color:rgba(255,107,107,.4);color:#fff;}
+.ac-O{background:radial-gradient(circle at 35% 35%,#80d8ff,#4fc3f7);box-shadow:0 4px 14px rgba(79,195,247,.5);border-color:rgba(79,195,247,.4);color:#000;}
+.ac-N{background:radial-gradient(circle at 35% 35%,#ce93d8,#ab47bc);box-shadow:0 4px 14px rgba(171,71,188,.5);border-color:rgba(171,71,188,.4);color:#fff;}
+.ac-C{background:radial-gradient(circle at 35% 35%,#a5d6a7,#66bb6a);box-shadow:0 4px 14px rgba(102,187,106,.5);border-color:rgba(102,187,106,.4);color:#fff;}
+.ac-Na{background:radial-gradient(circle at 35% 35%,#ffcc80,#ffa726);box-shadow:0 4px 14px rgba(255,167,38,.5);border-color:rgba(255,167,38,.4);color:#000;}
+.ac-Cl{background:radial-gradient(circle at 35% 35%,#80deea,#26c6da);box-shadow:0 4px 14px rgba(38,198,218,.5);border-color:rgba(38,198,218,.4);color:#000;}
+.ac-Ca{background:radial-gradient(circle at 35% 35%,#ef9a9a,#ef5350);box-shadow:0 4px 14px rgba(239,83,80,.5);border-color:rgba(239,83,80,.4);color:#fff;}
+.ac-S{background:radial-gradient(circle at 35% 35%,#fff176,#ffee58);box-shadow:0 4px 14px rgba(255,238,88,.5);border-color:rgba(255,238,88,.4);color:#333;}
+#l1-feedback{margin-top:18px;padding:14px 18px;border-radius:12px;font-weight:700;display:none;animation:popIn .3s ease;}
+#l1-feedback.correct{display:block;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.4);color:var(--green);}
+#l1-feedback.wrong{display:block;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);color:var(--red);}
+.l1-next-btn{margin-top:12px;background:var(--text);color:var(--bg);border:none;
+  font-family:'Fredoka One',cursive;font-size:.95rem;padding:11px 26px;border-radius:12px;cursor:pointer;
+  transition:all .2s;display:block;width:100%;}
+.l1-next-btn:hover{transform:scale(1.03);}
+#l1-float-bg{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden;}
+
+/* ════════════════════════════════
+   LEVEL 2 — MOLECULAR MASS
+════════════════════════════════ */
+#l2-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:8px 12px 6px;gap:8px;}
+#l2-mol-visual{display:flex;align-items:center;justify-content:center;gap:0;flex-shrink:0;flex-wrap:wrap;min-height:82px;}
+.l2-mol-ball{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;
+  font-family:'Fredoka One',cursive;position:relative;transition:transform .2s,box-shadow .3s;flex-shrink:0;}
+.l2-sym{font-size:1rem;line-height:1;} .l2-cnt{font-size:.6rem;font-weight:800;font-family:'Nunito',sans-serif;}
+.l2-tag{position:absolute;bottom:-17px;font-size:.58rem;font-weight:700;font-family:'Nunito',sans-serif;white-space:nowrap;opacity:.7;}
+.l2-bond{width:22px;height:3px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);flex-shrink:0;align-self:center;margin:0 -2px;}
+#l2-counters{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;flex-shrink:0;}
+.l2-counter{background:rgba(17,24,39,.8);border:1.5px solid var(--border);border-radius:14px;
+  padding:9px 12px;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:84px;
+  transition:border-color .3s,box-shadow .3s;}
+.l2-counter.s-ok{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.2);}
+.l2-counter.s-ok::before{background:rgba(74,222,128,.05);opacity:1;}
+.l2-counter.s-over{border-color:var(--red);box-shadow:0 0 12px rgba(248,113,113,.2);}
+.l2-counter.s-under{border-color:var(--gold);}
+.l2-csym{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:1rem;}
+.l2-cformula{font-size:.68rem;color:var(--muted);}
+.l2-crun{font-family:'Fredoka One',cursive;font-size:.95rem;transition:color .3s;}
+.l2-crun.ok{color:var(--green);} .l2-crun.over{color:var(--red);} .l2-crun.under{color:var(--gold);}
+#l2-steppers{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;flex-shrink:0;}
+.l2-stepper{display:flex;align-items:center;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:30px;overflow:hidden;}
+.l2-slbl{padding:0 10px;font-family:'Fredoka One',cursive;font-size:.78rem;border-right:1px solid var(--border);color:var(--text);white-space:nowrap;background:rgba(255,255,255,.02);}
+.l2-sbtn{width:30px;height:30px;background:none;border:none;color:var(--text);font-size:1.1rem;cursor:pointer;font-family:'Fredoka One',cursive;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
+.l2-sbtn:hover{background:rgba(251,191,36,.15);color:var(--gold);}
+.l2-sbtn.plus{border-left:1px solid var(--border);}
+.l2-sval{min-width:26px;text-align:center;font-family:'Fredoka One',cursive;font-size:1rem;color:var(--text);}
+#l2-total{background:rgba(17,24,39,.8);border:1.5px solid var(--border);border-radius:14px;
+  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;
+  transition:border-color .4s,box-shadow .4s;}
+#l2-total.bar-ok{border-color:var(--green);box-shadow:0 0 18px rgba(74,222,128,.2);}
+#l2-total.bar-over{border-color:var(--red);box-shadow:0 0 18px rgba(248,113,113,.2);}
+.l2-tlbl{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+.l2-teq{font-family:'Fredoka One',cursive;font-size:.88rem;color:var(--muted);flex:1;padding:0 10px;line-height:1.5;}
+.l2-tnum{font-family:'Fredoka One',cursive;font-size:1.8rem;transition:color .3s;min-width:60px;text-align:right;}
+.l2-tnum.ok{color:var(--green);text-shadow:0 0 14px rgba(74,222,128,.5);}
+.l2-tnum.over{color:var(--red);}
+.l2-tnum.zero{color:var(--muted);}
+.l2-tgt{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:3px 9px;
+  font-family:'Fredoka One',cursive;font-size:.75rem;color:var(--gold);white-space:nowrap;}
+#l2-confirm{background:linear-gradient(135deg,#fbbf24,#d97706);color:#000;border:none;
+  font-family:'Fredoka One',cursive;font-size:1rem;padding:12px;border-radius:13px;cursor:pointer;
+  transition:all .2s;flex-shrink:0;box-shadow:0 4px 18px rgba(251,191,36,.3);}
+#l2-confirm:hover{transform:scale(1.03);filter:brightness(1.1);}
+
+/* ════════════════════════════════
+   LEVEL 3 — BALANCING (v2: structural atom animations)
+════════════════════════════════ */
+#l3-target{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
+  padding:6px 16px;background:rgba(251,191,36,.05);border-bottom:1px solid rgba(251,191,36,.15);flex-shrink:0;}
+.l3-tb-lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:800;white-space:nowrap;}
+.l3-tb-mol{display:inline-flex;align-items:center;gap:4px;background:rgba(251,191,36,.08);
+  border:1.5px solid rgba(251,191,36,.28);border-radius:20px;padding:2px 10px 2px 7px;
+  font-family:'Fredoka One',cursive;font-size:.82rem;color:var(--gold);}
+.l3-tb-plus{color:rgba(251,191,36,.45);font-family:'Fredoka One',cursive;font-size:.9rem;}
+.l3-tb-hint{font-size:.6rem;color:rgba(251,191,36,.4);white-space:nowrap;}
+#l3-eq-strip{flex-shrink:0;background:rgba(8,6,15,.82);border-bottom:1px solid var(--border);padding:5px 12px;}
+.l3-eq-lbl{font-size:.57rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:2px;}
+#l3-eq-row{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;
+  font-family:'Fredoka One',cursive;font-size:clamp(.76rem,2.2vw,.95rem);min-height:24px;}
+.l3-eq-chip{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,.03);transition:border-color .3s,box-shadow .3s;}
+.l3-eq-chip.slot-ok{border-color:rgba(74,222,128,.4);box-shadow:0 0 6px rgba(74,222,128,.15);}
+.l3-eq-n{font-family:'Fredoka One',cursive;min-width:13px;text-align:center;color:var(--muted);transition:all .35s cubic-bezier(.34,1.56,.64,1);}
+.l3-eq-n.revealed{color:var(--gold);}
+.l3-eq-n.is-one.revealed{color:rgba(251,191,36,.45);}
+.l3-eq-f{font-size:.88em;}
+.l3-eq-plus,.l3-eq-arrow{color:var(--muted);padding:0 1px;}
+.l3-eq-arrow{color:#a78bfa;font-size:1.1em;}
+#l3-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#l3-bench{flex-shrink:0;display:flex;align-items:flex-start;justify-content:center;padding:8px 10px 4px;gap:8px;flex-wrap:wrap;}
+.l3-rcol{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.l3-rcol-lbl{font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+.l3-slot{width:clamp(78px,18vw,104px);min-height:clamp(85px,18vw,110px);border-radius:16px;
+  border:2.5px dashed rgba(167,139,250,.28);background:rgba(13,10,22,.7);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:6px 4px 4px;position:relative;transition:border-color .2s,box-shadow .2s,background .2s;overflow:hidden;gap:2px;}
+.l3-slot.drag-over{border-color:rgba(167,139,250,.85);box-shadow:0 0 22px rgba(167,139,250,.28);background:rgba(167,139,250,.06);}
+.l3-sbadge{position:absolute;top:5px;left:50%;transform:translateX(-50%);
+  font-family:'Fredoka One',cursive;font-size:.78rem;padding:1px 9px;border-radius:20px;
+  border:1.5px solid var(--border);background:rgba(8,6,16,.85);color:var(--muted);
+  transition:color .25s,border-color .25s,box-shadow .25s;white-space:nowrap;z-index:3;}
+.l3-stacked{width:100%;background:rgba(255,255,255,.04);border-radius:9px;
+  display:flex;align-items:center;justify-content:center;gap:4px;padding:3px 5px;
+  font-family:'Fredoka One',cursive;font-size:.72rem;cursor:pointer;transition:background .15s;flex-shrink:0;
+  animation:popIn .2s cubic-bezier(.34,1.56,.64,1);}
+.l3-stacked:hover{background:rgba(248,113,113,.12);}
+.l3-stacked:hover::after{content:' ✕';font-size:.62rem;color:var(--red);opacity:.8;}
+.l3-stacked.l3-struct{padding:3px 4px;flex-direction:column;gap:2px;}
+.l3-bench-plus{font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--muted);align-self:center;margin-top:26px;flex-shrink:0;}
+.l3-prod-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.l3-prod-card{display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:14px;
+  padding:7px 12px;border:2px solid transparent;background:transparent;position:relative;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);min-width:clamp(76px,16vw,100px);min-height:clamp(84px,16vw,108px);}
+.l3-prod-card.hidden{opacity:0;transform:scale(.5);}
+.l3-prod-card.revealed{opacity:1;transform:scale(1);border-color:rgba(74,222,128,.45);background:rgba(74,222,128,.07);box-shadow:0 0 22px rgba(74,222,128,.2);}
+.l3-pc-cnt{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-family:'Fredoka One',cursive;font-size:.65rem;
+  padding:1px 8px;border-radius:20px;border:1.5px solid rgba(74,222,128,.5);background:rgba(8,6,16,.9);color:var(--green);white-space:nowrap;opacity:0;transition:opacity .4s ease .2s;}
+.l3-prod-card.revealed .l3-pc-cnt{opacity:1;}
+.l3-pc-icon{font-size:1.6rem;line-height:1;} .l3-pc-name{font-family:'Fredoka One',cursive;font-size:.68rem;text-align:center;}
+.l3-bench-arrow{font-family:'Fredoka One',cursive;font-size:1.5rem;color:#a78bfa;align-self:center;margin-top:26px;flex-shrink:0;}
+#l3-react-btn{flex-shrink:0;align-self:center;margin-top:24px;
+  background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;
+  font-family:'Fredoka One',cursive;font-size:.9rem;padding:9px 20px;border-radius:50px;cursor:pointer;
+  transition:all .2s;box-shadow:0 4px 16px rgba(167,139,250,.38);white-space:nowrap;}
+#l3-react-btn:hover{transform:scale(1.05);filter:brightness(1.1);}
+#l3-react-btn:active{transform:scale(.96);}
+#l3-react-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+#l3-pool{flex:1;overflow:hidden;min-height:0;display:flex;align-items:center;justify-content:center;align-content:center;flex-wrap:wrap;gap:8px;padding:8px 12px;}
+.l3-mol-card{border-radius:15px;border:2px solid transparent;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:filter .15s,transform .15s;
+  width:auto;min-width:clamp(62px,13vw,78px);max-width:clamp(110px,24vw,140px);
+  height:clamp(62px,14vw,80px);padding:5px 7px;}
+.l3-mol-card:hover{filter:brightness(1.18);transform:scale(1.1);}
+.l3-mc-icon{font-size:1.5rem;line-height:1;} .l3-mc-name{font-family:'Fredoka One',cursive;font-size:.65rem;text-align:center;color:#fff;}
+.l3-mc-slabel{font-family:'Fredoka One',cursive;font-size:.55rem;color:rgba(255,255,255,.5);}
+#l3-rxn-ov{position:fixed;inset:0;z-index:300;display:none;pointer-events:none;}
+#l3-rxn-ov.show{display:block;}
+.rxn-flash{position:absolute;inset:0;background:radial-gradient(circle,rgba(167,139,250,.22) 0%,transparent 70%);animation:fPulse .65s ease-out forwards;}
+@keyframes fPulse{0%{opacity:0;}30%{opacity:1;}100%{opacity:0;}}
+
+/* ── L3 ATOM CIRCLES ── */
+.l3-a-h {width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffa07a,#c0392b);border:1.5px solid #f87171;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.38rem;font-weight:900;color:#fff;box-shadow:0 0 5px rgba(248,113,113,.5);flex-shrink:0;}
+.l3-a-o {width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#60cfff,#1a7fbf);border:2px solid #38bdf8;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.5rem;font-weight:900;color:#fff;box-shadow:0 0 7px rgba(56,189,248,.6);flex-shrink:0;}
+.l3-a-fe{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);border:2px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.42rem;font-weight:900;color:#fff;box-shadow:0 0 7px rgba(167,139,250,.55);flex-shrink:0;}
+.l3-a-c {width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#86efac,#15803d);border:2px solid #4ade80;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.42rem;font-weight:900;color:#fff;box-shadow:0 0 6px rgba(74,222,128,.5);flex-shrink:0;}
+.l3-a-cl{width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#67e8f9,#0e7490);border:2px solid #22d3ee;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.38rem;font-weight:900;color:#fff;box-shadow:0 0 6px rgba(34,211,238,.5);flex-shrink:0;}
+.l3-a-al{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e2e8f0,#64748b);border:2px solid #94a3b8;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.4rem;font-weight:900;color:#fff;box-shadow:0 0 6px rgba(148,163,184,.5);flex-shrink:0;}
+.l3-bond  {width:7px;height:2.5px;background:rgba(255,255,255,.4);border-radius:2px;flex-shrink:0;}
+.l3-bond-d{display:flex;flex-direction:column;gap:2px;width:7px;flex-shrink:0;}
+.l3-bond-d span{height:2px;background:rgba(255,255,255,.38);border-radius:1px;display:block;}
+.l3-bond-t{display:flex;flex-direction:column;gap:1.5px;width:7px;flex-shrink:0;}
+.l3-bond-t span{height:1.5px;background:rgba(255,255,255,.35);border-radius:1px;display:block;}
+/* H2O bent */
+.l3-h2o-s{display:flex;align-items:center;justify-content:center;position:relative;width:50px;height:32px;}
+.l3-h2o-s .l3-a-o{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+.l3-h2o-s .ahl{position:absolute;left:1px;top:2px;}
+.l3-h2o-s .ahr{position:absolute;right:1px;top:2px;}
+.l3-h2o-s .bhl{position:absolute;width:10px;height:2px;background:rgba(255,255,255,.5);border-radius:2px;left:13px;top:11px;transform:rotate(-38deg);}
+.l3-h2o-s .bhr{position:absolute;width:10px;height:2px;background:rgba(255,255,255,.5);border-radius:2px;right:13px;top:11px;transform:rotate(38deg);}
+/* Molecule row containers */
+.l3-ms{display:flex;align-items:center;gap:1px;}
+/* Flying atoms for reaction animation */
+.l3-atom-fly{position:fixed;pointer-events:none;z-index:510;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-weight:900;color:#fff;}
+@keyframes l3AtomBreak{0%{opacity:1;transform:translate(0,0) scale(1);}18%{transform:translate(calc(var(--dx)*.08),calc(var(--dy)*.08)) scale(1.3);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.35);}}
+@keyframes l3AtomForm{0%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.25);}30%{opacity:1;}100%{opacity:1;transform:translate(0,0) scale(1);}}
+@keyframes l3StructReveal{0%{opacity:0;transform:scale(0) rotate(-15deg);}55%{transform:scale(1.12) rotate(2deg);}100%{opacity:1;transform:scale(1) rotate(0);}}
+.l3-struct-reveal{animation:l3StructReveal .55s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes l3BondFlash{0%,100%{opacity:1;}30%{opacity:.12;}60%{opacity:1;}80%{opacity:.28;}}
+.l3-breaking{animation:l3BondFlash .32s ease;}
+@keyframes l3SparkFly{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.1);}}
+.l3-spark{position:fixed;pointer-events:none;z-index:520;border-radius:50%;}
+
+/* ── SHARED LEVEL OVERLAY ── */
+.lv-overlay{position:fixed;inset:0;z-index:400;background:rgba(8,6,15,.94);backdrop-filter:blur(14px);
+  display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+.lv-overlay.show{display:flex;}
+.lvo-emoji{font-size:4rem;margin-bottom:8px;animation:popIn .45s cubic-bezier(.34,1.56,.64,1);}
+.lvo-title{font-family:'Fredoka One',cursive;font-size:1.8rem;margin-bottom:5px;animation:popIn .4s ease .1s both;}
+.lvo-sub{color:var(--muted);font-size:.85rem;margin-bottom:14px;animation:popIn .4s ease .16s both;}
+.lvo-card{background:rgba(13,10,22,.97);border:2px solid rgba(167,139,250,.35);border-radius:18px;
+  padding:14px 20px;max-width:400px;width:100%;margin-bottom:14px;animation:popIn .4s ease .22s both;
+  font-size:.82rem;line-height:1.7;color:var(--muted);text-align:left;box-shadow:0 0 26px rgba(167,139,250,.15);}
+.lvo-card strong{color:var(--text);}
+.lvo-btn{background:linear-gradient(135deg,var(--green),#16a34a);color:#000;border:none;
+  font-family:'Fredoka One',cursive;font-size:1.05rem;padding:13px 42px;border-radius:50px;cursor:pointer;
+  transition:all .2s;animation:popIn .4s ease .28s both;box-shadow:0 4px 20px rgba(74,222,128,.35);}
+.lvo-btn:hover{transform:scale(1.05);}
+.lvo-btn-gold{background:linear-gradient(135deg,#fbbf24,#d97706);color:#000;box-shadow:0 4px 20px rgba(251,191,36,.35);}
+.lvo-eq{font-family:'Fredoka One',cursive;font-size:clamp(.85rem,2.8vw,1.05rem);color:var(--gold);
+  background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.18);border-radius:11px;padding:6px 16px;
+  margin-bottom:8px;animation:popIn .4s ease .13s both;max-width:90vw;}
+
+/* ── DRAG GHOST ── */
+#drag-ghost{position:fixed;z-index:700;pointer-events:none;border-radius:18px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:70px;height:70px;opacity:.88;transform:translate(-50%,-50%);font-family:'Fredoka One',cursive;}
+
+@media(max-width:460px){
+  .l3-slot{width:72px;min-height:78px;} .l3-mol-card{width:58px;height:58px;}
+  #l1-pool-left,#l1-pool-right{width:72px;}
+  .l1-atom-chip{width:44px;height:44px;} .l1-sym{font-size:.9rem;}
+}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="toast"></div>
+<div id="drag-ghost"></div>
+<div id="l3-rxn-ov"></div>
+
+<!-- ══════════ HOME ══════════ -->
+<div class="screen active" id="home">
+  <div class="home-inner">
+    <div style="font-size:3rem;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)">⚗️</div>
+    <div class="home-title">化学闯关<br>大冒险</div>
+    <div class="home-sub">初中化学 · 三大基础关卡 · 趣味挑战</div>
+    <div class="home-levels" id="home-levels"></div>
+    <button class="home-start-btn" onclick="startGame()">🚀 开始游戏</button>
+  </div>
+</div>
+
+<!-- ══════════ GAME WRAPPER ══════════ -->
+<div class="screen" id="game-wrap">
+  <!-- shared topbar -->
+  <div id="topbar">
+    <div class="t-logo">⚗️ 化学冒险</div>
+    <div class="t-center">
+      <div class="t-level-name" id="t-level-name">第一关：化合价</div>
+      <div class="t-timer" id="t-timer">00:00</div>
+    </div>
+    <div class="t-score">⭐ <span id="t-score">0</span></div>
+  </div>
+  <!-- level progress dots -->
+  <div style="display:flex;justify-content:center;gap:8px;padding:5px 0;background:rgba(8,6,15,.7);border-bottom:1px solid var(--border);flex-shrink:0;" id="lv-dots-bar"></div>
+  <!-- game content injected here -->
+  <div id="game-root"></div>
+</div>
+
+<!-- ══════════ LEVEL TRANSITION ══════════ -->
+<div id="lvl-transition">
+  <div class="lt-emoji" id="lt-emoji">🎉</div>
+  <div class="lt-title" id="lt-title">第一关通过！</div>
+  <div class="lt-sub"   id="lt-sub">太棒了！继续挑战下一关</div>
+  <button class="lt-next" id="lt-next" onclick="proceedToNext()">进入下一关 →</button>
+</div>
+
+<!-- ══════════ NAME DIALOG ══════════ -->
+<div id="name-dialog">
+  <div class="nd-box">
+    <div class="nd-emoji">🏆</div>
+    <div class="nd-title">恭喜全部通关！</div>
+    <div class="nd-sub">请输入你的名字，为你生成专属通关证书！</div>
+    <input class="nd-input" id="nd-input" type="text" placeholder="你的名字…" maxlength="20"
+           onkeydown="if(event.key==='Enter')genCert()">
+    <button class="nd-btn" onclick="genCert()">✨ 生成证书</button>
+  </div>
+</div>
+
+<!-- ══════════ CERTIFICATE ══════════ -->
+<div class="screen" id="cert-screen">
+  <div class="cert-wrap">
+    <div class="cert-card" id="cert-card">
+      <div class="cert-header">
+        <div class="cert-seal">🏅</div>
+        <div class="cert-title-top">初中化学闯关游戏</div>
+        <div class="cert-big">通关证书</div>
+      </div>
+      <div class="cert-divider"></div>
+      <div class="cert-name-label">颁发给</div>
+      <div class="cert-name" id="cert-name">同学</div>
+      <div class="cert-sub">已成功完成全部三个化学关卡的挑战</div>
+      <div class="cert-stars">⭐⭐⭐</div>
+      <div class="cert-stats">
+        <div class="cs-box"><span class="cs-val" id="cert-score" style="color:var(--gold)">0</span><div class="cs-lbl">总积分</div></div>
+        <div class="cs-box"><span class="cs-val" id="cert-time" style="color:var(--blue)">0:00</span><div class="cs-lbl">完成用时</div></div>
+        <div class="cs-box"><span class="cs-val" id="cert-finish" style="color:var(--purple)">--:--</span><div class="cs-lbl">完成时间</div></div>
+        <div class="cs-box"><span class="cs-val" id="cert-date" style="color:var(--green)">----</span><div class="cs-lbl">完成日期</div></div>
+      </div>
+      <div class="cert-levels" id="cert-levels"></div>
+      <div class="cert-divider"></div>
+      <div class="cert-footer" id="cert-footer"></div>
+    </div>
+    <button class="cert-play-again" onclick="playAgain()">🔄 再来一次</button>
+  </div>
+</div>
+
+<div class="lv-overlay" id="lv-overlay">
+  <div class="lvo-emoji" id="lvo-emoji">🎉</div>
+  <div class="lvo-eq"   id="lvo-eq"   style="display:none"></div>
+  <div class="lvo-title" id="lvo-title">完成！</div>
+  <div class="lvo-sub"   id="lvo-sub"></div>
+  <div class="lvo-card"  id="lvo-card"  style="display:none"></div>
+  <button class="lvo-btn" id="lvo-btn" onclick="overlayNext()">继续 →</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// GLOBAL STATE
+// ══════════════════════════════════════════
+let G = {
+  currentLevel: 1,   // 1,2,3
+  clearedLevels: [], // [1,2,3]
+  score: 0,
+  gameStartTime: null,
+  timerInterval: null,
+};
+
+// ══════════════════════════════════════════
+// CANVAS BG
+// ══════════════════════════════════════════
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let bgP = [];
+const ATOM_COLORS = {H:'#f87171',O:'#38bdf8',C:'#4ade80',N:'#c084fc',Na:'#fb923c',Cl:'#22d3ee',Ca:'#f472b6',Fe:'#a78bfa',S:'#facc15',Al:'#94a3b8'};
+function aC(s){return ATOM_COLORS[s]||'#888';}
+function initBg(){
+  canvas.width=innerWidth;canvas.height=innerHeight;bgP=[];
+  const syms=Object.keys(ATOM_COLORS);
+  for(let i=0;i<22;i++){
+    const s=syms[Math.floor(Math.random()*syms.length)];
+    bgP.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,
+      r:9+Math.random()*13,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,
+      s,color:aC(s),alpha:.04+Math.random()*.055,rot:Math.random()*Math.PI*2,vrot:(Math.random()-.5)*.003});
+  }
+}
+function animBg(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(const p of bgP){
+    p.x+=p.vx;p.y+=p.vy;p.rot+=p.vrot;
+    if(p.x<-20)p.x=canvas.width+20;if(p.x>canvas.width+20)p.x=-20;
+    if(p.y<-20)p.y=canvas.height+20;if(p.y>canvas.height+20)p.y=-20;
+    ctx.save();ctx.globalAlpha=p.alpha;ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+    ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fillStyle=p.color+'22';ctx.fill();
+    ctx.strokeStyle=p.color+'44';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=p.color;ctx.font=`bold ${p.r*.85}px 'Fredoka One',cursive`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.s,0,1);ctx.restore();
+  }
+  requestAnimationFrame(animBg);
+}
+window.addEventListener('resize',initBg);
+
+// ══════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════
+function startTimer(){
+  G.gameStartTime=Date.now();
+  G.timerInterval=setInterval(()=>{
+    const s=Math.floor((Date.now()-G.gameStartTime)/1000);
+    const m=Math.floor(s/60), ss=s%60;
+    document.getElementById('t-timer').textContent=`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  },500);
+}
+function stopTimer(){clearInterval(G.timerInterval);}
+function elapsedStr(){
+  const s=Math.floor((Date.now()-G.gameStartTime)/1000);
+  const m=Math.floor(s/60),ss=s%60;
+  return `${m}分${String(ss).padStart(2,'0')}秒`;
+}
+function elapsedSecs(){return Math.floor((Date.now()-G.gameStartTime)/1000);}
+
+// ══════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════
+const LV_META=[
+  {n:1,icon:'⚡',name:'化合价',desc:'拖动原子合成化合物，掌握化合价规律'},
+  {n:2,icon:'⚖️',name:'相对分子质量',desc:'计算分子质量，理解原子量加法'},
+  {n:3,icon:'🔥',name:'化学方程式配平',desc:'拖入正确分子，触发真实反应动画'},
+];
+function renderHome(){
+  const c=document.getElementById('home-levels');
+  c.innerHTML=LV_META.map(lv=>{
+    const done=G.clearedLevels.includes(lv.n);
+    const locked=lv.n>1&&!G.clearedLevels.includes(lv.n-1);
+    const badge=done?`<span class="lv-badge done-badge">✓ 已通关</span>`:locked?`<span class="lv-badge lock-badge">🔒 未解锁</span>`:`<span class="lv-badge go-badge">▶ 挑战</span>`;
+    return `<div class="lv-card lv${lv.n}${locked?' locked-card':''}" onclick="homeClickLevel(${lv.n})">
+      <div class="lv-icon">${lv.icon}</div>
+      <div class="lv-info"><div class="lv-num">第${['','一','二','三'][lv.n]}关</div><div class="lv-name">${lv.name}</div><div class="lv-desc">${lv.desc}</div></div>
+      ${badge}</div>`;
+  }).join('');
+}
+function homeClickLevel(n){
+  if(n>1&&!G.clearedLevels.includes(n-1)){showToast('🔒 请先完成上一关！');return;}
+  G.currentLevel=n;
+  startGame();
+}
+function startGame(){
+  // If starting fresh (no timer yet)
+  if(!G.gameStartTime) startTimer();
+  renderLvDots();
+  showScreen('game-wrap');
+  loadLevel(G.currentLevel);
+}
+
+function renderLvDots(){
+  document.getElementById('lv-dots-bar').innerHTML=LV_META.map(lv=>{
+    const done=G.clearedLevels.includes(lv.n);
+    const active=lv.n===G.currentLevel;
+    const cls=done?'done':active?'active':'locked';
+    return `<div class="ldot ${cls}">${done?'✓':lv.n}</div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// SCREEN MANAGER
+// ══════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// LEVEL LOADER
+// ══════════════════════════════════════════
+function loadLevel(n){
+  G.currentLevel=n;
+  document.getElementById('t-level-name').textContent=`第${['','一','二','三'][n]}关：${LV_META[n-1].name}`;
+  renderLvDots();
+  const root=document.getElementById('game-root');
+  root.innerHTML='';
+  if(n===1) initL1(root);
+  else if(n===2) initL2(root);
+  else if(n===3) initL3(root);
+}
+
+function addScore(pts){
+  G.score+=pts;
+  document.getElementById('t-score').textContent=G.score;
+}
+
+// ══════════════════════════════════════════
+// OVERLAY (shared result popup per sub-question)
+// ══════════════════════════════════════════
+let _overlayCallback=null;
+function showLvOverlay(opts){
+  // opts: {emoji,eq,title,sub,card,btnText,onNext,gold}
+  const ov=document.getElementById('lv-overlay');
+  document.getElementById('lvo-emoji').textContent=opts.emoji||'🎉';
+  const eqEl=document.getElementById('lvo-eq');
+  if(opts.eq){eqEl.style.display='';eqEl.textContent=opts.eq;}else{eqEl.style.display='none';}
+  document.getElementById('lvo-title').textContent=opts.title||'';
+  document.getElementById('lvo-sub').textContent=opts.sub||'';
+  const cardEl=document.getElementById('lvo-card');
+  if(opts.card){cardEl.style.display='';cardEl.innerHTML=opts.card;}else{cardEl.style.display='none';}
+  const btn=document.getElementById('lvo-btn');
+  btn.textContent=opts.btnText||'继续 →';
+  btn.className=opts.gold?'lvo-btn lvo-btn-gold':'lvo-btn';
+  _overlayCallback=opts.onNext||null;
+  ov.classList.add('show');
+}
+function overlayNext(){
+  document.getElementById('lv-overlay').classList.remove('show');
+  if(_overlayCallback) _overlayCallback();
+}
+
+// ══════════════════════════════════════════
+// LEVEL CLEARED
+// ══════════════════════════════════════════
+function onLevelCleared(lvNum){
+  if(!G.clearedLevels.includes(lvNum)) G.clearedLevels.push(lvNum);
+  if(lvNum===3){
+    // all done — stop timer, show name dialog
+    stopTimer();
+    setTimeout(()=>showNameDialog(),600);
+    return;
+  }
+  // show transition
+  const next=lvNum+1;
+  const t=document.getElementById('lvl-transition');
+  document.getElementById('lt-emoji').textContent=['','🎉','⭐','🏆'][lvNum];
+  document.getElementById('lt-title').textContent=`第${['','一','二','三'][lvNum]}关通过！`;
+  document.getElementById('lt-sub').textContent=`进入第${['','一','二','三'][next]}关：${LV_META[next-1].name}`;
+  document.getElementById('lt-next').textContent=`进入第${['','一','二','三'][next]}关 →`;
+  t.classList.add('show');
+}
+function proceedToNext(){
+  document.getElementById('lvl-transition').classList.remove('show');
+  G.currentLevel++;
+  loadLevel(G.currentLevel);
+}
+
+// ══════════════════════════════════════════
+// NAME DIALOG & CERTIFICATE
+// ══════════════════════════════════════════
+function showNameDialog(){
+  document.getElementById('name-dialog').classList.add('show');
+  setTimeout(()=>document.getElementById('nd-input').focus(),300);
+}
+function genCert(){
+  const name=document.getElementById('nd-input').value.trim()||'同学';
+  document.getElementById('name-dialog').classList.remove('show');
+
+  const now=new Date();
+  const hm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const ymd=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const secs=elapsedSecs();
+  const m=Math.floor(secs/60),s=secs%60;
+  const timeStr=`${m}分${String(s).padStart(2,'0')}秒`;
+
+  document.getElementById('cert-name').textContent=name;
+  document.getElementById('cert-score').textContent=G.score;
+  document.getElementById('cert-time').textContent=timeStr;
+  document.getElementById('cert-finish').textContent=hm;
+  document.getElementById('cert-date').textContent=ymd;
+
+  document.getElementById('cert-levels').innerHTML=LV_META.map(lv=>
+    `<div class="cl-chip" style="background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.3);color:var(--green)">
+      ${lv.icon} ${lv.name} ✓</div>`).join('');
+
+  document.getElementById('cert-footer').innerHTML=
+    `本证书由化学闯关大冒险颁发<br>证明 <strong style="color:var(--text)">${name}</strong> 同学已掌握<br>化合价 · 相对分子质量 · 化学方程式配平<br>三大初中化学核心知识`;
+
+  spawnParticles();
+  showScreen('cert-screen');
+}
+function playAgain(){
+  G={currentLevel:1,clearedLevels:[],score:0,gameStartTime:null,timerInterval:null};
+  document.getElementById('t-score').textContent=0;
+  document.getElementById('t-timer').textContent='00:00';
+  document.getElementById('nd-input').value='';
+  renderHome();
+  showScreen('home');
+}
+
+// ══════════════════════════════════════════
+// FX
+// ══════════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);
+}
+function spawnParticles(ok=true){
+  const list=ok?['⭐','✨','🎊','💫','🔬','⚗️']:['❌','💢','😵'];
+  for(let i=0;i<(ok?14:5);i++){
+    const p=document.createElement('div');p.className='particle';
+    p.style.fontSize=(1+Math.random())+'rem';
+    p.textContent=list[Math.floor(Math.random()*list.length)];
+    p.style.left=(10+Math.random()*80)+'vw';p.style.top=(10+Math.random()*60)+'vh';
+    p.style.setProperty('--dx',(Math.random()-.5)*320+'px');
+    p.style.setProperty('--dy',-(Math.random()*240+60)+'px');
+    p.style.animationDelay=Math.random()*.35+'s';
+    document.body.appendChild(p);setTimeout(()=>p.remove(),1300);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  ██╗     ███████╗██╗   ██╗███████╗██╗      ██╗
+//  ██║     ██╔════╝██║   ██║██╔════╝██║     ███║
+//  ██║     █████╗  ██║   ██║█████╗  ██║      ██║
+//  ██║     ██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║      ██║
+//  ███████╗███████╗ ╚████╔╝ ███████╗███████╗  ██║
+//  ╚══════╝╚══════╝  ╚═══╝  ╚══════╝╚══════╝  ╚═╝
+// ══════════════════════════════════════════════════════════
+const L1_MOLECULES=[
+  {formula:'H₂O',name:'水',atoms:{H:2,O:1},explain:'<strong>H₂O（水）</strong><br>H化合价+1，O化合价-2。<br>2×(+1)+(-2)=0 ✓',poolAtoms:['H','H','H','O','O','N']},
+  {formula:'NaCl',name:'氯化钠（食盐）',atoms:{Na:1,Cl:1},explain:'<strong>NaCl（氯化钠）</strong><br>Na化合价+1，Cl化合价-1。<br>(+1)+(-1)=0 ✓',poolAtoms:['Na','Na','Cl','Cl','H','O']},
+  {formula:'CO₂',name:'二氧化碳',atoms:{C:1,O:2},explain:'<strong>CO₂（二氧化碳）</strong><br>C化合价+4，O化合价-2。<br>(+4)+2×(-2)=0 ✓',poolAtoms:['C','C','O','O','O','H']},
+  {formula:'NH₃',name:'氨气',atoms:{N:1,H:3},explain:'<strong>NH₃（氨气）</strong><br>N化合价-3，H化合价+1。<br>(-3)+3×(+1)=0 ✓',poolAtoms:['N','N','H','H','H','O']},
+  {formula:'CaCl₂',name:'氯化钙',atoms:{Ca:1,Cl:2},explain:'<strong>CaCl₂（氯化钙）</strong><br>Ca化合价+2，Cl化合价-1。<br>(+2)+2×(-1)=0 ✓',poolAtoms:['Ca','Ca','Cl','Cl','Cl','Na']},
+];
+const L1_ATOM_INFO={
+  H:{label:'H',valence:'+1',color:'ac-H'},O:{label:'O',valence:'-2',color:'ac-O'},
+  N:{label:'N',valence:'-3',color:'ac-N'},C:{label:'C',valence:'+4',color:'ac-C'},
+  Na:{label:'Na',valence:'+1',color:'ac-Na'},Cl:{label:'Cl',valence:'-1',color:'ac-Cl'},
+  Ca:{label:'Ca',valence:'+2',color:'ac-Ca'},S:{label:'S',valence:'+6',color:'ac-S'},
+};
+let l1={idx:0,dropped:[],dragging:null,touchGhost:null,touchSym:null};
+
+function initL1(root){
+  l1={idx:0,dropped:[],dragging:null,touchGhost:null,touchSym:null};
+  root.innerHTML=`
+  <div id="l1-wrap">
+    <div id="l1-mission">
+      <div class="l1-mlabel">第一关 · 化合价 · 合成分子</div>
+      <div id="l1-mol"></div><div id="l1-hint"></div>
+    </div>
+    <div id="l1-main">
+      <div id="l1-pool-left"><div class="pool-title" style="font-size:.6rem;writing-mode:vertical-rl;color:var(--muted);opacity:.4;position:absolute;left:4px;top:50%;transform:translateY(-50%)">原子库</div></div>
+      <div id="l1-reaction-zone">
+        <canvas id="l1-float-canvas" style="position:absolute;inset:0;pointer-events:none;z-index:2"></canvas>
+        <div id="l1-drop-target" ondragover="l1DragOver(event)" ondragleave="l1DragLeave(event)" ondrop="l1Drop(event)">
+          <div id="l1-drop-atoms"></div>
+          <div class="l1-drop-label">反应圈</div>
+          <button id="l1-synth-btn" onclick="l1Synth()">⚗️ 合成！</button>
+          <button id="l1-clear-btn" onclick="l1Clear()">✕ 清空</button>
+        </div>
+      </div>
+      <div id="l1-pool-right"><div class="pool-title" style="font-size:.6rem;writing-mode:vertical-rl;color:var(--muted);opacity:.4;position:absolute;right:4px;top:50%;transform:translateY(-50%)">原子库</div></div>
+    </div>
+  </div>`;
+  l1RenderQ();
+}
+
+function l1RenderQ(){
+  const mol=L1_MOLECULES[l1.idx];
+  l1.dropped=[];
+  document.getElementById('l1-mol').textContent=mol.formula+' · '+mol.name;
+  const needed=Object.entries(mol.atoms).map(([s,n])=>`${n}个${s}`).join(' + ');
+  document.getElementById('l1-hint').textContent=`需要：${needed}，拖入反应圈后点击合成！`;
+  l1BuildPools(mol);
+  l1RenderDrop();
+  // hide feedback
+  const fb=document.getElementById('l1-feedback');
+  if(fb){fb.className='';fb.style.display='none';}
+}
+
+function l1BuildPools(mol){
+  const left=mol.poolAtoms.slice(0,3),right=mol.poolAtoms.slice(3,6);
+  const makeHtml=sym=>{
+    const info=L1_ATOM_INFO[sym];
+    return `<div class="l1-atom-chip ${info.color}" draggable="true" data-sym="${sym}" style="touch-action:none;">
+      <span class="l1-sym">${info.label}</span><span class="l1-val">${info.valence}</span></div>`;
+  };
+  document.getElementById('l1-pool-left').innerHTML=left.map(makeHtml).join('');
+  document.getElementById('l1-pool-right').innerHTML=right.map(makeHtml).join('');
+  document.querySelectorAll('#l1-pool-left .l1-atom-chip, #l1-pool-right .l1-atom-chip').forEach(el=>{
+    el.addEventListener('dragstart',e=>{l1.dragging=el;el.style.opacity='.3';e.dataTransfer.setData('sym',el.dataset.sym);});
+    el.addEventListener('dragend',()=>{if(l1.dragging){l1.dragging.style.opacity='1';l1.dragging=null;}});
+    el.addEventListener('touchstart',l1TouchStart,{passive:false});
+  });
+}
+
+function l1RenderDrop(){
+  document.getElementById('l1-drop-atoms').innerHTML=l1.dropped.map((sym,i)=>{
+    const info=L1_ATOM_INFO[sym];
+    return `<div class="l1-atom-chip placed ${info.color}" onclick="l1RemoveAtom(${i})"><span class="l1-placed-sym">${info.label}</span></div>`;
+  }).join('');
+}
+
+function l1DragOver(e){e.preventDefault();document.getElementById('l1-drop-target').classList.add('drag-over');}
+function l1DragLeave(e){document.getElementById('l1-drop-target').classList.remove('drag-over');}
+function l1Drop(e){e.preventDefault();document.getElementById('l1-drop-target').classList.remove('drag-over');const s=e.dataTransfer.getData('sym');if(s)l1AddAtom(s);}
+
+function l1AddAtom(sym){
+  const mol=L1_MOLECULES[l1.idx],need=mol.atoms[sym]||0,have=l1.dropped.filter(s=>s===sym).length;
+  if(have>=need){showToast(`⚠️ ${sym} 已经够了！`);return;}
+  l1.dropped.push(sym);l1RenderDrop();
+}
+function l1RemoveAtom(idx){l1.dropped.splice(idx,1);l1RenderDrop();}
+function l1Clear(){l1.dropped=[];l1RenderDrop();}
+
+function l1Synth(){
+  const mol=L1_MOLECULES[l1.idx];
+  const counts={};l1.dropped.forEach(s=>counts[s]=(counts[s]||0)+1);
+  const needed=mol.atoms,nk=Object.keys(needed),dk=Object.keys(counts);
+  const correct=nk.length===dk.length&&nk.every(k=>counts[k]===needed[k]);
+
+  if(correct){
+    addScore(20);spawnParticles(true);
+    const isLast=l1.idx>=L1_MOLECULES.length-1;
+    showLvOverlay({
+      emoji:'🎉',
+      title:`${mol.formula} 合成成功！`,
+      sub:`+20分！化合价代数和为零，分子稳定！`,
+      card:`<strong>📖 解析：</strong><br><br>${mol.explain}`,
+      btnText:isLast?'完成第一关！':'下一个分子 →',
+      gold:isLast,
+      onNext:()=>l1Next(),
+    });
+  } else {
+    spawnParticles(false);
+    const hints=[];
+    nk.forEach(k=>{const h=counts[k]||0;if(h<needed[k])hints.push(`还需要 ${needed[k]-h} 个 ${k}`);else if(h>needed[k])hints.push(`${k} 多了 ${h-needed[k]} 个`);});
+    dk.filter(k=>!needed[k]).forEach(k=>hints.push(`${k} 不属于这个分子`));
+    showToast('❌ ' + (hints[0] || '配比不对，再试试！'));
+  }
+}
+
+function l1Next(){
+  l1.idx++;
+  if(l1.idx>=L1_MOLECULES.length){
+    onLevelCleared(1);
+  } else {
+    l1RenderQ();
+  }
+}
+
+// L1 touch drag
+function l1TouchStart(e){
+  e.preventDefault();
+  const el=e.currentTarget,sym=el.dataset.sym,t=e.touches[0];
+  l1.touchSym=sym;
+  const g=document.getElementById('drag-ghost');
+  const info=L1_ATOM_INFO[sym];
+  g.style.cssText=`display:flex;width:52px;height:52px;background:${getComputedStyle(document.documentElement).getPropertyValue('--bg')};border-radius:50%;left:${t.clientX}px;top:${t.clientY}px;`;
+  g.className='';
+  g.innerHTML=`<div class="l1-atom-chip ${info.color}" style="width:48px;height:48px;pointer-events:none"><span class="l1-sym">${info.label}</span></div>`;
+  el.style.opacity='.2';
+  const tm=(e2)=>{e2.preventDefault();const t2=e2.touches[0];g.style.left=t2.clientX+'px';g.style.top=t2.clientY+'px';
+    const dt=document.getElementById('l1-drop-target'),r=dt.getBoundingClientRect();
+    dt.classList.toggle('drag-over',t2.clientX>r.left&&t2.clientX<r.right&&t2.clientY>r.top&&t2.clientY<r.bottom);};
+  const te=(e2)=>{document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);
+    g.style.display='none';el.style.opacity='1';
+    document.getElementById('l1-drop-target').classList.remove('drag-over');
+    const t2=e2.changedTouches[0],dt=document.getElementById('l1-drop-target'),r=dt.getBoundingClientRect();
+    if(t2.clientX>r.left&&t2.clientX<r.right&&t2.clientY>r.top&&t2.clientY<r.bottom) l1AddAtom(sym);};
+  document.addEventListener('touchmove',tm,{passive:false});
+  document.addEventListener('touchend',te);
+}
+
+// ══════════════════════════════════════════════════════════
+//  ██╗     ███████╗██╗   ██╗███████╗██╗       ██████╗
+//  ██║     ██╔════╝██║   ██║██╔════╝██║      ╚════██╗
+//  ██║     █████╗  ██║   ██║█████╗  ██║        ███╔╝
+//  ██║     ██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║       ██╔══╝
+//  ███████╗███████╗ ╚████╔╝ ███████╗███████╗   ██████╗
+//  ╚══════╝╚══════╝  ╚═══╝  ╚══════╝╚══════╝   ╚═════╝
+// ══════════════════════════════════════════════════════════
+const L2_ATOMS={H:{mass:1,color:'#f87171'},O:{mass:16,color:'#38bdf8'},N:{mass:14,color:'#c084fc'},
+  C:{mass:12,color:'#4ade80'},Na:{mass:23,color:'#fb923c'},Cl:{mass:35.5,color:'#22d3ee'},
+  Ca:{mass:40,color:'#f472b6'},S:{mass:32,color:'#facc15'},Fe:{mass:56,color:'#a78bfa'},Al:{mass:27,color:'#94a3b8'}};
+const L2_QS=[
+  {formula:'H₂O',name:'水',atoms:[{s:'H',n:2},{s:'O',n:1}],answer:18},
+  {formula:'CO₂',name:'二氧化碳',atoms:[{s:'C',n:1},{s:'O',n:2}],answer:44},
+  {formula:'NaCl',name:'氯化钠',atoms:[{s:'Na',n:1},{s:'Cl',n:1}],answer:58.5},
+  {formula:'H₂SO₄',name:'硫酸',atoms:[{s:'H',n:2},{s:'S',n:1},{s:'O',n:4}],answer:98},
+  {formula:'Fe₂O₃',name:'氧化铁',atoms:[{s:'Fe',n:2},{s:'O',n:3}],answer:160},
+  {formula:'Ca(OH)₂',name:'氢氧化钙',atoms:[{s:'Ca',n:1},{s:'O',n:2},{s:'H',n:2}],answer:74},
+];
+let l2={qi:0,counts:{}};
+
+function initL2(root){
+  l2={qi:0,counts:{}};
+  root.innerHTML=`
+  <div id="l2-wrap">
+    <div id="l2-mol-visual"></div>
+    <div id="l2-counters"></div>
+    <div id="l2-steppers"></div>
+    <div id="l2-total">
+      <div><div class="l2-tlbl">当前总质量</div><div class="l2-tgt" id="l2-tgt">目标 = ?</div></div>
+      <div class="l2-teq" id="l2-teq">—</div>
+      <div class="l2-tnum zero" id="l2-tnum">0</div>
+    </div>
+    <button id="l2-confirm" onclick="l2Confirm()">✅ 确认答案</button>
+  </div>`;
+  l2RenderQ();
+}
+
+function l2RenderQ(){
+  const q=L2_QS[l2.qi];
+  q.atoms.forEach(a=>l2.counts[a.s]=0);
+  l2BuildVisual(q);l2BuildCounters(q);l2BuildSteppers(q);l2Update(q);
+}
+
+function l2BuildVisual(q){
+  const c=document.getElementById('l2-mol-visual');c.innerHTML='';
+  q.atoms.forEach((a,i)=>{
+    if(i>0){const b=document.createElement('div');b.className='l2-bond';c.appendChild(b);}
+    const d=L2_ATOMS[a.s],sz=a.n>2?66:74;
+    const ball=document.createElement('div');ball.className='l2-mol-ball';ball.id=`l2b-${a.s}`;
+    ball.style.cssText=`width:${sz}px;height:${sz}px;background:radial-gradient(circle at 35% 32%,${d.color}bb,${d.color});box-shadow:0 4px 20px ${d.color}55;color:${a.s==='S'||a.s==='O'||a.s==='Cl'||a.s==='Na'?'#000':'#fff'}`;
+    const sub=a.n>1?`<span class="l2-cnt">×${a.n}</span>`:'';
+    ball.innerHTML=`<span class="l2-sym">${a.s}</span>${sub}<span class="l2-tag" style="color:${d.color}">${d.mass}×${a.n}=<span id="l2bt-${a.s}">0</span></span>`;
+    c.appendChild(ball);
+  });
+}
+
+function l2BuildCounters(q){
+  const c=document.getElementById('l2-counters');c.innerHTML='';
+  q.atoms.forEach(a=>{
+    const d=L2_ATOMS[a.s];
+    const div=document.createElement('div');div.className='l2-counter';div.id=`l2c-${a.s}`;
+    div.innerHTML=`<div class="l2-csym" style="background:radial-gradient(circle at 35% 32%,${d.color}bb,${d.color});color:${a.s==='S'||a.s==='O'||a.s==='Cl'||a.s==='Na'?'#000':'#fff'}">${a.s}</div>
+      <div><div class="l2-cformula">每个 ${a.s} = <strong style="color:${d.color}">${d.mass}</strong></div>
+      <div class="l2-crun under" id="l2cr-${a.s}">0 × ${d.mass} = 0</div></div>`;
+    c.appendChild(div);
+  });
+}
+
+function l2BuildSteppers(q){
+  const c=document.getElementById('l2-steppers');c.innerHTML='';
+  q.atoms.forEach(a=>{
+    const d=L2_ATOMS[a.s];
+    const div=document.createElement('div');div.className='l2-stepper';
+    div.innerHTML=`<div class="l2-slbl" style="color:${d.color}">${a.s} 数量</div>
+      <button class="l2-sbtn" onclick="l2Change('${a.s}',-1)">−</button>
+      <div class="l2-sval" id="l2sv-${a.s}">0</div>
+      <button class="l2-sbtn plus" onclick="l2Change('${a.s}',+1)">+</button>`;
+    c.appendChild(div);
+  });
+}
+
+function l2Change(sym,d){
+  l2.counts[sym]=Math.max(0,(l2.counts[sym]||0)+d);
+  document.getElementById(`l2sv-${sym}`).textContent=l2.counts[sym];
+  l2Update(L2_QS[l2.qi]);
+}
+
+function l2Update(q){
+  let total=0;const parts=[];
+  q.atoms.forEach(a=>{
+    const d=L2_ATOMS[a.s],have=l2.counts[a.s]||0,contrib=have*d.mass;
+    total+=contrib;
+    const bt=document.getElementById(`l2bt-${a.s}`);if(bt)bt.textContent=contrib;
+    const card=document.getElementById(`l2c-${a.s}`),run=document.getElementById(`l2cr-${a.s}`);
+    if(card&&run){
+      card.className='l2-counter '+(have===a.n?'s-ok':have>a.n?'s-over':'s-under');
+      run.className='l2-crun '+(have===a.n?'ok':have>a.n?'over':'under');
+      run.textContent=`${have} × ${d.mass} = ${contrib}`;
+    }
+    const cls=have===0?'zero':have===a.n?'ok':have>a.n?'over':'under';
+    parts.push(`<span style="color:${cls==='ok'?'var(--green)':cls==='over'?'var(--red)':cls==='zero'?'var(--muted)':'var(--gold)'}">${have}×${d.mass}</span>`);
+  });
+  const allOk=q.atoms.every(a=>(l2.counts[a.s]||0)===a.n);
+  const anyOver=q.atoms.some(a=>(l2.counts[a.s]||0)>a.n);
+  const tnum=document.getElementById('l2-tnum'),bar=document.getElementById('l2-total');
+  document.getElementById('l2-teq').innerHTML=parts.join('<span style="color:var(--muted);padding:0 4px">+</span>')+'<span style="color:var(--muted);padding:0 5px">=</span>';
+  tnum.textContent=total;
+  tnum.className='l2-tnum '+(total===0?'zero':allOk?'ok':'');
+  bar.className=allOk?'bar-ok':anyOver?'bar-over':'';
+}
+
+function l2Confirm(){
+  const q=L2_QS[l2.qi];
+  const allOk=q.atoms.every(a=>(l2.counts[a.s]||0)===a.n);
+  if(allOk){
+    addScore(20);spawnParticles(true);
+    const breakdown=q.atoms.map(a=>`${a.n}×${a.s}(${L2_ATOMS[a.s].mass}) = ${a.n*L2_ATOMS[a.s].mass}`).join('<br>')+`<br><strong style="color:var(--green)">M(${q.formula}) = ${q.answer}</strong>`;
+    showLvOverlay({emoji:'🎉',title:`${q.formula} 计算正确！`,sub:`+20分！相对分子质量 = ${q.answer}`,
+      card:`<strong>${q.name} 的质量计算：</strong><br><br>${breakdown}`,
+      btnText:l2.qi<L2_QS.length-1?'下一题 →':'完成第二关！',
+      gold:l2.qi>=L2_QS.length-1,
+      onNext:()=>{l2.qi++;if(l2.qi>=L2_QS.length){onLevelCleared(2);}else{l2.counts={};l2RenderQ();}}});
+  } else {
+    spawnParticles(false);
+    const btn=document.getElementById('l2-confirm');
+    btn.classList.add('shake');setTimeout(()=>btn.classList.remove('shake'),420);
+    showToast('❌ 数量不对，再检查一下！');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  ██╗     ███████╗██╗   ██╗███████╗██╗       ██████╗
+//  ██║     ██╔════╝██║   ██║██╔════╝██║      ╚════██╗
+//  ██║     █████╗  ██║   ██║█████╗  ██║        ╚═══╝
+//  ██║     ██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║       ██╗
+//  ███████╗███████╗ ╚████╔╝ ███████╗███████╗   ╚█████╗
+//  ╚══════╝╚══════╝  ╚═══╝  ╚══════╝╚══════╝    ╚════╝
+// ══════════════════════════════════════════════════════════
+const L3_MOLS={
+  H2:{name:'H₂',icon:'💨',color:'#f87171',bg:'rgba(248,113,113,.13)',atoms:{H:2}},
+  O2:{name:'O₂',icon:'🫧',color:'#38bdf8',bg:'rgba(56,189,248,.13)',atoms:{O:2}},
+  H2O:{name:'H₂O',icon:'💧',color:'#60a5fa',bg:'rgba(96,165,250,.13)',atoms:{H:2,O:1}},
+  Fe:{name:'Fe',icon:'🔩',color:'#a78bfa',bg:'rgba(167,139,250,.13)',atoms:{Fe:1}},
+  Fe3O4:{name:'Fe₃O₄',icon:'🧲',color:'#7c3aed',bg:'rgba(124,58,237,.13)',atoms:{Fe:3,O:4}},
+  C:{name:'C',icon:'🪨',color:'#4ade80',bg:'rgba(74,222,128,.13)',atoms:{C:1}},
+  CO:{name:'CO',icon:'🌫️',color:'#6ee7b7',bg:'rgba(110,231,183,.13)',atoms:{C:1,O:1}},
+  HCl:{name:'HCl',icon:'🟡',color:'#facc15',bg:'rgba(250,204,21,.13)',atoms:{H:1,Cl:1}},
+  FeCl2:{name:'FeCl₂',icon:'🟣',color:'#c084fc',bg:'rgba(192,132,252,.13)',atoms:{Fe:1,Cl:2}},
+  Al:{name:'Al',icon:'🔘',color:'#94a3b8',bg:'rgba(148,163,184,.13)',atoms:{Al:1}},
+  Al2O3:{name:'Al₂O₃',icon:'🪨',color:'#cbd5e1',bg:'rgba(203,213,225,.13)',atoms:{Al:2,O:3}},
+  N2:{name:'N₂',icon:'🔵',color:'#818cf8',bg:'rgba(129,140,248,.13)',atoms:{N:2}},
+  NaCl:{name:'NaCl',icon:'🧂',color:'#e2e8f0',bg:'rgba(226,232,240,.13)',atoms:{Na:1,Cl:1}},
+  SO2:{name:'SO₂',icon:'💛',color:'#fde68a',bg:'rgba(253,230,138,.13)',atoms:{S:1,O:2}},
+  Ca:{name:'Ca',icon:'🟤',color:'#f472b6',bg:'rgba(244,114,182,.13)',atoms:{Ca:1}},
+};
+
+// Atom color map for flying particles
+const L3_AC={H:'#f87171',O:'#38bdf8',C:'#4ade80',N:'#c084fc',Fe:'#a78bfa',Cl:'#22d3ee',Al:'#94a3b8',Na:'#fb923c',S:'#facc15',Ca:'#f472b6'};
+const L3_ATOM_SZ={H:13,O:20,C:17,Fe:20,Cl:17,Al:18,N:18};
+// Per-molecule pool scale — complex molecules use smaller scale to fit card
+const L3_POOL_SC={H2:.95,O2:.95,H2O:.82,HCl:.9,CO:.9,CO2:.78,Fe:1,Al:1,C:1,Fe3O4:.52,FeCl2:.65,Al2O3:.6,H2_p:.95,N2:.95,NaCl:null,Ca:null,SO2:null};
+
+// ── STRUCT BUILDERS (prefixed l3-) ──
+function l3AtomEl(sym,extra=''){
+  const k=sym.toLowerCase().replace(/[^a-z]/g,'');
+  const el=document.createElement('div');el.className=`l3-a-${k} ${extra}`;el.textContent=sym;return el;
+}
+function l3BondEl(type='s'){
+  if(type==='d'){const b=document.createElement('div');b.className='l3-bond-d';b.innerHTML='<span></span><span></span>';return b;}
+  if(type==='t'){const b=document.createElement('div');b.className='l3-bond-t';b.innerHTML='<span></span><span></span><span></span>';return b;}
+  const b=document.createElement('div');b.className='l3-bond';return b;
+}
+const L3_STRUCT={
+  H2:  (sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('H'));w.appendChild(l3BondEl());w.appendChild(l3AtomEl('H'));return w;},
+  O2:  (sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('O'));w.appendChild(l3BondEl('d'));w.appendChild(l3AtomEl('O'));return w;},
+  H2O: (sc)=>{const w=document.createElement('div');w.className='l3-h2o-s';w.style.transform=`scale(${sc})`;w.innerHTML='<div class="l3-a-h ahl">H</div><div class="bhl"></div><div class="l3-a-o">O</div><div class="bhr"></div><div class="l3-a-h ahr">H</div>';return w;},
+  HCl: (sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('H'));w.appendChild(l3BondEl());w.appendChild(l3AtomEl('Cl'));return w;},
+  CO:  (sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('C'));w.appendChild(l3BondEl('t'));w.appendChild(l3AtomEl('O'));return w;},
+  Fe:  (sc)=>{const w=document.createElement('div');w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('Fe'));return w;},
+  Al:  (sc)=>{const w=document.createElement('div');w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('Al'));return w;},
+  C:   (sc)=>{const w=document.createElement('div');w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('C'));return w;},
+  Fe3O4:(sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;[l3AtomEl('Fe'),l3BondEl(),l3AtomEl('O'),l3BondEl(),l3AtomEl('Fe'),l3BondEl('d'),l3AtomEl('O'),l3BondEl(),l3AtomEl('Fe'),l3BondEl(),l3AtomEl('O'),l3BondEl(),l3AtomEl('O')].forEach(c=>w.appendChild(c));return w;},
+  FeCl2:(sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;w.appendChild(l3AtomEl('Cl'));w.appendChild(l3BondEl());w.appendChild(l3AtomEl('Fe'));w.appendChild(l3BondEl());w.appendChild(l3AtomEl('Cl'));return w;},
+  Al2O3:(sc)=>{const w=document.createElement('div');w.className='l3-ms';w.style.transform=`scale(${sc})`;[l3AtomEl('Al'),l3BondEl('d'),l3AtomEl('O'),l3BondEl(),l3AtomEl('Al'),l3BondEl('d'),l3AtomEl('O'),l3BondEl(),l3AtomEl('O')].forEach(c=>w.appendChild(c));return w;},
+};
+function l3MkStruct(key,sc=1){return L3_STRUCT[key]?L3_STRUCT[key](sc):null;}
+
+const L3_QS=[
+  {name:'氢气燃烧',
+   reactants:[{key:'H2',coeff:2},{key:'O2',coeff:1}],
+   products:[{key:'H2O',coeff:2}],
+   pool:['H2','H2','H2','O2','O2','N2','Ca'],
+   explain:'<strong>技巧：</strong>先配H — 2个H₂→4H，需要2个H₂O；再配O — 2个H₂O需2O，即1个O₂。',
+   slotBreak:[[{sym:'H',dx:-70,dy:-55,del:0},{sym:'H',dx:-100,dy:20,del:30},{sym:'H',dx:-30,dy:80,del:50},{sym:'H',dx:50,dy:70,del:20}],[{sym:'O',dx:80,dy:-50,del:0},{sym:'O',dx:100,dy:40,del:40}]],
+   prodForms:[[{sym:'H',ox:-16,oy:0,src:0},{sym:'O',ox:0,oy:0,src:1},{sym:'H',ox:16,oy:0,src:0}],[{sym:'H',ox:-16,oy:0,src:0},{sym:'O',ox:0,oy:0,src:1},{sym:'H',ox:16,oy:0,src:0}]],
+   sparkColor:'#fb923c'},
+  {name:'铁在氧气中燃烧',
+   reactants:[{key:'Fe',coeff:3},{key:'O2',coeff:2}],
+   products:[{key:'Fe3O4',coeff:1}],
+   pool:['Fe','Fe','Fe','Fe','O2','O2','O2','NaCl','Ca'],
+   explain:'<strong>技巧：</strong>Fe₃O₄系数定为1，需3个Fe和4个O（即2个O₂）。',
+   slotBreak:[[{sym:'Fe',dx:-80,dy:-40,del:0},{sym:'Fe',dx:-60,dy:60,del:30},{sym:'Fe',dx:20,dy:-80,del:50}],[{sym:'O',dx:80,dy:-40,del:0},{sym:'O',dx:60,dy:30,del:30},{sym:'O',dx:100,dy:10,del:20},{sym:'O',dx:40,dy:-70,del:50}]],
+   prodForms:[[{sym:'Fe',ox:-22,oy:0,src:0},{sym:'O',ox:-8,oy:0,src:1},{sym:'Fe',ox:6,oy:0,src:0},{sym:'O',ox:18,oy:0,src:1},{sym:'Fe',ox:30,oy:0,src:0}]],
+   sparkColor:'#f97316'},
+  {name:'水电解分解',
+   reactants:[{key:'H2O',coeff:2}],
+   products:[{key:'H2',coeff:2},{key:'O2',coeff:1}],
+   pool:['H2O','H2O','H2O','N2','SO2'],
+   explain:'<strong>技巧：</strong>O₂含2个O，至少要2个H₂O；同时产生2个H₂。',
+   slotBreak:[[{sym:'O',dx:-85,dy:-45,del:0},{sym:'O',dx:85,dy:-45,del:50},{sym:'H',dx:-110,dy:25,del:20},{sym:'H',dx:-50,dy:85,del:40},{sym:'H',dx:50,dy:85,del:20},{sym:'H',dx:110,dy:25,del:40}]],
+   prodForms:[[{sym:'H',ox:-8,oy:0,src:0},{sym:'H',ox:8,oy:0,src:0}],[{sym:'H',ox:-8,oy:0,src:0},{sym:'H',ox:8,oy:0,src:0}],[{sym:'O',ox:-12,oy:0,src:0},{sym:'O',ox:12,oy:0,src:0}]],
+   sparkColor:'#a78bfa'},
+  {name:'铁与盐酸反应',
+   reactants:[{key:'Fe',coeff:1},{key:'HCl',coeff:2}],
+   products:[{key:'FeCl2',coeff:1},{key:'H2',coeff:1}],
+   pool:['Fe','Fe','HCl','HCl','HCl','O2','NaCl'],
+   explain:'<strong>技巧：</strong>FeCl₂需2个Cl，故HCl系数为2；2个HCl含2H，产生1个H₂。',
+   slotBreak:[[{sym:'Fe',dx:-70,dy:-30,del:0}],[{sym:'H',dx:50,dy:-60,del:0},{sym:'Cl',dx:90,dy:-20,del:25},{sym:'H',dx:30,dy:65,del:15},{sym:'Cl',dx:80,dy:50,del:40}]],
+   prodForms:[[{sym:'Cl',ox:-18,oy:0,src:1},{sym:'Fe',ox:0,oy:0,src:0},{sym:'Cl',ox:18,oy:0,src:1}],[{sym:'H',ox:-8,oy:0,src:1},{sym:'H',ox:8,oy:0,src:1}]],
+   sparkColor:'#facc15'},
+  {name:'铝在氧气中燃烧',
+   reactants:[{key:'Al',coeff:4},{key:'O2',coeff:3}],
+   products:[{key:'Al2O3',coeff:2}],
+   pool:['Al','Al','Al','Al','Al','O2','O2','O2','O2','Fe','SO2'],
+   explain:'<strong>技巧：</strong>取2个Al₂O₃：需4Al和6O（即3个O₂）。',
+   slotBreak:[[{sym:'Al',dx:-70,dy:-50,del:0},{sym:'Al',dx:-90,dy:20,del:25},{sym:'Al',dx:-40,dy:70,del:45},{sym:'Al',dx:-60,dy:-20,del:15}],[{sym:'O',dx:70,dy:-50,del:0},{sym:'O',dx:90,dy:20,del:20},{sym:'O',dx:60,dy:60,del:40},{sym:'O',dx:100,dy:-20,del:10},{sym:'O',dx:50,dy:-70,del:30},{sym:'O',dx:80,dy:50,del:50}]],
+   prodForms:[[{sym:'Al',ox:-28,oy:0,src:0},{sym:'O',ox:-12,oy:0,src:1},{sym:'Al',ox:2,oy:0,src:0},{sym:'O',ox:16,oy:0,src:1},{sym:'O',ox:30,oy:0,src:1}],[{sym:'Al',ox:-28,oy:0,src:0},{sym:'O',ox:-12,oy:0,src:1},{sym:'Al',ox:2,oy:0,src:0},{sym:'O',ox:16,oy:0,src:1},{sym:'O',ox:30,oy:0,src:1}]],
+   sparkColor:'#94a3b8'},
+  {name:'碳不充分燃烧',
+   reactants:[{key:'C',coeff:2},{key:'O2',coeff:1}],
+   products:[{key:'CO',coeff:2}],
+   pool:['C','C','C','O2','O2','NaCl','Fe'],
+   explain:'<strong>技巧：</strong>CO每个含1个O，O₂含2O，生成2个CO恰好用完1个O₂。',
+   slotBreak:[[{sym:'C',dx:-60,dy:-55,del:0},{sym:'C',dx:-80,dy:35,del:35}],[{sym:'O',dx:70,dy:-45,del:0},{sym:'O',dx:80,dy:35,del:35}]],
+   prodForms:[[{sym:'C',ox:-10,oy:0,src:0},{sym:'O',ox:10,oy:0,src:1}],[{sym:'C',ox:-10,oy:0,src:0},{sym:'O',ox:10,oy:0,src:1}]],
+   sparkColor:'#4ade80'},
+];
+
+let l3={qi:0,slotCounts:[],animFrame:null};
+
+function initL3(root){
+  l3={qi:0,slotCounts:[],animFrame:null};
+  root.innerHTML=`
+  <div id="l3-target"></div>
+  <div id="l3-eq-strip"><div class="l3-eq-lbl">配平方程式（拖入正确数量后逐步揭晓）</div><div id="l3-eq-row"></div></div>
+  <div id="l3-main">
+    <div id="l3-bench"></div>
+    <div id="l3-pool"></div>
+  </div>`;
+  l3RenderQ();
+}
+
+function l3RenderQ(){
+  const q=L3_QS[l3.qi];
+  l3.slotCounts=Array(q.reactants.length).fill(0);
+  if(l3.animFrame){cancelAnimationFrame(l3.animFrame);l3.animFrame=null;}
+  l3BuildTarget(q);l3BuildEq(q);l3BuildBench(q);l3BuildPool(q);
+}
+
+function l3BuildTarget(q){
+  const b=document.getElementById('l3-target');b.innerHTML='';
+  const lbl=document.createElement('div');lbl.className='l3-tb-lbl';lbl.textContent='🎯 目标：生成';b.appendChild(lbl);
+  q.products.forEach((p,i)=>{
+    if(i>0){const pl=document.createElement('span');pl.className='l3-tb-plus';pl.textContent='+';b.appendChild(pl);}
+    const m=L3_MOLS[p.key];const chip=document.createElement('div');chip.className='l3-tb-mol';
+    chip.innerHTML=`<span>${m.icon}</span><span>${m.name}</span>`;b.appendChild(chip);
+  });
+  const h=document.createElement('div');h.className='l3-tb-hint';h.textContent='（放对数量后产物自动显现）';b.appendChild(h);
+}
+
+function l3BuildEq(q){
+  const row=document.getElementById('l3-eq-row');row.innerHTML='';
+  const all=[...q.reactants.map((r,i)=>({key:r.key,coeff:r.coeff,side:'l',si:i})),
+             ...q.products.map((p,i)=>({key:p.key,coeff:p.coeff,side:'r',si:i}))];
+  const ll=q.reactants.length;
+  all.forEach((item,i)=>{
+    if(i===ll){const a=document.createElement('span');a.className='l3-eq-arrow';a.textContent='→';row.appendChild(a);}
+    else if(i>0){const p=document.createElement('span');p.className='l3-eq-plus';p.textContent='+';row.appendChild(p);}
+    const m=L3_MOLS[item.key];
+    const chip=document.createElement('span');chip.className='l3-eq-chip';chip.id=`l3ec-${i}`;
+    chip.innerHTML=`<span class="l3-eq-n${item.coeff===1?' is-one':''}" id="l3en-${i}">?</span><span class="l3-eq-f" style="color:${m.color}">${m.name}</span>`;
+    row.appendChild(chip);
+  });
+}
+
+function l3BuildBench(q){
+  const bench=document.getElementById('l3-bench');bench.innerHTML='';
+  q.reactants.forEach((r,i)=>{
+    if(i>0){const pl=document.createElement('div');pl.className='l3-bench-plus';pl.textContent='+';bench.appendChild(pl);}
+    const col=document.createElement('div');col.className='l3-rcol';
+    col.innerHTML='<div class="l3-rcol-lbl">反应物</div>';
+    const slot=document.createElement('div');slot.className='l3-slot';slot.id=`l3s-${i}`;
+    const badge=document.createElement('div');badge.className='l3-sbadge';badge.id=`l3sb-${i}`;badge.textContent='0';
+    slot.appendChild(badge);
+    slot.ondragover=e=>{e.preventDefault();slot.classList.add('drag-over');};
+    slot.ondragleave=()=>slot.classList.remove('drag-over');
+    slot.ondrop=e=>{e.preventDefault();slot.classList.remove('drag-over');if(e.dataTransfer.getData('mol')===r.key)l3Add(i);else showToast('❌ 分子放错格子了！');};
+    col.appendChild(slot);bench.appendChild(col);
+  });
+  // arrow
+  const arr=document.createElement('div');arr.className='l3-bench-arrow';arr.textContent='→';bench.appendChild(arr);
+  // products
+  const pzone=document.createElement('div');pzone.style.cssText='display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;';
+  q.products.forEach((p,i)=>{
+    if(i>0){const pl=document.createElement('div');pl.style.cssText='font-family:Fredoka One,cursive;font-size:1.2rem;color:var(--muted);align-self:center;margin-top:20px;';pl.textContent='+';pzone.appendChild(pl);}
+    const col=document.createElement('div');col.className='l3-prod-col';col.innerHTML='<div class="l3-rcol-lbl">生成物</div>';
+    const m=L3_MOLS[p.key];
+    const card=document.createElement('div');card.className='l3-prod-card hidden';card.id=`l3p-${i}`;
+    const cnt=document.createElement('div');cnt.className='l3-pc-cnt';cnt.textContent=`× ${p.coeff} 个`;card.appendChild(cnt);
+    // structural display in product zone
+    const sc=L3_POOL_SC[p.key]!=null?Math.min(L3_POOL_SC[p.key],.92):.88;
+    const se=l3MkStruct(p.key,sc);
+    if(se){
+      const sw=document.createElement('div');sw.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;';
+      sw.appendChild(se);
+      const nl=document.createElement('div');nl.className='l3-pc-name';nl.style.color=m.color;nl.textContent=m.name;sw.appendChild(nl);
+      card.appendChild(sw);
+    } else {
+      const ic=document.createElement('div');ic.className='l3-pc-icon';ic.textContent=m.icon;card.appendChild(ic);
+      const nl=document.createElement('div');nl.className='l3-pc-name';nl.style.color=m.color;nl.textContent=m.name;card.appendChild(nl);
+    }
+    col.appendChild(card);pzone.appendChild(col);
+  });
+  bench.appendChild(pzone);
+  const btn=document.createElement('button');btn.id='l3-react-btn';btn.textContent='💥 开始反应！';btn.style.opacity='.5';btn.onclick=l3React;bench.appendChild(btn);
+}
+
+function l3BuildPool(q){
+  const pool=document.getElementById('l3-pool');pool.innerHTML='';
+  [...q.pool].sort(()=>Math.random()-.5).forEach((key,idx)=>{
+    const m=L3_MOLS[key];
+    const el=document.createElement('div');el.className='l3-mol-card';
+    el.style.cssText=`background:${m.bg};border-color:${m.color}55;box-shadow:0 3px 12px ${m.color}30;animation:popIn .3s cubic-bezier(.34,1.56,.64,1) ${idx*0.05}s both;`;
+    const sc=L3_POOL_SC[key]??null;
+    const se=sc!==null?l3MkStruct(key,sc):null;
+    if(se){el.appendChild(se);}
+    else{const ic=document.createElement('div');ic.className='l3-mc-icon';ic.textContent=m.icon;el.appendChild(ic);}
+    const nl=document.createElement('div');nl.className='l3-mc-slabel';nl.textContent=m.name;el.appendChild(nl);
+    el.dataset.mol=key;
+    el.draggable=true;
+    el.addEventListener('dragstart',e=>{e.dataTransfer.setData('mol',key);e.dataTransfer.effectAllowed='copy';setTimeout(()=>el.style.opacity='.2',0);});
+    el.addEventListener('dragend',()=>el.style.opacity='1');
+    el.addEventListener('click',()=>{
+      const si=q.reactants.findIndex((r,i)=>r.key===key&&l3.slotCounts[i]<r.coeff);
+      if(si>=0)l3Add(si);else showToast('⚠️ 这个分子不需要，或已足够！');
+    });
+    el.addEventListener('touchstart',e=>l3TouchStart(e,key,el),{passive:false});
+    pool.appendChild(el);
+  });
+}
+
+function l3Add(si){
+  const q=L3_QS[l3.qi],r=q.reactants[si];
+  if(l3.slotCounts[si]>=r.coeff){showToast(`⚠️ 这格最多放 ${r.coeff} 个！`);l3SlotShake(si);return;}
+  l3.slotCounts[si]++;l3RenderSlot(si);l3CheckReveal(q);
+}
+function l3Remove(si){
+  if(l3.slotCounts[si]<=0)return;
+  l3.slotCounts[si]--;l3RenderSlot(si);l3CheckReveal(L3_QS[l3.qi]);
+}
+function l3SlotShake(si){const s=document.getElementById(`l3s-${si}`);s.classList.add('shake');setTimeout(()=>s.classList.remove('shake'),420);}
+
+function l3RenderSlot(si){
+  const q=L3_QS[l3.qi],r=q.reactants[si],m=L3_MOLS[r.key],count=l3.slotCounts[si];
+  const slot=document.getElementById(`l3s-${si}`),badge=document.getElementById(`l3sb-${si}`);
+  badge.textContent=count;
+  const ok=count===r.coeff,over=count>r.coeff;
+  badge.style.color=count===0?'var(--muted)':over?'var(--red)':ok?'var(--green)':'var(--gold)';
+  badge.style.borderColor=count===0?'var(--border)':over?'rgba(248,113,113,.5)':ok?'rgba(74,222,128,.5)':'rgba(251,191,36,.4)';
+  slot.querySelectorAll('.l3-stacked').forEach(e=>e.remove());
+  for(let c=0;c<count;c++){
+    const row=document.createElement('div');row.className='l3-stacked l3-struct';
+    row.style.cssText=`border:1px solid ${m.color}44;background:rgba(255,255,255,.04);`;
+    const sc=L3_POOL_SC[r.key]!=null?Math.min(L3_POOL_SC[r.key],.70):.65;
+    const se=l3MkStruct(r.key,sc);if(se)row.appendChild(se);
+    const nl=document.createElement('span');nl.style.cssText=`font-size:.5rem;color:${m.color};font-family:'Fredoka One',cursive;`;nl.textContent=m.name;row.appendChild(nl);
+    row.onclick=()=>l3Remove(si);slot.appendChild(row);
+  }
+  slot.style.borderColor=ok?'rgba(74,222,128,.55)':count===0?'rgba(167,139,250,.28)':`${m.color}55`;
+  // eq reveal
+  const el=document.getElementById(`l3en-${si}`),chip=document.getElementById(`l3ec-${si}`);
+  if(el&&chip){
+    if(ok){el.textContent=r.coeff;el.classList.add('revealed');if(r.coeff===1)el.classList.add('is-one');chip.classList.add('slot-ok');}
+    else{el.textContent='?';el.classList.remove('revealed');chip.classList.remove('slot-ok');}
+  }
+}
+
+function l3CheckReveal(q){
+  const allOk=q.reactants.every((r,i)=>l3.slotCounts[i]===r.coeff);
+  q.products.forEach((p,i)=>{const card=document.getElementById(`l3p-${i}`);if(card){card.classList.toggle('hidden',!allOk);card.classList.toggle('revealed',allOk);}});
+  const btn=document.getElementById('l3-react-btn');if(btn)btn.style.opacity=allOk?'1':'0.5';
+}
+
+function l3React(){
+  const q=L3_QS[l3.qi];
+  if(!q.reactants.every((r,i)=>l3.slotCounts[i]===r.coeff)){showToast('⚠️ 数量还不对！');return;}
+  document.getElementById('l3-react-btn').disabled=true;
+
+  // Flash
+  const rxnOv=document.getElementById('l3-rxn-ov');
+  rxnOv.innerHTML='<div class="rxn-flash"></div>';rxnOv.classList.add('show');
+  setTimeout(()=>rxnOv.classList.remove('show'),700);
+
+  // Get slot centers & product card centers
+  const slotCenters=q.reactants.map((_,i)=>{const r=document.getElementById(`l3s-${i}`).getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};});
+  const prodCenters=q.products.map((_,i)=>{const el=document.getElementById(`l3p-${i}`);if(!el)return{x:window.innerWidth/2,y:200};const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};});
+
+  // Phase 1: shake & break atoms out
+  q.reactants.forEach((_,si)=>{const slot=document.getElementById(`l3s-${si}`);slot.classList.add('l3-breaking');setTimeout(()=>slot.classList.remove('l3-breaking'),350);});
+  (q.slotBreak||[]).forEach((atoms,si)=>{
+    const sc=slotCenters[si];
+    atoms.forEach(a=>{
+      const col=L3_AC[a.sym]||'#aaa',sz=L3_ATOM_SZ[a.sym]||16;
+      const el=document.createElement('div');el.className='l3-atom-fly';
+      el.style.cssText=`width:${sz}px;height:${sz}px;font-size:${sz*.48}px;background:radial-gradient(circle at 35% 35%,${col}dd,${col}77);border:2px solid ${col};left:${sc.x-sz/2}px;top:${sc.y-sz/2}px;box-shadow:0 0 10px ${col}99;animation:l3AtomBreak .65s cubic-bezier(.15,.85,.35,1) ${a.del}ms forwards;--dx:${a.dx}px;--dy:${a.dy}px;`;
+      el.textContent=a.sym;document.body.appendChild(el);setTimeout(()=>el.remove(),a.del+900);
+    });
+  });
+  // Sparks
+  slotCenters.forEach(sc=>{
+    for(let i=0;i<8;i++){const el=document.createElement('div');el.className='l3-spark';const ang=Math.random()*Math.PI*2,d=20+Math.random()*50;el.style.cssText=`width:4px;height:4px;background:${q.sparkColor||'#a78bfa'};box-shadow:0 0 6px ${q.sparkColor||'#a78bfa'};left:${sc.x}px;top:${sc.y}px;animation:l3SparkFly .45s ease-out ${i*20}ms forwards;--dx:${Math.cos(ang)*d}px;--dy:${Math.sin(ang)*d}px;`;document.body.appendChild(el);setTimeout(()=>el.remove(),600);}
+  });
+  // Fade slots
+  setTimeout(()=>document.querySelectorAll('.l3-stacked').forEach(e=>{e.style.transition='opacity .22s';e.style.opacity='0';}),260);
+
+  // Phase 2: atoms fly into product cards
+  const fDel=680;
+  (q.prodForms||[]).forEach((atoms,pi)=>{
+    const pc=prodCenters[pi]||prodCenters[0];
+    atoms.forEach((a,ai)=>{
+      const col=L3_AC[a.sym]||'#aaa',sz=L3_ATOM_SZ[a.sym]||16;
+      const tx=pc.x+(a.ox||0),ty=pc.y+(a.oy||0);
+      const srcSl=slotCenters[a.src!=null?Math.min(a.src,slotCenters.length-1):0];
+      const sx=srcSl.x+(Math.random()-.5)*60,sy=srcSl.y+(Math.random()-.5)*40;
+      const el=document.createElement('div');el.className='l3-atom-fly';
+      el.style.cssText=`width:${sz}px;height:${sz}px;font-size:${sz*.48}px;background:radial-gradient(circle at 35% 35%,${col}dd,${col}77);border:2px solid ${col};left:${tx-sz/2}px;top:${ty-sz/2}px;box-shadow:0 0 10px ${col}99;animation:l3AtomForm .6s cubic-bezier(.25,.46,.45,.94) ${fDel+ai*40+pi*80}ms forwards;--sx:${sx-tx}px;--sy:${sy-ty}px;opacity:0;`;
+      el.textContent=a.sym;document.body.appendChild(el);setTimeout(()=>el.remove(),fDel+ai*40+pi*80+900);
+    });
+  });
+
+  // Phase 3: reveal product cards with struct pop
+  setTimeout(()=>{
+    q.products.forEach((_,i)=>{
+      const card=document.getElementById(`l3p-${i}`);if(!card)return;
+      card.classList.remove('hidden');card.classList.add('revealed');
+      card.querySelectorAll('.l3-ms,.l3-h2o-s').forEach(se=>se.classList.add('l3-struct-reveal'));
+    });
+    // reveal product eq chips
+    q.products.forEach((p,i)=>{
+      const idx=q.reactants.length+i;
+      const el=document.getElementById(`l3en-${idx}`),chip=document.getElementById(`l3ec-${idx}`);
+      if(el){setTimeout(()=>{el.textContent=p.coeff;el.classList.add('revealed');if(p.coeff===1)el.classList.add('is-one');if(chip)chip.classList.add('slot-ok');},i*120);}
+    });
+  },fDel+350+(q.prodForms||[]).length*80);
+
+  setTimeout(()=>{
+    addScore(20);spawnParticles(true);
+    const lStr=q.reactants.map(r=>(r.coeff>1?r.coeff:'')+L3_MOLS[r.key].name).join(' + ');
+    const rStr=q.products.map(p=>(p.coeff>1?p.coeff:'')+L3_MOLS[p.key].name).join(' + ');
+    const isLast=l3.qi>=L3_QS.length-1;
+    showLvOverlay({emoji:isLast?'🏆':'🎉',eq:`${lStr}  →  ${rStr}`,
+      title:isLast?'第三关全部通关！':`${q.name} 成功！`,
+      sub:isLast?`所有反应完成！准备领取证书吧！`:'+20分！分子重组，质量守恒！',
+      card:`<strong>📖 ${q.name}：</strong><br><br>${q.explain}`,
+      btnText:isLast?'🏆 领取证书':'下一题 →',gold:isLast,
+      onNext:()=>{l3.qi++;if(l3.qi>=L3_QS.length){onLevelCleared(3);}else{l3RenderQ();}}});
+  },fDel+1400);
+}
+
+function l3TouchStart(e,key,el){
+  e.preventDefault();
+  const m=L3_MOLS[key],t=e.touches[0];
+  const g=document.getElementById('drag-ghost');
+  g.style.cssText=`display:flex;background:${m.bg};border:2px solid ${m.color}55;border-radius:16px;left:${t.clientX}px;top:${t.clientY}px;width:68px;height:68px;`;
+  g.innerHTML=`<div style="font-size:1.4rem">${m.icon}</div><div style="font-family:'Fredoka One',cursive;font-size:.6rem;color:${m.color}">${m.name}</div>`;
+  el.style.opacity='.2';
+  const q=L3_QS[l3.qi];
+  const tm=e2=>{e2.preventDefault();const t2=e2.touches[0];g.style.left=t2.clientX+'px';g.style.top=t2.clientY+'px';
+    document.querySelectorAll('.l3-slot').forEach(slot=>{const r=slot.getBoundingClientRect();slot.classList.toggle('drag-over',t2.clientX>r.left&&t2.clientX<r.right&&t2.clientY>r.top&&t2.clientY<r.bottom);});};
+  const te=e2=>{document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);
+    g.style.display='none';el.style.opacity='1';
+    const t2=e2.changedTouches[0];
+    document.querySelectorAll('.l3-slot').forEach((slot,i)=>{slot.classList.remove('drag-over');const r=slot.getBoundingClientRect();
+      if(t2.clientX>r.left&&t2.clientX<r.right&&t2.clientY>r.top&&t2.clientY<r.bottom){if(q.reactants[i]&&q.reactants[i].key===key)l3Add(i);else showToast('❌ 分子放错格子了！');}});};
+  document.addEventListener('touchmove',tm,{passive:false});
+  document.addEventListener('touchend',te);
+}
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+initBg();animBg();renderHome();
+</script>
+</body>
+</html>
