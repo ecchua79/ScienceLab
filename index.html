@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🌿 植物细胞大冒险</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark: #1a4a2e; --green-mid: #2d7a4f; --green-light: #5ab87a;
+    --green-pale: #a8e6bf; --yellow: #f5d547;
+    --bg: #0d2b1a; --card-bg: #142e1e; --text: #e8f5e9; --text-dim: #8bc4a0; --accent: #7fff5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden; font-size: 16px;
+    background-image: radial-gradient(circle at 20% 20%, rgba(45,122,79,0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(90,184,122,0.1) 0%, transparent 50%);
+  }
+  .particle { position:fixed; border-radius:50%; pointer-events:none; opacity:0.15; animation:floatUp linear infinite; }
+  @keyframes floatUp {
+    0%{transform:translateY(100vh) rotate(0deg);opacity:0} 10%{opacity:0.15} 90%{opacity:0.15} 100%{transform:translateY(-100px) rotate(360deg);opacity:0}
+  }
+
+  /* HEADER */
+  header { text-align:center; padding:1.6rem 1rem 0.7rem; }
+  header h1 {
+    font-family:'ZCOOL XiaoWei',serif; font-size:clamp(1.7rem,6vw,3.2rem);
+    background:linear-gradient(135deg,var(--accent),var(--green-pale),var(--yellow));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    filter:drop-shadow(0 0 18px rgba(127,255,90,0.3));
+  }
+  header p { color:var(--text-dim); margin-top:0.35rem; font-size:clamp(0.82rem,2.8vw,0.98rem); }
+
+  /* SCORE BAR */
+  .score-bar {
+    display:flex; justify-content:center; gap:clamp(1rem,5vw,2.5rem);
+    padding:0.75rem 1rem; background:rgba(45,122,79,0.15);
+    border-top:1px solid rgba(90,184,122,0.2); border-bottom:1px solid rgba(90,184,122,0.2);
+    margin-bottom:1rem;
+  }
+  .score-item { display:flex; flex-direction:column; align-items:center; gap:0.1rem; }
+  .score-label { font-size:clamp(0.62rem,2vw,0.72rem); color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; }
+  .score-value { font-size:clamp(1.3rem,4.5vw,1.8rem); font-weight:900; color:var(--accent); line-height:1; }
+
+  /* NAV */
+  .mode-nav { display:flex; justify-content:center; gap:0.45rem; padding:0 0.7rem 1rem; flex-wrap:wrap; }
+  .mode-btn {
+    padding:clamp(0.6rem,2vw,0.7rem) clamp(0.9rem,3vw,1.2rem);
+    border-radius:100px; border:2px solid rgba(90,184,122,0.3);
+    background:var(--card-bg); color:var(--text-dim); cursor:pointer;
+    font-family:inherit; font-size:clamp(0.82rem,2.8vw,0.95rem);
+    transition:all 0.25s; white-space:nowrap;
+  }
+  .mode-btn:hover:not(.locked) { border-color:var(--green-light); color:var(--text); }
+  .mode-btn.active { background:var(--green-mid); border-color:var(--green-light); color:white; box-shadow:0 0 14px rgba(90,184,122,0.3); }
+  .mode-btn.locked { opacity:0.4; cursor:not-allowed; }
+  .mode-btn.completed::after { content:' ✅'; }
+
+  .stage-info { text-align:center; font-size:clamp(0.75rem,2.2vw,0.85rem); color:var(--text-dim); margin-bottom:0.9rem; }
+
+  /* GAME AREA */
+  .game-area { max-width:860px; margin:0 auto; padding:0 0.85rem 5rem; }
+  .screen { display:none; } .screen.active { display:block; }
+
+  /* QUIZ */
+  .quiz-card {
+    background:var(--card-bg); border:1px solid rgba(90,184,122,0.2);
+    border-radius:18px; padding:clamp(1.1rem,4vw,2rem); position:relative; overflow:hidden;
+  }
+  .quiz-card::before { content:''; position:absolute; top:0;left:0;right:0;height:4px; background:linear-gradient(90deg,var(--green-mid),var(--accent),var(--yellow)); }
+  .question-num { font-size:clamp(0.7rem,2vw,0.78rem); color:var(--text-dim); letter-spacing:0.18em; text-transform:uppercase; margin-bottom:0.9rem; }
+  .question-text { font-size:clamp(1rem,3.5vw,1.3rem); font-weight:700; margin-bottom:0.35rem; line-height:1.5; }
+  .question-context { font-size:clamp(0.82rem,2.5vw,0.9rem); color:var(--text-dim); margin-bottom:1.3rem; font-style:italic; }
+  .options-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; }
+  @media(max-width:480px){ .options-grid{grid-template-columns:1fr;} }
+  .option-btn {
+    padding:clamp(0.85rem,3vw,1.05rem) clamp(0.85rem,3vw,1.1rem);
+    border-radius:12px; border:2px solid rgba(90,184,122,0.2);
+    background:rgba(20,46,30,0.8); color:var(--text); cursor:pointer;
+    font-family:inherit; font-size:clamp(0.9rem,3vw,1rem);
+    text-align:left; transition:all 0.2s; display:flex; align-items:center; gap:0.55rem; line-height:1.4;
+  }
+  .option-btn:hover:not(:disabled) { border-color:var(--green-light); background:rgba(45,122,79,0.2); }
+  .option-btn.correct { border-color:var(--accent); background:rgba(127,255,90,0.15); color:var(--accent); }
+  .option-btn.wrong { border-color:#ff5555; background:rgba(255,85,85,0.1); color:#ff8888; }
+  .option-btn:disabled { cursor:default; }
+  .option-letter {
+    width:30px;height:30px;border-radius:50%;background:rgba(90,184,122,0.15);
+    border:1px solid rgba(90,184,122,0.3);display:flex;align-items:center;justify-content:center;
+    font-size:clamp(0.76rem,2.5vw,0.84rem);font-weight:700;flex-shrink:0;color:var(--green-pale);
+  }
+  .feedback-box { margin-top:0.9rem;padding:0.85rem 1rem;border-radius:12px;font-size:clamp(0.86rem,2.8vw,0.95rem);line-height:1.6;display:none; }
+  .feedback-box.correct{background:rgba(127,255,90,0.1);border:1px solid rgba(127,255,90,0.3);color:var(--accent);}
+  .feedback-box.wrong{background:rgba(255,85,85,0.08);border:1px solid rgba(255,85,85,0.3);color:#ff9999;}
+  .feedback-box.show{display:block;animation:slideUp 0.3s ease;}
+  .next-btn {
+    margin-top:0.9rem;width:100%;padding:clamp(0.82rem,3vw,1rem);border-radius:12px;border:none;
+    background:linear-gradient(135deg,var(--green-mid),var(--green-light));color:white;
+    font-family:inherit;font-size:clamp(0.92rem,3vw,1.02rem);font-weight:700;cursor:pointer;transition:all 0.2s;display:none;
+  }
+  .next-btn.show{display:block;animation:slideUp 0.3s ease 0.1s both;}
+  .next-btn:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(90,184,122,0.4);}
+
+  /* PROGRESS */
+  .progress-wrap{margin-bottom:1.1rem;}
+  .progress-top{display:flex;justify-content:space-between;font-size:clamp(0.76rem,2.5vw,0.84rem);color:var(--text-dim);margin-bottom:0.4rem;}
+  .progress-bar{height:7px;background:rgba(90,184,122,0.15);border-radius:100px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--green-mid),var(--accent));border-radius:100px;transition:width 0.4s ease;}
+
+  /* MATCH */
+  .match-container{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;}
+  @media(max-width:540px){.match-container{grid-template-columns:1fr;}}
+  .match-column h3{text-align:center;font-size:clamp(0.76rem,2.5vw,0.88rem);color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.7rem;}
+  .match-item {
+    padding:clamp(0.78rem,3vw,1rem) clamp(0.85rem,3vw,1.15rem);
+    margin-bottom:0.55rem;border-radius:12px;border:2px solid rgba(90,184,122,0.2);
+    background:var(--card-bg);cursor:pointer;transition:all 0.2s;
+    font-size:clamp(0.86rem,2.8vw,0.95rem);line-height:1.45;
+  }
+  .match-item:hover{border-color:var(--green-light);transform:translateX(2px);}
+  .match-item.selected{border-color:var(--yellow);background:rgba(245,213,71,0.1);box-shadow:0 0 14px rgba(245,213,71,0.2);}
+  .match-item.correct{border-color:var(--accent);background:rgba(127,255,90,0.1);animation:correctPulse 0.5s ease;}
+  .match-item.wrong{border-color:#ff5555;background:rgba(255,85,85,0.1);animation:shake 0.4s ease;}
+  .match-item.matched{opacity:0.4;pointer-events:none;border-color:rgba(90,184,122,0.1);}
+  .organelle-icon{font-size:clamp(1.1rem,3.5vw,1.35rem);margin-right:0.35rem;vertical-align:middle;}
+
+  /* DRAG */
+  .cell-diagram{display:flex;justify-content:center;margin-bottom:0.7rem;}
+  .cell-svg-wrapper{position:relative;width:100%;max-width:580px;}
+  .cell-svg-wrapper svg{width:100%;height:auto;filter:drop-shadow(0 0 16px rgba(90,184,122,0.2));}
+  .hit-area{cursor:pointer;fill:transparent;stroke:transparent;stroke-width:8;transition:all 0.2s;}
+  .hit-area:hover{fill:rgba(245,213,71,0.08);stroke:rgba(245,213,71,0.3);}
+  .drag-labels{display:flex;flex-wrap:wrap;gap:0.55rem;justify-content:center;margin-bottom:1rem;}
+  .drag-tag {
+    padding:clamp(0.55rem,2vw,0.65rem) clamp(0.85rem,3vw,1.05rem);
+    border-radius:100px;background:var(--card-bg);border:2px solid rgba(90,184,122,0.3);
+    cursor:pointer;font-size:clamp(0.88rem,3vw,0.96rem);transition:all 0.2s;user-select:none;
+  }
+  .drag-tag:hover{border-color:var(--green-light);transform:translateY(-2px);box-shadow:0 4px 12px rgba(90,184,122,0.2);}
+  .drag-tag.used{opacity:0.2;pointer-events:none;}
+
+  /* REFERENCE */
+  .ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.9rem;}
+  @media(max-width:440px){.ref-grid{grid-template-columns:1fr;}}
+  .ref-card{background:var(--card-bg);border:1px solid rgba(90,184,122,0.2);border-radius:16px;padding:clamp(0.9rem,3vw,1.3rem);transition:all 0.25s;}
+  .ref-card:hover{transform:translateY(-3px);border-color:rgba(90,184,122,0.4);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+  .ref-card-icon{font-size:clamp(1.7rem,5vw,2.2rem);margin-bottom:0.45rem;display:block;}
+  .ref-card-name{font-weight:700;font-size:clamp(0.98rem,3vw,1.08rem);margin-bottom:0.3rem;}
+  .ref-card-func{font-size:clamp(0.84rem,2.5vw,0.88rem);color:var(--text-dim);line-height:1.55;}
+  .ref-card-tag{display:inline-block;margin-top:0.5rem;padding:0.18rem 0.65rem;border-radius:100px;font-size:clamp(0.68rem,2vw,0.74rem);font-weight:700;}
+
+  /* RESULTS */
+  .results-screen{text-align:center;padding:clamp(1rem,4vw,2rem);}
+  .results-emoji{font-size:clamp(3rem,10vw,5rem);margin-bottom:0.7rem;animation:bounce 0.6s ease;}
+  .results-title{font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.4rem,5vw,2rem);background:linear-gradient(135deg,var(--accent),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.35rem;}
+  .results-score{font-size:clamp(2.2rem,8vw,3.5rem);font-weight:900;color:var(--accent);margin:0.7rem 0;}
+  .results-msg{color:var(--text-dim);margin-bottom:1.3rem;font-size:clamp(0.88rem,3vw,1rem);}
+  .restart-btn{padding:clamp(0.78rem,3vw,0.95rem) clamp(1.5rem,5vw,2.2rem);border-radius:100px;border:none;background:linear-gradient(135deg,var(--green-mid),var(--accent));color:white;font-family:inherit;font-size:clamp(0.92rem,3vw,1.02rem);font-weight:700;cursor:pointer;transition:all 0.2s;margin:0.3rem;}
+  .restart-btn:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(90,184,122,0.4);}
+
+  /* CERTIFICATE OVERLAY */
+  .cert-overlay{position:fixed;inset:0;z-index:200;background:rgba(8,20,12,0.96);display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn 0.4s ease;overflow-y:auto;}
+  .cert-overlay.hidden{display:none;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  .cert-input-card{background:var(--card-bg);border:2px solid rgba(90,184,122,0.4);border-radius:20px;padding:clamp(1.4rem,5vw,2.4rem);width:100%;max-width:400px;text-align:center;animation:slideUp 0.4s ease;}
+  .cert-input-card h2{font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.35rem,5vw,1.8rem);background:linear-gradient(135deg,var(--accent),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.45rem;}
+  .cert-input-card p{color:var(--text-dim);font-size:clamp(0.86rem,2.8vw,0.94rem);margin-bottom:1.3rem;line-height:1.55;}
+  .cert-name-input{width:100%;padding:0.85rem 1rem;border-radius:12px;border:2px solid rgba(90,184,122,0.4);background:rgba(20,46,30,0.8);color:var(--text);font-family:inherit;font-size:clamp(0.95rem,3vw,1.05rem);outline:none;margin-bottom:0.9rem;text-align:center;transition:border-color 0.2s;}
+  .cert-name-input:focus{border-color:var(--accent);}
+  .cert-name-input::placeholder{color:var(--text-dim);}
+  .cert-gen-btn{width:100%;padding:0.9rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--green-mid),var(--accent));color:white;font-family:inherit;font-size:clamp(0.95rem,3vw,1.05rem);font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .cert-gen-btn:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(90,184,122,0.4);}
+
+  /* CERTIFICATE */
+  .cert-display{background:var(--card-bg);border:2px solid rgba(200,169,110,0.5);border-radius:20px;padding:clamp(1.4rem,5vw,2.4rem);width:100%;max-width:460px;text-align:center;position:relative;overflow:hidden;}
+  .cert-display::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 10% 10%,rgba(127,255,90,0.06) 0%,transparent 50%),radial-gradient(circle at 90% 90%,rgba(245,213,71,0.06) 0%,transparent 50%);pointer-events:none;}
+  .cert-border-deco{position:absolute;inset:8px;border:1px solid rgba(200,169,110,0.22);border-radius:14px;pointer-events:none;}
+  .cert-seal{font-size:clamp(2.6rem,8vw,3.8rem);margin-bottom:0.4rem;}
+  .cert-title{font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.05rem,4vw,1.35rem);color:rgba(200,169,110,0.9);letter-spacing:0.15em;margin-bottom:0.25rem;}
+  .cert-subtitle{font-size:clamp(0.68rem,2vw,0.78rem);color:var(--text-dim);letter-spacing:0.1em;margin-bottom:1rem;}
+  .cert-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,110,0.4),transparent);margin:0.7rem 0;}
+  .cert-name{font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.5rem,6vw,2.2rem);background:linear-gradient(135deg,var(--accent),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0.4rem 0;filter:drop-shadow(0 0 10px rgba(127,255,90,0.3));}
+  .cert-body{font-size:clamp(0.82rem,2.5vw,0.9rem);color:var(--text-dim);line-height:1.7;margin:0.5rem 0;}
+  .cert-highlight{color:var(--accent);font-weight:700;}
+  .cert-score-badge{display:inline-block;margin:0.65rem 0;padding:0.35rem 1.2rem;border-radius:100px;background:linear-gradient(135deg,rgba(127,255,90,0.15),rgba(245,213,71,0.15));border:1px solid rgba(127,255,90,0.3);font-size:clamp(0.86rem,2.8vw,0.94rem);color:var(--accent);font-weight:700;}
+  .cert-meta{margin-top:0.8rem;display:grid;grid-template-columns:1fr 1fr;gap:0.55rem;}
+  .cert-meta-item{background:rgba(45,122,79,0.15);border:1px solid rgba(90,184,122,0.2);border-radius:10px;padding:0.55rem 0.4rem;}
+  .cert-meta-label{font-size:clamp(0.62rem,2vw,0.7rem);color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;}
+  .cert-meta-value{font-size:clamp(0.82rem,2.5vw,0.9rem);color:var(--text);font-weight:700;margin-top:0.15rem;}
+  .cert-actions{margin-top:1.1rem;display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;}
+  .cert-btn{padding:clamp(0.68rem,3vw,0.82rem) clamp(1.1rem,4vw,1.6rem);border-radius:100px;border:none;font-family:inherit;font-size:clamp(0.86rem,3vw,0.94rem);font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .cert-btn-primary{background:linear-gradient(135deg,var(--green-mid),var(--accent));color:white;}
+  .cert-btn-secondary{background:transparent;border:2px solid rgba(90,184,122,0.4);color:var(--text-dim);}
+  .cert-btn:hover{transform:translateY(-2px);}
+
+  /* SMALL RESET */
+  .small-reset-btn{padding:0.48rem 1.1rem;border-radius:100px;border:2px solid rgba(90,184,122,0.3);background:transparent;color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:clamp(0.8rem,2.5vw,0.88rem);transition:all 0.2s;}
+  .small-reset-btn:hover{border-color:var(--green-light);color:var(--text);}
+
+  /* ANIMATIONS */
+  @keyframes correctPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  @keyframes slideUp{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px)}70%{transform:translateY(-8px)}}
+  @keyframes popIn{0%{transform:scale(0.8);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<!-- ===== CERTIFICATE OVERLAY ===== -->
+<div class="cert-overlay hidden" id="certOverlay">
+  <div id="certInputCard" class="cert-input-card">
+    <div style="font-size:3rem;margin-bottom:0.5rem">🏆</div>
+    <h2>恭喜通关！</h2>
+    <p>你已完成全部三关挑战！<br>请输入名字，领取专属通关证书 🎓</p>
+    <input class="cert-name-input" id="certNameInput" type="text" placeholder="请输入你的名字…" maxlength="16"/>
+    <button class="cert-gen-btn" onclick="generateCert()">📜 生成证书</button>
+  </div>
+  <div id="certDisplay" class="cert-display" style="display:none">
+    <div class="cert-border-deco"></div>
+    <div class="cert-seal">🌿</div>
+    <div class="cert-title">植物细胞大冒险</div>
+    <div class="cert-subtitle">CELL EXPLORER CERTIFICATE</div>
+    <div class="cert-divider"></div>
+    <div style="font-size:clamp(0.8rem,2.5vw,0.88rem);color:var(--text-dim);margin-bottom:0.25rem">此证书颁发给</div>
+    <div class="cert-name" id="certNameDisplay"></div>
+    <div class="cert-body">
+      已成功完成 <span class="cert-highlight">知识问答</span>、<span class="cert-highlight">配对游戏</span>、<span class="cert-highlight">细胞拼图</span> 三大关卡，深入掌握植物细胞结构与功能知识。
+    </div>
+    <div class="cert-score-badge" id="certScoreBadge"></div>
+    <div class="cert-meta">
+      <div class="cert-meta-item"><div class="cert-meta-label">通关日期</div><div class="cert-meta-value" id="certDate"></div></div>
+      <div class="cert-meta-item"><div class="cert-meta-label">通关时间</div><div class="cert-meta-value" id="certTime"></div></div>
+      <div class="cert-meta-item"><div class="cert-meta-label">游戏用时</div><div class="cert-meta-value" id="certDuration"></div></div>
+      <div class="cert-meta-item"><div class="cert-meta-label">总得分</div><div class="cert-meta-value" id="certTotalScore"></div></div>
+    </div>
+    <div class="cert-divider" style="margin-top:0.9rem"></div>
+    <div style="font-size:clamp(0.68rem,2vw,0.76rem);color:var(--text-dim);margin-top:0.5rem;letter-spacing:0.05em">🌱 继续探索生命科学的奥秘！</div>
+    <div class="cert-actions">
+      <button class="cert-btn cert-btn-primary" onclick="closeCert()">🎮 继续游戏</button>
+      <button class="cert-btn cert-btn-secondary" onclick="showCertInput()">✏️ 改名字</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <h1>🌿 植物细胞大冒险</h1>
+  <p>探索植物细胞的神奇世界，认识每个细胞器的独特功能！</p>
+</header>
+
+<div class="score-bar">
+  <div class="score-item"><span class="score-label">得分</span><span class="score-value" id="totalScore">0</span></div>
+  <div class="score-item"><span class="score-label">连击</span><span class="score-value" id="comboCount">0</span></div>
+  <div class="score-item"><span class="score-label">已完成</span><span class="score-value" id="completedCount">0</span></div>
+</div>
+
+<div class="mode-nav">
+  <button class="mode-btn active" id="btn-quiz"  onclick="trySwitch(&quot;quiz&quot;)">📝 知识问答</button>
+  <button class="mode-btn locked"  id="btn-match" onclick="trySwitch(&quot;match&quot;)">🔗 配对游戏</button>
+  <button class="mode-btn locked"  id="btn-drag"  onclick="trySwitch(&quot;drag&quot;)">🧬 细胞拼图</button>
+  <button class="mode-btn locked"  id="btn-ref"   onclick="trySwitch(&quot;ref&quot;)">📖 学习卡片</button>
+</div>
+<div class="stage-info" id="stageInfo">第 1 关 / 共 3 关 — 完成前三关解锁证书！</div>
+
+<div class="game-area">
+
+  <!-- QUIZ -->
+  <div class="screen active" id="screen-quiz">
+    <div class="progress-wrap">
+      <div class="progress-top"><span id="quizProgress">第 1 / 10 题</span><span id="quizCorrect">✅ 0 答对</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="quizProgressBar" style="width:0%"></div></div>
+    </div>
+    <div class="quiz-card">
+      <div class="question-num" id="questionNum">第 1 题</div>
+      <div class="question-text" id="questionText"></div>
+      <div class="question-context" id="questionContext"></div>
+      <div class="options-grid" id="optionsGrid"></div>
+      <div class="feedback-box" id="feedbackBox"></div>
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- MATCH -->
+  <div class="screen" id="screen-match">
+    <div style="text-align:center;margin-bottom:1rem">
+      <p style="color:var(--text-dim);font-size:clamp(0.84rem,2.8vw,0.92rem)">点击左边细胞器，再点击右边对应功能完成配对！</p>
+      <div style="margin-top:0.4rem;font-size:clamp(0.88rem,2.8vw,0.95rem);color:var(--green-pale)">已配对：<span id="matchCount">0</span> / 6</div>
+    </div>
+    <div class="match-container">
+      <div class="match-column"><h3>🌿 细胞器</h3><div id="organelleList"></div></div>
+      <div class="match-column"><h3>⚙️ 功能描述</h3><div id="functionList"></div></div>
+    </div>
+    <div style="text-align:center;margin-top:1rem"><button class="small-reset-btn" onclick="resetMatch()">🔄 重新开始</button></div>
+  </div>
+
+  <!-- DRAG -->
+  <div class="screen" id="screen-drag">
+    <div style="text-align:center;margin-bottom:0.8rem">
+      <p style="color:var(--text-dim);font-size:clamp(0.84rem,2.8vw,0.92rem)">先选中下方名称，再点击细胞图中对应结构完成标注！</p>
+      <div style="margin-top:0.4rem;font-size:clamp(0.88rem,2.8vw,0.95rem);color:var(--green-pale)">已标注：<span id="dragCount">0</span> / 6</div>
+    </div>
+    <div class="cell-diagram">
+      <div class="cell-svg-wrapper">
+        <svg id="cellSVG" viewBox="0 0 620 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-pending" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="rgba(90,184,122,0.5)"/>
+            </marker>
+            <marker id="arrow-done" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#7fff5a"/>
+            </marker>
+          </defs>
+          <!-- Cell wall -->
+          <rect x="100" y="30" width="390" height="360" rx="40" ry="40" fill="none" stroke="rgba(200,169,110,0.35)" stroke-width="14"/>
+          <!-- Cell membrane -->
+          <rect x="117" y="47" width="356" height="326" rx="30" ry="30" fill="rgba(45,122,79,0.07)" stroke="rgba(90,184,122,0.6)" stroke-width="3"/>
+          <!-- Cytoplasm -->
+          <rect x="121" y="51" width="348" height="318" rx="28" ry="28" fill="rgba(26,74,46,0.45)"/>
+          <!-- Vacuole -->
+          <ellipse cx="300" cy="210" rx="115" ry="95" fill="rgba(74,144,217,0.13)" stroke="rgba(74,144,217,0.55)" stroke-width="2.5"/>
+          <!-- Nucleus -->
+          <ellipse cx="185" cy="145" rx="55" ry="44" fill="rgba(155,89,182,0.22)" stroke="rgba(155,89,182,0.75)" stroke-width="2.5"/>
+          <ellipse cx="185" cy="145" rx="22" ry="17" fill="rgba(155,89,182,0.5)"/>
+          <!-- Chloroplast 1 -->
+          <ellipse cx="430" cy="120" rx="38" ry="21" fill="rgba(90,184,122,0.32)" stroke="rgba(127,255,90,0.8)" stroke-width="2"/>
+          <line x1="400" y1="120" x2="466" y2="120" stroke="rgba(127,255,90,0.45)" stroke-width="1.5"/>
+          <line x1="415" y1="102" x2="415" y2="138" stroke="rgba(127,255,90,0.3)" stroke-width="1"/>
+          <line x1="430" y1="100" x2="430" y2="140" stroke="rgba(127,255,90,0.3)" stroke-width="1"/>
+          <line x1="445" y1="102" x2="445" y2="138" stroke="rgba(127,255,90,0.3)" stroke-width="1"/>
+          <!-- Chloroplast 2 -->
+          <ellipse cx="415" cy="320" rx="33" ry="19" fill="rgba(90,184,122,0.32)" stroke="rgba(127,255,90,0.8)" stroke-width="2"/>
+          <line x1="386" y1="320" x2="448" y2="320" stroke="rgba(127,255,90,0.45)" stroke-width="1.5"/>
+          <line x1="415" y1="303" x2="415" y2="337" stroke="rgba(127,255,90,0.3)" stroke-width="1"/>
+          <!-- Dots -->
+          <circle cx="220" cy="90" r="3.5" fill="rgba(90,184,122,0.3)"/>
+          <circle cx="360" cy="75" r="3" fill="rgba(90,184,122,0.25)"/>
+          <circle cx="460" cy="220" r="4" fill="rgba(90,184,122,0.2)"/>
+          <circle cx="145" cy="300" r="3.5" fill="rgba(90,184,122,0.2)"/>
+
+          <!-- HIT AREAS -->
+          <rect class="hit-area" id="hit-wall" x="93" y="23" width="404" height="374" rx="44" ry="44" style="fill:transparent;stroke:transparent;stroke-width:22;" onclick="handleSVGClick(&quot;wall&quot;,this)"/>
+          <rect class="hit-area" id="hit-membrane" x="111" y="41" width="368" height="338" rx="34" ry="34" style="fill:transparent;stroke:transparent;stroke-width:14;" onclick="handleSVGClick(&quot;membrane&quot;,this)"/>
+          <rect class="hit-area" id="hit-cytoplasm" x="125" y="55" width="340" height="310" rx="26" ry="26" onclick="handleSVGClick(&quot;cytoplasm&quot;,this)"/>
+          <ellipse class="hit-area" id="hit-vacuole" cx="300" cy="210" rx="115" ry="95" onclick="handleSVGClick(&quot;vacuole&quot;,this)"/>
+          <ellipse class="hit-area" id="hit-nucleus" cx="185" cy="145" rx="58" ry="47" onclick="handleSVGClick(&quot;nucleus&quot;,this)"/>
+          <ellipse class="hit-area" id="hit-chloroplast" cx="430" cy="120" rx="42" ry="26" onclick="handleSVGClick(&quot;chloroplast&quot;,this)"/>
+
+          <!-- SLOT LABELS (outside cell with leader lines) -->
+          <g id="slotGroup">
+            <!-- wall -->
+            <g class="annot-slot" id="slot-wall" onclick="handleSlotClick(&quot;wall&quot;)">
+              <line id="line-wall" x1="93" y1="88" x2="68" y2="88" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="0" y="70" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="33" y="92" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+            <!-- membrane -->
+            <g class="annot-slot" id="slot-membrane" onclick="handleSlotClick(&quot;membrane&quot;)">
+              <line id="line-membrane" x1="111" y1="268" x2="68" y2="268" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="0" y="250" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="33" y="272" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+            <!-- cytoplasm -->
+            <g class="annot-slot" id="slot-cytoplasm" onclick="handleSlotClick(&quot;cytoplasm&quot;)">
+              <line id="line-cytoplasm" x1="152" y1="357" x2="95" y2="438" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="44" y="440" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="77" y="462" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+            <!-- nucleus -->
+            <g class="annot-slot" id="slot-nucleus" onclick="handleSlotClick(&quot;nucleus&quot;)">
+              <line id="line-nucleus" x1="208" y1="103" x2="272" y2="48" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="248" y="30" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="281" y="52" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+            <!-- vacuole -->
+            <g class="annot-slot" id="slot-vacuole" onclick="handleSlotClick(&quot;vacuole&quot;)">
+              <line id="line-vacuole" x1="415" y1="210" x2="549" y2="210" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="521" y="192" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="554" y="214" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+            <!-- chloroplast -->
+            <g class="annot-slot" id="slot-chloroplast" onclick="handleSlotClick(&quot;chloroplast&quot;)">
+              <line id="line-chloroplast" x1="468" y1="110" x2="549" y2="78" stroke="rgba(90,184,122,0.4)" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrow-pending)"/>
+              <rect x="521" y="60" width="66" height="36" rx="8" fill="rgba(20,46,30,0.94)" stroke="rgba(90,184,122,0.35)" stroke-width="1.8"/>
+              <text x="554" y="82" text-anchor="middle" fill="rgba(90,184,160,0.75)" font-size="15" font-family="Noto Sans SC,sans-serif">?</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="drag-labels" id="dragLabels"></div>
+    <div style="text-align:center;margin-top:0.4rem"><button class="small-reset-btn" onclick="initDrag()">🔄 重新开始</button></div>
+  </div>
+
+  <!-- REF -->
+  <div class="screen" id="screen-ref">
+    <div style="margin-bottom:1rem;text-align:center">
+      <p style="color:var(--text-dim);font-size:clamp(0.84rem,2.8vw,0.92rem)">六大细胞器详细功能介绍 ✨</p>
+    </div>
+    <div class="ref-grid" id="refGrid"></div>
+  </div>
+
+</div><!-- /game-area -->
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const organelles = [
+  { id:'wall',        name:'细胞壁', icon:'🧱', color:'#c8a96e', tagColor:'rgba(200,169,110,0.2)', tagText:'结构支撑',
+    longFunc:'细胞壁位于细胞的最外层，主要成分是纤维素。它像一道坚固的城墙，为细胞提供保护和机械支撑，使植物能够挺立生长。细胞壁有一定的通透性，水分和小分子物质可以自由通过。',
+    matchFunc:'位于细胞最外层，由纤维素构成，保护细胞并维持形态' },
+  { id:'membrane',    name:'细胞膜', icon:'🫧', color:'#5ab87a', tagColor:'rgba(90,184,122,0.2)',  tagText:'物质选择',
+    longFunc:'细胞膜紧贴在细胞壁内侧，是一层极薄的半透性膜。它像一个严格的"守门人"，能选择性地控制物质进出，保证细胞内部环境的稳定。有用的物质才能进入，废物才能排出。',
+    matchFunc:'紧贴细胞壁内侧，是半透性膜，选择性地控制物质进出' },
+  { id:'nucleus',     name:'细胞核', icon:'⚛️', color:'#9b59b6', tagColor:'rgba(155,89,182,0.2)', tagText:'生命中枢',
+    longFunc:'细胞核是细胞的"大脑"和控制中心，含有遗传物质DNA。它指挥细胞内的一切生命活动，控制细胞的生长、分裂和遗传。细胞核储存着生命的"设计图纸"。',
+    matchFunc:'细胞的控制中心，含有遗传物质，指挥细胞的生命活动' },
+  { id:'cytoplasm',   name:'细胞质', icon:'💧', color:'#4a90d9', tagColor:'rgba(74,144,217,0.2)',  tagText:'代谢场所',
+    longFunc:'细胞质是细胞膜以内、细胞核以外的所有内容物，是一种半流动的液态物质。细胞质是许多生命活动进行的场所，各种细胞器就悬浮其中，营养物质也储存并流动于其中。',
+    matchFunc:'细胞膜内、细胞核外的液态物质，是生命活动的重要场所' },
+  { id:'chloroplast', name:'叶绿体', icon:'🍃', color:'#7fff5a', tagColor:'rgba(127,255,90,0.2)',  tagText:'光合作用',
+    longFunc:'叶绿体是植物细胞特有的细胞器，含有叶绿素，呈绿色。它是进行光合作用的场所，能利用阳光、水和二氧化碳，制造出糖类等有机物，并释放氧气，是植物的"食物工厂"！',
+    matchFunc:'植物细胞特有，含叶绿素，是进行光合作用的场所' },
+  { id:'vacuole',     name:'液泡',   icon:'🫙', color:'#5ab4d9', tagColor:'rgba(74,144,217,0.15)', tagText:'储存调节',
+    longFunc:'液泡是细胞内充满细胞液的囊状结构，成熟植物细胞通常有一个大型中央液泡。它储存水分、糖类、色素等物质，并通过吸水膨胀产生膨压，使植物挺立。水果甜味和花朵颜色很多来自液泡！',
+    matchFunc:'充满细胞液，储存水分和营养物质，维持细胞膨压' },
+];
+
+const allQuestions = [
+  { q:'植物细胞特有的，能进行光合作用的细胞器是？', ctx:'💡 想想哪个细胞器让植物呈现绿色……',
+    answer:2, options:['液泡','细胞壁','叶绿体','细胞膜'],
+    explanation:'✅ 叶绿体含有叶绿素，是进行光合作用的场所，将光能转化为化学能，制造有机物并释放氧气。' },
+  { q:'细胞的"大脑"，控制细胞生命活动的结构是？', ctx:'🧠 哪个结构储存了遗传信息？',
+    answer:1, options:['细胞膜','细胞核','叶绿体','细胞壁'],
+    explanation:'✅ 细胞核是生命活动的控制中心，含有DNA等遗传物质，指挥细胞的生长、分裂和代谢。' },
+  { q:'负责控制物质进出细胞的结构是？', ctx:'🚪 就像细胞的"守门人"……',
+    answer:0, options:['细胞膜','细胞壁','细胞质','液泡'],
+    explanation:'✅ 细胞膜具有选择透过性，能控制物质进出细胞，维持细胞内部环境的稳定。' },
+  { q:'植物细胞最外层的结构是？', ctx:'🏰 保护细胞的"城墙"……',
+    answer:3, options:['细胞膜','细胞质','细胞核','细胞壁'],
+    explanation:'✅ 细胞壁位于细胞最外层，由纤维素构成，为植物细胞提供保护和支撑。' },
+  { q:'水果甜味和花朵颜色主要储存在哪个细胞器中？', ctx:'🍓 想想哪里储存了糖分和色素……',
+    answer:2, options:['叶绿体','细胞核','液泡','细胞膜'],
+    explanation:'✅ 液泡中的细胞液含有糖类、色素等物质，正是水果甜味和花朵颜色的来源！' },
+  { q:'光合作用的过程中，以下哪项描述是正确的？', ctx:'🌞 叶绿体利用什么来制造有机物？',
+    answer:1, options:['吸收氧气，释放二氧化碳','吸收二氧化碳和水，释放氧气','吸收有机物，释放水','吸收氮气，释放氧气'],
+    explanation:'✅ 光合作用：二氧化碳 + 水 → 有机物 + 氧气，需要光能和叶绿体。' },
+  { q:'细胞质的主要作用是？', ctx:'💧 各种细胞器都悬浮在哪里？',
+    answer:0, options:['为细胞生命活动提供液态环境','控制物质进出细胞','进行光合作用','储存遗传信息'],
+    explanation:'✅ 细胞质是细胞内的液态物质，为各种生命活动提供场所，细胞器都分布其中。' },
+  { q:'以下哪项是植物细胞与动物细胞的区别？', ctx:'🌱 想想植物细胞特有的结构……',
+    answer:2, options:['植物细胞有细胞核，动物细胞没有','植物细胞没有细胞膜','植物细胞有细胞壁和叶绿体，动物细胞没有','动物细胞有叶绿体，植物细胞没有'],
+    explanation:'✅ 植物细胞特有细胞壁、叶绿体和液泡，而动物细胞没有这些结构。' },
+  { q:'液泡的主要功能是？', ctx:'🫙 成熟植物细胞的大型结构……',
+    answer:3, options:['进行光合作用','控制遗传信息','选择性允许物质通过','储存水分和营养，维持细胞膨压'],
+    explanation:'✅ 液泡储存细胞液（含水、糖、色素等），维持膨压使植物保持挺立。' },
+  { q:'细胞壁的主要成分是？', ctx:'🧱 是什么让植物细胞壁坚固？',
+    answer:1, options:['蛋白质','纤维素','叶绿素','核酸'],
+    explanation:'✅ 植物细胞壁的主要成分是纤维素，使细胞壁既坚固又有一定弹性。' },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let totalScore = 0, combo = 0, completedCount = 0;
+const gameStartTime = Date.now();
+const stagesCompleted = [false, false, false]; // quiz, match, drag
+const stageOrder = ['quiz','match','drag','ref'];
+const stageLabels = [
+  '第 1 关 / 共 3 关 — 知识问答',
+  '第 2 关 / 共 3 关 — 配对游戏',
+  '第 3 关 / 共 3 关 — 细胞拼图',
+  '📖 学习卡片（奖励关）'
+];
+let quizState = { questions:[], current:0, correct:0, answered:false };
+let matchState = { selected:null, type:null, matched:[] };
+let dragState  = { selected:null };
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function createParticles() {
+  const c = document.getElementById('particles');
+  const colors = ['#5ab87a','#7fff5a','#a8e6bf','#f5d547'];
+  for (let i=0; i<14; i++) {
+    const p = document.createElement('div'); p.className = 'particle';
+    const s = Math.random()*26+8;
+    p.style.cssText = `width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*4)]};animation-duration:${Math.random()*14+10}s;animation-delay:${Math.random()*14}s;`;
+    c.appendChild(p);
+  }
+}
+
+// ============================================================
+// SCORE
+// ============================================================
+function addScore(pts) {
+  totalScore+=pts; combo++; completedCount++;
+  document.getElementById('totalScore').textContent=totalScore;
+  document.getElementById('comboCount').textContent=combo;
+  document.getElementById('completedCount').textContent=completedCount;
+}
+function resetCombo() { combo=0; document.getElementById('comboCount').textContent=0; }
+
+// ============================================================
+// MODE / STAGE MANAGEMENT
+// ============================================================
+function trySwitch(mode) {
+  const btn = document.getElementById('btn-'+mode);
+  if (btn.classList.contains('locked')) {
+    btn.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:300,iterations:2});
+    return;
+  }
+  switchMode(mode);
+}
+
+function switchMode(mode) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+mode).classList.add('active');
+  document.getElementById('btn-'+mode).classList.add('active');
+  document.getElementById('stageInfo').textContent = stageLabels[stageOrder.indexOf(mode)] || '';
+  if (mode==='match') initMatch();
+  if (mode==='drag')  initDrag();
+  if (mode==='ref')   initRef();
+}
+
+function completeStage(idx) {
+  if (stagesCompleted[idx]) return;
+  stagesCompleted[idx] = true;
+  document.getElementById('btn-'+stageOrder[idx]).classList.add('completed');
+  const next = stageOrder[idx+1];
+  if (next) document.getElementById('btn-'+next).classList.remove('locked');
+  if (stagesCompleted[0] && stagesCompleted[1] && stagesCompleted[2]) {
+    setTimeout(showCertOverlay, 900);
+  }
+}
+
+// ============================================================
+// QUIZ
+// ============================================================
+function initQuiz() {
+  const qs = [...allQuestions].sort(()=>Math.random()-0.5).slice(0,10);
+  quizState = { questions:qs, current:0, correct:0, answered:false };
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizState.questions[quizState.current];
+  const total = quizState.questions.length, idx = quizState.current;
+  document.getElementById('questionNum').textContent = `第 ${idx+1} 题`;
+  document.getElementById('quizProgress').textContent = `第 ${idx+1} / ${total} 题`;
+  document.getElementById('quizCorrect').textContent = `✅ ${quizState.correct} 答对`;
+  document.getElementById('quizProgressBar').style.width = `${(idx/total)*100}%`;
+  document.getElementById('questionText').textContent = q.q;
+  document.getElementById('questionContext').textContent = q.ctx;
+  const letters=['A','B','C','D'];
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.options.forEach((opt,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = ()=>selectAnswer(i, q.answer, q.explanation);
+    grid.appendChild(btn);
+  });
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('feedbackBox').textContent = '';
+  document.getElementById('nextBtn').className = 'next-btn';
+  quizState.answered = false;
+}
+
+function selectAnswer(chosen, correct, explanation) {
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach((btn,i)=>{ btn.disabled=true; if(i===correct)btn.classList.add('correct'); else if(i===chosen)btn.classList.add('wrong'); });
+  const fb = document.getElementById('feedbackBox');
+  if (chosen===correct) {
+    quizState.correct++;
+    fb.className='feedback-box correct show'; fb.textContent=explanation;
+    addScore(10+combo*2);
+  } else {
+    fb.className='feedback-box wrong show';
+    fb.textContent=`❌ 不对哦！正确答案是「${btns[correct].textContent.slice(1)}」。${explanation}`;
+    resetCombo();
+  }
+  document.getElementById('nextBtn').className='next-btn show';
+}
+
+function nextQuestion() {
+  quizState.current++;
+  if (quizState.current>=quizState.questions.length) showQuizResult();
+  else renderQuestion();
+}
+
+function showQuizResult() {
+  const total=quizState.questions.length, correct=quizState.correct;
+  const pct=Math.round((correct/total)*100);
+  const emoji=pct>=90?'🏆':pct>=70?'🌟':pct>=50?'👍':'📚';
+  const msg=pct>=90?'太厉害了！你是细胞达人！':pct>=70?'做得很好，继续加油！':pct>=50?'还不错，多复习一下！':'别灰心，再学习一遍吧！';
+  completeStage(0);
+  document.querySelector('#screen-quiz .quiz-card').innerHTML = `
+    <div class="results-screen">
+      <div class="results-emoji">${emoji}</div>
+      <div class="results-title">答题完成！</div>
+      <div class="results-score">${correct} / ${total}</div>
+      <div class="results-msg">${msg}<br>正确率 ${pct}%</div>
+      <div style="margin-top:0.5rem">
+        <button class="restart-btn" onclick="initQuiz()">🔄 再来一次</button>
+        <button class="restart-btn" style="background:linear-gradient(135deg,#2d7a4f,#5ab87a)" onclick="switchMode(&quot;match&quot;)">下一关 →</button>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// MATCH
+// ============================================================
+function initMatch() {
+  matchState={selected:null,type:null,matched:[]};
+  document.getElementById('organelleList').innerHTML='';
+  document.getElementById('functionList').innerHTML='';
+  document.getElementById('matchCount').textContent='0';
+  const old=document.getElementById('matchBanner'); if(old) old.remove();
+
+  const funcs=[...organelles].map(o=>({id:o.id,text:o.matchFunc})).sort(()=>Math.random()-0.5);
+  organelles.forEach(org=>{
+    const el=document.createElement('div'); el.className='match-item'; el.id='org-'+org.id;
+    el.innerHTML=`<span class="organelle-icon">${org.icon}</span>${org.name}`;
+    el.onclick=()=>handleMatchClick(org.id,'org',el);
+    document.getElementById('organelleList').appendChild(el);
+  });
+  funcs.forEach(f=>{
+    const el=document.createElement('div'); el.className='match-item'; el.id='func-'+f.id;
+    el.innerHTML=f.text;
+    el.onclick=()=>handleMatchClick(f.id,'func',el);
+    document.getElementById('functionList').appendChild(el);
+  });
+}
+
+function handleMatchClick(id,type,el) {
+  if(el.classList.contains('matched')) return;
+  if(matchState.selected===null) {
+    el.classList.add('selected'); matchState.selected=id; matchState.type=type;
+  } else {
+    const prevType=matchState.type, prevId=matchState.selected;
+    if(prevType===type) {
+      document.querySelectorAll('.match-item.selected').forEach(e=>e.classList.remove('selected'));
+      el.classList.add('selected'); matchState.selected=id; matchState.type=type; return;
+    }
+    if(prevId===id) {
+      const oEl=document.getElementById('org-'+id), fEl=document.getElementById('func-'+id);
+      oEl.classList.remove('selected'); fEl.classList.remove('selected');
+      oEl.classList.add('correct'); fEl.classList.add('correct');
+      setTimeout(()=>{ oEl.classList.add('matched'); fEl.classList.add('matched'); },600);
+      matchState.matched.push(id); addScore(15);
+      const cnt=matchState.matched.length;
+      document.getElementById('matchCount').textContent=cnt;
+      if(cnt===organelles.length) {
+        completeStage(1);
+        setTimeout(()=>{
+          const b=document.createElement('div'); b.id='matchBanner';
+          b.style.cssText='text-align:center;margin-top:1.3rem;animation:slideUp 0.4s ease';
+          b.innerHTML=`<div style="font-size:2.2rem">🎉</div>
+            <div style="font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.2rem,4vw,1.7rem);background:linear-gradient(135deg,var(--accent),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.7rem">全部配对成功！</div>
+            <button class="restart-btn" style="background:linear-gradient(135deg,#2d7a4f,#5ab87a)" onclick="switchMode(&quot;drag&quot;)">下一关 →</button>`;
+          document.getElementById('screen-match').appendChild(b);
+        },500);
+      }
+    } else {
+      document.querySelectorAll('.match-item.selected').forEach(e=>{ e.classList.remove('selected'); e.classList.add('wrong'); setTimeout(()=>e.classList.remove('wrong'),500); });
+      el.classList.add('wrong'); setTimeout(()=>el.classList.remove('wrong'),500); resetCombo();
+    }
+    matchState.selected=null; matchState.type=null;
+  }
+}
+function resetMatch() { initMatch(); }
+
+// ============================================================
+// DRAG (SVG)
+// ============================================================
+const slotConfig = {
+  wall:        {label:'细胞壁',icon:'🧱',color:'#c8a96e'},
+  membrane:    {label:'细胞膜',icon:'🫧',color:'#5ab87a'},
+  cytoplasm:   {label:'细胞质',icon:'💧',color:'#4a90d9'},
+  nucleus:     {label:'细胞核',icon:'⚛️',color:'#9b59b6'},
+  vacuole:     {label:'液泡',  icon:'🫙',color:'#5ab4d9'},
+  chloroplast: {label:'叶绿体',icon:'🍃',color:'#7fff5a'},
+};
+const slotTextPos = {
+  wall:        {x:33,y:92}, membrane:{x:33,y:272}, cytoplasm:{x:77,y:461},
+  nucleus:     {x:281,y:51}, vacuole:{x:554,y:213}, chloroplast:{x:554,y:81},
+};
+
+function initDrag() {
+  dragState={selected:null};
+  document.getElementById('dragCount').textContent='0';
+  const old=document.getElementById('dragBanner'); if(old) old.remove();
+  Object.keys(slotConfig).forEach(id=>{
+    const slot=document.getElementById('slot-'+id); if(!slot) return;
+    const rect=slot.querySelector('rect'), text=slot.querySelector('text'), line=document.getElementById('line-'+id);
+    rect.setAttribute('stroke','rgba(90,184,122,0.35)'); rect.setAttribute('fill','rgba(20,46,30,0.94)');
+    text.textContent='?'; text.setAttribute('fill','rgba(90,184,160,0.75)'); text.setAttribute('font-size','15');
+    if(line){line.setAttribute('stroke','rgba(90,184,122,0.4)');line.setAttribute('stroke-dasharray','4,3');line.setAttribute('marker-end','url(#arrow-pending)');}
+    slot.style.pointerEvents='auto'; slot.style.opacity='1';
+  });
+  document.querySelectorAll('.hit-area').forEach(h=>{h.style.pointerEvents='auto';h.setAttribute('fill','transparent');h.setAttribute('stroke','transparent');});
+  const container=document.getElementById('dragLabels'); container.innerHTML='';
+  [...organelles].sort(()=>Math.random()-0.5).forEach(org=>{
+    const tag=document.createElement('div'); tag.className='drag-tag'; tag.id='tag-'+org.id;
+    tag.innerHTML=`${org.icon} ${org.name}`;
+    tag.onclick=()=>selectDragTag(org.id,tag);
+    container.appendChild(tag);
+  });
+}
+
+function selectDragTag(id,el) {
+  if(el.classList.contains('used')) return;
+  document.querySelectorAll('.drag-tag').forEach(t=>{t.style.border='2px solid rgba(90,184,122,0.3)';t.style.boxShadow='';});
+  el.style.border='2px solid var(--yellow)'; el.style.boxShadow='0 0 14px rgba(245,213,71,0.35)';
+  dragState.selected=id;
+}
+
+function handleSVGClick(id,hitEl) {
+  if(!dragState.selected) return;
+  const org=organelles.find(o=>o.id===dragState.selected); if(!org) return;
+  if(org.id===id) {
+    const cfg=slotConfig[id], pos=slotTextPos[id];
+    const slot=document.getElementById('slot-'+id);
+    const rect=slot.querySelector('rect'), text=slot.querySelector('text'), line=document.getElementById('line-'+id);
+    rect.setAttribute('stroke',cfg.color); rect.setAttribute('fill',cfg.color+'22');
+    text.textContent=cfg.icon+' '+cfg.label; text.setAttribute('fill',cfg.color);
+    text.setAttribute('font-size','11'); text.setAttribute('x',pos.x); text.setAttribute('y',pos.y);
+    if(line){line.setAttribute('stroke',cfg.color);line.setAttribute('stroke-dasharray','none');line.setAttribute('marker-end','url(#arrow-done)');}
+    hitEl.style.pointerEvents='none'; hitEl.setAttribute('fill','transparent');
+    const tag=document.getElementById('tag-'+org.id); if(tag) tag.classList.add('used');
+    addScore(15);
+    const filled=document.querySelectorAll('.drag-tag.used').length;
+    document.getElementById('dragCount').textContent=filled;
+    dragState.selected=null; document.querySelectorAll('.drag-tag').forEach(t=>{t.style.border='';t.style.boxShadow='';});
+    if(filled===6) {
+      completeStage(2);
+      setTimeout(()=>{
+        const b=document.createElement('div'); b.id='dragBanner';
+        b.style.cssText='text-align:center;margin-top:1.3rem;animation:slideUp 0.4s ease';
+        b.innerHTML=`<div style="font-size:2.2rem">🎉</div>
+          <div style="font-family:'ZCOOL XiaoWei',serif;font-size:clamp(1.2rem,4vw,1.7rem);background:linear-gradient(135deg,var(--accent),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">全部标注成功！</div>`;
+        document.getElementById('screen-drag').appendChild(b);
+      },400);
+    }
+  } else {
+    hitEl.setAttribute('fill','rgba(255,85,85,0.12)'); hitEl.setAttribute('stroke','rgba(255,85,85,0.5)');
+    setTimeout(()=>{hitEl.setAttribute('fill','transparent');hitEl.setAttribute('stroke','transparent');},500);
+    resetCombo(); document.querySelectorAll('.drag-tag').forEach(t=>{t.style.border='';t.style.boxShadow='';});
+    dragState.selected=null;
+  }
+}
+function handleSlotClick(id) { const h=document.getElementById('hit-'+id); if(h) handleSVGClick(id,h); }
+
+// ============================================================
+// REFERENCE
+// ============================================================
+function initRef() {
+  const grid=document.getElementById('refGrid'); if(grid.children.length>0) return;
+  organelles.forEach(org=>{
+    const card=document.createElement('div'); card.className='ref-card'; card.style.borderColor=org.color+'44';
+    card.innerHTML=`<span class="ref-card-icon">${org.icon}</span>
+      <div class="ref-card-name" style="color:${org.color}">${org.name}</div>
+      <div class="ref-card-func">${org.longFunc}</div>
+      <span class="ref-card-tag" style="background:${org.tagColor};color:${org.color}">${org.tagText}</span>`;
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// CERTIFICATE
+// ============================================================
+function showCertOverlay() {
+  document.getElementById('certOverlay').classList.remove('hidden');
+  document.getElementById('certInputCard').style.display='block';
+  document.getElementById('certDisplay').style.display='none';
+  document.getElementById('certNameInput').value='';
+  setTimeout(()=>document.getElementById('certNameInput').focus(),400);
+}
+
+function generateCert() {
+  const name=document.getElementById('certNameInput').value.trim();
+  if(!name) {
+    const inp=document.getElementById('certNameInput');
+    inp.style.borderColor='#ff5555'; setTimeout(()=>{ inp.style.borderColor=''; },600); return;
+  }
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const timeStr=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+  const mins=Math.floor(elapsed/60), secs=elapsed%60;
+  const durStr=mins>0?`${mins}分${secs}秒`:`${secs}秒`;
+
+  document.getElementById('certNameDisplay').textContent=name;
+  document.getElementById('certDate').textContent=dateStr;
+  document.getElementById('certTime').textContent=timeStr;
+  document.getElementById('certDuration').textContent=durStr;
+  document.getElementById('certTotalScore').textContent=totalScore+' 分';
+  document.getElementById('certScoreBadge').textContent=`🌟 总得分 ${totalScore} 分`;
+
+  document.getElementById('certInputCard').style.display='none';
+  const disp=document.getElementById('certDisplay');
+  disp.style.display='block'; disp.style.animation='popIn 0.5s ease';
+}
+
+function closeCert() {
+  document.getElementById('certOverlay').classList.add('hidden');
+  document.getElementById('btn-ref').classList.remove('locked');
+}
+function showCertInput() {
+  document.getElementById('certInputCard').style.display='block';
+  document.getElementById('certDisplay').style.display='none';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+createParticles();
+initQuiz();
+</script>
+</body>
+</html>
