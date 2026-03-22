@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全能原子构建师 - 质子·中子·电子</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --proton: #ef4444;
+            --neutron: #3b82f6;
+            --electron: #10b981;
+            --bg: #020617;
+            --card: #1e293b;
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body {
+            font-family: -apple-system, "PingFang SC", sans-serif;
+            background-color: var(--bg);
+            color: #f1f5f9;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+        }
+
+        /* 顶部状态 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .timer { font-family: monospace; color: #fbbf24; font-weight: bold; font-size: 1.1rem; }
+        .lvl-dots { display: flex; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #475569; }
+        .dot.active { background: var(--electron); box-shadow: 0 0 8px var(--electron); }
+
+        /* 核心实验台 */
+        .lab-bench {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .target-info {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 2px dashed var(--primary);
+            border-radius: 15px;
+            background: rgba(139, 92, 246, 0.05);
+        }
+        .target-symbol { font-size: 1.8rem; font-weight: 900; color: #fff; }
+        .target-detail { font-size: 0.85rem; color: #94a3b8; }
+
+        /* 原子动态模型 */
+        .atomic-model {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+            background: radial-gradient(circle, #1e293b 0%, #020617 100%);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        /* 原子核 */
+        .nucleus {
+            position: absolute;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: center;
+            width: 50px;
+            height: 50px;
+            gap: 1px;
+            transition: transform 0.2s;
+        }
+        .particle { width: 8px; height: 8px; border-radius: 50%; box-shadow: inset -1px -1px 2px rgba(0,0,0,0.3); }
+        .p-type { background: radial-gradient(circle at 30% 30%, #ff7e7e, var(--proton)); }
+        .n-type { background: radial-gradient(circle at 30% 30%, #60a5fa, var(--neutron)); }
+
+        /* 电子轨道 */
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .electron {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--electron);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--electron);
+            z-index: 5;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 15px;
+            border-radius: 20px;
+        }
+        .slider-row { margin-bottom: 12px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; }
+        .val-badge { padding: 2px 8px; border-radius: 5px; font-weight: bold; font-family: monospace; }
+       
+        input[type=range] { width: 100%; height: 6px; border-radius: 3px; appearance: none; background: #334155; outline: none; }
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #fff; cursor: pointer; }
+        #p-slider::-webkit-slider-thumb { background: var(--proton); }
+        #n-slider::-webkit-slider-thumb { background: var(--neutron); }
+
+        .btn-confirm {
+            width: 100%; padding: 15px; border-radius: 15px; border: none;
+            background: linear-gradient(135deg, var(--primary), #6d28d9);
+            color: white; font-weight: bold; font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transition: 0.2s;
+        }
+        .btn-confirm:disabled { opacity: 0.2; filter: grayscale(1); transform: scale(1); }
+        .btn-confirm:active { transform: scale(0.97); }
+
+        /* 奖状 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px;
+        }
+        .certificate {
+            background: #fff; color: #0f172a; width: 100%; max-width: 420px;
+            padding: 30px 20px; border-radius: 24px; border: 12px double var(--primary);
+            text-align: center; box-shadow: 0 0 50px rgba(139, 92, 246, 0.3);
+        }
+        .cert-header { font-size: 1.8rem; font-weight: 800; color: #4c1d95; border-bottom: 3px solid var(--primary); display: inline-block; margin-bottom: 15px; }
+        .cert-name { font-size: 1.5rem; font-weight: bold; color: var(--proton); text-decoration: underline; margin: 0 5px; }
+        .report-box { background: #f8fafc; padding: 15px; border-radius: 15px; margin: 20px 0; text-align: left; border: 1px solid #e2e8f0; }
+        .report-line { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.95rem; }
+        .report-val { font-weight: bold; color: var(--primary); font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="status-bar">
+        <div class="lvl-dots" id="lvl-dots">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <div class="lab-bench">
+        <div class="target-info">
+            <div class="target-detail">请构建该原子结构：</div>
+            <div class="target-symbol" id="target-name">加载中...</div>
+            <div class="target-detail">目标相对原子质量: <span id="target-mass" style="color:var(--neutron); font-weight:bold;">0</span></div>
+        </div>
+
+        <div class="atomic-model" id="model-view">
+            <!-- 电子轨道将通过JS生成 -->
+            <div class="nucleus" id="nucleus"></div>
+        </div>
+
+        <div class="control-panel">
+            <div class="slider-row">
+                <div class="slider-label">
+                    <span>质子数 (决定元素 & 电子)</span>
+                    <span class="val-badge" style="background:var(--proton); color:white" id="p-val">1</span>
+                </div>
+                <input type="range" id="p-slider" min="1" max="18" value="1">
+            </div>
+            <div class="slider-row">
+                <div class="slider-label">
+                    <span>中子数 (影响质量)</span>
+                    <span class="val-badge" style="background:var(--neutron); color:white" id="n-val">0</span>
+                </div>
+                <input type="range" id="n-slider" min="0" max="22" value="0">
+            </div>
+           
+            <div style="display:flex; justify-content: space-around; margin-bottom: 15px; font-size: 0.9rem;">
+                <div>当前质量数: <b id="curr-mass" style="color:var(--primary)">1</b></div>
+                <div id="stability-text" style="color:var(--electron)">✅ 核心稳定</div>
+            </div>
+
+            <button class="btn-confirm" id="btn-submit" disabled>确认原子结构 (0/5)</button>
+        </div>
+    </div>
+</div>
+
+<!-- 姓名输入与奖状 -->
+<div id="modal" class="modal-overlay">
+    <div class="certificate" id="cert-input">
+        <h2 style="color:var(--primary)">挑战达成！</h2>
+        <p>你已成功构建了5种复杂的原子模型。</p>
+        <input type="text" id="user-name" placeholder="请输入你的姓名" maxlength="10">
+        <button class="btn-confirm" onclick="finalizeCert()">生成荣誉证书</button>
+    </div>
+
+    <div class="certificate" id="cert-display" style="display:none">
+        <div class="cert-header">微观世界构筑师</div>
+        <p style="margin-top:20px;">恭喜 <span class="cert-name" id="display-name">...</span> 同学：</p>
+        <p style="font-size:0.95rem; line-height:1.6; color:#475569">在原子构建模拟实验中，精准掌握了质子、中子与电子的平衡关系，圆满完成各项挑战任务。</p>
+       
+        <div class="report-box">
+            <div class="report-line"><span>结业日期</span><span class="report-val" id="res-date"></span></div>
+            <div class="report-line"><span>达成时刻</span><span class="report-val" id="res-time"></span></div>
+            <div class="report-line" style="margin-top:8px; border-top:1px dashed #cbd5e1; padding-top:8px;">
+                <span>总计实验用时</span><span class="report-val" id="res-elapsed"></span>
+            </div>
+        </div>
+
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:10px;">
+            验证码: <span id="cert-id" style="font-family:monospace"></span>
+        </div>
+        <p style="font-weight:bold; color:var(--primary); font-size:0.85rem;">[ 建议截屏保存并提交给老师 ]</p>
+    </div>
+</div>
+
+<script>
+    // 基础原子数据
+    const elements = [
+        { name: "氢 (H)", p: 1, m: 1 },
+        { name: "氦 (He)", p: 2, m: 4 },
+        { name: "锂 (Li)", p: 3, m: 7 },
+        { name: "铍 (Be)", p: 4, m: 9 },
+        { name: "硼 (B)", p: 5, m: 11 },
+        { name: "碳 (C)", p: 6, m: 12 },
+        { name: "氮 (N)", p: 7, m: 14 },
+        { name: "氧 (O)", p: 8, m: 16 },
+        { name: "氟 (F)", p: 9, m: 19 },
+        { name: "氖 (Ne)", p: 10, m: 20 },
+        { name: "钠 (Na)", p: 11, m: 23 },
+        { name: "镁 (Mg)", p: 12, m: 24 },
+        { name: "铝 (Al)", p: 13, m: 27 },
+        { name: "硅 (Si)", p: 14, m: 28 },
+        { name: "磷 (P)", p: 15, m: 31 },
+        { name: "硫 (S)", p: 16, m: 32 }
+    ];
+
+    let state = {
+        lvl: 0,
+        target: null,
+        startTime: null,
+        endTime: null,
+        timer: null,
+        used: []
+    };
+
+    const pSlider = document.getElementById('p-slider');
+    const nSlider = document.getElementById('n-slider');
+    const submitBtn = document.getElementById('btn-submit');
+
+    function initLevel() {
+        if(!state.startTime) {
+            state.startTime = Date.now();
+            state.timer = setInterval(updateTimer, 1000);
+        }
+
+        let idx;
+        do { idx = Math.floor(Math.random() * elements.length); } while(state.used.includes(idx));
+        state.used.push(idx);
+        state.target = elements[idx];
+
+        document.getElementById('target-name').innerText = state.target.name;
+        document.getElementById('target-mass').innerText = state.target.m;
+        submitBtn.innerText = `确认原子结构 (${state.lvl}/5)`;
+       
+        updateModel();
+    }
+
+    function updateTimer() {
+        const diff = Math.floor((Date.now() - state.startTime) / 1000);
+        const m = Math.floor(diff/60).toString().padStart(2, '0');
+        const s = (diff%60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = `${m}:${s}`;
+    }
+
+    function updateModel() {
+        const p = parseInt(pSlider.value);
+        const n = parseInt(nSlider.value);
+        const e = p; // 设定电子数始终等于质子数，模拟电中性原子
+        const m = p + n;
+
+        document.getElementById('p-val').innerText = p;
+        document.getElementById('n-val').innerText = n;
+        document.getElementById('curr-mass').innerText = m;
+
+        // 1. 更新原子核 (质子 + 中子)
+        const nucleus = document.getElementById('nucleus');
+        nucleus.innerHTML = '';
+        const particles = [];
+        for(let i=0; i<p; i++) particles.push('p-type');
+        for(let i=0; i<n; i++) particles.push('n-type');
+        // 随机洗牌让核看起来更自然
+        particles.sort(() => Math.random() - 0.5);
+        particles.forEach(type => {
+            const div = document.createElement('div');
+            div.className = `particle ${type}`;
+            nucleus.appendChild(div);
+        });
+
+        // 2. 更新电子轨道和旋转电子
+        const view = document.getElementById('model-view');
+        // 清除旧轨道
+        const oldOrbits = view.querySelectorAll('.orbit');
+        oldOrbits.forEach(o => o.remove());
+
+        // 电子排布规律 (2, 8, 8)
+        const layout = [Math.min(e, 2), Math.min(Math.max(0, e-2), 8), Math.max(0, e-10)];
+        layout.forEach((count, i) => {
+            if(count <= 0) return;
+            const radius = 55 + (i * 35);
+            const orbit = document.createElement('div');
+            orbit.className = 'orbit';
+            orbit.style.width = orbit.style.height = (radius * 2) + 'px';
+            orbit.style.left = orbit.style.top = `calc(50% - ${radius}px)`;
+            view.appendChild(orbit);
+
+            for(let j=0; j<count; j++) {
+                const electron = document.createElement('div');
+                electron.className = 'electron';
+                // 使用CSS动画实现旋转
+                const duration = 3 + (i * 2); // 不同层转速不同
+                const delay = -(j / count) * duration;
+               
+                // 动态创建一个容器来处理旋转路径
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.inset = '0';
+                container.style.animation = `rotate ${duration}s linear infinite`;
+                container.style.animationDelay = `${delay}s`;
+               
+                electron.style.top = '-4px';
+                electron.style.left = `calc(50% - 4px)`;
+               
+                container.appendChild(electron);
+                orbit.appendChild(container);
+            }
+        });
+
+        // 稳定性与验证
+        const isStable = (n / p >= 0.8 && n / p <= 1.5) || p === 1;
+        const stabLabel = document.getElementById('stability-text');
+        if(!isStable) {
+            stabLabel.innerText = "⚠️ 核心不稳定";
+            stabLabel.style.color = "var(--proton)";
+            nucleus.style.animation = "shake 0.1s infinite";
+        } else {
+            stabLabel.innerText = "✅ 核心稳定";
+            stabLabel.style.color = "var(--electron)";
+            nucleus.style.animation = "none";
+        }
+
+        submitBtn.disabled = !(p === state.target.p && m === state.target.m);
+    }
+
+    // 注入CSS旋转动画
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes shake { 0%{transform: translate(1px,1px)} 50%{transform: translate(-1px,-1px)} 100%{transform: translate(0,0)} }
+    `;
+    document.head.appendChild(style);
+
+    submitBtn.onclick = () => {
+        state.lvl++;
+        const dots = document.getElementById('lvl-dots').children;
+        dots[state.lvl-1].classList.add('active');
+
+        if(state.lvl >= 5) {
+            state.endTime = Date.now();
+            clearInterval(state.timer);
+            document.getElementById('modal').style.display = 'flex';
+        } else {
+            initLevel();
+        }
+    };
+
+    function finalizeCert() {
+        const name = document.getElementById('user-name').value;
+        if(!name) return alert("请留下你的大名！");
+
+        const now = new Date(state.endTime);
+        const elapsed = Math.floor((state.endTime - state.startTime) / 1000);
+
+        document.getElementById('cert-input').style.display = 'none';
+        document.getElementById('cert-display').style.display = 'block';
+       
+        document.getElementById('display-name').innerText = name;
+        document.getElementById('res-date').innerText = now.toLocaleDateString();
+        document.getElementById('res-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+        document.getElementById('res-elapsed').innerText = `${Math.floor(elapsed/60)}分 ${elapsed%60}秒`;
+       
+        const code = (elapsed * name.length).toString(16).toUpperCase();
+        document.getElementById('cert-id').innerText = `ATOM-${code}-${Math.random().toString(36).substr(2,4).toUpperCase()}`;
+    }
+
+    pSlider.oninput = nSlider.oninput = updateModel;
+    window.onload = initLevel;
+</script>
+</body>
+</html>
