@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命阶层大冒险</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f4ff;
+  --panel: #ffffff;
+  --border: #dde4ff;
+  --text: #1a2040;
+  --dim: #7880a0;
+  --cell:   #00c896;
+  --tissue: #3b9eff;
+  --organ:  #ff7b3b;
+  --system: #9b5de5;
+  --indiv:  #f72585;
+  --plant:  #52c41a;
+  --gold:   #ffd700;
+  --shadow: 0 4px 24px rgba(60,80,180,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans SC', 'Baloo 2', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ── animated bg blobs ── */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: .18;
+  animation: blobFloat 8s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+.blob1 { width:400px;height:400px;background:#3b9eff;top:-100px;left:-100px; }
+.blob2 { width:300px;height:300px;background:#00c896;bottom:-80px;right:-60px;animation-delay:2s; }
+.blob3 { width:250px;height:250px;background:#9b5de5;top:40%;left:60%;animation-delay:4s; }
+@keyframes blobFloat { to { transform: translate(30px, 20px) scale(1.08); } }
+
+/* ── wrapper ── */
+#app {
+  position: relative; z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 20px 16px 80px;
+}
+
+/* ── header ── */
+.header { text-align: center; padding: 28px 0 16px; }
+.header h1 {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: clamp(1.7rem, 5vw, 2.8rem);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+.header h1 span { background: linear-gradient(135deg, #3b9eff, #00c896); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.subtitle { color: var(--dim); font-size: .9rem; margin-top: 4px; }
+
+/* ── hud ── */
+.hud {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.hud-chip {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: .88rem;
+  box-shadow: var(--shadow);
+  transition: transform .2s;
+}
+.hud-chip:hover { transform: scale(1.04); }
+.hud-icon { font-size: 1.1rem; }
+.hud-val { color: var(--text); font-size: 1rem; font-weight: 900; }
+.hud-lbl { color: var(--dim); font-size: .72rem; }
+
+/* ── stage track ── */
+.stage-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.track-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.track-circle {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 3px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--dim);
+  transition: all .4s cubic-bezier(.34,1.56,.64,1);
+  cursor: default;
+  z-index: 1;
+}
+.track-circle.done  { background: #e8fff8; border-color: var(--cell); color: var(--cell); }
+.track-circle.active {
+  background: linear-gradient(135deg, #3b9eff, #00c896);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 16px rgba(59,158,255,.45);
+  transform: scale(1.2);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{box-shadow:0 4px 16px rgba(59,158,255,.45)} 50%{box-shadow:0 4px 28px rgba(59,158,255,.75)} }
+.track-lbl { font-size: .65rem; color: var(--dim); font-weight: 700; white-space: nowrap; }
+.track-line {
+  width: 28px; height: 3px;
+  background: var(--border);
+  margin-top: -22px;
+  z-index: 0;
+  transition: background .4s;
+}
+.track-line.done { background: var(--cell); }
+
+/* ── card ── */
+.card {
+  background: var(--panel);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--border);
+  padding: 28px 24px 24px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: cardIn .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cardIn { from { opacity:0; transform: translateY(16px) scale(.97); } to { opacity:1; transform: none; } }
+
+/* welcome */
+.welcome { text-align: center; max-width: 520px; }
+.welcome h2 { font-size: 1.4rem; font-weight: 900; color: var(--text); margin-bottom: 8px; }
+.welcome p { color: var(--dim); line-height: 1.75; font-size: .9rem; }
+.level-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  justify-content: center;
+  margin: 14px 0;
+}
+.pill {
+  padding: 5px 14px;
+  border-radius: 50px;
+  font-size: .8rem;
+  font-weight: 700;
+  border: 2px solid currentColor;
+  background: color-mix(in srgb, currentColor 10%, white);
+}
+.animal-badge, .plant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: .78rem;
+  font-weight: 700;
+  margin: 2px;
+}
+.animal-badge { background: #e8f4ff; color: #3b9eff; border: 1.5px solid #3b9eff; }
+.plant-badge  { background: #edfff5; color: #00a86b; border: 1.5px solid #00a86b; }
+
+/* btn */
+.btn {
+  padding: 12px 30px;
+  border-radius: 50px;
+  border: none;
+  font-family: inherit;
+  font-size: .95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  letter-spacing: .3px;
+}
+.btn:hover  { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.15); }
+.btn:active { transform: none; box-shadow: none; }
+.btn-go      { background: linear-gradient(135deg, #3b9eff, #00c896); color: white; }
+.btn-next    { background: linear-gradient(135deg, #3b9eff, #9b5de5); color: white; }
+.btn-retry   { background: linear-gradient(135deg, #ff7b3b, #f72585); color: white; }
+.btn-outline { background: white; border: 2px solid var(--border); color: var(--text); }
+
+/* question */
+.q-header { display: flex; gap: 8px; align-items: center; width: 100%; }
+.q-tag {
+  padding: 3px 12px;
+  border-radius: 50px;
+  font-size: .72rem;
+  font-weight: 800;
+  border: 2px solid currentColor;
+}
+.q-progress { margin-left: auto; font-size: .75rem; color: var(--dim); font-weight: 700; }
+
+/* timer */
+.timer-wrap { width: 100%; }
+.timer-bg { background: #eef0ff; border-radius: 8px; height: 8px; overflow: hidden; }
+.timer-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #3b9eff, #00c896);
+  transition: width .12s linear, background .3s;
+}
+.timer-fill.warn { background: linear-gradient(90deg, #ff9a44, #f72585); }
+
+.q-text {
+  font-size: clamp(.95rem, 2.8vw, 1.2rem);
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  line-height: 1.6;
+  max-width: 540px;
+}
+
+/* choices */
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 540px; }
+.choice {
+  background: #f8faff;
+  border: 2.5px solid var(--border);
+  border-radius: 14px;
+  padding: 13px 10px;
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .15s, box-shadow .15s;
+  text-align: center;
+  line-height: 1.4;
+}
+.choice:hover:not(:disabled) {
+  border-color: #3b9eff;
+  background: #eaf4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(59,158,255,.18);
+}
+.choice.correct {
+  border-color: var(--cell);
+  background: #e8fff4;
+  color: #008a62;
+  animation: popRight .4s cubic-bezier(.34,1.56,.64,1);
+}
+.choice.wrong {
+  border-color: var(--indiv);
+  background: #fff0f5;
+  color: #c01055;
+  animation: shakeIt .4s;
+}
+@keyframes popRight { 0%{transform:scale(1)} 50%{transform:scale(1.06)} 100%{transform:scale(1)} }
+@keyframes shakeIt {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)} 40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+}
+
+/* feedback */
+.feedback {
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: .86rem;
+  line-height: 1.65;
+  max-width: 540px;
+  width: 100%;
+  animation: slideUp .3s ease;
+}
+.feedback.ok  { background: #e8fff4; border-left: 4px solid var(--cell); color: #006a4a; }
+.feedback.err { background: #fff0f5; border-left: 4px solid var(--indiv); color: #a0004a; }
+.fb-title { font-weight: 900; font-size: .95rem; margin-bottom: 4px; }
+@keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* sort */
+.sort-area { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 480px; }
+.sort-item {
+  background: #f8faff;
+  border: 2.5px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--text);
+  transition: border-color .2s, transform .15s, box-shadow .15s;
+  user-select: none;
+}
+.sort-item:hover { border-color: #9b5de5; box-shadow: 0 3px 12px rgba(155,93,229,.15); }
+.sort-btns { display: flex; gap: 4px; }
+.sort-btn {
+  width: 28px; height: 28px;
+  background: var(--border);
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .78rem;
+  color: var(--dim);
+  font-weight: 900;
+  transition: background .15s, color .15s, transform .1s;
+}
+.sort-btn:hover { background: #9b5de5; color: white; transform: scale(1.1); }
+.sort-btn:disabled { opacity: .3; cursor: default; transform: none; }
+
+/* stage complete / gameover / victory */
+.result { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.big-emoji { font-size: 3.8rem; animation: emojiPop .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes emojiPop { from{transform:scale(0) rotate(-20deg)} to{transform:scale(1) rotate(0)} }
+.result h2 { font-size: 1.55rem; font-weight: 900; color: var(--text); }
+.result p  { color: var(--dim); line-height: 1.7; font-size: .9rem; max-width: 440px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.stat {
+  background: #f4f7ff;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 20px;
+  text-align: center;
+  min-width: 80px;
+}
+.stat-n { font-size: 1.5rem; font-weight: 900; color: #3b9eff; }
+.stat-l { font-size: .72rem; color: var(--dim); font-weight: 700; }
+
+/* knowledge card */
+.know {
+  background: linear-gradient(135deg, #f0f8ff, #f0fff8);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  max-width: 520px;
+  width: 100%;
+  font-size: .84rem;
+  line-height: 1.7;
+  text-align: left;
+}
+.know h3 { font-size: .88rem; font-weight: 900; color: var(--organ); margin-bottom: 6px; }
+.know b  { color: #3b9eff; }
+.know .plant-b { color: #00a86b; }
+
+/* combo flash */
+.combo-flash {
+  position: fixed;
+  top: 30%; left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: linear-gradient(135deg, #ffd700, #ff9a44);
+  color: white;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  padding: 10px 28px;
+  border-radius: 50px;
+  box-shadow: 0 6px 30px rgba(255,154,68,.45);
+  z-index: 999;
+  pointer-events: none;
+  animation: comboAnim .8s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes comboAnim {
+  0%  { transform:translateX(-50%) scale(0); opacity:1; }
+  50% { transform:translateX(-50%) scale(1.1); opacity:1; }
+  100%{ transform:translateX(-50%) scale(.8) translateY(-40px); opacity:0; }
+}
+
+/* confetti */
+.cf { position:fixed; width:10px; height:10px; border-radius:2px; pointer-events:none; z-index:998; animation: cfFall linear forwards; }
+@keyframes cfFall {
+  from { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  to   { transform: translateY(110vh) rotate(900deg); opacity: 0; }
+}
+
+/* grade ring */
+.grade-ring {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 900;
+  animation: emojiPop .5s .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* ── name input screen ── */
+.name-screen { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.name-screen h2 { font-size: 1.4rem; font-weight: 900; color: var(--text); }
+.name-input {
+  width: 100%; max-width: 320px;
+  padding: 13px 20px;
+  border: 2.5px solid var(--border);
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  background: #f8faff;
+  outline: none;
+  text-align: center;
+  transition: border-color .2s, box-shadow .2s;
+}
+.name-input:focus { border-color: #3b9eff; box-shadow: 0 0 0 4px rgba(59,158,255,.12); }
+
+/* ── certificate overlay ── */
+#certOverlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(10,20,50,.72);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn .3s ease;
+}
+#certOverlay.show { display: flex; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+#cert {
+  background: white;
+  border-radius: 20px;
+  width: 100%; max-width: 560px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  animation: certPop .5s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
+}
+@keyframes certPop { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
+
+.cert-header {
+  background: linear-gradient(135deg, #1a3a6e, #0d2244);
+  padding: 28px 24px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cert-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0, rgba(255,255,255,.03) 1px, transparent 1px, transparent 12px);
+}
+.cert-seal {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd700, #ff9a44);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 10px;
+  box-shadow: 0 4px 20px rgba(255,215,0,.5);
+  position: relative; z-index: 1;
+  animation: sealSpin .6s .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes sealSpin { from{transform:rotate(-30deg) scale(0)} to{transform:rotate(0) scale(1)} }
+.cert-header h2 {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.1rem; font-weight: 800;
+  color: rgba(255,255,255,.6);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  position: relative; z-index: 1;
+  margin-bottom: 2px;
+}
+.cert-header h1 {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.6rem; font-weight: 800;
+  color: #ffd700;
+  position: relative; z-index: 1;
+}
+
+.cert-body { padding: 24px 28px 20px; }
+
+.cert-name-row { text-align: center; margin-bottom: 18px; }
+.cert-name-label { font-size: .72rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; font-weight: 700; }
+.cert-name {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 2rem; font-weight: 800;
+  color: #1a2040;
+  border-bottom: 3px solid #ffd700;
+  display: inline-block;
+  padding: 0 12px 2px;
+  margin-top: 4px;
+}
+
+.cert-desc {
+  text-align: center;
+  font-size: .88rem;
+  color: var(--dim);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.cert-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cert-item {
+  background: #f4f7ff;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.cert-item-label { font-size: .68rem; color: var(--dim); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.cert-item-val { font-size: 1.1rem; font-weight: 900; color: var(--text); margin-top: 2px; }
+
+.cert-grade-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #fff8e1, #fff3cd);
+  border: 2px solid #ffd700;
+  border-radius: 14px;
+  padding: 12px 20px;
+  margin-bottom: 18px;
+}
+.cert-grade-badge {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.8rem; font-weight: 900;
+  color: white;
+  flex-shrink: 0;
+}
+.cert-grade-text { text-align: left; }
+.cert-grade-text b { font-size: 1rem; color: #1a2040; display: block; }
+.cert-grade-text span { font-size: .8rem; color: var(--dim); }
+
+.cert-footer {
+  background: #f8faff;
+  border-top: 1.5px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .choices { grid-template-columns: 1fr; }
+  .hud-chip { padding: 5px 12px; }
+  .cert-grid { grid-template-columns: 1fr 1fr; }
+  .cert-name { font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<!-- Certificate Overlay -->
+<div id="certOverlay">
+  <div id="cert">
+    <div class="cert-header">
+      <div class="cert-seal">🔬</div>
+      <h2>生物学习成就证书</h2>
+      <h1>生命阶层大冒险</h1>
+    </div>
+    <div class="cert-body">
+      <div class="cert-name-row">
+        <div class="cert-name-label">颁发给</div>
+        <div class="cert-name" id="certName">—</div>
+      </div>
+      <div class="cert-desc">
+        本证书证明以上同学已成功完成全部 4 关挑战，<br>掌握生物组成层次的核心知识。
+      </div>
+      <div class="cert-grade-row">
+        <div class="cert-grade-badge" id="certGradeBadge">S</div>
+        <div class="cert-grade-text">
+          <b id="certGradeMsg">太厉害了！满分过关！🌟</b>
+          <span>评定等级 · Grade</span>
+        </div>
+      </div>
+      <div class="cert-grid">
+        <div class="cert-item">
+          <div class="cert-item-label">🏆 最终得分</div>
+          <div class="cert-item-val" id="certScore">—</div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-item-label">❤️ 剩余生命</div>
+          <div class="cert-item-val" id="certLives">—</div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-item-label">⏱ 通关用时</div>
+          <div class="cert-item-val" id="certTime">—</div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-item-label">📅 日期时间</div>
+          <div class="cert-item-val" id="certDate" style="font-size:.82rem;line-height:1.3">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="cert-footer">
+      <button class="btn btn-go" onclick="printCert()">🖨️ 打印 / 保存</button>
+      <button class="btn btn-outline" onclick="closeCert()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<div id="app">
+  <div class="header">
+    <h1>🔬 <span>生命阶层</span>大冒险</h1>
+    <p class="subtitle">细胞 · 组织 · 器官 · 系统 · 个体 — 闯关解锁生命奥秘</p>
+  </div>
+
+  <div class="hud">
+    <div class="hud-chip">
+      <span class="hud-icon">⭐</span>
+      <div><div class="hud-val" id="hudScore">0</div><div class="hud-lbl">得分</div></div>
+    </div>
+    <div class="hud-chip">
+      <span class="hud-icon">🔥</span>
+      <div><div class="hud-val" id="hudCombo">×1</div><div class="hud-lbl">连击</div></div>
+    </div>
+    <div class="hud-chip">
+      <span class="hud-icon">❤️</span>
+      <div><div class="hud-val" id="hudLives">3</div><div class="hud-lbl">生命</div></div>
+    </div>
+    <div class="hud-chip">
+      <span class="hud-icon">🗺️</span>
+      <div><div class="hud-val" id="hudStage">-</div><div class="hud-lbl">关卡</div></div>
+    </div>
+  </div>
+
+  <div class="stage-track" id="stageTrack"></div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════
+const LVLS = [
+  { name:'细胞', color:'var(--cell)',   icon:'🦠' },
+  { name:'组织', color:'var(--tissue)', icon:'🧬' },
+  { name:'器官', color:'var(--organ)',  icon:'🫀' },
+  { name:'系统', color:'var(--system)', icon:'⚙️' },
+  { name:'个体', color:'var(--indiv)',  icon:'🐾' },
+];
+
+const STAGES = [
+  {
+    id:1, title:'认识阶层', icon:'📖', type:'mc',
+    qs:[
+      { q:'生命组成的最基本单位是？',
+        c:['细胞','组织','器官','个体'], a:0,
+        e:'细胞是生命的基本结构和功能单位，所有生物都由细胞组成。' },
+      { q:'多个功能相似的细胞组合在一起，形成什么结构？',
+        c:['器官','个体','组织','系统'], a:2,
+        e:'组织由一群形态相似、功能相同的细胞组成，如肌肉组织、上皮组织。' },
+      { q:'由多种不同组织共同构成、执行特定功能的结构叫做？',
+        c:['组织','细胞','系统','器官'], a:3,
+        e:'器官由多种组织构成，如心脏、胃、叶片等，能完成特定的生理功能。' },
+      { q:'植物的组成层次中，没有哪个层次？',
+        c:['细胞','组织','器官','系统'], a:3,
+        e:'植物的组成：细胞→组织→器官→个体。植物没有"系统"这个层次！' },
+      { q:'动物组成层次由小到大，正确顺序是？',
+        c:['细胞→器官→组织→系统→个体','细胞→组织→器官→系统→个体','组织→细胞→器官→系统→个体','细胞→组织→系统→器官→个体'], a:1,
+        e:'动物：细胞 → 组织 → 器官 → 系统 → 个体，每个层次都包含前一个层次。' },
+      { q:'"消化系统"属于哪个生命组成层次？',
+        c:['细胞','组织','器官','系统'], a:3,
+        e:'消化系统由口腔、食道、胃、小肠等多个器官组成，属于"系统"层次。' },
+    ]
+  },
+  {
+    id:2, title:'动植物对比', icon:'🌿', type:'mc',
+    qs:[
+      { q:'下列哪项描述正确？',
+        c:['动植物都有系统','动物有系统，植物没有','植物有系统，动物没有','两者都没有系统'], a:1,
+        e:'动物拥有"系统"这个组成层次，而植物没有，这是两者的重要区别。' },
+      { q:'植物的"叶片"属于哪个组成层次？',
+        c:['细胞','组织','器官','系统'], a:2,
+        e:'叶片由叶肉组织、表皮组织、维管束等多种组织构成，属于"器官"层次。' },
+      { q:'植物根部的根毛细胞属于哪个层次？',
+        c:['器官','个体','组织','细胞'], a:3,
+        e:'根毛细胞是植物根部的基本组成单位，属于"细胞"层次。' },
+      { q:'人体的泌尿系统属于哪个层次？',
+        c:['器官','系统','组织','个体'], a:1,
+        e:'泌尿系统包含肾脏、膀胱、输尿管等多个器官，属于"系统"层次。' },
+      { q:'一棵完整的向日葵属于哪个生命层次？',
+        c:['细胞','器官','系统','个体'], a:3,
+        e:'一棵能独立生存的完整向日葵就是一个"个体"。' },
+      { q:'植物的输导组织（维管束）属于哪个层次？',
+        c:['细胞','组织','器官','系统'], a:1,
+        e:'维管束是由多种细胞构成的"组织"，负责植物体内水分与有机物的运输。' },
+    ]
+  },
+  {
+    id:3, title:'排列挑战', icon:'🔢', type:'sort',
+    qs:[
+      { title:'🐕 动物的组成层次（从小到大排列）',
+        items:['个体','系统','细胞','器官','组织'],
+        answer:['细胞','组织','器官','系统','个体'],
+        e:'动物五个层次：细胞 → 组织 → 器官 → 系统 → 个体' },
+      { title:'🌱 植物的组成层次（从小到大排列）',
+        items:['器官','个体','组织','细胞'],
+        answer:['细胞','组织','器官','个体'],
+        e:'植物只有四个层次（无系统）：细胞 → 组织 → 器官 → 个体' },
+    ]
+  },
+  {
+    id:4, title:'实例辨识', icon:'🔍', type:'mc',
+    qs:[
+      { q:'"心脏"属于哪个生命组成层次？',
+        c:['细胞','组织','器官','系统'], a:2,
+        e:'心脏由心肌组织、结缔组织等多种组织构成，是一个"器官"。' },
+      { q:'"神经系统"属于哪个生命组成层次？',
+        c:['细胞','组织','器官','系统'], a:3,
+        e:'神经系统包含脑、脊髓、神经等多个器官，属于"系统"层次。' },
+      { q:'"肌肉组织"属于哪个生命组成层次？',
+        c:['细胞','组织','器官','系统'], a:1,
+        e:'肌肉组织是由大量肌细胞聚集而成的"组织"。' },
+      { q:'"神经元（神经细胞）"属于哪个生命组成层次？',
+        c:['细胞','组织','器官','系统'], a:0,
+        e:'神经元是一种细胞，是生命组成的最基本层次——"细胞"。' },
+      { q:'植物花朵中的"花瓣"属于哪个层次？',
+        c:['细胞','组织','器官','个体'], a:2,
+        e:'花瓣是由多种组织组成的植物"器官"，是花这个器官的一部分。' },
+      { q:'"一只正在游泳的鱼"属于哪个层次？',
+        c:['细胞','器官','系统','个体'], a:3,
+        e:'一只完整的、能独立生存的鱼就是一个"个体"。' },
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let G = {
+  score:0, lives:3, combo:1,
+  si:0, qi:0, sortQi:0,
+  answered:false, sortOrder:[],
+  timer:100, timerIv:null,
+};
+
+// ══════════════════════════════════════════════════
+// HUD & TRACK
+// ══════════════════════════════════════════════════
+function hud(){
+  document.getElementById('hudScore').textContent = G.score;
+  document.getElementById('hudCombo').textContent = '×'+G.combo;
+  document.getElementById('hudLives').textContent = G.lives;
+  document.getElementById('hudStage').textContent = G.si < STAGES.length ? `${G.si+1}/${STAGES.length}` : '✓';
+}
+function track(){
+  const el = document.getElementById('stageTrack');
+  let html = '';
+  STAGES.forEach((s,i)=>{
+    const cls = i<G.si?'done': i===G.si?'active':'';
+    html += `<div class="track-node">
+      <div class="track-circle ${cls}">${cls==='done'?'✓':s.icon}</div>
+      <div class="track-lbl">${s.title}</div>
+    </div>`;
+    if(i<STAGES.length-1) html += `<div class="track-line ${i<G.si?'done':''}"></div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════════════
+function stopTimer(){ if(G.timerIv){clearInterval(G.timerIv);G.timerIv=null;} }
+function startTimer(cb){
+  stopTimer(); G.timer=100;
+  const fill = document.getElementById('tFill');
+  G.timerIv = setInterval(()=>{
+    G.timer -= 1.5;
+    if(fill){ fill.style.width=Math.max(0,G.timer)+'%'; fill.classList.toggle('warn', G.timer<30); }
+    if(G.timer<=0){ stopTimer(); cb(); }
+  }, 100);
+}
+
+// ══════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════
+function shuffle(a){ let r=[...a]; for(let i=r.length-1;i>0;i--){const j=0|Math.random()*(i+1);[r[i],r[j]]=[r[j],r[i]];} return r; }
+
+function confetti(){
+  const colors=['#3b9eff','#00c896','#ff7b3b','#9b5de5','#f72585','#ffd700'];
+  for(let i=0;i<70;i++){
+    const d=document.createElement('div');
+    d.className='cf';
+    d.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[0|Math.random()*colors.length]};animation-duration:${1.3+Math.random()*1.4}s;animation-delay:${Math.random()*.7}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),3000);
+  }
+}
+
+function comboFlash(n){
+  if(n<2) return;
+  const d=document.createElement('div');
+  d.className='combo-flash';
+  d.textContent=`🔥 ${n}连击！`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),900);
+}
+
+function setCard(html){
+  const c=document.getElementById('card');
+  c.style.animation='none';
+  c.offsetHeight; // reflow
+  c.style.animation='';
+  c.innerHTML=html;
+  hud(); track();
+}
+
+// ══════════════════════════════════════════════════
+// WELCOME
+// ══════════════════════════════════════════════════
+function showWelcome(){
+  stopTimer();
+  const animalRow = ['🦠细胞','🧬组织','🫀器官','⚙️系统','🐾个体'].map((t,i)=>
+    `<span class="pill" style="color:${LVLS[i].color};border-color:${LVLS[i].color};background:color-mix(in srgb,${LVLS[i].color} 8%,white)">${t}</span>`
+  ).join('→');
+  const plantRow = ['🦠细胞','🧬组织','🫀器官','🌿个体'].map((t,i)=>{
+    const c=[LVLS[0].color,LVLS[1].color,LVLS[2].color,LVLS[4].color][i];
+    return `<span class="pill" style="color:${c};border-color:${c};background:color-mix(in srgb,${c} 8%,white)">${t}</span>`;
+  }).join('→');
+  setCard(`
+    <div class="welcome">
+      <div style="font-size:3rem;margin-bottom:8px">🔬</div>
+      <h2>准备好探索生命的奥秘了吗？</h2>
+      <p style="margin:10px 0">生命由最微小的<b>细胞</b>开始，层层组合，构成复杂而精妙的生命体。<br>动物与植物的组成层次有一个关键差异！</p>
+      <div style="margin:12px 0">
+        <div style="font-size:.75rem;font-weight:900;color:var(--dim);margin-bottom:5px;letter-spacing:1px">🐶 动物（5层次）</div>
+        <div class="level-pills">${animalRow}</div>
+        <div style="font-size:.75rem;font-weight:900;color:var(--dim);margin:8px 0 5px;letter-spacing:1px">🌿 植物（4层次，无系统！）</div>
+        <div class="level-pills">${plantRow}</div>
+      </div>
+      <p style="color:#ff7b3b;font-weight:700;margin-bottom:16px">⏱ 答题计时 · 🔥 连击加分 · ❤️ 答错扣命</p>
+      <button class="btn btn-go" onclick="startGame()">开始冒险 🚀</button>
+    </div>
+  `);
+}
+
+// ══════════════════════════════════════════════════
+// GAME FLOW
+// ══════════════════════════════════════════════════
+function startGame(){
+  Object.assign(G,{score:0,lives:3,combo:1,si:0,qi:0,sortQi:0,answered:false,startTime:Date.now(),endTime:null,timeStr:'00:00',grade:'',gc:'',gm:''});
+  showStage();
+}
+
+function showStage(){
+  if(G.si>=STAGES.length){ showVictory(); return; }
+  G.qi=0; G.sortQi=0; G.answered=false;
+  const st=STAGES[G.si];
+  st.type==='sort' ? showSortQ() : showMCQ();
+}
+
+// ══════════════════════════════════════════════════
+// MC
+// ══════════════════════════════════════════════════
+function showMCQ(){
+  if(G.lives<=0){showGameOver();return;}
+  const st=STAGES[G.si];
+  if(G.qi>=st.qs.length){showStageComplete();return;}
+  const q=st.qs[G.qi];
+  G.answered=false;
+  const stColor=['var(--cell)','var(--tissue)','var(--organ)','var(--system)','var(--indiv)'][G.si%5];
+  const choices=q.c.map((c,i)=>`<button class="choice" id="ch${i}" onclick="answerMC(${i})">${c}</button>`).join('');
+  setCard(`
+    <div class="q-header" style="width:100%;max-width:540px">
+      <span class="q-tag" style="color:${stColor};border-color:${stColor}">${STAGES[G.si].icon} ${STAGES[G.si].title}</span>
+      <span class="q-progress">${G.qi+1} / ${st.qs.length}</span>
+    </div>
+    <div class="timer-wrap" style="max-width:540px;width:100%">
+      <div class="timer-bg"><div class="timer-fill" id="tFill" style="width:100%"></div></div>
+    </div>
+    <div class="q-text">${q.q}</div>
+    <div class="choices">${choices}</div>
+    <div id="fb"></div>
+    <div id="nxt"></div>
+  `);
+  startTimer(()=>{ if(!G.answered) answerMC(-1); });
+}
+
+function answerMC(chosen){
+  if(G.answered) return;
+  G.answered=true; stopTimer();
+  const q=STAGES[G.si].qs[G.qi];
+  const ok=chosen===q.a;
+  q.c.forEach((_,i)=>{
+    const el=document.getElementById('ch'+i);
+    if(!el) return;
+    el.disabled=true;
+    if(i===q.a) el.classList.add('correct');
+    else if(i===chosen) el.classList.add('wrong');
+  });
+  if(ok){ G.score+=10*G.combo; G.combo=Math.min(G.combo+1,6); comboFlash(G.combo-1); }
+  else   { if(G.lives>0)G.lives--; G.combo=1; }
+  const fb=document.getElementById('fb');
+  if(fb) fb.innerHTML=`<div class="feedback ${ok?'ok':'err'}"><div class="fb-title">${ok?'✅ 正确！（+'+10*(ok?G.combo-1:0)+10+'分）':'❌ 错误'}</div>${q.e}</div>`;
+  hud();
+  const nxt=document.getElementById('nxt');
+  if(nxt){
+    if(G.lives<=0) nxt.innerHTML=`<button class="btn btn-retry" onclick="showGameOver()">游戏结束 💀</button>`;
+    else nxt.innerHTML=`<button class="btn btn-next" onclick="nextMCQ()">继续 →</button>`;
+  }
+}
+
+function nextMCQ(){ G.qi++; showMCQ(); }
+
+// ══════════════════════════════════════════════════
+// SORT
+// ══════════════════════════════════════════════════
+function showSortQ(){
+  if(G.lives<=0){showGameOver();return;}
+  const st=STAGES[G.si];
+  if(G.sortQi>=st.qs.length){showStageComplete();return;}
+  const sq=st.qs[G.sortQi];
+  G.sortOrder=shuffle(sq.items);
+  G.answered=false;
+  setCard(`
+    <div class="q-header" style="width:100%;max-width:480px">
+      <span class="q-tag" style="color:var(--system);border-color:var(--system)">🔢 排列挑战</span>
+      <span class="q-progress">${G.sortQi+1} / ${st.qs.length}</span>
+    </div>
+    <div class="q-text">${sq.title}</div>
+    <p style="font-size:.78rem;color:var(--dim)">点击 ▲▼ 调整顺序，完成后提交</p>
+    <div class="sort-area" id="sArea"></div>
+    <div id="fb"></div>
+    <div id="nxt"><button class="btn btn-next" onclick="checkSort()">提交答案 ✓</button></div>
+  `);
+  renderSort();
+}
+
+function renderSort(){
+  const el=document.getElementById('sArea');
+  if(!el) return;
+  el.innerHTML=G.sortOrder.map((item,i)=>{
+    const lv=LVLS.find(l=>l.name===item)||LVLS[0];
+    return `<div class="sort-item" style="border-color:color-mix(in srgb,${lv.color} 40%,#dde4ff)">
+      <span>${lv.icon} ${item}</span>
+      <div class="sort-btns">
+        <button class="sort-btn" onclick="mv(${i},-1)" ${i===0?'disabled':''}>▲</button>
+        <button class="sort-btn" onclick="mv(${i},1)"  ${i===G.sortOrder.length-1?'disabled':''}>▼</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mv(i,d){ const ni=i+d; if(ni<0||ni>=G.sortOrder.length)return; [G.sortOrder[i],G.sortOrder[ni]]=[G.sortOrder[ni],G.sortOrder[i]]; renderSort(); }
+
+function checkSort(){
+  if(G.answered) return;
+  G.answered=true;
+  const sq=STAGES[G.si].qs[G.sortQi];
+  const ok=JSON.stringify(G.sortOrder)===JSON.stringify(sq.answer);
+  if(ok){ G.score+=20*G.combo; G.combo=Math.min(G.combo+1,6); comboFlash(G.combo-1); }
+  else   { if(G.lives>0)G.lives--; G.combo=1; }
+  const fb=document.getElementById('fb');
+  if(fb) fb.innerHTML=`<div class="feedback ${ok?'ok':'err'}"><div class="fb-title">${ok?'✅ 排列正确！（+'+20+'分）':'❌ 顺序有误'}</div>${sq.e}</div>`;
+  hud();
+  const nxt=document.getElementById('nxt');
+  if(nxt){
+    if(G.lives<=0) nxt.innerHTML=`<button class="btn btn-retry" onclick="showGameOver()">游戏结束 💀</button>`;
+    else nxt.innerHTML=`<button class="btn btn-next" onclick="nextSort()">继续 →</button>`;
+  }
+}
+function nextSort(){ G.sortQi++; showSortQ(); }
+
+// ══════════════════════════════════════════════════
+// STAGE COMPLETE
+// ══════════════════════════════════════════════════
+const KNOW_CARDS = [
+  `<div class="know"><h3>🦠 细胞 — 生命的基本单位</h3>所有生物都由细胞组成。动物细胞无细胞壁，植物细胞有细胞壁和叶绿体。</div>`,
+  `<div class="know"><h3>🧬 动植物组织对比</h3><b>动物四大组织：</b>上皮、结缔、肌肉、神经<br><span class="plant-b">植物四大组织：</span>保护、输导、基本、分生</div>`,
+  `<div class="know"><h3>🌿 关键差异记清楚！</h3><b>动物：</b>细胞→组织→器官→<b>系统</b>→个体（5层次）<br><span class="plant-b">植物：</span>细胞→组织→器官→个体（4层次，<b style="color:var(--indiv)">无系统</b>）</div>`,
+  `<div class="know"><h3>⚙️ 人体八大系统</h3>消化、循环、呼吸、排泄（泌尿）、神经、内分泌、运动、生殖系统，各自由多个器官协作完成功能。</div>`,
+];
+
+function showStageComplete(){
+  confetti();
+  const isLast=G.si===STAGES.length-1;
+  const st=STAGES[G.si];
+  setCard(`
+    <div class="result">
+      <div class="big-emoji">🎉</div>
+      <h2>第 ${st.id} 关完成！</h2>
+      <div class="stats">
+        <div class="stat"><div class="stat-n" style="color:#3b9eff">${G.score}</div><div class="stat-l">总分</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--organ)">${G.combo}×</div><div class="stat-l">连击加成</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--indiv)">${G.lives}</div><div class="stat-l">剩余生命</div></div>
+      </div>
+      ${KNOW_CARDS[G.si]||''}
+      ${isLast
+        ? `<button class="btn btn-go" onclick="showVictory()">查看最终成绩 🏆</button>`
+        : `<button class="btn btn-next" onclick="nextStage()">前往下一关 →</button>`}
+    </div>
+  `);
+}
+function nextStage(){ G.si++; showStage(); }
+
+// ══════════════════════════════════════════════════
+// VICTORY
+// ══════════════════════════════════════════════════
+function showVictory(){
+  confetti(); setTimeout(confetti, 500);
+  G.endTime = Date.now();
+  const elapsed = Math.max(0, Math.round(((G.endTime||Date.now()) - (G.startTime||Date.now())) / 1000));
+  const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+  const ss = String(elapsed%60).padStart(2,'0');
+  G.timeStr = `${mm}:${ss}`;
+  const grade = G.score>=320?'S':G.score>=220?'A':G.score>=130?'B':'C';
+  const gc = {'S':'linear-gradient(135deg,#ffd700,#ff9a44)','A':'linear-gradient(135deg,#3b9eff,#00c896)','B':'linear-gradient(135deg,#9b5de5,#3b9eff)','C':'linear-gradient(135deg,#aaa,#777)'}[grade];
+  const gm = {'S':'太厉害了！满分过关！🌟','A':'非常棒！掌握扎实！','B':'不错！再复习一遍更好！','C':'加油！下次一定行！'}[grade];
+  G.grade=grade; G.gc=gc; G.gm=gm;
+  setCard(`
+    <div class="name-screen">
+      <div class="big-emoji">🏆</div>
+      <h2>恭喜通关！</h2>
+      <p style="color:var(--dim);font-size:.88rem;line-height:1.65">你已掌握生命组成的全部层次！<br>输入姓名，领取专属通关证书 🎓</p>
+      <div class="stats" style="margin:2px 0">
+        <div class="stat"><div class="stat-n" style="color:#3b9eff">${G.score}</div><div class="stat-l">最终得分</div></div>
+        <div class="stat"><div class="stat-n" style="color:var(--organ)">⏱ ${mm}:${ss}</div><div class="stat-l">通关用时</div></div>
+        <div class="stat"><div class="grade-ring" style="background:${gc};color:white;width:44px;height:44px;font-size:1.3rem;margin:0 auto">${grade}</div><div class="stat-l">评定等级</div></div>
+      </div>
+      <input class="name-input" id="playerName" type="text" maxlength="20" placeholder="请输入你的姓名…" onkeydown="if(event.key==='Enter')genCert()" />
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-go" onclick="genCert()">生成证书 🎓</button>
+        <button class="btn btn-outline" onclick="startGame()">再挑战 🔄</button>
+      </div>
+    </div>
+  `);
+  setTimeout(()=>{ const el=document.getElementById('playerName'); if(el) el.focus(); }, 100);
+}
+
+function genCert(){
+  const nameEl = document.getElementById('playerName');
+  const name = (nameEl ? nameEl.value.trim() : '') || '同学';
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const timeStr = now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('certName').textContent = name;
+  document.getElementById('certScore').textContent = G.score + ' 分';
+  document.getElementById('certLives').textContent = G.lives + ' / 3';
+  document.getElementById('certTime').textContent = G.timeStr;
+  document.getElementById('certDate').innerHTML = dateStr + '<br>' + timeStr;
+  document.getElementById('certGradeBadge').textContent = G.grade;
+  document.getElementById('certGradeBadge').style.background = G.gc;
+  document.getElementById('certGradeMsg').textContent = G.gm;
+  document.getElementById('certOverlay').classList.add('show');
+  confetti();
+}
+
+function closeCert(){
+  document.getElementById('certOverlay').classList.remove('show');
+}
+
+function printCert(){
+  const cert = document.getElementById('cert');
+  const w = window.open('','_blank','width=640,height=860');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">'
+    + '<style>'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{background:#f0f4ff;display:flex;justify-content:center;padding:24px;font-family:"Noto Sans SC",sans-serif}'
+    + '@media print{body{background:white;padding:0}}'
+    + '.cert-header{background:linear-gradient(135deg,#1a3a6e,#0d2244);padding:28px 24px 20px;text-align:center;position:relative;overflow:hidden}'
+    + '.cert-seal{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#ffd700,#ff9a44);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 10px;box-shadow:0 4px 20px rgba(255,215,0,.5);position:relative;z-index:1}'
+    + '.cert-header h2{font-family:"Baloo 2",sans-serif;font-size:1rem;font-weight:800;color:rgba(255,255,255,.6);letter-spacing:3px;text-transform:uppercase;position:relative;z-index:1;margin-bottom:2px}'
+    + '.cert-header h1{font-family:"Baloo 2",sans-serif;font-size:1.6rem;font-weight:800;color:#ffd700;position:relative;z-index:1}'
+    + '#cert{background:white;border-radius:20px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2)}'
+    + '.cert-body{padding:24px 28px 20px}'
+    + '.cert-name-row{text-align:center;margin-bottom:18px}'
+    + '.cert-name-label{font-size:.72rem;color:#7880a0;letter-spacing:2px;text-transform:uppercase;font-weight:700}'
+    + '.cert-name{font-family:"Baloo 2",sans-serif;font-size:2rem;font-weight:800;color:#1a2040;border-bottom:3px solid #ffd700;display:inline-block;padding:0 12px 2px;margin-top:4px}'
+    + '.cert-desc{text-align:center;font-size:.88rem;color:#7880a0;line-height:1.7;margin-bottom:18px}'
+    + '.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}'
+    + '.cert-item{background:#f4f7ff;border:1.5px solid #dde4ff;border-radius:12px;padding:10px 14px;text-align:center}'
+    + '.cert-item-label{font-size:.68rem;color:#7880a0;font-weight:700;letter-spacing:1px;text-transform:uppercase}'
+    + '.cert-item-val{font-size:1.1rem;font-weight:900;color:#1a2040;margin-top:2px}'
+    + '.cert-grade-row{display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #ffd700;border-radius:14px;padding:12px 20px;margin-bottom:18px}'
+    + '.cert-grade-badge{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Baloo 2",sans-serif;font-size:1.8rem;font-weight:900;color:white;flex-shrink:0}'
+    + '.cert-grade-text b{font-size:1rem;color:#1a2040;display:block}'
+    + '.cert-grade-text span{font-size:.8rem;color:#7880a0}'
+    + '.cert-footer{background:#f8faff;border-top:1.5px solid #dde4ff;padding:14px 20px;text-align:center;font-size:.75rem;color:#aaa}'
+    + '</style></head><body>'
+    + '<div id="cert">' + cert.innerHTML + '</div>'
+    + '<' + 'script>window.onload=function(){window.print();};<' + '/script>'
+    + '</body></html>');
+  w.document.close();
+}
+
+// ══════════════════════════════════════════════════
+// GAME OVER
+// ══════════════════════════════════════════════════
+function showGameOver(){
+  stopTimer();
+  setCard(`
+    <div class="result">
+      <div class="big-emoji">😵</div>
+      <h2 style="color:var(--indiv)">生命值耗尽！</h2>
+      <p>别气馁！复习一下生命阶层，再来挑战吧！</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-n">${G.score}</div><div class="stat-l">本次得分</div></div>
+        <div class="stat"><div class="stat-n">${G.si+1}/${STAGES.length}</div><div class="stat-l">抵达关卡</div></div>
+      </div>
+      <div class="know">
+        <h3>💡 快速复习</h3>
+        <b>动物：</b>细胞→组织→器官→<b>系统</b>→个体<br>
+        <span class="plant-b"><b>植物：</b></span>细胞→组织→器官→个体（<b style="color:var(--indiv)">无系统</b>）
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-retry" onclick="startGame()">重新挑战 🔄</button>
+        <button class="btn btn-outline" onclick="showWelcome()">回到首页</button>
+      </div>
+    </div>
+  `);
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+showWelcome();
+</script>
+</body>
+</html>
