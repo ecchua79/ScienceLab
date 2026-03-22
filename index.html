@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命之旅 · 初中科学</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+SC:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;font-family:'Noto Sans SC',sans-serif;color:#fff;user-select:none;-webkit-user-select:none;}
+canvas{position:fixed;top:0;left:0;display:block;}
+#ui{position:fixed;inset:0;z-index:20;pointer-events:none;}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;pointer-events:all;}
+.hidden{display:none!important;}
+#s-title{background:radial-gradient(ellipse at 35% 45%,#1a0533,#0a0a1a 65%);}
+.t-emoji{font-size:72px;animation:bob 3s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.t-name{font-family:'Nunito',sans-serif;font-size:clamp(28px,6vw,52px);font-weight:900;background:linear-gradient(135deg,#ff6b9d,#00e5ff,#ffe566);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:6px;text-align:center;}
+.t-sub{font-size:13px;color:rgba(255,255,255,.45);letter-spacing:3px;margin-top:8px;margin-bottom:36px;}
+.cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:18px 22px;width:175px;cursor:pointer;text-align:center;transition:transform .22s,box-shadow .22s;}
+.card:hover{transform:translateY(-5px) scale(1.04);}
+.c-ico{font-size:38px;margin-bottom:8px;}.c-num{font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.38);margin-bottom:3px;}.c-name{font-size:14px;font-weight:700;}
+#s-intro{background:rgba(0,0,0,.93);backdrop-filter:blur(16px);}
+.i-ico{font-size:56px;margin-bottom:12px;}.i-num{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.38);margin-bottom:4px;}.i-name{font-size:26px;font-weight:700;margin-bottom:10px;}
+.i-desc{font-size:13px;color:rgba(255,255,255,.68);max-width:360px;text-align:center;line-height:1.85;margin-bottom:20px;}
+.hints{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;}
+.hint{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.55);}
+.hk{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;font-family:monospace;font-size:11px;}
+#hud{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;pointer-events:none;}
+.hb{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.13);border-radius:24px;padding:7px 14px;font-size:12px;font-weight:700;}
+#hb-back{pointer-events:all;cursor:pointer;opacity:.55;}#hb-back:hover{opacity:1;}
+#s-result{background:rgba(0,0,0,.9);backdrop-filter:blur(18px);}
+.r-ico{font-size:64px;margin-bottom:10px;animation:pop .35s ease-out;}
+@keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+.r-title{font-size:26px;font-weight:700;margin-bottom:6px;}.r-score{font-size:44px;font-weight:900;color:#ffe566;margin-bottom:16px;}
+.kbox{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:14px;padding:14px 20px;max-width:420px;text-align:center;line-height:1.75;font-size:13px;color:rgba(255,255,255,.82);margin-bottom:20px;}
+.kbox-hd{font-size:10px;letter-spacing:2px;color:#00e5ff;margin-bottom:6px;}
+.btn{background:linear-gradient(135deg,#ff6b9d,#b83070);border:none;border-radius:28px;color:#fff;font-family:'Noto Sans SC',sans-serif;font-size:14px;font-weight:700;padding:11px 28px;cursor:pointer;transition:transform .18s;margin:5px;pointer-events:all;}
+.btn:hover{transform:scale(1.05);}
+.btn.sec{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);}
+</style>
+</head>
+<body>
+<canvas id="bg" style="z-index:1"></canvas>
+<canvas id="cv" style="z-index:2;pointer-events:none"></canvas>
+<div id="ui">
+  <div id="s-title" class="screen">
+    <div class="t-emoji">🧬</div>
+    <div class="t-name">生命之旅</div>
+    <div class="t-sub">初中科学 · 生殖单元</div>
+    <div class="cards">
+      <div class="card" onclick="openLevel(1)"><div class="c-ico">🔬</div><div class="c-num">第一关</div><div class="c-name">减数分裂</div></div>
+      <div class="card" onclick="openLevel(2)"><div class="c-ico">🏊</div><div class="c-num">第二关</div><div class="c-name">精子竞速</div></div>
+      <div class="card" onclick="openLevel(3)"><div class="c-ico">✨</div><div class="c-num">第三关</div><div class="c-name">受精作用</div></div>
+    </div>
+  </div>
+  <div id="s-intro" class="screen hidden">
+    <div class="i-ico" id="i-ico"></div>
+    <div class="i-num" id="i-num"></div>
+    <div class="i-name" id="i-name"></div>
+    <div class="i-desc" id="i-desc"></div>
+    <div class="hints" id="i-hints"></div>
+    <button class="btn" onclick="startPlay()">开始挑战！</button>
+    <button class="btn sec" style="margin-top:4px" onclick="showTitle()">返回</button>
+  </div>
+  <div id="hud" class="hidden">
+    <div class="hb" id="hb-lv"></div>
+    <div class="hb" id="hb-sc">⭐ 0</div>
+    <div class="hb" id="hb-back" onclick="showTitle()">✕ 退出</div>
+  </div>
+  <div id="s-result" class="screen hidden">
+    <div class="r-ico" id="r-ico">🎉</div>
+    <div class="r-title" id="r-title"></div>
+    <div class="r-score" id="r-sc"></div>
+    <div class="kbox"><div class="kbox-hd">📚 知识卡片</div><div id="r-tip"></div></div>
+    <div>
+      <button class="btn" id="btn-next" onclick="goNext()"></button>
+      <button class="btn sec" onclick="startPlay()">再来一次</button>
+      <button class="btn sec" onclick="showTitle()">关卡选择</button>
+    </div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════
+// ENGINE
+// ═══════════════════════════════════════════════════
+var bgCv=document.getElementById('bg'), bgX=bgCv.getContext('2d');
+var cv=document.getElementById('cv'),   ctx=cv.getContext('2d');
+var W=window.innerWidth, H=window.innerHeight;
+function setSize(){W=window.innerWidth;H=window.innerHeight;bgCv.width=W;bgCv.height=H;cv.width=W;cv.height=H;}
+setSize(); window.addEventListener('resize',setSize);
+
+var gen=0;
+function startGame(fn){var g=++gen;function tick(){if(gen!==g)return;fn();requestAnimationFrame(tick);}requestAnimationFrame(tick);}
+function stopGame(){gen++;ctx.clearRect(0,0,W,H);}
+
+var keys={},mX=W/2,mY=H/2,mDown=false;
+var clickQ=[];
+var lastClickT=0; // debounce: ignore mousedown if touchstart just fired
+window.addEventListener('keydown',function(e){keys[e.key]=true;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))e.preventDefault();});
+window.addEventListener('keyup',function(e){keys[e.key]=false;});
+window.addEventListener('mousemove',function(e){mX=e.clientX;mY=e.clientY;});
+window.addEventListener('mousedown',function(e){
+  mX=e.clientX;mY=e.clientY;mDown=true;
+  // ignore mousedown if a touchstart fired within last 500ms (same tap)
+  if(Date.now()-lastClickT>500) clickQ.push({x:e.clientX,y:e.clientY});
+});
+window.addEventListener('mouseup',function(){mDown=false;});
+window.addEventListener('touchstart',function(e){
+  mX=e.touches[0].clientX;mY=e.touches[0].clientY;mDown=true;
+  lastClickT=Date.now();
+  clickQ.push({x:e.touches[0].clientX,y:e.touches[0].clientY});
+},{passive:true});
+window.addEventListener('touchmove',function(e){mX=e.touches[0].clientX;mY=e.touches[0].clientY;},{passive:true});
+window.addEventListener('touchend',function(){mDown=false;});
+
+// starfield
+var stars=[];
+for(var si=0;si<55;si++)stars.push({x:Math.random()*1920,y:Math.random()*1080,r:.3+Math.random()*1.2,a:Math.random()*6.28,sp:.05+Math.random()*.2,op:.08+Math.random()*.28});
+(function bgLoop(){bgX.clearRect(0,0,W,H);for(var i=0;i<stars.length;i++){var s=stars[i];s.x+=Math.cos(s.a)*s.sp;s.y+=Math.sin(s.a)*s.sp;s.a+=(Math.random()-.5)*.015;if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;bgX.beginPath();bgX.arc(s.x,s.y,s.r,0,6.28);bgX.fillStyle='rgba(255,255,255,'+s.op+')';bgX.fill();}requestAnimationFrame(bgLoop);})();
+
+// ─── round rect ───
+function rrect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+
+// ─── sperm draw: head up, tail DOWN ───
+function drawSperm(x,y,sz,ph,r,g,b,al){
+  ctx.save();ctx.translate(x,y);
+  var gr=ctx.createRadialGradient(0,0,0,0,0,sz*.7);
+  gr.addColorStop(0,'rgba('+r+','+g+','+b+','+al+')');
+  gr.addColorStop(1,'rgba('+r+','+g+','+b+',0.04)');
+  ctx.beginPath();ctx.ellipse(0,0,sz*.45,sz*.68,0,0,6.28);ctx.fillStyle=gr;ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,sz*.5);
+  for(var i=1;i<=22;i++){var t=i/22;ctx.lineTo(Math.sin(ph+t*9.42)*sz*.35*t,sz*.5+t*sz*2.2);}
+  ctx.strokeStyle='rgba('+r+','+g+','+b+','+(al*0.6)+')';ctx.lineWidth=1.8;ctx.stroke();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════
+// LEVEL DATA
+// ═══════════════════════════════════════════════════
+var currentLevel=0,score=0;
+var LD=[null,
+  {ico:'🔬',num:'第一关',name:'减数分裂',
+   desc:'精母细胞里有6对同源染色体。每对点选一条给精子，凑出6条！选完后卵母细胞自动完成，生成配子。',
+   hints:[['点击','从每对选一条'],['6对→6条','每对必须选且只选一条']],
+   hud:'🔬 减数分裂',
+   tip:'减数分裂让染色体数目减半：精母细胞（12条）→精子（6条），卵母细胞（12条）→卵子（6条）。每对同源染色体随机分配，所以每个配子的遗传组合都不同，这就是遗传多样性的来源！'},
+  {ico:'🏊',num:'第二关',name:'精子竞速',
+   desc:'数亿精子同时出发！左右移动躲避☠️酸性物质和🛡️免疫细胞，收集⚡能量球加速，最先到达卵子完成旅程！',
+   hints:[['←→','左右移动'],['↑','加速'],['鼠标/触摸','跟随控制']],
+   hud:'🏊 精子竞速',
+   tip:'精子的旅程极其艰难：酸性环境、免疫细胞、漫长距离会淘汰99.99%的精子。只有最强壮的精子才能抵达卵子，这是自然选择在微观层面的体现。'},
+  {ico:'✨',num:'第三关',name:'受精作用',
+   desc:'精子到达卵子了！先点击穿透细胞膜，再把12条染色体两两配对，完成受精！',
+   hints:[['点击','穿透细胞膜'],['点击同色','配对同源染色体']],
+   hud:'✨ 受精作用',
+   tip:'受精时精子穿透卵子细胞膜，触发"透明带反应"防止其他精子进入。之后精子的6条染色体与卵子的6条染色体两两配对，形成12条（代表人体46条）染色体的受精卵，生命就此开始！'}
+];
+
+// ─── screens ───
+function hideAll(){['s-title','s-intro','s-result'].forEach(function(id){document.getElementById(id).classList.add('hidden');});document.getElementById('hud').classList.add('hidden');}
+function showTitle(){stopGame();hideAll();document.getElementById('s-title').classList.remove('hidden');}
+function openLevel(n){
+  currentLevel=n;var d=LD[n];
+  document.getElementById('i-ico').textContent=d.ico;
+  document.getElementById('i-num').textContent=d.num;
+  document.getElementById('i-name').textContent=d.name;
+  document.getElementById('i-desc').textContent=d.desc;
+  var h='';for(var i=0;i<d.hints.length;i++)h+='<div class="hint"><span class="hk">'+d.hints[i][0]+'</span><span>'+d.hints[i][1]+'</span></div>';
+  document.getElementById('i-hints').innerHTML=h;
+  hideAll();document.getElementById('s-intro').classList.remove('hidden');
+}
+function startPlay(){
+  hideAll();document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('hb-lv').textContent=LD[currentLevel].hud;
+  score=0;updHUD();stopGame();clickQ=[];
+  if(currentLevel===1)level1();else if(currentLevel===2)level2();else level3();
+}
+function updHUD(){document.getElementById('hb-sc').textContent='⭐ '+score;}
+function endLevel(won,msg){
+  stopGame();hideAll();var d=LD[currentLevel];
+  document.getElementById('r-ico').textContent=won?'🎉':'💫';
+  document.getElementById('r-title').textContent=won?'太棒了！关卡完成！':(msg||'继续加油！');
+  document.getElementById('r-sc').textContent=score+' 分';
+  document.getElementById('r-tip').textContent=d.tip;
+  var nb=document.getElementById('btn-next');
+  if(currentLevel<3){nb.style.display='';nb.textContent='前往第'+(currentLevel+1)+'关 →';}else nb.style.display='none';
+  document.getElementById('s-result').classList.remove('hidden');
+}
+function goNext(){openLevel(currentLevel+1);}
+
+function drawChr(x,y,r,col){
+  ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+',1)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(x-r*.5,y-r);ctx.lineTo(x,y);ctx.lineTo(x+r*.5,y-r);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-r*.5,y+r);ctx.lineTo(x,y);ctx.lineTo(x+r*.5,y+r);ctx.stroke();
+  ctx.beginPath();ctx.arc(x,y,r*.38,0,6.28);
+  ctx.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+',1)';ctx.fill();
+}
+function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+
+
+// ═══════════════════════════════════════════════════
+// LEVEL 1 — 减数分裂
+// ═══════════════════════════════════════════════════
+// 6 chromosome pair colours (r,g,b)
+var CHR_COLS=[[255,80,120],[255,160,30],[80,220,120],[60,180,255],[180,80,255],[255,220,50]];
+
+function level1(){
+  // Phase: 'pick' → player picks from spermatocyte
+  //        'eggAnim' → egg auto-selects (animation)
+  //        'flyOut'  → both cells fly away
+  //        'done'
+  var phase='pick';
+  var phaseT=0;
+
+  // Cell centre
+  var CX=W/2, CY=H/2;
+  var CELL_R=Math.min(W,H)*0.28;
+
+  // 6 pairs. Each pair: two chromosomes side by side.
+  // chosen[i] = 0 (left) or 1 (right) or -1 (not chosen)
+  var chosen=[-1,-1,-1,-1,-1,-1];
+  // For each pair, layout angle around cell
+  var pairAngles=[];
+  for(var i=0;i<6;i++) pairAngles.push(i/6*6.28-1.57); // evenly around circle
+
+  // Hover state
+  var hoverPair=-1, hoverSide=-1;
+
+  // Egg auto-pick result (chosen after flyOut starts)
+  var eggChosen=[-1,-1,-1,-1,-1,-1];
+
+  // Animation state for egg phase
+  var eggPairs=0; // how many pairs egg has "picked" so far
+
+  // Fly-out particles (one per chromosome selected)
+  var spermChrs=[]; // {col, x,y, tx,ty, t} — flies to sperm assembly point
+  var eggChrs=[];
+
+  // Sperm/egg assembly positions (bottom corners)
+  var SPX=W*0.25, SPY=H*0.82;
+  var EGX=W*0.75, EGY=H*0.82;
+
+  // Result chromosomes assembled
+  var spermAssembled=0, eggAssembled=0;
+
+  var ended=false;
+
+  // Get position of chromosome in a pair
+  function chrPos(pairIdx, side){
+    var ang=pairAngles[pairIdx];
+    var dist=CELL_R*0.62;
+    var cx2=CX+Math.cos(ang)*dist;
+    var cy2=CY+Math.sin(ang)*dist;
+    var perp=ang+1.57;
+    var off=18;
+    return {x:cx2+Math.cos(perp)*(side===0?-off:off), y:cy2+Math.sin(perp)*(side===0?-off:off)};
+  }
+
+  // Click handling
+  function handleClick(cx,cy){
+    if(phase!=='pick')return;
+    for(var p=0;p<6;p++){
+      for(var s=0;s<2;s++){
+        var pos=chrPos(p,s);
+        var dx=cx-pos.x, dy=cy-pos.y;
+        if(dx*dx+dy*dy<28*28){
+          chosen[p]=s;
+          score+=10;updHUD();
+          return;
+        }
+      }
+    }
+  }
+
+  startGame(function(){
+    // consume all queued clicks
+    while(clickQ.length>0){
+      var cl=clickQ.shift();
+      handleClick(cl.x,cl.y);
+    }
+
+    phaseT++;
+
+    // check if all 6 picked → move to egg phase
+    if(phase==='pick'){
+      var allPicked=true;
+      for(var i=0;i<6;i++)if(chosen[i]===-1){allPicked=false;break;}
+      if(allPicked){
+        phase='eggAnim';phaseT=0;
+        // launch sperm chromosomes flying
+        for(var i=0;i<6;i++){
+          var pos=chrPos(i,chosen[i]);
+          var col=CHR_COLS[i];
+          spermChrs.push({col:col,x:pos.x,y:pos.y,ox:pos.x,oy:pos.y,t:0,idx:i});
+        }
+      }
+    }
+
+    // egg auto-picks one pair every 40 frames
+    if(phase==='eggAnim'){
+      if(phaseT%40===0 && eggPairs<6){
+        var p=eggPairs;
+        eggChosen[p]=Math.round(Math.random());
+        var pos=chrPos(p,eggChosen[p]);
+        var col=CHR_COLS[p];
+        eggChrs.push({col:col,x:pos.x,y:pos.y,ox:pos.x,oy:pos.y,t:0,idx:p});
+        eggPairs++;
+      }
+      if(eggPairs>=6 && phaseT>40*6+60){
+        phase='flyOut';phaseT=0;
+      }
+    }
+
+    // animate flying chromosomes
+    var flySpeed=0.035;
+    for(var i=0;i<spermChrs.length;i++){
+      if(spermChrs[i].t<1) spermChrs[i].t+=flySpeed;
+      if(spermChrs[i].t>1) spermChrs[i].t=1;
+    }
+    for(var i=0;i<eggChrs.length;i++){
+      if(eggChrs[i].t<1) eggChrs[i].t+=flySpeed;
+      if(eggChrs[i].t>1) eggChrs[i].t=1;
+    }
+    // count assembled
+    spermAssembled=0;for(var i=0;i<spermChrs.length;i++)if(spermChrs[i].t>=1)spermAssembled++;
+    eggAssembled=0;for(var i=0;i<eggChrs.length;i++)if(eggChrs[i].t>=1)eggAssembled++;
+
+    if(phase==='flyOut' && phaseT>120 && !ended){
+      ended=true;
+      score+=50;updHUD();
+      setTimeout(function(){endLevel(true);},600);
+    }
+
+    // ─── DRAW ───
+    ctx.clearRect(0,0,W,H);
+
+    // dark bg
+    ctx.fillStyle='rgba(5,5,20,1)';ctx.fillRect(0,0,W,H);
+
+    // cell membrane glow
+    var cellCol = phase==='pick'?'rgba(100,180,255,':'rgba(255,140,200,';
+    var cg=ctx.createRadialGradient(CX,CY,CELL_R*0.5,CX,CY,CELL_R);
+    cg.addColorStop(0,'rgba(20,40,80,0.6)');
+    cg.addColorStop(0.8,'rgba(10,20,50,0.3)');
+    cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(CX,CY,CELL_R,0,6.28);ctx.fillStyle=cg;ctx.fill();
+
+    // membrane ring
+    ctx.beginPath();ctx.arc(CX,CY,CELL_R,0,6.28);
+    ctx.strokeStyle=phase==='pick'?'rgba(100,180,255,0.6)':'rgba(255,140,200,0.6)';
+    ctx.lineWidth=3;ctx.stroke();
+
+    // cell label
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='bold 14px Noto Sans SC';
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText(phase==='pick'?'精母细胞  (12条染色体)':'卵母细胞  (12条染色体)',CX,CY-CELL_R-20);
+
+    // nucleus hint
+    var ng=ctx.createRadialGradient(CX,CY,0,CX,CY,CELL_R*0.28);
+    ng.addColorStop(0,'rgba(60,100,200,0.25)');ng.addColorStop(1,'rgba(60,100,200,0)');
+    ctx.beginPath();ctx.arc(CX,CY,CELL_R*0.28,0,6.28);ctx.fillStyle=ng;ctx.fill();
+
+    // draw chromosome pairs
+    for(var p=0;p<6;p++){
+      var col=CHR_COLS[p];
+      for(var s=0;s<2;s++){
+        var pos=chrPos(p,s);
+        var isPicked=(chosen[p]===s);
+        var isEggPicked=(eggChosen[p]===s);
+        var alpha= (phase==='pick'||phase==='eggAnim') ? 1 : 0.3;
+
+        // glow if picked
+        if(isPicked||isEggPicked){
+          var gl=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,32);
+          gl.addColorStop(0,'rgba('+col[0]+','+col[1]+','+col[2]+',0.4)');
+          gl.addColorStop(1,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+          ctx.beginPath();ctx.arc(pos.x,pos.y,32,0,6.28);ctx.fillStyle=gl;ctx.fill();
+        }
+
+        // hover highlight
+        var isHov=(hoverPair===p&&hoverSide===s);
+        ctx.save();
+        // chromosome body (Y-shape)
+        var _sa=(isPicked?1:alpha*0.7);ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+_sa+')';
+        ctx.lineWidth=isPicked?4:2.5;
+        // draw X-shape chromosome
+        var cr=11;
+        ctx.beginPath();ctx.moveTo(pos.x-cr*.6,pos.y-cr);ctx.lineTo(pos.x,pos.y);ctx.lineTo(pos.x+cr*.6,pos.y-cr);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(pos.x-cr*.6,pos.y+cr);ctx.lineTo(pos.x,pos.y);ctx.lineTo(pos.x+cr*.6,pos.y+cr);ctx.stroke();
+        // centromere dot
+        ctx.beginPath();ctx.arc(pos.x,pos.y,isPicked?5:3.5,0,6.28);
+        var _fa=(isPicked?1:alpha*0.8);ctx.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+_fa+')';ctx.fill();
+
+        // pick ring
+        if(isPicked){
+          ctx.beginPath();ctx.arc(pos.x,pos.y,20,0,6.28);
+          ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+',0.9)';ctx.lineWidth=2;ctx.stroke();
+        }
+        ctx.restore();
+      }
+      // pair bracket
+      var p0=chrPos(p,0),p1=chrPos(p,1);
+      ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);
+      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.stroke();
+    }
+
+    // instruction
+    if(phase==='pick'){
+      var picked=0;for(var i=0;i<6;i++)if(chosen[i]!==-1)picked++;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='14px Noto Sans SC';ctx.fillStyle='rgba(255,255,255,0.7)';
+      ctx.fillText('点选每对中的一条染色体给精子  ('+picked+'/6)',CX,CY+CELL_R+28);
+    }
+    if(phase==='eggAnim'){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='14px Noto Sans SC';ctx.fillStyle='rgba(255,200,230,0.8)';
+      ctx.fillText('卵母细胞正在进行减数分裂……',CX,CY+CELL_R+28);
+    }
+
+    // flying chromosomes → sperm assembly
+    for(var i=0;i<spermChrs.length;i++){
+      var fc=spermChrs[i];
+      var t=easeInOut(fc.t);
+      var destX=SPX+(i-2.5)*22, destY=SPY;
+      var fx=fc.ox+(destX-fc.ox)*t;
+      var fy=fc.oy+(destY-fc.oy)*t;
+      var col=fc.col;
+      ctx.save();ctx.globalAlpha=0.5+t*0.5;
+      drawChr(fx,fy,10,col);
+      ctx.restore();
+    }
+    // flying chromosomes → egg assembly
+    for(var i=0;i<eggChrs.length;i++){
+      var fc=eggChrs[i];
+      var t=easeInOut(fc.t);
+      var destX=EGX+(i-2.5)*22, destY=EGY;
+      var fx=fc.ox+(destX-fc.ox)*t;
+      var fy=fc.oy+(destY-fc.oy)*t;
+      var col=fc.col;
+      ctx.save();ctx.globalAlpha=0.5+t*0.5;
+      drawChr(fx,fy,10,col);
+      ctx.restore();
+    }
+
+    // assembly labels
+    if(spermChrs.length>0){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='12px Noto Sans SC';ctx.fillStyle='rgba(150,200,255,0.8)';
+      ctx.fillText('精子 '+spermAssembled+'/6',SPX,SPY+30);
+      // mini sperm icon
+      drawSperm(SPX,SPY-55,14,phaseT*.08,150,200,255,0.7);
+    }
+    if(eggChrs.length>0){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='12px Noto Sans SC';ctx.fillStyle='rgba(255,180,220,0.8)';
+      ctx.fillText('卵子 '+eggAssembled+'/6',EGX,EGY+30);
+      // mini egg
+      var eg=ctx.createRadialGradient(EGX,EGY-55,0,EGX,EGY-55,18);
+      eg.addColorStop(0,'rgba(255,180,220,0.5)');eg.addColorStop(1,'rgba(255,180,220,0)');
+      ctx.beginPath();ctx.arc(EGX,EGY-55,18,0,6.28);ctx.fillStyle=eg;ctx.fill();
+    }
+
+    // update hover
+    hoverPair=-1;hoverSide=-1;
+    if(phase==='pick'){
+      for(var p=0;p<6;p++){
+        for(var s=0;s<2;s++){
+          var pos=chrPos(p,s);var dx=mX-pos.x,dy=mY-pos.y;
+          if(dx*dx+dy*dy<28*28){hoverPair=p;hoverSide=s;}
+        }
+      }
+    }
+    // cursor handled by CSS
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// LEVEL 2 — 精子竞速
+// ═══════════════════════════════════════════════════
+function level2(){
+  var CW=Math.min(W*.5,270);
+  var CX=W/2,LW=CX-CW/2,RW=CX+CW/2;
+  var px=CX,py=H-120,pvx=0,wob=0;
+  var trail=[],obs=[],nrg=[],parts=[];
+
+  // crowd of 120 background sperm
+  var CROWD=120,bgSp=[];
+  for(var i=0;i<CROWD;i++) bgSp.push({
+    x:LW+Math.random()*CW, y:H*0.1+Math.random()*H*1.3,
+    ph:Math.random()*6.28, sp:0.5+Math.random()*0.9,
+    wobX:(Math.random()-.5)*0.4, dead:false, dying:0, sz:10+Math.random()*5
+  });
+
+  // egg appears after 30s, then descends slowly
+  var eggR=28;
+  var eggX=CX+(Math.random()-.5)*CW*0.5, eggY=-eggR;
+  var eggDriftX=(Math.random()-.5)*0.4;
+  var eggActive=false; // starts hidden
+  var eggTimer=0;      // counts frames, activates at 30*60=1800
+  var won=false,ended=false;
+
+  var oT=0,eT=0,scrolled=0,GOAL=3000;
+  var alive=true;
+
+  startGame(function(){
+    if(alive&&!won){
+      wob+=.13;
+      var dx=0;
+      if(keys['ArrowLeft']||keys['a'])dx=-1;
+      if(keys['ArrowRight']||keys['d'])dx=1;
+      if(mDown){if(mX-px>14)dx=1;else if(mX-px<-14)dx=-1;}
+      pvx+=dx*.55;pvx*=.80;
+      var vy=-2.5-((keys['ArrowUp']||keys['w'])?1.5:0);
+      px+=pvx;py+=vy;
+      if(px<LW+12){px=LW+12;pvx=Math.abs(pvx)*.4;}
+      if(px>RW-12){px=RW-12;pvx=-Math.abs(pvx)*.4;}
+
+      // scroll world
+      var ty=H*.55;
+      if(py<ty){
+        var d=ty-py;py=ty;scrolled+=d;
+        for(var i=0;i<obs.length;i++)obs[i].y+=d;
+        for(var i=0;i<nrg.length;i++)nrg[i].y+=d;
+        for(var i=0;i<bgSp.length;i++){bgSp[i].y+=d;if(bgSp[i].y>H+60)bgSp[i].y=-30;}
+        for(var i=0;i<trail.length;i++)trail[i].y+=d;
+        // egg also scrolls with world
+        eggY+=d;
+      }
+      trail.unshift({x:px,y:py});if(trail.length>22)trail.pop();
+
+      // obstacles and energy
+      oT++;if(oT>50){obs.push({x:LW+20+Math.random()*(CW-40),y:-28,r:12+Math.random()*9,t:Math.random()<.6?'a':'i'});oT=0;}
+      eT++;if(eT>80){nrg.push({x:LW+20+Math.random()*(CW-40),y:-18,r:11,ph:Math.random()*6});eT=0;}
+      for(var i=0;i<obs.length;i++)obs[i].y+=1.6;
+      for(var i=0;i<nrg.length;i++){nrg[i].y+=1.3;nrg[i].ph+=.05;}
+      obs=obs.filter(function(o){return o.y<H+60;});
+      nrg=nrg.filter(function(e){return e.y<H+60;});
+
+      // crowd update
+      for(var i=0;i<bgSp.length;i++){
+        var s=bgSp[i];s.ph+=.06;
+        if(!s.dead){
+          s.y-=s.sp;s.x+=s.wobX;
+          if(s.x<LW+6){s.x=LW+6;s.wobX=Math.abs(s.wobX);}
+          if(s.x>RW-6){s.x=RW-6;s.wobX=-Math.abs(s.wobX);}
+          if(s.y<-30)s.y=H+30;
+          var surviveChance=1-(scrolled/GOAL)*0.98;
+          if(Math.random()<0.0008&&Math.random()>surviveChance)s.dying=0.01;
+        } else {
+          s.dying+=0.025;s.y+=0.5;
+        }
+        if(s.dying>0&&!s.dead)s.dead=true;
+      }
+
+      // egg countdown then slow descent
+      eggTimer++;
+      if(!eggActive && eggTimer>=1800){ // 30 seconds at 60fps
+        eggActive=true;
+        eggY=-eggR; // start just above screen
+        eggX=CX+(Math.random()-.5)*CW*0.5;
+      }
+      if(eggActive){
+        // slow descent
+        eggY+=0.4;
+        // gentle side drift
+        eggX+=eggDriftX;
+        if(eggX<LW+eggR+10){eggX=LW+eggR+10;eggDriftX=Math.abs(eggDriftX);}
+        if(eggX>RW-eggR-10){eggX=RW-eggR-10;eggDriftX=-Math.abs(eggDriftX);}
+        eggDriftX+=(Math.random()-.5)*0.04;
+        if(eggDriftX>0.5)eggDriftX=0.5;
+        if(eggDriftX<-0.5)eggDriftX=-0.5;
+        // if egg exits bottom without being caught — failure
+        if(eggY>H+eggR){
+          if(!ended){
+            ended=true;
+            won=false;
+            setTimeout(function(){endLevel(false,'受精失败！请下次再来');},1400);
+          }
+        }
+
+        // collision: player sperm hits egg
+        var edx=px-eggX,edy=py-eggY;
+        if(edx*edx+edy*edy<(eggR+14)*(eggR+14)){
+          won=true;score+=120;updHUD();
+          for(var j=0;j<20;j++) parts.push({x:eggX,y:eggY,vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7,l:1,pink:true});
+          if(!ended){ended=true;setTimeout(function(){endLevel(true);},1400);}
+        }
+      }
+
+      if(Math.random()<.015){score++;updHUD();}
+
+      // obstacle collisions
+      for(var i=0;i<obs.length;i++){
+        var o=obs[i],dx2=px-o.x,dy2=py-o.y;
+        if(dx2*dx2+dy2*dy2<(o.r+10)*(o.r+10)){
+          alive=false;
+          for(var j=0;j<12;j++)parts.push({x:px,y:py,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,l:1,pink:true});
+          score=Math.max(0,score-20);updHUD();
+          if(!ended){ended=true;setTimeout(function(){endLevel(false);},1100);}
+          break;
+        }
+      }
+      // energy
+      for(var i=nrg.length-1;i>=0;i--){
+        var e=nrg[i],dx2=px-e.x,dy2=py-e.y;
+        if(dx2*dx2+dy2*dy2<(e.r+11)*(e.r+11)){
+          score+=12;updHUD();
+          for(var j=0;j<8;j++)parts.push({x:e.x,y:e.y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,l:1,pink:false});
+          nrg.splice(i,1);
+        }
+      }
+    }
+    for(var i=0;i<parts.length;i++){parts[i].x+=parts[i].vx;parts[i].y+=parts[i].vy;parts[i].l-=.035;}
+    parts=parts.filter(function(p){return p.l>0;});
+
+    // DRAW
+    ctx.clearRect(0,0,W,H);
+    var cg=ctx.createLinearGradient(LW,0,RW,0);
+    cg.addColorStop(0,'rgba(180,50,90,0.17)');cg.addColorStop(0.5,'rgba(180,50,90,0.06)');cg.addColorStop(1,'rgba(180,50,90,0.17)');
+    ctx.fillStyle=cg;ctx.fillRect(LW,0,CW,H);
+
+    // wavy walls
+    ctx.strokeStyle='rgba(255,107,157,0.5)';ctx.lineWidth=3;
+    for(var side=0;side<2;side++){
+      ctx.beginPath();
+      for(var y=0;y<=H;y+=6){var wx=(side?RW:LW)+Math.sin(y*.027+wob*.4+(side?3.14:0))*5;if(y===0)ctx.moveTo(wx,y);else ctx.lineTo(wx,y);}
+      ctx.stroke();
+    }
+
+    // right side: countdown or distance
+    ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(RW+10,40,8,H-80);
+    if(!eggActive){
+      // countdown bar
+      var cdProg=eggTimer/1800;
+      ctx.fillStyle='rgba(180,120,255,1)';ctx.fillRect(RW+10,40+(H-80)*(1-cdProg),8,(H-80)*cdProg);
+      var secsLeft=Math.ceil((1800-eggTimer)/60);
+      ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🥚',RW+14,46);
+      ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='11px Noto Sans SC';
+      ctx.fillText(secsLeft+'s',RW+14,H-50);
+      ctx.fillText('等待',RW+14,H-36);
+    } else {
+      // distance to egg
+      var distToEgg=Math.max(0,py-eggY-eggR-14);
+      var maxDist=H*0.8;
+      var prog=Math.max(0,1-distToEgg/maxDist);
+      ctx.fillStyle='rgba(255,107,157,1)';ctx.fillRect(RW+10,40+(H-80)*(1-prog),8,(H-80)*prog);
+      ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🥚',RW+14,46);
+      ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px Noto Sans SC';ctx.fillText('距离',RW+14,H-36);
+    }
+
+    // alive count
+    var alive2=0;for(var i=0;i<bgSp.length;i++)if(!bgSp[i].dead&&bgSp[i].dying===0)alive2++;
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='10px Noto Sans SC';ctx.fillText(alive2+'只',RW+14,H-50);
+
+    // crowd sperm
+    for(var i=0;i<bgSp.length;i++){
+      var s=bgSp[i];if(s.dying>=1)continue;
+      var al=s.dead?Math.max(0,0.3*(1-s.dying)):0.22;
+      if(al<=0)continue;
+      ctx.save();ctx.globalAlpha=al;
+      drawSperm(s.x,s.y,s.sz,s.ph,255,255,255,1);
+      ctx.restore();
+    }
+
+    // obstacles
+    for(var i=0;i<obs.length;i++){
+      var o=obs[i];ctx.save();
+      var og=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.r);
+      if(o.t==='a'){og.addColorStop(0,'rgba(255,110,0,0.95)');og.addColorStop(1,'rgba(255,40,0,0.05)');}
+      else{og.addColorStop(0,'rgba(0,200,255,0.9)');og.addColorStop(1,'rgba(0,80,200,0.05)');}
+      ctx.fillStyle=og;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,6.28);ctx.fill();
+      ctx.font=Math.round(o.r)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(o.t==='a'?'☠':'🛡',o.x,o.y);ctx.restore();
+    }
+
+    // energy balls
+    for(var i=0;i<nrg.length;i++){
+      var e=nrg[i];
+      var eg=ctx.createRadialGradient(e.x,e.y,0,e.x,e.y,e.r);
+      eg.addColorStop(0,'rgba(255,230,80,1)');eg.addColorStop(1,'rgba(255,150,0,0)');
+      ctx.beginPath();ctx.arc(e.x,e.y,e.r+Math.sin(e.ph)*2.5,0,6.28);ctx.fillStyle=eg;ctx.fill();
+      ctx.font='14px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⚡',e.x,e.y);
+    }
+    ctx.textBaseline='alphabetic';
+
+    // particles
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i];ctx.globalAlpha=p.l;ctx.beginPath();ctx.arc(p.x,p.y,4*p.l,0,6.28);
+      ctx.fillStyle=p.pink?'rgba(255,107,157,1)':'rgba(255,229,100,1)';ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    // trail
+    for(var i=trail.length-1;i>=1;i--){
+      var a=1-i/trail.length;
+      ctx.beginPath();ctx.moveTo(trail[i].x,trail[i].y);ctx.lineTo(trail[i-1].x,trail[i-1].y);
+      ctx.strokeStyle='rgba(255,107,157,'+(a*0.6)+')';ctx.lineWidth=a*3.5;ctx.stroke();
+    }
+
+    // player sperm
+    if(alive&&!won) drawSperm(px,py,20,wob,255,107,157,1);
+
+    // warning when egg is close to bottom
+    if(eggActive&&!won&&eggY>H*0.7){
+      var warnAlpha=(0.6+0.4*Math.sin(eggTimer*0.2)).toFixed(2);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='bold 15px Noto Sans SC';
+      ctx.fillStyle='rgba(255,80,80,'+warnAlpha+')';
+      ctx.fillText('⚠️ 快追上卵子！',CX,H*0.65);
+    }
+    // countdown hint
+    if(!eggActive){
+      var secsLeft2=Math.ceil((1800-eggTimer)/60);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='13px Noto Sans SC';ctx.fillStyle='rgba(200,160,255,0.7)';
+      ctx.fillText('卵子将在 '+secsLeft2+' 秒后出现，保持游动！',CX,50);
+    }
+
+    // egg (appears after 30s, descends slowly)
+    if(eggActive&&!won){
+      // pulsing outer glow
+      var pulse=0.6+0.4*Math.sin(wob*1.5);
+      var glow=ctx.createRadialGradient(eggX,eggY,0,eggX,eggY,eggR*2.5);
+      var _gp=(0.25*pulse).toFixed(3);glow.addColorStop(0,'rgba(220,160,255,'+_gp+')');
+      glow.addColorStop(1,'rgba(220,160,255,0)');
+      ctx.beginPath();ctx.arc(eggX,eggY,eggR*2.5,0,6.28);ctx.fillStyle=glow;ctx.fill();
+      // egg body
+      var eg2=ctx.createRadialGradient(eggX,eggY-eggR*0.3,eggR*0.2,eggX,eggY,eggR);
+      eg2.addColorStop(0,'rgba(255,240,255,1)');
+      eg2.addColorStop(0.5,'rgba(220,160,255,0.9)');
+      eg2.addColorStop(1,'rgba(160,80,220,0.6)');
+      ctx.beginPath();ctx.arc(eggX,eggY,eggR,0,6.28);ctx.fillStyle=eg2;ctx.fill();
+      ctx.beginPath();ctx.arc(eggX,eggY,eggR,0,6.28);
+      ctx.strokeStyle='rgba(255,220,255,0.9)';ctx.lineWidth=2;ctx.stroke();
+      ctx.font='11px Noto Sans SC';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(255,255,255,0.95)';ctx.fillText('卵子',eggX,eggY);
+      // arrow when egg is off-screen-top or far
+      if(py-eggY>80){
+        ctx.font='bold 14px Noto Sans SC';ctx.fillStyle='rgba(255,200,255,0.8)';
+        ctx.fillText('▲ 向上游！',CX,py-60);
+      }
+    }
+
+    // win flash
+    if(won){
+      ctx.font='bold 22px Noto Sans SC';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(255,220,255,1)';ctx.fillText('受精成功！🎉',CX,H/2);
+    }
+  });
+}
+
+function level3(){
+  // Phase A: sperm penetration
+  // Phase B: chromosome pairing
+  // Phase C: merge animation
+  var phase='penetrate'; // 'penetrate' | 'pair' | 'merge' | 'done'
+  var phaseT=0;
+
+  var EX=W/2, EY=H/2;
+  var EGG_R=Math.min(W,H)*0.34;  // bigger cell = more room
+
+  // Sperm approaching
+  var spX=W*0.12, spY=H/2, spPh=0;
+  var spVx=0, spVy=0;
+  var spEntered=false;
+
+  // Pulsing membrane — window opens every 90 frames for 30 frames
+  var pulseT=0;
+  var windowOpen=false;
+
+  // Penetration click state
+  var clickFlash=0;
+  var penetrated=false;
+  var penetrateAnim=0; // 0→1
+
+  // ── Chromosome pairing phase ──
+  // 6 sperm chrs (blue) + 6 egg chrs (pink), positions inside cell
+  // Player clicks two of same colour/index to pair them
+  var chrs=[]; // {idx:0-5, owner:'sp'|'eg', x,y, vx,vy, paired:false, partner:null, selected:false}
+  var selected=null; // currently selected chr index in chrs[]
+  var pairs=0;
+  var pairFlashes=[]; // {x,y,t,col}
+
+  // Merge animation
+  var mergeT=0;
+  var divideT=0; // cell division after merge
+
+  var ended=false;
+
+  function initChromosomes(){
+    chrs=[];
+    // Fixed grid: 4 columns x 3 rows, centred on EX,EY
+    // Each cell is 90x90px — plenty of space to click
+    // Layout: alternating sp/eg so same-colour pair is never adjacent
+    // Pair 0-5: sp and eg share same idx, user must find and match them
+    var cols=4, rows=3;
+    var cellW=Math.min(EGG_R*0.42, 88);
+    var cellH=Math.min(EGG_R*0.42, 88);
+    var gridW=cols*cellW, gridH=rows*cellH;
+    var startX=EX-gridW/2+cellW/2;
+    var startY=EY-gridH/2+cellH/2;
+    // Fixed arrangement: sp on positions 0-5, eg on positions 6-11
+    // but shuffled so pairs aren't obviously adjacent
+    var positions=[];
+    for(var r=0;r<rows;r++)
+      for(var c=0;c<cols;c++)
+        positions.push({x:startX+c*cellW, y:startY+r*cellH});
+    // sp: indices 0-5 at positions 0-5 (top 2 rows minus last 2)
+    // eg: indices 0-5 at positions 6-11 (bottom row + last 2 of middle)
+    // Shuffle positions for eg so pairs don't line up
+    var spPos=[0,1,2,3,4,5];
+    var egPos=[11,10,9,8,7,6]; // reversed so idx 0 sp is top-left, idx 0 eg is bottom-right
+    for(var i=0;i<6;i++){
+      var sp=positions[spPos[i]];
+      chrs.push({idx:i,owner:'sp',x:sp.x,y:sp.y,vx:0,vy:0,paired:false,partner:-1,selected:false});
+      var eg=positions[egPos[i]];
+      chrs.push({idx:i,owner:'eg',x:eg.x,y:eg.y,vx:0,vy:0,paired:false,partner:-1,selected:false});
+    }
+  }
+
+  function handleClickL3(cx,cy){
+    if(phase==='penetrate'){
+      if(windowOpen&&!penetrated){
+        penetrated=true;clickFlash=1;
+      }
+    } else if(phase==='pair'){
+      // Find the closest unpaired chromosome to click point
+      var bestI=-1, bestD=40*40;
+      for(var i=0;i<chrs.length;i++){
+        if(chrs[i].paired) continue;
+        var dx=cx-chrs[i].x, dy=cy-chrs[i].y;
+        var d2=dx*dx+dy*dy;
+        if(d2<bestD){bestD=d2;bestI=i;}
+      }
+      if(bestI<0) return; // clicked empty space
+      var c=chrs[bestI];
+      if(selected===null){
+        selected=bestI; c.selected=true;
+      } else if(selected===bestI){
+        c.selected=false; selected=null;
+      } else {
+        var sc=chrs[selected];
+        if(sc.idx===c.idx && sc.owner!==c.owner){
+          sc.paired=true; c.paired=true;
+          sc.partner=bestI; c.partner=selected;
+          sc.selected=false;
+          var col=CHR_COLS[sc.idx];
+          pairFlashes.push({x:(sc.x+c.x)/2,y:(sc.y+c.y)/2,t:1,col:col});
+          pairs++; score+=20; updHUD();
+          selected=null;
+          if(pairs>=6){ phase='merge'; phaseT=0; score+=80; updHUD(); }
+        } else {
+          sc.selected=false;
+          selected=bestI; c.selected=true;
+        }
+      }
+    }
+  }
+
+  startGame(function(){
+    // consume all queued clicks
+    while(clickQ.length>0){
+      var cl=clickQ.shift();
+      handleClickL3(cl.x,cl.y);
+    }
+    phaseT++;
+    pulseT++;
+    spPh+=0.12;
+
+    if(phase==='penetrate'){
+      // sperm swims toward egg
+      if(!penetrated){
+        var targetX=EX-EGG_R*0.85, targetY=EY;
+        var dxs=targetX-spX, dys=targetY-spY;
+        var dist=Math.sqrt(dxs*dxs+dys*dys);
+        if(dist>3){spVx+=dxs/dist*0.18;spVy+=dys/dist*0.18;}
+        spVx*=0.92;spVy*=0.92;
+        spX+=spVx;spY+=spVy;
+        // pulse window
+        windowOpen=(pulseT%90<30);
+      } else {
+        // swim into egg
+        penetrateAnim+=0.025;
+        var tx=EX,ty=EY;
+        spX+=(tx-spX)*0.06;spY+=(ty-spY)*0.06;
+        clickFlash=Math.max(0,clickFlash-0.04);
+        if(penetrateAnim>1 && !spEntered){
+          spEntered=true;
+          initChromosomes();
+          phase='pair';phaseT=0;
+        }
+      }
+    }
+
+    if(phase==='pair'){
+      for(var i=0;i<chrs.length;i++){
+        var c=chrs[i];
+        if(c.paired){
+          // paired: snap toward each other's midpoint
+          var p=chrs[c.partner];
+          var mx2=(c.x+p.x)/2, my2=(c.y+p.y)/2;
+          c.x+=(mx2-c.x)*0.10;
+          c.y+=(my2-c.y)*0.10;
+        }
+        // unpaired: completely frozen in place — no movement at all
+      }
+      pairFlashes.forEach(function(f){f.t-=0.03;});
+      pairFlashes=pairFlashes.filter(function(f){return f.t>0;});
+    }
+
+    if(phase==='merge'){
+      mergeT+=0.018;
+      if(mergeT>1&&!ended){
+        ended=true;
+        setTimeout(function(){endLevel(true);},800);
+      }
+    }
+
+    // ─── DRAW ───
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(4,8,24,1)';ctx.fillRect(0,0,W,H);
+
+    // egg cell
+    var eggAlpha=phase==='penetrate'?1:Math.max(0.2,1-mergeT*0.5);
+    var eg=ctx.createRadialGradient(EX,EY,0,EX,EY,EGG_R);
+    eg.addColorStop(0,'rgba(60,20,40,0.7)');
+    eg.addColorStop(0.75,'rgba(40,10,25,0.5)');
+    eg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.save();ctx.globalAlpha=eggAlpha;
+    ctx.beginPath();ctx.arc(EX,EY,EGG_R,0,6.28);ctx.fillStyle=eg;ctx.fill();
+    ctx.restore();
+
+    // zona pellucida (outer membrane)
+    var pulseR=EGG_R*(1+(windowOpen?0.04*Math.sin(pulseT*0.2):0));
+    ctx.save();ctx.globalAlpha=eggAlpha;
+    ctx.beginPath();ctx.arc(EX,EY,pulseR,0,6.28);
+    if(windowOpen&&!penetrated){
+      ctx.strokeStyle='rgba(255,220,80,0.9)';ctx.lineWidth=4;
+    } else {
+      ctx.strokeStyle='rgba(255,160,200,0.6)';ctx.lineWidth=2.5;
+    }
+    ctx.stroke();
+    // inner membrane
+    ctx.beginPath();ctx.arc(EX,EY,EGG_R*0.88,0,6.28);
+    ctx.strokeStyle='rgba(255,160,200,0.2)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+
+    // window-open hint
+    if(phase==='penetrate'&&!penetrated){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      if(windowOpen){
+        ctx.font='bold 16px Noto Sans SC';ctx.fillStyle='rgba(255,220,80,1)';
+        ctx.fillText('⚡ 点击穿透！',EX,EY+EGG_R+32);
+      } else {
+        var wait=90-(pulseT%90);
+        ctx.font='13px Noto Sans SC';ctx.fillStyle='rgba(255,255,255,0.45)';
+        ctx.fillText('等待细胞膜开放… '+Math.ceil(wait/30)+'s',EX,EY+EGG_R+32);
+      }
+    }
+
+    // penetration flash
+    if(clickFlash>0){
+      var fl=ctx.createRadialGradient(EX,EY,0,EX,EY,EGG_R*1.2);
+      var _cf=(clickFlash*0.8).toFixed(3);fl.addColorStop(0,'rgba(255,255,200,'+_cf+')');
+      fl.addColorStop(1,'rgba(255,255,200,0)');
+      ctx.beginPath();ctx.arc(EX,EY,EGG_R*1.2,0,6.28);ctx.fillStyle=fl;ctx.fill();
+    }
+
+    // sperm (before penetration)
+    if(!spEntered){
+      drawSperm(spX,spY,16,spPh,255,180,220,1);
+      // hint arrow when near egg
+      if(phase==='penetrate'&&!penetrated&&windowOpen){
+        ctx.save();ctx.globalAlpha=0.7;
+        ctx.fillStyle='rgba(255,220,80,1)';
+        ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('👆',spX-30,spY-40);
+        ctx.restore();
+      }
+    }
+
+    // transparent zone reaction after penetration
+    if(penetrated&&phase==='penetrate'){
+      ctx.beginPath();ctx.arc(EX,EY,EGG_R*1.05,0,6.28);
+      var _pa=(penetrateAnim*0.8).toFixed(3);ctx.strokeStyle='rgba(255,100,50,'+_pa+')';ctx.lineWidth=5;ctx.stroke();
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='13px Noto Sans SC';ctx.fillStyle='rgba(255,180,100,0.9)';
+      ctx.fillText('透明带反应！阻止其他精子进入',EX,EY+EGG_R+32);
+    }
+
+    // chromosomes (pair phase)
+    if(phase==='pair'||phase==='merge'){
+      var mAlpha=phase==='merge'?Math.max(0,1-mergeT*2):1;
+      ctx.save();ctx.globalAlpha=mAlpha;
+      for(var i=0;i<chrs.length;i++){
+        var c=chrs[i];
+        var col=CHR_COLS[c.idx];
+        var isSp=c.owner==='sp';
+        var glow=c.selected||c.paired;
+        if(glow){
+          var gl=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,40);
+          gl.addColorStop(0,'rgba('+col[0]+','+col[1]+','+col[2]+',0.5)');
+          gl.addColorStop(1,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+          ctx.beginPath();ctx.arc(c.x,c.y,40,0,6.28);ctx.fillStyle=gl;ctx.fill();
+        }
+        ctx.save();
+        if(c.selected){ctx.shadowColor='rgba(255,255,200,0.9)';ctx.shadowBlur=16;}
+        drawChr(c.x,c.y,16,col);
+        // owner badge — big and clear
+        ctx.font='bold 12px Noto Sans SC';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle=isSp?'rgba(150,220,255,1)':'rgba(255,160,210,1)';
+        ctx.fillText(isSp?'精':'卵',c.x,c.y+26);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // pair flash effects
+      for(var i=0;i<pairFlashes.length;i++){
+        var f=pairFlashes[i];var col=f.col;
+        ctx.save();ctx.globalAlpha=f.t;
+        var pg=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,35);
+        pg.addColorStop(0,'rgba('+col[0]+','+col[1]+','+col[2]+',0.9)');
+        pg.addColorStop(1,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+        ctx.beginPath();ctx.arc(f.x,f.y,35,0,6.28);ctx.fillStyle=pg;ctx.fill();
+        ctx.restore();
+      }
+
+      // instruction + debug
+      if(phase==='pair'){
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.font='14px Noto Sans SC';ctx.fillStyle='rgba(255,255,255,0.65)';
+        ctx.fillText('点击同色染色体配对  ('+pairs+'/6)',EX,EY+EGG_R+28);
+        // DEBUG: show click pos and nearest chr distance
+        ctx.beginPath();ctx.arc(mX,mY,6,0,6.28);ctx.fillStyle='rgba(255,255,0,0.8)';ctx.fill();
+        var minD=9999,minI=-1;
+        for(var di=0;di<chrs.length;di++){var ddx=mX-chrs[di].x,ddy=mY-chrs[di].y;var dd=Math.sqrt(ddx*ddx+ddy*ddy);if(dd<minD){minD=dd;minI=di;}}
+        ctx.font='11px monospace';ctx.fillStyle='rgba(255,255,0,1)';ctx.textAlign='left';
+        ctx.fillText('nearest dist:'+Math.round(minD)+(minI>=0?' idx='+chrs[minI].idx+' '+chrs[minI].owner:''),10,H-44);
+        ctx.fillText('selected='+(selected===null?'none':'idx='+chrs[selected].idx+' '+chrs[selected].owner),10,H-28);
+      }
+    }
+
+    // merge animation — cell becomes fertilised egg, then divides
+    if(phase==='merge'){
+      if(mergeT<0.5){
+        var mg=ctx.createRadialGradient(EX,EY,0,EX,EY,EGG_R*(1+mergeT));
+        var _mt=(mergeT*1.5).toFixed(3);mg.addColorStop(0,'rgba(255,240,150,'+_mt+')');
+        mg.addColorStop(1,'rgba(255,200,80,0)');
+        ctx.beginPath();ctx.arc(EX,EY,EGG_R*(1+mergeT),0,6.28);ctx.fillStyle=mg;ctx.fill();
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.font='bold 20px Noto Sans SC';var _mt2=(mergeT*2).toFixed(3);ctx.fillStyle='rgba(255,240,150,'+_mt2+')';
+        ctx.fillText('受精卵形成！',EX,EY);
+      } else {
+        // cell division hint
+        var dt=mergeT-0.5;
+        var sep=dt*EGG_R*0.8;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.font='bold 20px Noto Sans SC';ctx.fillStyle='rgba(255,240,150,1)';
+        ctx.fillText('受精卵正在分裂…',EX,EY-EGG_R-36);
+        // two daughter cells
+        for(var side=-1;side<=1;side+=2){
+          var dcx=EX+side*sep,dcy=EY;
+          var dc=ctx.createRadialGradient(dcx,dcy,0,dcx,dcy,EGG_R*0.65);
+          dc.addColorStop(0,'rgba(100,200,255,0.5)');dc.addColorStop(1,'rgba(100,200,255,0)');
+          ctx.beginPath();ctx.arc(dcx,dcy,EGG_R*0.65,0,6.28);ctx.fillStyle=dc;ctx.fill();
+          ctx.beginPath();ctx.arc(dcx,dcy,EGG_R*0.65,0,6.28);
+          ctx.strokeStyle='rgba(100,200,255,0.7)';ctx.lineWidth=2;ctx.stroke();
+        }
+        ctx.font='13px Noto Sans SC';ctx.fillStyle='rgba(180,230,255,0.8)';
+        ctx.fillText('1个受精卵 → 2个细胞 → 生命开始！',EX,EY+EGG_R*0.8);
+      }
+    }
+
+    // pairs count HUD overlay
+    if(phase==='pair'){
+      ctx.textAlign='right';ctx.textBaseline='middle';
+      ctx.font='13px Noto Sans SC';ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.fillText('已配对 '+pairs+'/6',W-20,H-24);
+    }
+  });
+}
+
+// Boot
+showTitle();
+</script>
+</body>
+</html>
