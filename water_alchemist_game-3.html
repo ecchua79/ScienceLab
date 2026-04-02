@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水之炼金术师：地球守护计划</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+:root {
+  --water-deep: #0a1628;
+  --water-mid: #0d2b4e;
+  --water-light: #1a4a7a;
+  --cyan: #00d4ff;
+  --cyan-dim: #0099bb;
+  --gold: #f0c040;
+  --gold-dim: #b08820;
+  --green: #30e060;
+  --red: #ff4455;
+  --white: #e8f4ff;
+  --panel: rgba(10,30,60,0.85);
+  --glow: 0 0 20px rgba(0,212,255,0.4);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--water-deep);
+  color: var(--white);
+  font-family: 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Animated water background */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background: 
+    radial-gradient(ellipse at 20% 50%, rgba(0,100,200,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(0,180,255,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(0,60,140,0.2) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+.wave-bg {
+  position:fixed; bottom:0; left:0; width:100%; height:200px;
+  background: linear-gradient(transparent, rgba(0,80,160,0.15));
+  pointer-events:none; z-index:0;
+}
+
+#app { position:relative; z-index:1; }
+
+/* ===== SCREENS ===== */
+.screen { display:none; min-height:100vh; }
+.screen.active { display:flex; flex-direction:column; }
+
+/* ===== HOME ===== */
+#homeScreen {
+  align-items:center; justify-content:center;
+  text-align:center; padding:40px 20px;
+}
+
+.title-main {
+  font-family:'ZCOOL XiaoWei', serif;
+  font-size: clamp(32px, 6vw, 64px);
+  color: var(--cyan);
+  text-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0,212,255,0.3);
+  line-height:1.2; margin-bottom:10px;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+.title-sub {
+  font-family:'ZCOOL XiaoWei', serif;
+  font-size: clamp(18px, 3vw, 28px);
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold);
+  margin-bottom:40px;
+}
+
+@keyframes titlePulse {
+  0%,100% { text-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0,212,255,0.3); }
+  50% { text-shadow: 0 0 50px var(--cyan), 0 0 100px rgba(0,212,255,0.5); }
+}
+
+.water-drop-logo {
+  width:120px; height:120px; margin:0 auto 30px;
+  position:relative;
+}
+.water-drop-logo svg { width:100%; height:100%; }
+
+.level-grid {
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap:16px; max-width:900px; width:100%; margin-bottom:30px;
+}
+
+.level-card {
+  background: var(--panel);
+  border: 1px solid rgba(0,212,255,0.3);
+  border-radius:16px; padding:20px;
+  cursor:pointer; transition:all 0.3s;
+  backdrop-filter:blur(10px);
+  position:relative; overflow:hidden;
+}
+.level-card::before {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(0,212,255,0.05), transparent);
+  opacity:0; transition:opacity 0.3s;
+}
+.level-card:hover { transform:translateY(-4px); border-color:var(--cyan); box-shadow: var(--glow); }
+.level-card:hover::before { opacity:1; }
+.level-card.locked { opacity:0.4; cursor:not-allowed; }
+.level-card.completed { border-color: var(--green); }
+.level-card.completed::after {
+  content:'✓'; position:absolute; top:10px; right:14px;
+  color:var(--green); font-size:20px; font-weight:bold;
+}
+
+.level-num {
+  font-size:12px; color:var(--cyan-dim); text-transform:uppercase; letter-spacing:2px;
+  margin-bottom:6px;
+}
+.level-title { font-size:16px; font-weight:500; color:var(--white); margin-bottom:8px; }
+.level-desc { font-size:12px; color:rgba(200,230,255,0.6); line-height:1.5; }
+.level-icon { font-size:32px; margin-bottom:10px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--cyan), #0080cc);
+  color: var(--water-deep); border:none;
+  padding:14px 40px; border-radius:50px;
+  font-size:16px; font-family:'Noto Sans SC', sans-serif;
+  font-weight:700; cursor:pointer;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.4);
+  transition:all 0.3s;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,255,0.6); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--cyan); border: 1px solid var(--cyan);
+  padding:10px 24px; border-radius:50px;
+  font-size:14px; font-family:'Noto Sans SC', sans-serif;
+  cursor:pointer; transition:all 0.3s;
+}
+.btn-secondary:hover { background: rgba(0,212,255,0.1); }
+
+/* ===== GAME SCREEN ===== */
+#gameScreen { padding:0; }
+
+.game-header {
+  display:flex; align-items:center; gap:16px;
+  padding:12px 20px;
+  background: rgba(5,15,35,0.9);
+  border-bottom:1px solid rgba(0,212,255,0.2);
+  position:sticky; top:0; z-index:100;
+}
+
+.back-btn {
+  background:none; border:1px solid rgba(0,212,255,0.3);
+  color:var(--cyan); padding:6px 14px; border-radius:20px;
+  cursor:pointer; font-family:'Noto Sans SC',sans-serif;
+  font-size:13px; transition:all 0.3s;
+}
+.back-btn:hover { border-color:var(--cyan); background:rgba(0,212,255,0.1); }
+
+.level-indicator {
+  font-family:'ZCOOL XiaoWei', serif;
+  font-size:18px; color:var(--cyan);
+}
+
+.progress-bar-wrap {
+  flex:1; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%; background:linear-gradient(90deg, var(--cyan), var(--gold));
+  transition:width 0.5s; border-radius:3px;
+}
+
+.game-content {
+  flex:1; padding:20px;
+  display:flex; flex-direction:column; align-items:center;
+  max-width:800px; margin:0 auto; width:100%;
+}
+
+.game-task-box {
+  background: var(--panel);
+  border:1px solid rgba(0,212,255,0.25);
+  border-radius:12px; padding:16px 20px;
+  margin-bottom:20px; width:100%;
+  backdrop-filter:blur(10px);
+}
+.task-label { font-size:12px; color:var(--cyan-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.task-text { font-size:16px; line-height:1.7; }
+
+/* ===== LEVEL 1: Electrolysis ===== */
+.electrolysis-lab {
+  width:100%; display:flex; flex-direction:column; align-items:center; gap:20px;
+}
+
+.molecule-builder {
+  background: rgba(0,20,50,0.8);
+  border:1px solid rgba(0,212,255,0.2);
+  border-radius:16px; padding:20px; width:100%;
+}
+
+.atom-palette {
+  display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;
+}
+
+.atom-ball {
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; cursor:grab;
+  user-select:none; transition:transform 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.atom-ball:active { cursor:grabbing; transform:scale(1.1); }
+.atom-o { background: radial-gradient(circle at 35% 35%, #ff8888, #cc2222); color:#fff; }
+.atom-h { background: radial-gradient(circle at 35% 35%, #88ff88, #22aa22); color:#fff; }
+
+.molecule-slots {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+
+.atom-slot {
+  width:52px; height:52px; border-radius:50%;
+  border: 2px dashed rgba(0,212,255,0.4);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:rgba(200,230,255,0.4);
+  transition:all 0.3s;
+}
+.atom-slot.filled { border:none; }
+.atom-slot.drag-over { border-color:var(--cyan); box-shadow: 0 0 15px rgba(0,212,255,0.5); }
+
+.slot-label { font-size:12px; color:rgba(200,230,255,0.5); text-align:center; margin-top:6px; }
+
+.electrolysis-apparatus {
+  display:flex; gap:20px; justify-content:center; align-items:flex-end;
+  padding:20px; background:rgba(0,20,50,0.8);
+  border:1px solid rgba(0,212,255,0.2); border-radius:16px; width:100%;
+}
+
+.electrode-side { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.electrode-label { font-size:12px; color:var(--cyan-dim); }
+
+.test-tube-wrap {
+  position:relative; width:60px; height:120px;
+  display:flex; flex-direction:column; align-items:center;
+}
+
+.test-tube {
+  width:40px; height:100px;
+  background: rgba(150,200,255,0.1);
+  border: 2px solid rgba(100,180,255,0.5);
+  border-top:none; border-radius:0 0 20px 20px;
+  position:relative; overflow:hidden; cursor:pointer;
+  transition:all 0.3s;
+}
+.test-tube:hover { border-color:var(--cyan); }
+
+.gas-level {
+  position:absolute; bottom:0; width:100%;
+  background: linear-gradient(0deg, rgba(0,200,255,0.3), rgba(0,200,255,0.1));
+  transition:height 1s ease;
+}
+
+.bubble {
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  background:rgba(200,240,255,0.6);
+  animation: rise 1s ease-in infinite;
+}
+
+@keyframes rise {
+  0% { opacity:0.8; transform:translateY(0) scale(1); }
+  100% { opacity:0; transform:translateY(-80px) scale(1.5); }
+}
+
+.gas-volume-label {
+  font-size:18px; font-weight:700; color:var(--cyan);
+  text-align:center;
+}
+
+.electrode-rod {
+  width:8px; height:60px;
+  background: linear-gradient(180deg, #aaa, #666);
+  border-radius:4px;
+}
+
+.water-beaker {
+  width:120px; height:80px;
+  background: linear-gradient(180deg, rgba(0,150,255,0.15), rgba(0,100,200,0.3));
+  border: 2px solid rgba(100,180,255,0.4);
+  border-radius:0 0 12px 12px;
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(150,220,255,0.6); font-size:13px;
+}
+
+.power-switch {
+  background: rgba(20,40,80,0.8);
+  border:2px solid var(--gold-dim); border-radius:50px;
+  padding:10px 24px; cursor:pointer; color:var(--gold);
+  font-family:'Noto Sans SC',sans-serif; font-size:14px;
+  transition:all 0.3s;
+}
+.power-switch:disabled {
+  background: rgba(10,20,40,0.6);
+  border-color: rgba(100,100,100,0.3);
+  color: rgba(120,120,120,0.5);
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+  transform: none;
+}
+.power-switch.on { border-color:var(--green); color:var(--green); box-shadow:0 0 15px rgba(50,220,100,0.4); }
+.power-switch:not(:disabled):hover { transform:scale(1.05); }
+
+.test-tools { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.tool-btn {
+  background:rgba(20,40,80,0.8); border:1px solid rgba(0,212,255,0.3);
+  color:var(--white); padding:8px 16px; border-radius:20px;
+  cursor:pointer; font-family:'Noto Sans SC',sans-serif; font-size:15px;
+  transition:all 0.3s;
+}
+.tool-btn:hover { border-color:var(--cyan); background:rgba(0,212,255,0.1); }
+.tool-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+.answer-input-row {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;
+}
+.answer-input {
+  background: rgba(0,20,50,0.8); border:1px solid rgba(0,212,255,0.4);
+  color:var(--white); padding:10px 16px; border-radius:8px;
+  font-size:15px; font-family:'Noto Sans SC',sans-serif; width:140px;
+  text-align:center;
+}
+.answer-input:focus { outline:none; border-color:var(--cyan); box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+
+/* ===== LEVEL 2: Survival ===== */
+.survival-scenes { width:100%; display:flex; flex-direction:column; gap:16px; }
+.scene-card {
+  background: rgba(0,20,50,0.8);
+  border:1px solid rgba(0,212,255,0.2); border-radius:16px; padding:20px;
+}
+.scene-title { font-size:17px; color:var(--gold); margin-bottom:12px; font-weight:500; }
+.scene-status { font-size:15px; color:rgba(200,230,255,0.7); margin-bottom:12px; line-height:1.7; }
+
+.thermometer-display {
+  display:flex; align-items:center; gap:16px; margin-bottom:12px;
+}
+.thermo-visual {
+  width:24px; height:80px; background:rgba(255,255,255,0.1);
+  border:2px solid rgba(100,180,255,0.4); border-radius:12px;
+  position:relative; overflow:hidden;
+}
+.thermo-fill {
+  position:absolute; bottom:0; width:100%;
+  background: linear-gradient(0deg, #ff4455, #ff8844);
+  border-radius:0 0 10px 10px; transition:height 0.8s;
+}
+.thermo-text { font-size:28px; font-weight:700; color:var(--red); }
+
+.option-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.option-btn {
+  background:rgba(20,40,80,0.8); border:1px solid rgba(0,212,255,0.3);
+  color:var(--white); padding:10px 20px; border-radius:10px;
+  cursor:pointer; font-family:'Noto Sans SC',sans-serif; font-size:15px;
+  transition:all 0.3s;
+}
+.option-btn:hover { border-color:var(--cyan); background:rgba(0,212,255,0.1); }
+.option-btn.correct { border-color:var(--green); background:rgba(30,200,80,0.15); color:var(--green); }
+.option-btn.wrong { border-color:var(--red); background:rgba(255,50,70,0.15); color:var(--red); animation:shake 0.4s; }
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+}
+
+.lake-canvas-wrap { position:relative; border-radius:12px; overflow:hidden; }
+canvas.lake-canvas {
+  display:block; background: linear-gradient(180deg, #0a3060 0%, #0a5090 30%, #0a6ab0 60%, #1080c0 100%);
+  cursor:pointer;
+}
+.lake-hint { font-size:12px; color:rgba(200,230,255,0.5); margin-top:8px; }
+
+/* ===== LEVEL 3: Concentration ===== */
+.lab-bench { width:100%; display:flex; flex-direction:column; gap:16px; }
+.calc-task {
+  background: rgba(0,20,50,0.8);
+  border:1px solid rgba(0,212,255,0.2); border-radius:16px; padding:20px;
+}
+.calc-title { font-size:17px; color:var(--gold); margin-bottom:10px; font-weight:500; }
+.calc-desc { font-size:15px; color:rgba(200,230,255,0.7); line-height:1.8; margin-bottom:12px; }
+
+.drag-items { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.drag-item {
+  background:rgba(30,60,120,0.8); border:2px solid rgba(0,212,255,0.3);
+  border-radius:10px; padding:10px 16px; cursor:grab;
+  font-size:14px; transition:all 0.3s; user-select:none;
+}
+.drag-item:hover { border-color:var(--cyan); transform:translateY(-2px); }
+.drag-item.dragging { opacity:0.5; }
+
+.beaker-drop {
+  width:100px; height:80px;
+  background:rgba(0,80,160,0.2); border:2px dashed rgba(0,212,255,0.4);
+  border-radius:0 0 16px 16px; display:flex; align-items:center;
+  justify-content:center; font-size:12px; color:rgba(150,200,255,0.5);
+  transition:all 0.3s; position:relative;
+}
+.beaker-drop.drag-over { border-color:var(--cyan); box-shadow:0 0 15px rgba(0,212,255,0.4); }
+.beaker-drop.has-items { border-style:solid; }
+
+.formula-display {
+  background:rgba(0,10,30,0.8); border:1px solid rgba(0,212,255,0.15);
+  border-radius:10px; padding:12px 16px; font-size:16px;
+  color:rgba(200,230,255,0.8); margin:10px 0; font-family:monospace;
+}
+
+.water-add-control {
+  display:flex; align-items:center; gap:12px; margin:10px 0;
+}
+.water-slider {
+  flex:1; -webkit-appearance:none; height:6px;
+  background:rgba(0,212,255,0.2); border-radius:3px; outline:none;
+}
+.water-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+  background:var(--cyan); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6);
+}
+
+/* ===== LEVEL 4: Density ===== */
+.density-lab { width:100%; display:flex; flex-direction:column; gap:16px; }
+
+.scale-display {
+  background:rgba(0,20,50,0.8); border:1px solid rgba(0,212,255,0.2);
+  border-radius:16px; padding:20px; text-align:center;
+}
+.scale-reading { font-size:48px; font-weight:300; color:var(--cyan); font-family:monospace; }
+.scale-unit { font-size:16px; color:rgba(150,200,255,0.6); }
+
+.graduated-cylinder {
+  width:80px; margin:0 auto; position:relative;
+}
+.cylinder-body {
+  width:60px; height:160px; background:rgba(150,200,255,0.08);
+  border:2px solid rgba(100,180,255,0.4); border-bottom-left-radius:8px;
+  border-bottom-right-radius:8px; position:relative; overflow:hidden;
+  margin:0 auto;
+}
+.water-in-cylinder {
+  position:absolute; bottom:0; width:100%;
+  background:linear-gradient(0deg, rgba(0,120,220,0.5), rgba(0,180,255,0.3));
+  transition:height 0.8s ease;
+}
+.metal-in-cylinder {
+  position:absolute; width:80%; left:10%;
+  background:linear-gradient(180deg, #c0c0c0, #888, #aaa);
+  border-radius:4px; display:none;
+  transition: bottom 1.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s;
+}
+.cylinder-markings {
+  position:absolute; right:-30px; top:0; bottom:0;
+  display:flex; flex-direction:column; justify-content:space-between;
+  font-size:10px; color:rgba(150,200,255,0.5);
+}
+.cylinder-mark { display:flex; align-items:center; gap:4px; }
+.cylinder-mark::before { content:'—'; }
+
+.blackboard {
+  background:rgba(5,30,15,0.9); border:2px solid rgba(50,180,80,0.3);
+  border-radius:12px; padding:20px; font-family:monospace;
+}
+.blackboard-title { font-size:11px; color:rgba(100,220,100,0.5); letter-spacing:2px; margin-bottom:12px; }
+.formula-line { font-size:16px; color:rgba(150,255,150,0.8); margin-bottom:8px; }
+.formula-result { font-size:20px; color:var(--green); font-weight:700; }
+
+.density-table {
+  width:100%; border-collapse:collapse; font-size:15px;
+}
+.density-table th {
+  background:rgba(0,80,150,0.4); padding:8px 12px; text-align:left;
+  color:var(--cyan-dim); font-weight:500;
+}
+.density-table td {
+  padding:8px 12px; border-bottom:1px solid rgba(0,212,255,0.1);
+}
+.density-table tr { cursor:pointer; transition:background 0.2s; }
+.density-table tr:hover td { background:rgba(0,212,255,0.1); }
+.density-table tr.selected td { background:rgba(0,212,255,0.2); color:var(--cyan); }
+
+/* ===== LEVEL 5: City Purification ===== */
+.purification-lab { width:100%; display:flex; flex-direction:column; gap:16px; }
+
+.pipeline {
+  display:flex; gap:8px; align-items:center;
+  padding:16px; background:rgba(0,20,50,0.8);
+  border:1px solid rgba(0,212,255,0.2); border-radius:16px;
+  flex-wrap:wrap; min-height:80px;
+}
+.pipe-module {
+  background:rgba(20,60,120,0.8); border:2px solid rgba(0,212,255,0.3);
+  border-radius:10px; padding:8px 14px; font-size:15px;
+  cursor:grab; user-select:none; transition:all 0.3s;
+}
+.pipe-module:hover { border-color:var(--cyan); }
+.pipe-slot {
+  min-width:90px; height:44px; border:2px dashed rgba(0,212,255,0.3);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:13px; color:rgba(150,200,255,0.4); transition:all 0.3s;
+}
+.pipe-slot.correct { border-color:var(--green); border-style:solid; background:rgba(30,200,80,0.1); }
+.pipe-slot.wrong { border-color:var(--red); animation:shake 0.4s; }
+.pipe-arrow { color:rgba(0,212,255,0.5); font-size:18px; }
+
+.water-test-area {
+  display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;
+}
+.water-sample {
+  width:50px; height:70px;
+  background:linear-gradient(0deg, rgba(0,120,200,0.5), rgba(0,180,255,0.3));
+  border:2px solid rgba(100,180,255,0.4);
+  border-radius:0 0 10px 10px; display:flex; align-items:center;
+  justify-content:center; font-size:10px; color:rgba(200,230,255,0.5);
+  position:relative;
+}
+.soap-drop { 
+  width:10px; height:14px; background:white; border-radius:50% 50% 50% 50%/60% 60% 40% 40%;
+  position:absolute; top:8px; animation:dropFall 0.5s ease-in forwards;
+}
+@keyframes dropFall { 0%{top:-10px;opacity:0} 100%{top:8px;opacity:1} }
+.foam-layer {
+  position:absolute; top:0; width:100%; height:20px;
+  background: rgba(255,255,255,0.4);
+  border-radius:10px 10px 0 0; display:none;
+}
+
+.lake-scene {
+  background:rgba(0,20,50,0.8); border:1px solid rgba(0,212,255,0.2);
+  border-radius:16px; padding:20px;
+}
+.lake-visual {
+  width:100%; height:100px; background:linear-gradient(180deg, #1a6020, #2a8030, #1a6020 60%, #0a4080);
+  border-radius:10px; position:relative; overflow:hidden; margin-bottom:12px;
+}
+.algae-bloom {
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse at 50% 60%, rgba(0,180,0,0.6), rgba(50,150,0,0.4), transparent 70%);
+  transition:opacity 1s;
+}
+
+/* ===== RESULT SCREEN ===== */
+#resultScreen {
+  align-items:center; justify-content:center;
+  text-align:center; padding:40px 20px;
+}
+.result-trophy { font-size:80px; margin-bottom:20px; animation:bounceIn 0.8s; }
+@keyframes bounceIn {
+  0% { transform:scale(0); opacity:0; }
+  60% { transform:scale(1.2); }
+  100% { transform:scale(1); opacity:1; }
+}
+.result-title { font-family:'ZCOOL XiaoWei',serif; font-size:32px; color:var(--gold); margin-bottom:16px; text-shadow:0 0 20px var(--gold); }
+.medals-row { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:20px 0; }
+.medal {
+  background:var(--panel); border:1px solid rgba(0,212,255,0.3);
+  border-radius:12px; padding:16px 20px; min-width:140px;
+}
+.medal-icon { font-size:32px; margin-bottom:8px; }
+.medal-name { font-size:12px; color:var(--cyan-dim); margin-bottom:4px; }
+.medal-title { font-size:15px; color:var(--gold); font-weight:500; }
+.health-tip {
+  background:rgba(0,80,30,0.3); border:1px solid rgba(50,200,80,0.3);
+  border-radius:12px; padding:16px 20px; max-width:500px; margin:20px auto;
+  font-size:14px; line-height:1.7; color:rgba(200,255,200,0.9);
+}
+
+/* ===== FEEDBACK TOAST ===== */
+.toast {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px);
+  background:rgba(10,30,60,0.95); border-radius:50px; padding:12px 24px;
+  font-size:14px; z-index:1000; transition:transform 0.4s, opacity 0.4s;
+  opacity:0; pointer-events:none; max-width:90vw; text-align:center;
+  border:1px solid rgba(0,212,255,0.3);
+}
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+.toast.success { border-color:var(--green); color:var(--green); }
+.toast.error { border-color:var(--red); color:var(--red); }
+.toast.info { border-color:var(--cyan); color:var(--cyan); }
+
+/* ===== STEP INDICATOR ===== */
+.step-dots { display:flex; gap:8px; justify-content:center; margin-bottom:16px; }
+.step-dot {
+  width:10px; height:10px; border-radius:50%;
+  background:rgba(255,255,255,0.2); transition:all 0.3s;
+}
+.step-dot.active { background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+.step-dot.done { background:var(--green); }
+
+.section-title {
+  font-family:'ZCOOL XiaoWei',serif; font-size:20px; color:var(--cyan);
+  margin-bottom:16px; text-align:center;
+}
+
+.hint-box {
+  background:rgba(0,80,160,0.2); border:1px solid rgba(0,212,255,0.2);
+  border-radius:10px; padding:10px 14px; font-size:15px;
+  color:rgba(150,220,255,0.8); margin:8px 0; line-height:1.7;
+}
+
+/* Fish cursor for lake */
+.fish { 
+  position:absolute; font-size:24px; transition:all 0.5s ease;
+  cursor:pointer; filter:drop-shadow(0 0 6px rgba(0,212,255,0.6));
+}
+
+/* Responsive */
+@media(max-width:600px) {
+  .level-grid { grid-template-columns:1fr; }
+  .electrolysis-apparatus { flex-direction:column; align-items:center; }
+}
+
+@keyframes collectPulse {
+  0%,100% { transform:scale(1); box-shadow:0 0 0 rgba(0,212,255,0); }
+  50% { transform:scale(1.04); box-shadow:0 0 18px rgba(0,212,255,0.5); }
+}
+
+@keyframes certFadeIn {
+  from { opacity:0; transform:scale(0.88); }
+  to   { opacity:1; transform:scale(1); }
+}
+#certModal > div {
+  animation: certFadeIn 0.4s cubic-bezier(0.2,0.8,0.3,1) both;
+}
+</style>
+</head>
+<body>
+<div class="wave-bg"></div>
+
+<div id="app">
+
+<!-- HOME SCREEN -->
+<div id="homeScreen" class="screen active">
+  <div class="water-drop-logo">
+    <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="dropGrad" cx="40%" cy="30%">
+          <stop offset="0%" stop-color="#66eeff"/>
+          <stop offset="100%" stop-color="#0055cc"/>
+        </radialGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <path d="M60 10 Q90 50 90 80 A30 30 0 0 1 30 80 Q30 50 60 10Z" fill="url(#dropGrad)" filter="url(#glow)" opacity="0.9"/>
+      <ellipse cx="48" cy="65" rx="8" ry="14" fill="rgba(255,255,255,0.25)" transform="rotate(-20,48,65)"/>
+      <text x="60" y="90" text-anchor="middle" fill="white" font-size="22" font-family="serif" font-weight="bold">H₂O</text>
+    </svg>
+  </div>
+
+  <div class="title-main">水之炼金术师</div>
+  <div class="title-sub">地球守护计划</div>
+
+  <div class="level-grid" id="levelGrid">
+    <div class="level-card" data-level="1" onclick="startLevel(1)">
+      <div class="level-icon">⚗️</div>
+      <div class="level-num">关卡 01</div>
+      <div class="level-title">微观拆解与电解工厂</div>
+      <div class="level-desc">验证水的组成，探索电解实验</div>
+    </div>
+    <div class="level-card locked" data-level="2" id="card2" onclick="startLevel(2)">
+      <div class="level-icon">🏔️</div>
+      <div class="level-num">关卡 02</div>
+      <div class="level-title">极限生存——高山与寒冬</div>
+      <div class="level-desc">利用水的物理性质解决生存难题</div>
+    </div>
+    <div class="level-card locked" data-level="3" id="card3" onclick="startLevel(3)">
+      <div class="level-icon">🧪</div>
+      <div class="level-num">关卡 03</div>
+      <div class="level-title">炼金术士的浓度秘方</div>
+      <div class="level-desc">精确配制溶液，掌握浓度计算</div>
+    </div>
+    <div class="level-card locked" data-level="4" id="card4" onclick="startLevel(4)">
+      <div class="level-icon">🔬</div>
+      <div class="level-num">关卡 04</div>
+      <div class="level-title">阿基米德的密室鉴定</div>
+      <div class="level-desc">利用密度公式鉴定神秘金属</div>
+    </div>
+    <div class="level-card locked" data-level="5" id="card5" onclick="startLevel(5)">
+      <div class="level-icon">🏙️</div>
+      <div class="level-num">关卡 05</div>
+      <div class="level-title">城市净化大亨</div>
+      <div class="level-desc">建立净水厂，拯救湖泊生态</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px; font-size:13px; color:rgba(150,200,255,0.4);">
+    完成关卡解锁下一关 · 🔒 表示尚未解锁
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen">
+  <div class="game-header">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <div class="level-indicator" id="levelTitle">关卡 1</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="game-content" id="gameContent"></div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="resultScreen" class="screen">
+  <div class="result-trophy">🏆</div>
+  <div class="result-title">全关通关！地球守护者</div>
+  <div class="medals-row">
+    <div class="medal">
+      <div class="medal-icon">💊</div>
+      <div class="medal-name">浓度满分</div>
+      <div class="medal-title">首席药剂师</div>
+    </div>
+    <div class="medal">
+      <div class="medal-icon">💧</div>
+      <div class="medal-name">完美净化</div>
+      <div class="medal-title">水卫士</div>
+    </div>
+    <div class="medal">
+      <div class="medal-icon">🔭</div>
+      <div class="medal-name">精准测量</div>
+      <div class="medal-title">实验大师</div>
+    </div>
+  </div>
+  <div class="health-tip">
+    🌊 <strong>健康提醒</strong><br>
+    人体 70%–80% 都是水！每天应摄取 <strong>2–2.5 升</strong>的水，
+    才能维持正常的新陈代谢、体温调节和营养运输。
+  </div>
+
+  <!-- Name input for certificate -->
+  <div style="margin-top:28px; background:rgba(0,20,60,0.7); border:1px solid rgba(0,212,255,0.3);
+    border-radius:20px; padding:24px 28px; max-width:420px; width:90%; text-align:center;">
+    <div style="font-size:18px; color:var(--cyan); margin-bottom:6px; font-family:'ZCOOL XiaoWei',serif;">🎓 领取专属荣誉证书</div>
+    <div style="font-size:14px; color:rgba(150,220,255,0.6); margin-bottom:16px;">输入你的姓名，生成属于你的证书！</div>
+    <input id="certName" class="answer-input" placeholder="请输入姓名" maxlength="12"
+      style="width:100%; font-size:18px; padding:12px 16px; margin-bottom:14px; border-radius:12px;"
+      onkeydown="if(event.key==='Enter') showCertificate()"/>
+    <button class="btn-primary" onclick="showCertificate()" style="width:100%; font-size:16px; padding:14px;">
+      ✨ 生成证书
+    </button>
+  </div>
+
+  <button class="btn-secondary" onclick="restartGame()" style="margin-top:20px">↩ 再玩一次</button>
+</div>
+
+<!-- CERTIFICATE MODAL -->
+<div id="certModal" style="display:none; position:fixed; inset:0; z-index:2000;
+  background:rgba(0,5,20,0.92); align-items:center; justify-content:center;
+  padding:16px; overflow-y:auto;">
+  <div style="position:relative; max-width:420px; width:100%;">
+    <!-- Certificate canvas -->
+    <canvas id="certCanvas" width="420" height="600"
+      style="width:100%; border-radius:16px; display:block;
+      box-shadow:0 0 60px rgba(0,212,255,0.4), 0 0 120px rgba(0,100,200,0.2);"></canvas>
+    <div style="display:flex; gap:12px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
+      <button class="btn-primary" onclick="downloadCert()">⬇️ 保存证书</button>
+      <button class="btn-secondary" onclick="closeCert()">✕ 关闭</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========================
+// STATE
+// ========================
+const state = {
+  completedLevels: new Set(),
+  currentLevel: 0,
+  // Level 1
+  l1: { moleculeBuilt: false, powered: false, h2Collected: false, o2Collected: false },
+  // Level 2
+  l2: { cookedRight: false, iceFixed: false, fishSaved: false },
+  // Level 3
+  l3: { task1Done: false, task2Done: false, task3Done: false },
+  // Level 4
+  l4: { massRead: false, volumeMeasured: false, densityCalced: false, metalId: false },
+  // Level 5
+  l5: { pipelineCorrect: false, hardWaterFixed: false, lakeFixed: false }
+};
+
+function unlockLevel(n) {
+  state.completedLevels.add(n);
+  const card = document.getElementById('card'+(n+1));
+  if (card) {
+    card.classList.remove('locked');
+  }
+  const doneCard = document.querySelector(`[data-level="${n}"]`);
+  if(doneCard) doneCard.classList.add('completed');
+}
+
+function startLevel(n) {
+  const card = document.querySelector(`[data-level="${n}"]`);
+  if(card && card.classList.contains('locked')) {
+    showToast('请先完成上一关！', 'error'); return;
+  }
+  // Start timer on first level
+  if (n === 1 && !window.gameStartTime) {
+    window.gameStartTime = Date.now();
+  }
+  state.currentLevel = n;
+  showScreen('gameScreen');
+  document.getElementById('levelTitle').textContent = `关卡 ${n}`;
+  setProgress(0);
+  renderLevel(n);
+}
+
+function goHome() { showScreen('homeScreen'); }
+// ========================
+// CERTIFICATE
+// ========================
+function showCertificate() {
+  const name = document.getElementById('certName').value.trim();
+  if (!name) { showToast('请先输入姓名！', 'error'); return; }
+  // Compute elapsed time
+  const start = window.gameStartTime || Date.now();
+  const end   = window.gameEndTime   || Date.now();
+  const elapsed = Math.floor((end - start) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2,'0');
+  const ss = String(elapsed % 60).padStart(2,'0');
+  const timeStr = `${mm} 分 ${ss} 秒`;
+  const modal = document.getElementById('certModal');
+  modal.style.display = 'flex';
+  drawCertificate(name, timeStr);
+}
+
+function closeCert() {
+  document.getElementById('certModal').style.display = 'none';
+}
+
+function downloadCert() {
+  const cv = document.getElementById('certCanvas');
+  const a = document.createElement('a');
+  a.download = '水之炼金术师证书.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+function drawCertificate(name, timeStr) {
+  const cv = document.getElementById('certCanvas');
+  const ctx = cv.getContext('2d');
+  const W = 420, H = 600;
+  cv.width = W; cv.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  // ── 背景深色渐变 ──
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0,   '#04111f');
+  bg.addColorStop(0.5, '#061828');
+  bg.addColorStop(1,   '#030d18');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── 背景水波纹 ──
+  [[W/2,H*0.42,160],[W/2,H*0.42,210],[W/2,H*0.42,260]].forEach(([x,y,r],i)=>{
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.strokeStyle = `rgba(0,160,255,${0.055-i*0.015})`;
+    ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // ── 外框双线 ──
+  ctx.strokeStyle = 'rgba(0,212,255,0.18)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(8, 8, W-16, H-16);
+  ctx.strokeStyle = 'rgba(240,192,64,0.22)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(14, 14, W-28, H-28);
+
+  // ── 四角花纹 ──
+  const corners2 = [[20,20],[W-20,20],[20,H-20],[W-20,H-20]];
+  corners2.forEach(([x,y]) => {
+    const sx = x < W/2 ? 1 : -1, sy = y < H/2 ? 1 : -1;
+    // L bracket
+    ctx.strokeStyle = 'rgba(0,212,255,0.65)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(x, y+sy*32); ctx.lineTo(x, y); ctx.lineTo(x+sx*32, y); ctx.stroke();
+    // inner dot
+    ctx.fillStyle = 'rgba(240,192,64,0.8)';
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI*2); ctx.fill();
+    // corner star
+    ctx.fillStyle = 'rgba(0,212,255,0.5)';
+    ctx.font = '9px serif'; ctx.textAlign = 'center';
+    ctx.fillText('✦', x+sx*10, y+sy*10+3);
+  });
+
+  // ── 顶部彩虹分隔条 ──
+  const topBar = ctx.createLinearGradient(0,0,W,0);
+  topBar.addColorStop(0,   'transparent');
+  topBar.addColorStop(0.2, 'rgba(0,212,255,0.3)');
+  topBar.addColorStop(0.5, 'rgba(240,192,64,0.5)');
+  topBar.addColorStop(0.8, 'rgba(0,212,255,0.3)');
+  topBar.addColorStop(1,   'transparent');
+  ctx.fillStyle = topBar;
+  ctx.fillRect(0, 0, W, 3);
+
+  // ── 水滴 LOGO ──
+  ctx.save();
+  ctx.translate(W/2, 82);
+  const dg = ctx.createRadialGradient(-7,-14,2,0,0,30);
+  dg.addColorStop(0,'#aaf0ff'); dg.addColorStop(1,'#0044bb');
+  ctx.fillStyle = dg;
+  ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 24;
+  ctx.beginPath();
+  ctx.moveTo(0,-30);
+  ctx.bezierCurveTo(22,-12,24,12,0,26);
+  ctx.bezierCurveTo(-24,12,-22,-12,0,-30);
+  ctx.fill(); ctx.shadowBlur = 0;
+  // H₂O label inside drop
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+  ctx.fillText('H₂O', 0, 7);
+  ctx.restore();
+
+  // ── 游戏标题小字 ──
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(100,200,255,0.5)';
+  ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.fillText('水之炼金术师 · 地球守护计划', W/2, 126);
+
+  // ── 荣誉证书 大标题 ──
+  ctx.fillStyle = '#00d4ff';
+  ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 16;
+  ctx.font = 'bold 26px ZCOOL XiaoWei, serif';
+  ctx.fillText('荣  誉  证  书', W/2, 162);
+  ctx.shadowBlur = 0;
+
+  // ── 分隔线 ──
+  function divider(y, alpha=0.5) {
+    const lg = ctx.createLinearGradient(40,0,W-40,0);
+    lg.addColorStop(0,'transparent');
+    lg.addColorStop(0.3,`rgba(0,212,255,${alpha})`);
+    lg.addColorStop(0.5,`rgba(240,192,64,${alpha+0.2})`);
+    lg.addColorStop(0.7,`rgba(0,212,255,${alpha})`);
+    lg.addColorStop(1,'transparent');
+    ctx.strokeStyle = lg; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(W-40,y); ctx.stroke();
+  }
+  divider(176);
+
+  // ── CERTIFICATE OF ACHIEVEMENT ──
+  ctx.fillStyle = 'rgba(150,210,255,0.5)';
+  ctx.font = '10px Noto Sans SC, sans-serif';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT', W/2, 196);
+
+  // ── 授予语 ──
+  ctx.fillStyle = 'rgba(180,220,255,0.7)';
+  ctx.font = '15px Noto Sans SC, sans-serif';
+  ctx.fillText('兹证明同学', W/2, 228);
+
+  // ── 姓名 ──
+  const nameFontSize = name.length > 5 ? 36 : 44;
+  ctx.fillStyle = '#f0c040';
+  ctx.shadowColor = '#f0c040'; ctx.shadowBlur = 22;
+  ctx.font = `bold ${nameFontSize}px ZCOOL XiaoWei, serif`;
+  ctx.fillText(name, W/2, 282);
+  ctx.shadowBlur = 0;
+  // 姓名下划线
+  const nw = ctx.measureText(name).width;
+  const nlg = ctx.createLinearGradient(W/2-nw/2,0,W/2+nw/2,0);
+  nlg.addColorStop(0,'transparent'); nlg.addColorStop(0.15,'#f0c040');
+  nlg.addColorStop(0.85,'#f0c040'); nlg.addColorStop(1,'transparent');
+  ctx.strokeStyle = nlg; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2-8,294); ctx.lineTo(W/2+nw/2+8,294); ctx.stroke();
+
+  divider(310, 0.35);
+
+  // ── 成就描述 ──
+  ctx.fillStyle = 'rgba(190,225,255,0.72)';
+  ctx.font = '13px Noto Sans SC, sans-serif';
+  ctx.fillText('已出色完成全部五个关卡，', W/2, 334);
+  ctx.fillText('掌握了水的化学与物理性质，', W/2, 355);
+  ctx.fillStyle = 'rgba(240,192,64,0.85)';
+  ctx.font = 'bold 14px Noto Sans SC, sans-serif';
+  ctx.fillText('荣获地球守护者称号！', W/2, 378);
+
+  divider(394, 0.3);
+
+  // ── 三枚勋章 ──
+  const badges = [
+    { x: 90,    icon:'💊', title:'首席药剂师', sub:'浓度满分' },
+    { x: W/2,   icon:'💧', title:'水 卫 士',  sub:'完美净化' },
+    { x: W-90,  icon:'🔭', title:'实验大师',  sub:'精准测量' },
+  ];
+  badges.forEach(b => {
+    const bg2 = ctx.createRadialGradient(b.x,424,2,b.x,424,24);
+    bg2.addColorStop(0,'rgba(0,80,160,0.55)'); bg2.addColorStop(1,'rgba(0,20,60,0.15)');
+    ctx.fillStyle = bg2;
+    ctx.beginPath(); ctx.arc(b.x,424,24,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,212,255,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(b.x,424,24,0,Math.PI*2); ctx.stroke();
+    ctx.font = '20px serif'; ctx.textAlign = 'center';
+    ctx.fillText(b.icon, b.x, 432);
+    ctx.fillStyle = 'rgba(240,192,64,0.9)';
+    ctx.font = 'bold 10px Noto Sans SC, sans-serif';
+    ctx.fillText(b.title, b.x, 458);
+    ctx.fillStyle = 'rgba(150,210,255,0.55)';
+    ctx.font = '9px Noto Sans SC, sans-serif';
+    ctx.fillText(b.sub, b.x, 470);
+  });
+
+  divider(484, 0.25);
+
+  // ── 通关用时 ──
+  ctx.fillStyle = 'rgba(150,220,255,0.65)';
+  ctx.font = '12px Noto Sans SC, sans-serif';
+  ctx.fillText('通关用时', W/2, 506);
+  ctx.fillStyle = '#00d4ff';
+  ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 8;
+  ctx.font = 'bold 20px Noto Sans SC, monospace';
+  ctx.fillText(timeStr, W/2, 530);
+  ctx.shadowBlur = 0;
+
+  // ── 当前日期时间 ──
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日`;
+  const clockStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  ctx.fillStyle = 'rgba(120,190,255,0.45)';
+  ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.fillText(`${dateStr}  ${clockStr}`, W/2, 556);
+
+  // ── 底部装饰星星 ──
+  [[60,78],[W-60,78],[60,H-22],[W-60,H-22]].forEach(([x,y],i)=>{
+    ctx.fillStyle = i%2===0 ? 'rgba(0,212,255,0.45)' : 'rgba(240,192,64,0.4)';
+    ctx.font = '10px serif'; ctx.textAlign = 'center';
+    ctx.fillText('✦', x, y);
+  });
+
+  // ── 底部光晕条 ──
+  const botBar = ctx.createLinearGradient(0,0,W,0);
+  botBar.addColorStop(0,'transparent');
+  botBar.addColorStop(0.3,'rgba(240,192,64,0.25)');
+  botBar.addColorStop(0.5,'rgba(0,212,255,0.35)');
+  botBar.addColorStop(0.7,'rgba(240,192,64,0.25)');
+  botBar.addColorStop(1,'transparent');
+  ctx.fillStyle = botBar;
+  ctx.fillRect(0, H-3, W, 3);
+}
+
+function restartGame() {
+  window.gameStartTime = null;
+  window.gameEndTime = null;
+  state.completedLevels.clear();
+  state.l1 = { moleculeBuilt: false, powered: false, h2Collected: false, o2Collected: false };
+  state.l2 = { cookedRight: false, iceFixed: false, fishSaved: false };
+  state.l3 = { task1Done: false, task2Done: false, task3Done: false };
+  state.l4 = { massRead: false, volumeMeasured: false, densityCalced: false, metalId: false };
+  state.l5 = { pipelineCorrect: false, hardWaterFixed: false, lakeFixed: false };
+  document.querySelectorAll('.level-card').forEach(c=>{ c.classList.remove('completed'); });
+  document.querySelectorAll('.level-card[data-level]').forEach(c=>{
+    if(c.dataset.level != '1') c.classList.add('locked');
+  });
+  showScreen('homeScreen');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+}
+
+function completeLevel(n) {
+  unlockLevel(n);
+  setProgress(100);
+  showToast('🎉 恭喜通关！', 'success');
+  if (n === 5) window.gameEndTime = Date.now();
+  setTimeout(()=>{
+    if(n === 5) { showScreen('resultScreen'); }
+    else { goHome(); }
+  }, 2000);
+}
+
+// ========================
+// LEVEL RENDERER
+// ========================
+function renderLevel(n) {
+  const c = document.getElementById('gameContent');
+  c.innerHTML = '';
+  if(n===1) renderLevel1(c);
+  else if(n===2) renderLevel2(c);
+  else if(n===3) renderLevel3(c);
+  else if(n===4) renderLevel4(c);
+  else if(n===5) renderLevel5(c);
+}
+
+// ========================
+// LEVEL 1: ELECTROLYSIS
+// ========================
+function renderLevel1(c) {
+  c.innerHTML = `
+    <div class="section-title">⚗️ 微观拆解与电解工厂</div>
+    <div class="game-task-box">
+      <div class="task-label">实验目标</div>
+      <div class="task-text">通过化学手段验证水（H₂O）的组成，并测定电解产生气体的体积比。</div>
+    </div>
+    <div class="step-dots">
+      <div class="step-dot active" id="dot1-1"></div>
+      <div class="step-dot" id="dot1-2"></div>
+      <div class="step-dot" id="dot1-3"></div>
+    </div>
+
+    <!-- STEP 1: Build Molecule -->
+    <div class="electrolysis-lab" id="l1step1">
+      <div class="molecule-builder">
+        <div class="section-title" style="font-size:16px; margin-bottom:12px;">第一步：组装水分子</div>
+        <div class="hint-box">💡 将 1个红球（氧原子O）和 2个绿球（氢原子H）拖入对应槽位，组成 H₂O。</div>
+        <div style="margin-top:16px;">
+          <div style="font-size:13px; color:rgba(150,200,255,0.6); margin-bottom:8px;">原子库（点击添加）：</div>
+          <div class="atom-palette">
+            <div class="atom-ball atom-o" onclick="addAtom('O')" title="氧原子 O">O</div>
+            <div class="atom-ball atom-o" onclick="addAtom('O')" title="氧原子 O">O</div>
+            <div class="atom-ball atom-h" onclick="addAtom('H')" title="氢原子 H">H</div>
+            <div class="atom-ball atom-h" onclick="addAtom('H')" title="氢原子 H">H</div>
+            <div class="atom-ball atom-h" onclick="addAtom('H')" title="氢原子 H">H</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-size:13px; color:rgba(150,200,255,0.6); margin-bottom:8px;">分子槽位：</div>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div style="text-align:center;">
+              <div class="atom-slot" id="slot-O" onclick="removeAtom('O')">O槽</div>
+              <div class="slot-label">氧原子×1</div>
+            </div>
+            <div style="text-align:center;">
+              <div class="atom-slot" id="slot-H1" onclick="removeAtom('H')">H槽</div>
+              <div class="slot-label">氢原子×1</div>
+            </div>
+            <div style="text-align:center;">
+              <div class="atom-slot" id="slot-H2" onclick="removeAtom('H')">H槽</div>
+              <div class="slot-label">氢原子×1</div>
+            </div>
+            <div style="font-size:32px; color:rgba(150,200,255,0.5);" id="moleculeLabel">= ?</div>
+          </div>
+        </div>
+        <div id="l1buildStatus" style="margin-top:12px; font-size:13px; color:rgba(200,230,255,0.5);">已放入：O × 0，H × 0</div>
+        <button class="btn-primary" style="margin-top:16px;" onclick="checkMolecule()">✓ 确认组装</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Electrolysis Canvas -->
+    <div class="electrolysis-lab" id="l1step2" style="display:none;">
+      <div class="molecule-builder" style="width:100%;">
+        <div class="section-title" style="font-size:16px; margin-bottom:8px;">第二步：电解水实验</div>
+        <div class="hint-box" id="l1electHint">
+          💡 <strong>第①步</strong>：先点击左边或右边的<strong>空试管</strong>，往里装满水，再放进烧杯。两根都装好后才能通电！
+        </div>
+
+        <!-- Canvas apparatus -->
+        <div style="display:flex; justify-content:center; margin:12px 0; position:relative;">
+          <canvas id="electCanvas" width="420" height="340" style="border-radius:12px; cursor:pointer; max-width:100%;"></canvas>
+        </div>
+
+        <!-- Labels row -->
+        <div style="display:flex; justify-content:space-around; font-size:12px; margin-bottom:10px;">
+          <div style="text-align:center;">
+            <div style="color:var(--red);">— 阴极（负极）</div>
+            <div id="volH" style="font-size:18px; font-weight:700; color:var(--cyan);">水满</div>
+            <div style="color:rgba(150,200,255,0.5); font-size:11px;">H₂ 气体</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="color:var(--cyan);">+ 阳极（正极）</div>
+            <div id="volO" style="font-size:18px; font-weight:700; color:var(--cyan);">水满</div>
+            <div style="color:rgba(150,200,255,0.5); font-size:11px;">O₂ 气体</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
+          <button class="power-switch" id="powerSwitch" onclick="togglePower()" disabled>⚡ 接通电源</button>
+        </div>
+        <div id="collectRow" style="display:none; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
+          <button id="collectBtnH" onclick="collectGas('H')" style="
+            background:linear-gradient(135deg,rgba(255,100,100,0.25),rgba(200,50,50,0.15));
+            border:2px solid #ff6666; color:#ff9999; padding:12px 22px; border-radius:12px;
+            font-family:'Noto Sans SC',sans-serif; font-size:14px; cursor:pointer;
+            animation:collectPulse 1s ease-in-out infinite; font-weight:500;
+          ">🧪 取出氢气管 (H₂)</button>
+          <button id="collectBtnO" onclick="collectGas('O')" style="
+            background:linear-gradient(135deg,rgba(100,200,255,0.25),rgba(50,130,200,0.15));
+            border:2px solid #66ccff; color:#88ddff; padding:12px 22px; border-radius:12px;
+            font-family:'Noto Sans SC',sans-serif; font-size:14px; cursor:pointer;
+            animation:collectPulse 1s ease-in-out infinite 0.3s; font-weight:500;
+          ">🧪 取出氧气管 (O₂)</button>
+        </div>
+        <div id="l1electStatus" style="font-size:13px; color:rgba(200,230,255,0.6); text-align:center; min-height:20px;"></div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Test & Answer -->
+    <div class="electrolysis-lab" id="l1step3" style="display:none;">
+      <div class="molecule-builder">
+        <div class="section-title" style="font-size:16px; margin-bottom:12px;">第三步：验证气体 & 通关密码</div>
+        <div class="hint-box">💡 对两管气体进行检验，然后输入氢气与氧气的体积比。</div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px; color:var(--gold); margin-bottom:8px;">气体检验工具：</div>
+          <div class="test-tools">
+            <button class="tool-btn" id="btn-splint" onclick="testGas('splint')">🔥 点燃木条（测氢管）</button>
+            <button class="tool-btn" id="btn-glowing" onclick="testGas('glowing')">✨ 火星木条（测氧管）</button>
+          </div>
+          <div id="testResult" class="hint-box" style="margin-top:10px; display:none;"></div>
+        </div>
+        <div style="font-size:14px; color:rgba(200,230,255,0.8); margin-bottom:12px;">
+          通关密码——氢气：氧气 体积比为：
+        </div>
+        <div class="answer-input-row">
+          <input class="answer-input" id="answerRatio" placeholder="如：2:1" maxlength="10"/>
+          <button class="btn-primary" onclick="checkLevel1Answer()">提交答案</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Reset L1 counters
+  window.l1Atoms = { O: 0, H: 0 };
+  if(EC.animId) cancelAnimationFrame(EC.animId);
+  EC.tubeH = 0; EC.tubeO = 0; EC.powered = false;
+  EC.gasH = 0; EC.gasO = 0; EC.bubbles = [];
+  EC.hCollected = false; EC.oCollected = false;
+}
+
+// ===== L1 ATOM BUILDER =====
+window.l1Atoms = { O: 0, H: 0 };
+
+function addAtom(type) {
+  if (type === 'O' && window.l1Atoms.O >= 1) { showToast('氧原子槽位已满（最多1个）', 'error'); return; }
+  if (type === 'H' && window.l1Atoms.H >= 2) { showToast('氢原子槽位已满（最多2个）', 'error'); return; }
+  window.l1Atoms[type]++;
+  updateMoleculeSlots();
+}
+function removeAtom(type) {
+  if (window.l1Atoms[type] > 0) { window.l1Atoms[type]--; updateMoleculeSlots(); }
+}
+function updateMoleculeSlots() {
+  const a = window.l1Atoms;
+  const slotO = document.getElementById('slot-O');
+  const slotH1 = document.getElementById('slot-H1');
+  const slotH2 = document.getElementById('slot-H2');
+  const lbl = document.getElementById('moleculeLabel');
+  const status = document.getElementById('l1buildStatus');
+  if(!slotO) return;
+  if (a.O >= 1) { slotO.className='atom-slot filled atom-o'; slotO.textContent='O'; }
+  else { slotO.className='atom-slot'; slotO.textContent='O槽'; }
+  if (a.H >= 1) { slotH1.className='atom-slot filled atom-h'; slotH1.textContent='H'; }
+  else { slotH1.className='atom-slot'; slotH1.textContent='H槽'; }
+  if (a.H >= 2) { slotH2.className='atom-slot filled atom-h'; slotH2.textContent='H'; }
+  else { slotH2.className='atom-slot'; slotH2.textContent='H槽'; }
+  if (a.O === 1 && a.H === 2) { lbl.textContent='= H₂O ✓'; lbl.style.color='var(--green)'; }
+  else { lbl.textContent='= ?'; lbl.style.color='rgba(150,200,255,0.5)'; }
+  if(status) status.textContent = `已放入：O × ${a.O}，H × ${a.H}`;
+}
+function checkMolecule() {
+  if (window.l1Atoms.O !== 1 || window.l1Atoms.H !== 2) { showToast('❌ 水分子需要：1个O + 2个H', 'error'); return; }
+  showToast('✅ H₂O 分子组装成功！', 'success');
+  setProgress(20);
+  document.getElementById('l1step1').style.display='none';
+  document.getElementById('l1step2').style.display='flex';
+  document.getElementById('dot1-1').classList.remove('active');
+  document.getElementById('dot1-1').classList.add('done');
+  document.getElementById('dot1-2').classList.add('active');
+  initElectCanvas();
+}
+
+// ===== L1 CANVAS ELECTROLYSIS =====
+const EC = {
+  // tube state: 0=empty, 1=filled-with-water, 2=in-beaker
+  tubeH: 0, tubeO: 0,
+  powered: false,
+  gasH: 0,   // 0..1  (H fills faster, 2:1 ratio)
+  gasO: 0,
+  bubbles: [],
+  animId: null,
+  hCollected: false,
+  oCollected: false,
+  // tube drop-in animation progress (0=above beaker, 1=in position)
+  tubeHAnim: 1, tubeOAnim: 1,
+  // layout constants (set in init)
+  CW: 420, CH: 340,
+  // beaker
+  BX: 105, BY: 120, BW: 210, BH: 160,
+  // tubes (inverted, mouth down into beaker)
+  TW: 38, TH: 110,
+  LTX: 0, RTX: 0, TY: 0,
+  // electrode rods
+  RODR: 4,
+};
+
+function initElectCanvas() {
+  const cv = document.getElementById('electCanvas');
+  if(!cv) return;
+  // Scale for mobile
+  const maxW = Math.min(cv.parentElement.offsetWidth - 20, 420);
+  const scale = maxW / 420;
+  cv.style.width = maxW + 'px';
+  cv.style.height = (340 * scale) + 'px';
+
+  EC.CW = 420; EC.CH = 340;
+  EC.BX = 105; EC.BY = 130; EC.BW = 210; EC.BH = 155;
+  EC.TW = 38; EC.TH = 110;
+  EC.LTX = EC.BX + 42;   // left tube center x
+  EC.RTX = EC.BX + EC.BW - 42; // right tube center x
+  EC.TY = EC.BY - EC.TH + 10;  // tube top y (hangs into beaker)
+  EC.tubeH = 0; EC.tubeO = 0;
+  EC.powered = false; EC.gasH = 0; EC.gasO = 0;
+  EC.bubbles = []; EC.hCollected = false; EC.oCollected = false;
+  EC.tubeHAnim = 1; EC.tubeOAnim = 1;
+  if(EC.animId) cancelAnimationFrame(EC.animId);
+
+  document.getElementById('volH').textContent = '空管';
+  document.getElementById('volO').textContent = '空管';
+  document.getElementById('volH').style.color = 'rgba(150,200,255,0.5)';
+  document.getElementById('volO').style.color = 'rgba(150,200,255,0.5)';
+
+  cv.onclick = handleCanvasClick;
+  drawElect();
+}
+
+function handleCanvasClick(e) {
+  const cv = document.getElementById('electCanvas');
+  const rect = cv.getBoundingClientRect();
+  const scaleX = EC.CW / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * (EC.CH / rect.height);
+
+  // Hit test left tube (H)
+  const lTubeLeft = EC.LTX - EC.TW/2;
+  const tubeBottom = EC.BY + 20;
+  const tubeTop = EC.TY - 10;
+  if (mx >= lTubeLeft && mx <= lTubeLeft + EC.TW && my >= tubeTop && my <= tubeBottom) {
+    clickTube('H'); return;
+  }
+  // Hit test right tube (O)
+  const rTubeLeft = EC.RTX - EC.TW/2;
+  if (mx >= rTubeLeft && mx <= rTubeLeft + EC.TW && my >= tubeTop && my <= tubeBottom) {
+    clickTube('O'); return;
+  }
+}
+
+function clickTube(side) {
+  const prop = side === 'H' ? 'tubeH' : 'tubeO';
+  const animProp = side === 'H' ? 'tubeHAnim' : 'tubeOAnim';
+  const val = EC[prop];
+  const volEl = document.getElementById(side === 'H' ? 'volH' : 'volO');
+
+  if (EC.powered) { showToast('请先断开电源再操作试管！', 'error'); return; }
+
+  if (val === 0) {
+    EC[prop] = 1;
+    volEl.textContent = '水满 ✓';
+    volEl.style.color = 'var(--cyan)';
+    showToast('试管已装满水！再点击一次放入烧杯。', 'info');
+    drawElect(); return;
+  }
+  if (val === 1) {
+    EC[prop] = 2;
+    volEl.textContent = '正在放入...';
+    // Animate tube dropping in from above
+    EC[animProp] = -0.6; // start above beaker
+    animateTubeDrop(side, () => {
+      volEl.textContent = '水满（杯中）✓';
+      volEl.style.color = 'var(--green)';
+      showToast('试管已倒置放入烧杯！', 'success');
+      checkReadyToPower();
+    });
+    return;
+  }
+  if (val === 2 && EC.gasH >= 0.95) {
+    collectGas(side); return;
+  }
+}
+
+function animateTubeDrop(side, onDone) {
+  const animProp = side === 'H' ? 'tubeHAnim' : 'tubeOAnim';
+  const target = 1.0;
+  function step() {
+    EC[animProp] += (target - EC[animProp]) * 0.18;
+    drawElect();
+    if (Math.abs(EC[animProp] - target) > 0.01) {
+      requestAnimationFrame(step);
+    } else {
+      EC[animProp] = target;
+      drawElect();
+      if (onDone) onDone();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function animateTubeLift(side, onDone) {
+  const animProp = side === 'H' ? 'tubeHAnim' : 'tubeOAnim';
+  const target = 2.2; // fly upward off screen
+  function step() {
+    EC[animProp] += (target - EC[animProp]) * 0.14;
+    drawElect();
+    if (Math.abs(EC[animProp] - target) > 0.02) {
+      requestAnimationFrame(step);
+    } else {
+      EC[animProp] = target;
+      drawElect();
+      if (onDone) onDone();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function checkReadyToPower() {
+  if (EC.tubeH === 2 && EC.tubeO === 2) {
+    const sw = document.getElementById('powerSwitch');
+    sw.disabled = false;
+    sw.style.opacity = '1';
+    document.getElementById('l1electHint').innerHTML =
+      '✅ 两根试管已就位！现在可以<strong>接通电源</strong>开始电解了！';
+    document.getElementById('l1electStatus').textContent = '准备就绪，接通电源开始实验！';
+  }
+}
+
+function togglePower() {
+  if (!EC.powered) {
+    EC.powered = true;
+    const sw = document.getElementById('powerSwitch');
+    sw.textContent = '⚡ 断开电源';
+    sw.classList.add('on');
+    document.getElementById('l1electHint').innerHTML =
+      '⚡ 电解进行中！观察两管气泡——<span style="color:#ff8888">阴极（H₂）</span>气泡比<span style="color:#88ddff">阳极（O₂）</span>快 2 倍！';
+    document.getElementById('l1electStatus').textContent = '正在电解...';
+    startElectAnim();
+  } else {
+    EC.powered = false;
+    const sw = document.getElementById('powerSwitch');
+    sw.textContent = '⚡ 接通电源';
+    sw.classList.remove('on');
+    document.getElementById('l1electStatus').textContent = '电源已断开';
+    cancelAnimationFrame(EC.animId);
+    drawElect();
+  }
+}
+
+function startElectAnim() {
+  let last = 0;
+  function frame(ts) {
+    if (!EC.powered) return;
+    const dt = Math.min(ts - last, 50);
+    last = ts;
+
+    // Gas accumulates: H at 2x rate of O (they fill independently)
+    EC.gasH = Math.min(1, EC.gasH + 0.0018 * dt);
+    EC.gasO = Math.min(0.5, EC.gasO + 0.0009 * dt);  // O2 fills to 50% (half of H2 = 2:1 ratio visually)
+
+    // Spawn bubbles
+    if (Math.random() < 0.35) spawnBubble('H');
+    if (Math.random() < 0.18) spawnBubble('O');
+
+    // Update bubble positions
+    EC.bubbles = EC.bubbles.filter(b => {
+      b.y -= b.speed;
+      b.life--;
+      return b.life > 0;
+    });
+
+    drawElect();
+
+    // Update labels
+    const hPct = Math.round(EC.gasH * 100);
+    const oPct = Math.round(EC.gasO * 100);
+    document.getElementById('volH').textContent = hPct + '%';
+    document.getElementById('volH').style.color = 'var(--cyan)';
+    document.getElementById('volO').textContent = oPct + '%';
+    document.getElementById('volO').style.color = 'var(--cyan)';
+
+    if (EC.gasH >= 0.98) {
+      EC.powered = false;
+      const sw = document.getElementById('powerSwitch');
+      sw.textContent = '⚡ 接通电源';
+      sw.classList.remove('on');
+      document.getElementById('l1electHint').innerHTML =
+        '🎉 气体收集完毕！点击下方按钮<strong>取出两根试管</strong>，进入气体验证步骤。';
+      document.getElementById('l1electStatus').textContent = '✅ 电解完成！H₂ 充满两倍于 O₂ ——请取出试管。';
+      document.getElementById('volH').textContent = '已满 (H₂)';
+      document.getElementById('volO').textContent = '已满 (O₂)';
+      document.getElementById('powerSwitch').disabled = true;
+      document.getElementById('powerSwitch').style.opacity = '0.4';
+      document.getElementById('collectRow').style.display = 'flex';
+      drawElect();
+      return;
+    }
+    EC.animId = requestAnimationFrame(frame);
+  }
+  EC.animId = requestAnimationFrame(frame);
+}
+
+function spawnBubble(side) {
+  const cx = side === 'H' ? EC.LTX : EC.RTX;
+  // Bubbles rise inside the tube (tube occupies gasH/gasO fraction from top)
+  const tubeTopY = EC.TY;
+  const tubeBotY = EC.BY + 15; // mouth dips into beaker water
+  const gas = side === 'H' ? EC.gasH : EC.gasO;
+  const gasTopY = tubeTopY + (1 - gas) * EC.TH;
+  EC.bubbles.push({
+    x: cx + (Math.random() - 0.5) * 14,
+    y: tubeBotY - 5,
+    r: 2 + Math.random() * 2.5,
+    speed: 1.2 + Math.random() * 1.2,
+    life: Math.round((tubeBotY - gasTopY) / 1.5) + 5,
+    side
+  });
+}
+
+function drawElect() {
+  const cv = document.getElementById('electCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const { CW, CH, BX, BY, BW, BH, TW, TH, LTX, RTX, TY } = EC;
+  ctx.clearRect(0, 0, CW, CH);
+
+  // ---- BACKGROUND ----
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, CH);
+  bgGrad.addColorStop(0, 'rgba(5,15,40,0.0)');
+  bgGrad.addColorStop(1, 'rgba(0,30,70,0.0)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // ---- BEAKER ----
+  // Beaker glass walls
+  ctx.save();
+  // beaker body fill (water inside)
+  const waterGrad = ctx.createLinearGradient(BX, BY, BX + BW, BY + BH);
+  waterGrad.addColorStop(0, 'rgba(30,100,200,0.35)');
+  waterGrad.addColorStop(0.5, 'rgba(50,160,255,0.25)');
+  waterGrad.addColorStop(1, 'rgba(20,80,180,0.35)');
+  ctx.fillStyle = waterGrad;
+  ctx.beginPath();
+  ctx.moveTo(BX + 8, BY);
+  ctx.lineTo(BX + BW - 8, BY);
+  ctx.lineTo(BX + BW - 4, BY + BH);
+  ctx.lineTo(BX + 4, BY + BH);
+  ctx.closePath();
+  ctx.fill();
+
+  // beaker glass outline
+  ctx.strokeStyle = 'rgba(150,210,255,0.55)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(BX + 8, BY);
+  ctx.lineTo(BX + BW - 8, BY);
+  ctx.lineTo(BX + BW - 4, BY + BH);
+  ctx.lineTo(BX + 4, BY + BH);
+  ctx.closePath();
+  ctx.stroke();
+  // beaker rim
+  ctx.beginPath();
+  ctx.moveTo(BX, BY - 6);
+  ctx.lineTo(BX + BW, BY - 6);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(150,210,255,0.6)';
+  ctx.stroke();
+  // beaker spout lip
+  ctx.beginPath();
+  ctx.moveTo(BX + BW - 14, BY - 6);
+  ctx.lineTo(BX + BW + 6, BY - 18);
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Acidified water label
+  ctx.fillStyle = 'rgba(150,220,255,0.5)';
+  ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('酸化水 (H₂SO₄溶液)', BX + BW / 2, BY + BH - 12);
+  ctx.restore();
+
+  // ---- RUBBER STOPPERS ----
+  [LTX, RTX].forEach(tx => {
+    ctx.save();
+    ctx.fillStyle = '#2a1a10';
+    ctx.strokeStyle = '#4a3020';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(tx, BY + 2, TW/2 + 2, 9, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  });
+
+  // ---- LEFT TUBE (Hydrogen / Cathode) ----
+  drawTube(ctx, LTX, TY, TW, TH, EC.tubeH, EC.gasH, '#ff6666', EC.hCollected, EC.tubeHAnim);
+  // ---- RIGHT TUBE (Oxygen / Anode) ----
+  drawTube(ctx, RTX, TY, TW, TH, EC.tubeO, EC.gasO, '#66ccff', EC.oCollected, EC.tubeOAnim);
+
+  // ---- GRAPHITE ELECTRODE RODS ----
+  [LTX, RTX].forEach((tx, i) => {
+    const rodColor = i === 0 ? '#888' : '#888';
+    ctx.save();
+    ctx.fillStyle = rodColor;
+    ctx.fillRect(tx - EC.RODR, BY + 14, EC.RODR * 2, BH - 20);
+    // rod texture lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    for(let y = BY + 20; y < BY + BH - 20; y += 8) {
+      ctx.beginPath(); ctx.moveTo(tx - EC.RODR, y); ctx.lineTo(tx + EC.RODR, y); ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // ---- WIRE & BATTERY ----
+  drawCircuit(ctx, LTX, RTX, BY + BH);
+
+  // ---- BUBBLES ----
+  EC.bubbles.forEach(b => {
+    const alpha = Math.min(1, b.life / 15);
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.75;
+    ctx.strokeStyle = b.side === 'H' ? 'rgba(255,180,180,0.9)' : 'rgba(150,220,255,0.9)';
+    ctx.fillStyle = b.side === 'H' ? 'rgba(255,200,200,0.25)' : 'rgba(180,230,255,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  });
+
+  // ---- LABELS ----
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 12px Noto Sans SC, sans-serif';
+  ctx.fillStyle = '#ff9999';
+  ctx.fillText('— 阴极', LTX, TY - 16);
+  ctx.fillStyle = 'rgba(100,200,255,0.5)';
+  ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.fillText('Hydrogen', LTX, TY - 4);
+  ctx.fillStyle = '#88ddff';
+  ctx.font = 'bold 12px Noto Sans SC, sans-serif';
+  ctx.fillText('+ 阳极', RTX, TY - 16);
+  ctx.fillStyle = 'rgba(100,200,255,0.5)';
+  ctx.font = '11px Noto Sans SC, sans-serif';
+  ctx.fillText('Oxygen', RTX, TY - 4);
+  ctx.restore();
+
+  // ---- GAS VOLUME TEXT inside tubes ----
+  [['H', LTX], ['O', RTX]].forEach(([side, tx]) => {
+    const gas = side === 'H' ? EC.gasH : EC.gasO;
+    const tubeState = side === 'H' ? EC.tubeH : EC.tubeO;
+    if (tubeState === 2 && gas > 0.05) {
+      const gasH = gas * TH;
+      const textY = TY + (1 - gas) * TH + gasH * 0.5;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = side === 'H' ? 'rgba(255,200,180,0.9)' : 'rgba(180,230,255,0.9)';
+      ctx.font = `bold ${Math.min(13, 9 + gasH/10)}px monospace`;
+      ctx.fillText(Math.round(gas * 100) + '%', tx, textY + 5);
+      ctx.restore();
+    }
+  });
+}
+
+function drawTube(ctx, cx, ty, tw, th, state, gas, gasColor, collected, animT) {
+  ctx.save();
+
+  // animT: 0=not-in-beaker position, 1=in-beaker, <0=above, >1=lifted off
+  // When state>=2 (in beaker), apply vertical offset based on animT
+  let yOffset = 0;
+  if (state >= 2) {
+    // animT 1 = normal position, animT -0.6 = 80px above
+    yOffset = (1 - animT) * -90;
+  }
+  if (collected) {
+    // animT >1 = flying upward
+    yOffset = (animT - 1) * -100;
+    ctx.globalAlpha = Math.max(0, 2 - animT);
+  }
+
+  ctx.translate(0, yOffset);
+  const tx = cx - tw / 2;
+
+  if (state === 0) {
+    // Empty tube sitting on the side (show as outline only)
+    ctx.strokeStyle = 'rgba(150,210,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + th);
+    ctx.moveTo(tx + tw, ty); ctx.lineTo(tx + tw, ty + th);
+    ctx.arc(cx, ty + th, tw/2, 0, Math.PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // "点击" hint
+    ctx.fillStyle = 'rgba(150,210,255,0.45)';
+    ctx.font = '11px Noto Sans SC';
+    ctx.textAlign = 'center';
+    ctx.fillText('点击', cx, ty + th/2);
+    ctx.fillText('装水', cx, ty + th/2 + 14);
+    ctx.restore();
+    return;
+  }
+
+  if (collected) {
+    // Show removed tube as faded
+    ctx.globalAlpha = 0.2;
+  }
+
+  // Tube glass body
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx, ty + th);
+  ctx.arc(cx, ty + th, tw / 2, Math.PI, 0);  // rounded bottom (closed end = top because inverted)
+  ctx.lineTo(tx + tw, ty);
+  ctx.closePath(); // open at bottom (mouth into water)
+
+  // Water fill inside (what's left after gas displaced it)
+  if (state >= 1) {
+    const gasPixels = gas * th;
+    const waterStartY = ty + gasPixels;
+    const waterH = th - gasPixels;
+    ctx.save();
+    ctx.clip(); // clip to tube shape
+    // water
+    if (waterH > 2) {
+      const wg = ctx.createLinearGradient(tx, waterStartY, tx + tw, waterStartY);
+      wg.addColorStop(0, 'rgba(30,100,210,0.55)');
+      wg.addColorStop(0.5, 'rgba(60,170,255,0.45)');
+      wg.addColorStop(1, 'rgba(30,100,210,0.55)');
+      ctx.fillStyle = wg;
+      ctx.fillRect(tx, waterStartY, tw, waterH + 5);
+    }
+    // gas space
+    if (gasPixels > 2) {
+      const gg = ctx.createLinearGradient(tx, ty, tx + tw, ty);
+      gg.addColorStop(0, gasColor.replace(')', ',0.18)').replace('rgb', 'rgba'));
+      gg.addColorStop(0.5, gasColor.replace(')', ',0.28)').replace('rgb', 'rgba'));
+      gg.addColorStop(1, gasColor.replace(')', ',0.18)').replace('rgb', 'rgba'));
+      ctx.fillStyle = gg;
+      ctx.fillRect(tx, ty, tw, gasPixels);
+    }
+    ctx.restore();
+  }
+
+  // Tube glass outline
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx, ty + th);
+  ctx.arc(cx, ty + th, tw / 2, Math.PI, 0);
+  ctx.lineTo(tx + tw, ty);
+  ctx.strokeStyle = state >= 2 ? 'rgba(180,230,255,0.75)' : 'rgba(150,210,255,0.4)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // highlight on glass
+  ctx.beginPath();
+  ctx.moveTo(tx + 4, ty + 10);
+  ctx.lineTo(tx + 4, ty + th - 10);
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  if (state === 1) {
+    // Tube filled but NOT in beaker yet - show hint
+    ctx.fillStyle = 'rgba(100,220,100,0.8)';
+    ctx.font = '11px Noto Sans SC';
+    ctx.textAlign = 'center';
+    ctx.fillText('点击放入', cx, ty - 5);
+  }
+
+  ctx.restore();
+}
+
+function drawCircuit(ctx, lx, rx, beakerBottom) {
+  const wireY = beakerBottom + 28;
+  const battY = wireY + 22;
+  const battX = (lx + rx) / 2 - 36;
+  const battW = 72; const battH = 28;
+
+  // Wires
+  ctx.save();
+  ctx.lineWidth = 2.5;
+  // left wire (cathode - green/negative)
+  ctx.strokeStyle = '#44cc44';
+  ctx.beginPath();
+  ctx.moveTo(lx, beakerBottom + 12);
+  ctx.lineTo(lx, wireY);
+  ctx.lineTo(battX, wireY);
+  ctx.lineTo(battX, battY + battH/2);
+  ctx.stroke();
+  // right wire (anode - red/positive)
+  ctx.strokeStyle = '#ee4444';
+  ctx.beginPath();
+  ctx.moveTo(rx, beakerBottom + 12);
+  ctx.lineTo(rx, wireY);
+  ctx.lineTo(battX + battW, wireY);
+  ctx.lineTo(battX + battW, battY + battH/2);
+  ctx.stroke();
+
+  // Battery body
+  const battGrad = ctx.createLinearGradient(battX, battY, battX + battW, battY);
+  battGrad.addColorStop(0, '#2a2a2a');
+  battGrad.addColorStop(0.45, '#444');
+  battGrad.addColorStop(0.5, '#c8a020');
+  battGrad.addColorStop(0.55, '#c8a020');
+  battGrad.addColorStop(1, '#3a8a3a');
+  ctx.fillStyle = battGrad;
+  ctx.beginPath();
+  ctx.roundRect(battX, battY, battW, battH, 6);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Battery terminals
+  // Negative (left)
+  ctx.fillStyle = '#555';
+  ctx.fillRect(battX - 5, battY + battH/2 - 5, 5, 10);
+  // Positive (right)
+  ctx.fillStyle = '#888';
+  ctx.fillRect(battX + battW, battY + battH/2 - 7, 6, 14);
+
+  // Battery glow when powered
+  if (EC.powered) {
+    ctx.save();
+    ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 200) * 0.25;
+    ctx.shadowColor = '#ffee44';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = '#ffee44';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(battX - 2, battY - 2, battW + 4, battH + 4, 8);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Labels
+  ctx.fillStyle = 'rgba(150,230,150,0.8)';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('−', battX - 2, battY + battH/2 + 4);
+  ctx.fillStyle = 'rgba(255,150,150,0.8)';
+  ctx.fillText('+', battX + battW + 8, battY + battH/2 + 4);
+  ctx.fillStyle = 'rgba(200,200,200,0.6)';
+  ctx.font = '10px Noto Sans SC';
+  ctx.fillText('Cathode −', lx, beakerBottom + 24);
+  ctx.fillText('+ Anode', rx, beakerBottom + 24);
+  ctx.restore();
+}
+
+function collectGas(side) {
+  if (EC.gasH < 0.95) {
+    showToast('气体还未充满，请等待电解完成！', 'error'); return;
+  }
+  if (side === 'H') {
+    if (EC.hCollected) { showToast('氢气管已取出！', 'info'); return; }
+    EC.hCollected = true;
+    document.getElementById('volH').textContent = '✓ 已取出 H₂';
+    document.getElementById('volH').style.color = 'var(--green)';
+    document.getElementById('collectBtnH').style.opacity = '0.3';
+    document.getElementById('collectBtnH').disabled = true;
+    showToast('✅ 氢气管取出！体积约为氧气管的 2 倍', 'success');
+    animateTubeLift('H', null);
+  } else {
+    if (EC.oCollected) { showToast('氧气管已取出！', 'info'); return; }
+    EC.oCollected = true;
+    document.getElementById('volO').textContent = '✓ 已取出 O₂';
+    document.getElementById('volO').style.color = 'var(--green)';
+    document.getElementById('collectBtnO').style.opacity = '0.3';
+    document.getElementById('collectBtnO').disabled = true;
+    showToast('✅ 氧气管取出！体积约为氢气管的 1/2', 'success');
+    animateTubeLift('O', null);
+  }
+  if (EC.hCollected && EC.oCollected) {
+    setProgress(60);
+    document.getElementById('l1electStatus').textContent = '两管已取出！即将进入气体验证...';
+    setTimeout(() => {
+      document.getElementById('l1step2').style.display = 'none';
+      document.getElementById('l1step3').style.display = 'flex';
+      document.getElementById('dot1-2').classList.remove('active');
+      document.getElementById('dot1-2').classList.add('done');
+      document.getElementById('dot1-3').classList.add('active');
+    }, 900);
+  }
+}
+
+function testGas(type) {
+  const res = document.getElementById('testResult');
+  res.style.display = 'block';
+  if(type === 'splint') {
+    res.innerHTML = '🔥 <strong>阴极（负极）H₂ 管</strong>：点燃的木条靠近，发出"噗"的爆鸣声！<br>→ 证明该气体为<strong style="color:var(--cyan)"> 氢气（H₂）</strong>。';
+    document.getElementById('btn-splint').classList.add('correct');
+  } else {
+    res.innerHTML = '✨ <strong>阳极（正极）O₂ 管</strong>：将带火星的木条放入，木条复燃！<br>→ 证明该气体为<strong style="color:var(--gold)"> 氧气（O₂）</strong>。';
+    document.getElementById('btn-glowing').classList.add('correct');
+  }
+}
+
+function checkLevel1Answer() {
+  const ans = document.getElementById('answerRatio').value.trim().replace(/\s/g,'');
+  if (ans === '2:1' || ans === '2：1') {
+    setProgress(100);
+    showToast('🎉 正确！H₂:O₂ = 2:1，水由氢和氧组成！', 'success');
+    setTimeout(()=>completeLevel(1), 2000);
+  } else {
+    showToast('❌ 请仔细观察两管气体的体积比！', 'error');
+    document.getElementById('answerRatio').classList.add('wrong');
+    setTimeout(()=>document.getElementById('answerRatio').classList.remove('wrong'), 600);
+  }
+}
+
+// ========================
+// LEVEL 2: SURVIVAL
+// ========================
+function renderLevel2(c) {
+  c.innerHTML = `
+    <div class="section-title">🏔️ 极限生存——高山与寒冬</div>
+    <div class="game-task-box">
+      <div class="task-label">生存目标</div>
+      <div class="task-text">利用水的沸点、凝固点和反常膨胀特性，解决三个极端环境中的生存难题。</div>
+    </div>
+    <div class="survival-scenes">
+
+      <!-- Scene 1: High altitude cooking -->
+      <div class="scene-card" id="scene1">
+        <div class="scene-title">🍜 场景一：高原烹饪危机（海拔 4500m）</div>
+        <div class="scene-status" id="s1status">你在西藏高原，气压只有平原的 60%。水在 <strong style="color:var(--red)">80℃</strong> 就沸腾了，面条煮了很久仍然夹生！</div>
+        <div class="thermometer-display">
+          <div class="thermo-visual"><div class="thermo-fill" id="thermo1" style="height:80%"></div></div>
+          <div class="thermo-text" id="thermoText1">80℃</div>
+        </div>
+        <div style="font-size:14px; margin-bottom:10px; color:rgba(200,230,255,0.7);">从背包选择工具：</div>
+        <div class="option-btns">
+          <button class="option-btn" onclick="scene1Choice('fan')">🌬️ 电风扇降温</button>
+          <button class="option-btn" onclick="scene1Choice('pot')">🥘 高压锅</button>
+          <button class="option-btn" onclick="scene1Choice('salt')">🧂 加盐</button>
+        </div>
+        <div id="s1result" class="hint-box" style="display:none; margin-top:12px;"></div>
+      </div>
+
+      <!-- Scene 2: Ice road -->
+      <div class="scene-card" id="scene2" style="opacity:0.4; pointer-events:none;">
+        <div class="scene-title">🧊 场景二：冰雪封路</div>
+        <div class="scene-status">山路结冰，车辆无法通行。凝固点 0℃，路面冰层厚达5cm。</div>
+        <div style="font-size:14px; margin-bottom:10px; color:rgba(200,230,255,0.7);">选择除冰方案：</div>
+        <div class="option-btns">
+          <button class="option-btn" onclick="scene2Choice('sand')">🪨 铺沙子增摩擦</button>
+          <button class="option-btn" onclick="scene2Choice('salt')">🧂 撒食盐</button>
+          <button class="option-btn" onclick="scene2Choice('water')">💧 浇热水</button>
+        </div>
+        <div id="s2result" class="hint-box" style="display:none; margin-top:12px;"></div>
+      </div>
+
+      <!-- Scene 3: Fish under ice -->
+      <div class="scene-card" id="scene3" style="opacity:0.4; pointer-events:none;">
+        <div class="scene-title">🐟 场景三：严冬湖泊求生</div>
+        <div class="scene-status">湖面结冰，水温分层。请引导小鱼游向最温暖的区域（水温最高、密度最大处）。</div>
+        <div class="hint-box" style="margin-bottom:12px;">
+          📌 知识点：水在 4℃ 时密度最大。湖底水温保持 4℃，是最适合鱼类越冬的区域！
+        </div>
+        <div class="lake-canvas-wrap">
+          <canvas class="lake-canvas" id="lakeCanvas" width="400" height="200" onclick="moveFish(event)"></canvas>
+        </div>
+        <div class="lake-hint">点击湖底区域，引导小鱼向最温暖的地方游去！</div>
+        <div id="s3result" class="hint-box" style="display:none; margin-top:12px;"></div>
+      </div>
+
+    </div>
+  `;
+  initLakeCanvas();
+}
+
+function scene1Choice(choice) {
+  const res = document.getElementById('s1result');
+  res.style.display = 'block';
+  if(choice === 'pot') {
+    res.style.borderColor = 'var(--green)';
+    res.innerHTML = '✅ <strong>正确！高压锅</strong>增加了锅内气压，使水的沸点升高到 100℃ 以上，面条终于煮熟了！<br>原理：气压越高 → 沸点越高';
+    document.getElementById('thermoText1').textContent = '≥100℃';
+    document.getElementById('thermoText1').style.color = 'var(--green)';
+    document.getElementById('thermo1').style.height = '100%';
+    document.getElementById('thermo1').style.background = 'linear-gradient(0deg, #30e060, #88ff88)';
+    document.getElementById('s1status').innerHTML = '🎉 高压锅已使用，水在 <strong style="color:var(--green)">≥100℃</strong> 沸腾，面条煮熟！';
+    // Unlock scene 2
+    setTimeout(()=>{
+      document.getElementById('scene2').style.opacity='1';
+      document.getElementById('scene2').style.pointerEvents='auto';
+      showToast('场景二已解锁！', 'info');
+    }, 1500);
+    setProgress(35);
+  } else if(choice === 'fan') {
+    res.style.borderColor = 'var(--red)';
+    res.innerHTML = '❌ 电风扇无法改变沸点，面条还是夹生。';
+  } else {
+    res.style.borderColor = 'var(--red)';
+    res.innerHTML = '❌ 加盐只能轻微提升沸点，效果不足，需要高压锅！';
+  }
+}
+
+function scene2Choice(choice) {
+  const res = document.getElementById('s2result');
+  res.style.display = 'block';
+  if(choice === 'salt') {
+    res.style.borderColor = 'var(--green)';
+    res.innerHTML = '✅ <strong>正确！食盐</strong>溶入水中形成溶液，使凝固点从 0℃ 下降至 -5℃ 甚至更低，冰层开始融化！<br>原理：溶液的凝固点低于纯溶剂';
+    // Unlock scene 3
+    setTimeout(()=>{
+      document.getElementById('scene3').style.opacity='1';
+      document.getElementById('scene3').style.pointerEvents='auto';
+      showToast('场景三已解锁！', 'info');
+    }, 1500);
+    setProgress(65);
+  } else if(choice === 'sand') {
+    res.style.borderColor = 'var(--red)';
+    res.innerHTML = '❌ 铺沙子只增加摩擦力，不能融化冰。';
+  } else {
+    res.style.borderColor = 'var(--red)';
+    res.innerHTML = '❌ 浇热水在低温下会迅速重新结冰，更危险！';
+  }
+}
+
+function initLakeCanvas() {
+  const canvas = document.getElementById('lakeCanvas');
+  if(!canvas) return;
+  canvas.width = Math.min(canvas.parentElement.offsetWidth, 500);
+  canvas.height = 200;
+  drawLake(canvas, 0.5, 0.2); // fish starts at middle
+}
+
+function drawLake(canvas, fishX, fishY) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  // Water layers
+  const layers = [
+    {y:0, color:'#a0d0f0', label:'0℃ 冰层', temp:'0°C'},
+    {y:30, color:'#70b0e0', label:'1-3℃', temp:'2°C'},
+    {y:80, color:'#4090c0', label:'3-4℃', temp:'3°C'},
+    {y:140, color:'#2070a0', label:'4℃ 最密', temp:'4°C ★'},
+  ];
+  layers.forEach((l,i)=>{
+    ctx.fillStyle = l.color;
+    const nextY = layers[i+1]?.y || h;
+    ctx.fillRect(0, l.y, w, nextY - l.y);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(l.temp, w-50, l.y+16);
+  });
+
+  // Ice surface
+  ctx.fillStyle = 'rgba(220,240,255,0.8)';
+  ctx.fillRect(0,0,w,25);
+  ctx.fillStyle = '#cce8ff';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('冰面 ❄️', 8, 16);
+
+  // Temperature scale
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('←  温度越低', 60, 16);
+
+  // Fish
+  const fx = fishX * w, fy = fishY * h;
+  ctx.font = '24px serif';
+  ctx.fillText('🐟', fx-12, fy+8);
+
+  // Depth labels
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('水面', 8, 45);
+  ctx.fillText('湖底', 8, h-8);
+}
+
+window.fishX = 0.5;
+window.fishY = 0.2;
+
+function moveFish(e) {
+  const canvas = document.getElementById('lakeCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  window.fishX = x;
+  window.fishY = y;
+  drawLake(canvas, x, y);
+
+  if(y > 0.7) {
+    // Bottom = correct
+    const res = document.getElementById('s3result');
+    res.style.display = 'block';
+    res.style.borderColor = 'var(--green)';
+    res.innerHTML = '✅ <strong>正确！</strong>小鱼游到湖底，这里水温恒定 <strong>4℃</strong>，密度最大，水不会结冰！<br>这就是"水的反常膨胀"保护水下生命的原理。🐟';
+    setProgress(100);
+    setTimeout(()=>completeLevel(2), 2000);
+  } else if(y < 0.2) {
+    showToast('⚠️ 湖面结冰危险！往湖底游吧！', 'error');
+  } else {
+    showToast('继续往下游，寻找4℃的温暖湖底！', 'info');
+  }
+}
+
+// ========================
+// LEVEL 3: CONCENTRATION
+// ========================
+function renderLevel3(c) {
+  c.innerHTML = `
+    <div class="section-title">🧪 炼金术士的浓度秘方</div>
+    <div class="game-task-box">
+      <div class="task-label">实验目标</div>
+      <div class="task-text">运用溶质质量分数公式，精确完成三道浓度配制任务。</div>
+    </div>
+    <div class="formula-display" style="margin-bottom:16px;">
+      溶质质量分数 (%) = 溶质质量 ÷ 溶液质量 × 100%<br>
+      溶液质量 = 溶质质量 + 溶剂质量
+    </div>
+
+    <!-- Task 1 -->
+    <div class="calc-task" id="ct1">
+      <div class="calc-title">📋 任务一：计算食盐水浓度</div>
+      <div class="calc-desc">
+        天平上有 <strong style="color:var(--gold)">15 g 食盐（溶质）</strong> 和 <strong style="color:var(--cyan)">35 g 水（溶剂）</strong>。<br>
+        将它们混合配制成食盐水，计算溶质质量分数。
+      </div>
+      <div class="formula-display">
+        溶液质量 = 15 + 35 = 50 g<br>
+        溶质质量分数 = 15 ÷ 50 × 100% = ?
+      </div>
+      <div class="answer-input-row" style="margin-top:12px;">
+        <input class="answer-input" id="ct1ans" placeholder="如：30%" maxlength="8"/>
+        <button class="btn-primary" onclick="checkCt1()">提交</button>
+      </div>
+      <div id="ct1result" class="hint-box" style="display:none;margin-top:10px;"></div>
+    </div>
+
+    <!-- Task 2 -->
+    <div class="calc-task" id="ct2" style="opacity:0.4; pointer-events:none;">
+      <div class="calc-title">📋 任务二：稀释硝酸钾溶液</div>
+      <div class="calc-desc">
+        有一瓶 <strong style="color:var(--gold)">100 g、浓度 20%</strong> 的硝酸钾溶液。<br>
+        需要将浓度稀释至 <strong style="color:var(--cyan)">10%</strong>。<br>
+        <br>
+        计算思路：稀释前后溶质质量不变<br>
+        稀释前溶质 = 100 × 20% = 20 g<br>
+        稀释后溶液质量 = 20 ÷ 10% = 200 g<br>
+        需加水 = 200 - 100 = ?
+      </div>
+      <div style="margin:12px 0;">
+        <div style="font-size:13px; margin-bottom:8px; color:rgba(200,230,255,0.7);">需要加入多少克水？</div>
+        <div class="water-add-control">
+          <span style="font-size:13px; width:50px;">0 g</span>
+          <input type="range" class="water-slider" id="waterSlider" min="0" max="300" value="0" oninput="updateWaterSlider()"/>
+          <span style="font-size:13px; width:60px;">300 g</span>
+        </div>
+        <div style="text-align:center; font-size:20px; color:var(--cyan); margin:8px 0;" id="sliderVal">加水：0 g</div>
+      </div>
+      <button class="btn-primary" onclick="checkCt2()">确认稀释</button>
+      <div id="ct2result" class="hint-box" style="display:none;margin-top:10px;"></div>
+    </div>
+
+    <!-- Task 3 -->
+    <div class="calc-task" id="ct3" style="opacity:0.4; pointer-events:none;">
+      <div class="calc-title">📋 任务三：蒸发浓缩</div>
+      <div class="calc-desc">
+        实验室有 <strong style="color:var(--gold)">200 g、浓度 15%</strong> 的硝酸钾溶液。<br>
+        需要将浓度提升至 <strong style="color:var(--cyan)">20%</strong>。<br>
+        <br>
+        计算思路：蒸发前后溶质质量不变<br>
+        溶质质量 = 200 × 15% = 30 g<br>
+        浓缩后溶液质量 = 30 ÷ 20% = 150 g<br>
+        需蒸发水分 = 200 - 150 = ?
+      </div>
+      <div style="font-size:14px; margin-bottom:10px; color:rgba(200,230,255,0.7);">需要蒸发掉多少克水？</div>
+      <div class="answer-input-row">
+        <input class="answer-input" id="ct3ans" placeholder="如：50g" maxlength="8"/>
+        <button class="btn-primary" onclick="checkCt3()">确认蒸发</button>
+      </div>
+      <div id="ct3result" class="hint-box" style="display:none;margin-top:10px;"></div>
+    </div>
+  `;
+}
+
+function checkCt1() {
+  const ans = document.getElementById('ct1ans').value.trim().replace(/\s|%/g,'');
+  const res = document.getElementById('ct1result');
+  res.style.display = 'block';
+  if(ans === '30') {
+    res.style.borderColor='var(--green)';
+    res.innerHTML = '✅ 正确！15÷50×100% = <strong>30%</strong>，食盐水配制成功！';
+    setProgress(35);
+    setTimeout(()=>{
+      document.getElementById('ct2').style.opacity='1';
+      document.getElementById('ct2').style.pointerEvents='auto';
+    }, 1200);
+  } else {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 再想想：溶液质量 = 15+35 = 50g，溶质分数 = 15÷50 = ?';
+  }
+}
+
+function updateWaterSlider() {
+  const v = document.getElementById('waterSlider').value;
+  document.getElementById('sliderVal').textContent = `加水：${v} g`;
+}
+
+function checkCt2() {
+  const v = parseInt(document.getElementById('waterSlider').value);
+  const res = document.getElementById('ct2result');
+  res.style.display = 'block';
+  if(v >= 95 && v <= 105) {
+    res.style.borderColor='var(--green)';
+    res.innerHTML = '✅ 正确！加入 100 g 水后，溶液变为 200 g，浓度稀释为 20÷200×100% = <strong>10%</strong>！';
+    setProgress(65);
+    setTimeout(()=>{
+      document.getElementById('ct3').style.opacity='1';
+      document.getElementById('ct3').style.pointerEvents='auto';
+    }, 1200);
+  } else if(v < 95) {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 加水量不够，浓度还太高！需要加 100 g 水。';
+  } else {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 加水过多，浓度已低于 10%！需要加 100 g 水。';
+  }
+}
+
+function checkCt3() {
+  const ans = document.getElementById('ct3ans').value.trim().replace(/[g克\s]/g,'');
+  const res = document.getElementById('ct3result');
+  res.style.display = 'block';
+  if(ans === '50') {
+    res.style.borderColor='var(--green)';
+    res.innerHTML = '✅ 正确！蒸发掉 50 g 水后，溶液变为 150 g，浓度升至 30÷150×100% = <strong>20%</strong>！';
+    setProgress(100);
+    setTimeout(()=>completeLevel(3), 2000);
+  } else {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 再算算：200×15%=30g（溶质），30÷20%=150g（浓缩后），需蒸发 200-150 = ?';
+  }
+}
+
+// ========================
+// LEVEL 4: DENSITY
+// ========================
+function renderLevel4(c) {
+  c.innerHTML = `
+    <div class="section-title">🔬 阿基米德的密室鉴定</div>
+    <div class="game-task-box">
+      <div class="task-label">鉴定任务</div>
+      <div class="task-text">利用排水法测量体积，结合质量计算密度，鉴定一块神秘金属的身份，开启密室大门！</div>
+    </div>
+
+    <!-- Step 1: Mass -->
+    <div class="density-lab">
+      <div class="scale-display">
+        <div style="font-size:13px; color:var(--cyan-dim); letter-spacing:2px; margin-bottom:8px;">电子天平</div>
+        <div class="scale-reading" id="scaleReading">- - . - -</div>
+        <div class="scale-unit">g</div>
+        <button class="btn-secondary" style="margin-top:16px;" onclick="readScale()">📦 放上金属称量</button>
+      </div>
+
+      <!-- Cylinder -->
+      <div class="scale-display" id="cylinderSection" style="opacity:0.4; pointer-events:none;">
+        <div style="font-size:13px; color:var(--cyan-dim); letter-spacing:2px; margin-bottom:12px;">量筒 — 排水法测体积</div>
+        <div style="display:flex; gap:24px; align-items:flex-start; justify-content:center; flex-wrap:wrap;">
+          <div>
+            <div class="cylinder-body" id="cylinderBody">
+              <div class="water-in-cylinder" id="waterLevel" style="height:50%"></div>
+              <div class="metal-in-cylinder" id="metalInCylinder" style="height:30%; bottom:50%;"></div>
+              <div class="cylinder-markings">
+                <div class="cylinder-mark">50</div>
+                <div class="cylinder-mark">40</div>
+                <div class="cylinder-mark">30</div>
+                <div class="cylinder-mark">20</div>
+                <div class="cylinder-mark">10</div>
+              </div>
+            </div>
+            <div style="text-align:center; font-size:12px; color:rgba(150,200,255,0.5); margin-top:4px;">量筒 (mL)</div>
+          </div>
+          <div style="text-align:left;">
+            <div class="formula-display" id="volumeCalc">
+              初始水位：<span id="v1">25 mL</span><br>
+              放入金属后：<span id="v2" style="color:var(--cyan)">25 mL</span><br>
+              体积 V = V₂ - V₁ = <span id="vDiff" style="color:var(--gold)">?</span>
+            </div>
+            <button class="btn-secondary" style="margin-top:10px;" onclick="dropMetal()">⬇️ 放入金属</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculation -->
+      <div class="scale-display" id="calcSection" style="opacity:0.4; pointer-events:none;">
+        <div class="blackboard">
+          <div class="blackboard-title">虚拟黑板 — 公式推导</div>
+          <div class="formula-line">ρ = m ÷ V</div>
+          <div class="formula-line" id="calcLine1">m = <span style="color:var(--gold)">52.5 g</span></div>
+          <div class="formula-line" id="calcLine2">V = <span style="color:var(--cyan)">— cm³</span></div>
+          <div class="formula-result" id="densityResult">ρ = ？</div>
+        </div>
+        <button class="btn-primary" style="margin-top:12px;" onclick="calcDensity()">🧮 计算密度</button>
+      </div>
+
+      <!-- Identity match -->
+      <div class="scale-display" id="matchSection" style="opacity:0.4; pointer-events:none;">
+        <div style="font-size:15px; color:var(--gold); margin-bottom:16px; font-family:'ZCOOL XiaoWei',serif;">🔑 身份鉴定 — 从密度表中选择金属</div>
+        <table class="density-table" id="densityTable">
+          <thead><tr><th>金属</th><th>密度 (g/cm³)</th><th>符号</th></tr></thead>
+          <tbody>
+            <tr onclick="selectMetal(this, 'gold', 19.3)"><td>金 (Gold)</td><td>19.3</td><td>Au</td></tr>
+            <tr onclick="selectMetal(this, 'silver', 10.5)"><td>银 (Silver)</td><td>10.5</td><td>Ag</td></tr>
+            <tr onclick="selectMetal(this, 'copper', 8.9)"><td>铜 (Copper)</td><td>8.9</td><td>Cu</td></tr>
+            <tr onclick="selectMetal(this, 'iron', 7.9)"><td>铁 (Iron)</td><td>7.9</td><td>Fe</td></tr>
+            <tr onclick="selectMetal(this, 'aluminum', 2.7)"><td>铝 (Aluminum)</td><td>2.7</td><td>Al</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  window.l4Step = 0;
+}
+
+window.l4Step = 0;
+
+function readScale() {
+  document.getElementById('scaleReading').textContent = '52.50';
+  showToast('📦 金属质量：52.5 g', 'info');
+  setProgress(25);
+  window.l4Step = 1;
+  setTimeout(()=>{
+    document.getElementById('cylinderSection').style.opacity='1';
+    document.getElementById('cylinderSection').style.pointerEvents='auto';
+  }, 1000);
+}
+
+function dropMetal() {
+  if(window.l4Step < 1) { showToast('请先称量金属质量！', 'error'); return; }
+  const metal = document.getElementById('metalInCylinder');
+  // Start metal at top of water surface, then animate sinking to bottom
+  metal.style.display = 'block';
+  metal.style.height = '20%';
+  metal.style.bottom = '50%';   // start at water surface (water is 50% height)
+  metal.style.transition = 'none';
+  // Force reflow so transition applies
+  metal.getBoundingClientRect();
+  metal.style.transition = 'bottom 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+  // Sink to bottom
+  setTimeout(() => {
+    metal.style.bottom = '0%';
+  }, 30);
+  // After metal hits bottom, raise water level
+  setTimeout(() => {
+    document.getElementById('waterLevel').style.height = '60%';
+    document.getElementById('v2').textContent = '30 mL';
+    document.getElementById('vDiff').textContent = '5 cm³';
+    document.getElementById('vDiff').style.color = 'var(--green)';
+    showToast('💧 水位从 25 mL 升至 30 mL，金属体积 = 5 cm³！', 'success');
+  }, 1100);
+  setProgress(50);
+  window.l4Step = 2;
+  setTimeout(()=>{
+    document.getElementById('calcSection').style.opacity='1';
+    document.getElementById('calcSection').style.pointerEvents='auto';
+    document.getElementById('calcLine2').innerHTML = 'V = <span style="color:var(--cyan)">5 cm³</span>';
+  }, 1800);
+}
+
+function calcDensity() {
+  if(window.l4Step < 2) { showToast('请先完成体积测量！', 'error'); return; }
+  document.getElementById('densityResult').innerHTML = 'ρ = 52.5 ÷ 5 = <span style="color:var(--gold)">10.5 g/cm³</span>';
+  showToast('密度计算完成：10.5 g/cm³', 'success');
+  setProgress(75);
+  window.l4Step = 3;
+  setTimeout(()=>{
+    document.getElementById('matchSection').style.opacity='1';
+    document.getElementById('matchSection').style.pointerEvents='auto';
+  }, 1000);
+}
+
+function selectMetal(row, metal, density) {
+  if(window.l4Step < 3) { showToast('请先计算密度！', 'error'); return; }
+  document.querySelectorAll('#densityTable tr').forEach(r=>r.classList.remove('selected'));
+  row.classList.add('selected');
+  if(metal === 'silver') {
+    setProgress(100);
+    showToast('🎉 正确！密度 10.5 g/cm³ → 神秘金属是银 (Ag)！密室大门打开！', 'success');
+    setTimeout(()=>completeLevel(4), 2000);
+  } else {
+    showToast(`❌ ${density} g/cm³ 与测量值 10.5 g/cm³ 不符，再看看！`, 'error');
+  }
+}
+
+// ========================
+// LEVEL 5: PURIFICATION
+// ========================
+function renderLevel5(c) {
+  c.innerHTML = `
+    <div class="section-title">🏙️ 城市净化大亨</div>
+    <div class="game-task-box">
+      <div class="task-label">净化任务</div>
+      <div class="task-text">建立污水处理流水线，检测并处理硬水，拯救遭受富营养化污染的绿湖！</div>
+    </div>
+    <div class="purification-lab">
+
+      <!-- Task 1: Pipeline -->
+      <div class="calc-task">
+        <div class="calc-title">🚰 任务一：自来水处理流水线</div>
+        <div class="calc-desc">将四个处理模块按正确顺序拖入流水线槽位（点击模块添加）。</div>
+        <div style="font-size:13px; color:var(--cyan-dim); margin-bottom:8px;">可用模块（点击添加）：</div>
+        <div class="drag-items" id="pipeModules">
+          <div class="pipe-module" onclick="addPipeModule('消毒池')">消毒池</div>
+          <div class="pipe-module" onclick="addPipeModule('过滤池')">过滤池</div>
+          <div class="pipe-module" onclick="addPipeModule('混凝池')">混凝池</div>
+          <div class="pipe-module" onclick="addPipeModule('沉淀池')">沉淀池</div>
+        </div>
+        <div style="font-size:13px; color:rgba(150,200,255,0.5); margin:10px 0 6px;">流水线（已放入 <span id="pipeCount">0</span>/4）：</div>
+        <div class="pipeline" id="pipelineSlots">
+          <div class="pipe-slot" id="ps0">①</div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-slot" id="ps1">②</div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-slot" id="ps2">③</div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-slot" id="ps3">④</div>
+        </div>
+        <button class="btn-secondary" style="margin-top:10px;" onclick="clearPipeline()">重置</button>
+        <button class="btn-primary" style="margin-top:10px; margin-left:8px;" onclick="checkPipeline()">✓ 验证流水线</button>
+        <div id="pipeResult" class="hint-box" style="display:none;margin-top:10px;"></div>
+      </div>
+
+      <!-- Task 2: Hard water -->
+      <div class="calc-task" id="hwTask" style="opacity:0.4; pointer-events:none;">
+        <div class="calc-title">🪨 任务二：硬水危机</div>
+        <div class="calc-desc">居民反映水壶内有水垢。先检测是否为硬水，再选择处理方案。</div>
+        <div style="font-size:13px; color:var(--gold); margin-bottom:10px;">第一步：检测水质</div>
+        <button class="tool-btn" onclick="testHardWater()">🧴 滴入肥皂水检测</button>
+        <div id="hwDetect" class="hint-box" style="display:none;margin-top:10px;"></div>
+        <div id="hwSolveSection" style="display:none; margin-top:12px;">
+          <div style="font-size:13px; color:var(--gold); margin-bottom:10px;">第二步：选择处理方案</div>
+          <div class="option-btns">
+            <button class="option-btn" onclick="solveHardWater('boil')">🔥 煮沸</button>
+            <button class="option-btn" onclick="solveHardWater('filter')">🔩 安装硬水专用滤芯</button>
+            <button class="option-btn" onclick="solveHardWater('salt')">🧂 加盐</button>
+          </div>
+        </div>
+        <div id="hwResult" class="hint-box" style="display:none;margin-top:10px;"></div>
+      </div>
+
+      <!-- Task 3: Lake rescue -->
+      <div class="calc-task" id="lakeTask" style="opacity:0.4; pointer-events:none;">
+        <div class="calc-title">🌿 任务三：拯救绿湖</div>
+        <div class="calc-desc">湖泊爆发"富营养化"，大量氮、磷导致藻类疯长，水质变绿变臭。</div>
+        <div class="lake-scene">
+          <div class="lake-visual">
+            <div class="algae-bloom" id="algaeBloom"></div>
+          </div>
+          <div style="font-size:13px; color:rgba(200,230,255,0.7); margin-bottom:12px;">找到污染源并采取措施：</div>
+          <div class="option-btns">
+            <button class="option-btn" onclick="lakeAction('fertilizer')">🌾 没收过量氮磷化肥</button>
+            <button class="option-btn" onclick="lakeAction('fish')">🐟 放养草食性鱼类</button>
+            <button class="option-btn" onclick="lakeAction('plants')">🌱 种植浮萍等水生植物</button>
+          </div>
+        </div>
+        <div id="lakeResult" class="hint-box" style="display:none;margin-top:10px;"></div>
+      </div>
+
+    </div>
+  `;
+  window.pipeAdded = [];
+  window.hwDone = false;
+}
+
+window.pipeAdded = [];
+
+function addPipeModule(name) {
+  if(window.pipeAdded.length >= 4) { showToast('流水线已满！请先重置。', 'error'); return; }
+  if(window.pipeAdded.includes(name)) { showToast(`"${name}"已在流水线中！`, 'error'); return; }
+  window.pipeAdded.push(name);
+  const i = window.pipeAdded.length - 1;
+  const slot = document.getElementById('ps'+i);
+  if(slot) {
+    slot.textContent = name;
+    slot.style.color = 'var(--white)';
+    slot.style.borderColor = 'rgba(0,212,255,0.5)';
+  }
+  document.getElementById('pipeCount').textContent = window.pipeAdded.length;
+}
+
+function clearPipeline() {
+  window.pipeAdded = [];
+  for(let i=0;i<4;i++) {
+    const s = document.getElementById('ps'+i);
+    if(s) { s.textContent = '①②③④'[i]; s.style.color=''; s.style.borderColor=''; s.className='pipe-slot'; }
+  }
+  document.getElementById('pipeCount').textContent = '0';
+  document.getElementById('pipeResult').style.display = 'none';
+}
+
+function checkPipeline() {
+  const correct = ['混凝池','沉淀池','过滤池','消毒池'];
+  const res = document.getElementById('pipeResult');
+  res.style.display = 'block';
+  if(window.pipeAdded.length < 4) {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 请放入全部 4 个模块！';
+    return;
+  }
+  const ok = correct.every((v,i)=>v===window.pipeAdded[i]);
+  if(ok) {
+    res.style.borderColor='var(--green)';
+    res.innerHTML = '✅ 正确！混凝池 → 沉淀池 → 过滤池 → 消毒池，净水流程完成！';
+    correct.forEach((_,i)=>{ const s=document.getElementById('ps'+i); if(s) s.className='pipe-slot correct'; });
+    setProgress(35);
+    setTimeout(()=>{
+      document.getElementById('hwTask').style.opacity='1';
+      document.getElementById('hwTask').style.pointerEvents='auto';
+    },1200);
+  } else {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 顺序不对！提示：先让杂质凝聚、再沉降、再过滤、最后消毒。';
+  }
+}
+
+function testHardWater() {
+  const d = document.getElementById('hwDetect');
+  d.style.display = 'block';
+  d.style.borderColor='var(--gold)';
+  d.innerHTML = '🧴 检测结果：加入肥皂水后出现大量<strong style="color:var(--red)">白色浮渣</strong>，而非泡沫！<br>→ 确认为<strong style="color:var(--gold)">硬水</strong>，含有大量 Ca²⁺ 和 Mg²⁺ 离子。';
+  document.getElementById('hwSolveSection').style.display='block';
+}
+
+function solveHardWater(method) {
+  const res = document.getElementById('hwResult');
+  res.style.display='block';
+  if(method === 'boil' || method === 'filter') {
+    res.style.borderColor='var(--green)';
+    const msg = method==='boil' 
+      ? '✅ 煮沸可去除暂时硬水中的 Ca(HCO₃)₂，生成 CaCO₃↓ 沉淀，水垢减少！'
+      : '✅ 硬水专用滤芯（离子交换树脂）可有效去除 Ca²⁺ 和 Mg²⁺，软化用水！';
+    res.innerHTML = msg;
+    window.hwDone = true;
+    setProgress(65);
+    setTimeout(()=>{
+      document.getElementById('lakeTask').style.opacity='1';
+      document.getElementById('lakeTask').style.pointerEvents='auto';
+    },1200);
+  } else {
+    res.style.borderColor='var(--red)';
+    res.innerHTML = '❌ 加盐无法软化硬水，反而可能增加水中杂质！';
+  }
+}
+
+window.lakeActions = new Set();
+
+function lakeAction(action) {
+  window.lakeActions.add(action);
+  const res = document.getElementById('lakeResult');
+  res.style.display='block';
+
+  const msgs = {
+    fertilizer: '✅ 已没收农田过量使用的氮、磷化肥！减少了污染源输入。',
+    fish: '✅ 放养草食性鱼类，可以消耗部分藻类！',
+    plants: '✅ 种植浮萍等水生植物，可吸收水中多余的氮、磷营养盐！'
+  };
+  
+  let html = '';
+  window.lakeActions.forEach(a=>{ html += msgs[a] + '<br>'; });
+  res.style.borderColor='var(--green)';
+  res.innerHTML = html;
+
+  // Reduce algae visually
+  const bloom = document.getElementById('algaeBloom');
+  if(bloom) bloom.style.opacity = Math.max(0, 1 - window.lakeActions.size * 0.3);
+
+  if(window.lakeActions.has('fertilizer') && (window.lakeActions.has('plants') || window.lakeActions.has('fish'))) {
+    res.innerHTML += '<br>🎉 <strong style="color:var(--green)">湖泊成功净化！富营养化得到控制，绿湖恢复清澈！</strong>';
+    setProgress(100);
+    setTimeout(()=>completeLevel(5), 2500);
+  }
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', ()=>{
+  // roundRect polyfill for older browsers
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      r = Math.min(r, w/2, h/2);
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.lineTo(x + w - r, y);
+      this.arcTo(x + w, y, x + w, y + r, r);
+      this.lineTo(x + w, y + h - r);
+      this.arcTo(x + w, y + h, x + w - r, y + h, r);
+      this.lineTo(x + r, y + h);
+      this.arcTo(x, y + h, x, y + h - r, r);
+      this.lineTo(x, y + r);
+      this.arcTo(x, y, x + r, y, r);
+      this.closePath();
+      return this;
+    };
+  }
+});
+</script>
+</body>
+</html>
