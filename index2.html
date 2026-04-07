@@ -1,0 +1,303 @@
+﻿```html
+<!DOCTYPE html>
+<!-- //Made by ecchua79 -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原子结构交互实验室 (1-20号元素)</title>
+    <!-- //峇株吧辖蔡逸众制作 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        /* //华仁中学蔡逸众制作 */
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0f172a; 
+            color: #e2e8f0;
+        }
+        /* //峇株吧辖华仁中学蔡逸众制作 */
+        .element-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background-color: #1e293b;
+        }
+
+        .element-card:hover {
+            background-color: #334155;
+            transform: translateY(-2px);
+        }
+
+        .orbit {
+            stroke: rgba(148, 163, 184, 0.2);
+            fill: none;
+            stroke-width: 1;
+        }
+        /* //Made by ecchua79 */
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        /* //峇株吧辖蔡逸众制作 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <!-- //华仁中学蔡逸众制作 -->
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-400">原子结构交互实验室</h1>
+            <p class="text-slate-400 mt-2">点击元素查看其波尔原子模型结构（暗色模式）</p>
+            <div class="mt-6 flex justify-center gap-4">
+                <button id="btn-single" class="px-6 py-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-500 transition-all ring-4 ring-blue-900/50" onclick="setMode('single')">单原子视图</button>
+                <button id="btn-compare" class="px-6 py-2 bg-slate-700 text-white rounded-full shadow-lg hover:bg-slate-600 transition-all" onclick="setMode('compare')">对比模式</button>
+            </div>
+        </header>
+
+        <!-- //峇株吧辖华仁中学蔡逸众制作 -->
+        <div class="bg-slate-800/50 p-4 rounded-2xl shadow-2xl mb-10 overflow-x-auto border border-slate-700">
+            <table class="w-full min-w-[700px] text-center border-collapse">
+                <thead>
+                    <tr class="text-slate-400 border-b border-slate-700">
+                        <th class="p-3">原子序数</th>
+                        <th class="p-3">符号</th>
+                        <th class="p-3">名称</th>
+                        <th class="p-3">质子数</th>
+                        <th class="p-3">中子数</th>
+                        <th class="p-3">电子数</th>
+                        <th class="p-3">相对原子质量</th>
+                    </tr>
+                </thead>
+                <tbody id="element-table-body"></tbody>
+            </table>
+        </div>
+
+        <div id="visual-area" class="comparison-grid">
+            <!-- 原子查看器 1 -->
+            <div id="viewer-1" class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 flex flex-col items-center">
+                <div class="w-full flex justify-between items-center mb-6">
+                    <select id="select-1" class="p-2 bg-slate-900 border border-slate-600 text-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-2/3" onchange="updateVisual(1)"></select>
+                    <button onclick="toggleIon(1)" id="ion-btn-1" class="text-xs px-3 py-1.5 bg-amber-900/30 text-amber-400 rounded-md border border-amber-800 hover:bg-amber-800/50 transition">转为离子</button>
+                </div>
+                <div class="relative w-full aspect-square flex items-center justify-center border border-slate-700 rounded-xl bg-slate-900/50 overflow-hidden">
+                    <canvas id="canvas-1"></canvas>
+                </div>
+                <div id="info-1" class="mt-6 w-full text-sm text-slate-300 grid grid-cols-2 gap-x-4 gap-y-2 p-4 bg-slate-900/40 rounded-lg"></div>
+            </div>
+            <!-- //Made by ecchua79 -->
+            <!-- 原子查看器 2 -->
+            <div id="viewer-2" class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 flex flex-col items-center hidden">
+                <div class="w-full flex justify-between items-center mb-6">
+                    <select id="select-2" class="p-2 bg-slate-900 border border-slate-600 text-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-2/3" onchange="updateVisual(2)"></select>
+                    <button onclick="toggleIon(2)" id="ion-btn-2" class="text-xs px-3 py-1.5 bg-amber-900/30 text-amber-400 rounded-md border border-amber-800 hover:bg-amber-800/50 transition">转为离子</button>
+                </div>
+                <div class="relative w-full aspect-square flex items-center justify-center border border-slate-700 rounded-xl bg-slate-900/50 overflow-hidden">
+                    <canvas id="canvas-2"></canvas>
+                </div>
+                <div id="info-2" class="mt-6 w-full text-sm text-slate-300 grid grid-cols-2 gap-x-4 gap-y-2 p-4 bg-slate-900/40 rounded-lg"></div>
+            </div>
+        </div>
+        <!-- //峇株吧辖蔡逸众制作 -->
+        <footer class="mt-12 text-center text-slate-500 text-xs pb-8">
+            <p>* 相对原子质量取近似值。中子数按常见同位素计算。</p>
+            <p class="mt-1">电子运动速度已下调 50% 以便观察。版权所有 © 蔡逸众 (ecchua79)</p>
+        </footer>
+    </div>
+
+    <script>
+        const elements = [
+            { z: 1, symbol: "H", name: "氢", mass: 1.008, neutrons: 0 },
+            { z: 2, symbol: "He", name: "氦", mass: 4.003, neutrons: 2 },
+            { z: 3, symbol: "Li", name: "锂", mass: 6.941, neutrons: 4 },
+            { z: 4, symbol: "Be", name: "铍", mass: 9.012, neutrons: 5 },
+            { z: 5, symbol: "B", name: "硼", mass: 10.81, neutrons: 6 },
+            { z: 6, symbol: "C", name: "碳", mass: 12.01, neutrons: 6 },
+            { z: 7, symbol: "N", name: "氮", mass: 14.01, neutrons: 7 },
+            { z: 8, symbol: "O", name: "氧", mass: 16.00, neutrons: 8 },
+            { z: 9, symbol: "F", name: "氟", mass: 19.00, neutrons: 10 },
+            { z: 10, symbol: "Ne", name: "氖", mass: 20.18, neutrons: 10 },
+            { z: 11, symbol: "Na", name: "钠", mass: 22.99, neutrons: 12 },
+            { z: 12, symbol: "Mg", name: "镁", mass: 24.31, neutrons: 12 },
+            { z: 13, symbol: "Al", name: "铝", mass: 26.98, neutrons: 14 },
+            { z: 14, symbol: "Si", name: "硅", mass: 28.09, neutrons: 14 },
+            { z: 15, symbol: "P", name: "磷", mass: 30.97, neutrons: 16 },
+            { z: 16, symbol: "S", name: "硫", mass: 32.06, neutrons: 16 },
+            { z: 17, symbol: "Cl", name: "氯", mass: 35.45, neutrons: 18 },
+            { z: 18, symbol: "Ar", name: "氩", mass: 39.95, neutrons: 22 },
+            { z: 19, symbol: "K", name: "钾", mass: 39.10, neutrons: 20 },
+            { z: 20, symbol: "Ca", name: "钙", mass: 40.08, neutrons: 20 }
+        ];
+
+        let state = {
+            mode: 'single',
+            v1: { z: 1, isIon: false, shells: [] },
+            v2: { z: 2, isIon: false, shells: [] }
+        };
+        // //华仁中学蔡逸众制作
+        const canvases = { 1: null, 2: null };
+        const ctxs = { 1: null, 2: null };
+
+        function init() {
+            const tableBody = document.getElementById('element-table-body');
+            const select1 = document.getElementById('select-1');
+            const select2 = document.getElementById('select-2');
+
+            elements.forEach(el => {
+                const row = document.createElement('tr');
+                row.className = "element-card border-b border-slate-700/50";
+                row.innerHTML = `<td class="p-3 text-slate-400">${el.z}</td><td class="p-3 font-bold text-blue-400">${el.symbol}</td><td class="p-3">${el.name}</td><td class="p-3 text-red-400">${el.z}</td><td class="p-3 text-slate-500">${el.neutrons}</td><td class="p-3 text-blue-300">${el.z}</td><td class="p-3 text-slate-400">${el.mass.toFixed(3)}</td>`;
+                row.onclick = () => {
+                    state.v1.z = el.z;
+                    state.v1.isIon = false;
+                    select1.value = el.z;
+                    updateVisual(1);
+                    document.getElementById('viewer-1').scrollIntoView({ behavior: 'smooth' });
+                };
+                tableBody.appendChild(row);
+                select1.add(new Option(`${el.z} ${el.symbol} - ${el.name}`, el.z));
+                select2.add(new Option(`${el.z} ${el.symbol} - ${el.name}`, el.z));
+            });
+            // //峇株吧辖华仁中学蔡逸众制作
+            select1.value = 1;
+            select2.value = 2;
+            canvases[1] = document.getElementById('canvas-1');
+            canvases[2] = document.getElementById('canvas-2');
+            ctxs[1] = canvases[1].getContext('2d');
+            ctxs[2] = canvases[2].getContext('2d');
+            window.addEventListener('resize', resizeCanvases);
+            resizeCanvases();
+            updateVisual(1);
+            updateVisual(2);
+            requestAnimationFrame(animate);
+        }
+
+        function resizeCanvases() {
+            [1, 2].forEach(id => {
+                const container = canvases[id].parentElement;
+                const size = Math.min(container.clientWidth, 450);
+                canvases[id].width = size;
+                canvases[id].height = size;
+            });
+        }
+
+        function setMode(mode) {
+            state.mode = mode;
+            const v2 = document.getElementById('viewer-2');
+            const b1 = document.getElementById('btn-single');
+            const b2 = document.getElementById('btn-compare');
+            if (mode === 'compare') {
+                v2.classList.remove('hidden');
+                b2.className = "px-6 py-2 bg-purple-600 text-white rounded-full shadow-lg ring-4 ring-purple-900/50 transition-all";
+                b1.className = "px-6 py-2 bg-slate-700 text-white rounded-full shadow-lg hover:bg-slate-600 transition-all";
+                updateVisual(2);
+                resizeCanvases(); 
+            } else {
+                v2.classList.add('hidden');
+                b1.className = "px-6 py-2 bg-blue-600 text-white rounded-full shadow-lg ring-4 ring-blue-900/50 transition-all";
+                b2.className = "px-6 py-2 bg-slate-700 text-white rounded-full shadow-lg hover:bg-slate-600 transition-all";
+            }
+        }
+
+        function toggleIon(id) {
+            const v = id === 1 ? state.v1 : state.v2;
+            v.isIon = !v.isIon;
+            const btn = document.getElementById(`ion-btn-${id}`);
+            btn.textContent = v.isIon ? "恢复原子" : "转为离子";
+            btn.className = v.isIon ? "text-xs px-3 py-1.5 bg-blue-900/30 text-blue-400 rounded-md border border-blue-800 transition" : "text-xs px-3 py-1.5 bg-amber-900/30 text-amber-400 rounded-md border border-amber-800 transition";
+            updateVisual(id);
+        }
+
+        function updateVisual(id) {
+            const select = document.getElementById(`select-${id}`);
+            if (!select) return;
+            const z = parseInt(select.value);
+            const v = id === 1 ? state.v1 : state.v2;
+            v.z = z;
+            const el = elements.find(e => e.z === z);
+            let eCount = z;
+            let charge = 0;
+            if (v.isIon) {
+                if (z === 1) { eCount = 0; charge = 1; }
+                else if ([3, 11, 19].includes(z)) { eCount = z - 1; charge = 1; }
+                else if ([4, 12, 20].includes(z)) { eCount = z - 2; charge = 2; }
+                else if (z === 13) { eCount = 10; charge = 3; }
+                else if ([7, 15].includes(z)) { eCount = z + 3; charge = -3; }
+                else if ([8, 16].includes(z)) { eCount = z + 2; charge = -2; }
+                else if ([9, 17].includes(z)) { eCount = z + 1; charge = -1; }
+            }
+            v.shells = calculateShells(eCount);
+            const infoDiv = document.getElementById(`info-${id}`);
+            const chargeStr = charge === 0 ? "0 (中性)" : (Math.abs(charge) + (charge > 0 ? "+" : "-"));
+            infoDiv.innerHTML = `<div>质子 (p+): <span class="text-red-400 font-bold">${z}</span></div><div>中子 (n0): <span class="text-slate-400 font-bold">${el.neutrons}</span></div><div>电子 (e-): <span class="text-blue-400 font-bold">${eCount}</span></div><div>电荷: <span class="${charge !== 0 ? 'text-amber-400' : 'text-slate-400'} font-bold">${chargeStr}</span></div><div class="col-span-2 text-xs text-slate-500 mt-1 italic border-t border-slate-700 pt-1">排布: ${v.shells.join(' - ')}</div>`;
+        }
+
+        function calculateShells(n) {
+            let res = []; let rem = n; const caps = [2, 8, 8, 2];
+            for(let c of caps) { if(rem <= 0) break; let take = Math.min(rem, c); res.push(take); rem -= take; }
+            return res;
+        }
+
+        function animate(time) {
+            const targets = state.mode === 'compare' ? [1, 2] : [1];
+            targets.forEach(id => {
+                const canvas = canvases[id];
+                const ctx = ctxs[id];
+                const v = id === 1 ? state.v1 : state.v2;
+                if (!ctx || !canvas) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const cx = canvas.width / 2; const cy = canvas.height / 2;
+                v.shells.forEach((count, i) => {
+                    const r = 50 + (i * 40);
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)'; ctx.stroke();
+                    for(let j = 0; j < count; j++) {
+                        const angle = (time * 0.0005 * (4 - i)) + (j * (Math.PI * 2 / count));
+                        const ex = cx + r * Math.cos(angle); const ey = cy + r * Math.sin(angle);
+                        const g = ctx.createRadialGradient(ex, ey, 0, ex, ey, 8);
+                        g.addColorStop(0, '#60a5fa'); g.addColorStop(1, 'transparent');
+                        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ex, ey, 8, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI * 2); ctx.fill();
+                    }
+                });
+                const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 25);
+                coreGrad.addColorStop(0, '#334155'); coreGrad.addColorStop(1, '#0f172a');
+                ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#475569'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const el = elements.find(e => e.z === v.z);
+                ctx.fillText(el ? el.symbol : "", cx, cy);
+            });
+            requestAnimationFrame(animate);
+        }
+        // //Made by ecchua79
+        window.onload = init;
+        // //峇株吧辖华仁中学蔡逸众制作
+        // //华仁中学蔡逸众制作
+    </script>
+</body>
+</html>
+
+```
+
