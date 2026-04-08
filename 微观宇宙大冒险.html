@@ -1,0 +1,3509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微观宇宙：从原子到万物</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #050a1a;
+    --panel: #0a1628;
+    --panel2: #0d1f3c;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #a8ff3e;
+    --gold: #ffd700;
+    --text: #e0f0ff;
+    --dim: #7090b0;
+    --glow: 0 0 20px rgba(0,212,255,0.5);
+    --glow2: 0 0 20px rgba(255,107,53,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* starfield */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.9) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 50%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 35%, rgba(200,220,255,0.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 15% 75%, rgba(0,212,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 75% 25%, rgba(168,255,62,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* screens */
+  .screen { display: none !important; min-height: 100vh; position: relative; z-index: 1; }
+  .screen.active { display: flex !important; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* ============ TITLE SCREEN ============ */
+  #title-screen {
+    padding: 30px 20px;
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(0,50,100,0.4) 0%, transparent 70%);
+  }
+
+  .game-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(14px, 3.5vw, 28px);
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { text-shadow: 0 0 20px rgba(0,212,255,0.5); }
+    50% { text-shadow: 0 0 40px rgba(0,212,255,0.9), 0 0 80px rgba(0,212,255,0.4); }
+  }
+
+  @keyframes naElectronPulse {
+    0%,100% { r: 9; opacity: 1; }
+    50% { r: 11; opacity: 0.75; }
+  }
+
+  @keyframes particlePop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  #na-outer-e {
+    animation: naElectronPulse 1.2s ease-in-out infinite;
+  }
+
+  .game-subtitle {
+    font-family: 'ZCOOL XiaoWei', serif;
+    font-size: clamp(22px, 6vw, 52px);
+    background: linear-gradient(135deg, #ffd700, #ff6b35, #ff0080);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 16px 0;
+    line-height: 1.2;
+  }
+
+  .atom-visual {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 20px auto;
+  }
+
+  .nucleus {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 40px; height: 40px;
+    background: radial-gradient(circle, #ff6b35, #ff0040);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(255,107,53,0.8);
+    z-index: 2;
+  }
+
+  .orbit {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 50%;
+  }
+
+  .orbit:nth-child(2) { width: 80px; height: 80px; animation: spin 2s linear infinite; }
+  .orbit:nth-child(3) { width: 130px; height: 130px; animation: spin 3.5s linear infinite reverse; }
+  .orbit:nth-child(4) { width: 180px; height: 180px; animation: spin 5s linear infinite; }
+
+  @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  .electron {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+    top: -5px; left: 50%; margin-left: -5px;
+  }
+
+  .level-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+    max-width: 700px;
+  }
+
+  .level-preview {
+    background: var(--panel);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    width: 130px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .level-preview:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: var(--glow);
+  }
+
+  .level-preview .lv-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .level-preview .lv-icon { font-size: 28px; margin: 6px 0; }
+  .level-preview .lv-name { font-size: 12px; color: var(--dim); }
+
+  .btn-start {
+    background: linear-gradient(135deg, var(--accent), #0070ff);
+    border: none;
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 16px 48px;
+    border-radius: 50px;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: var(--glow);
+    transition: all 0.3s;
+    animation: btnPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes btnPulse {
+    0%,100% { box-shadow: 0 0 20px rgba(0,212,255,0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 40px rgba(0,212,255,0.8); transform: scale(1.03); }
+  }
+
+  .btn-start:hover { transform: scale(1.08) !important; }
+
+  /* ============ LEVEL SCREEN ============ */
+  #level-screen {
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .level-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .level-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    border: 1px solid rgba(0,212,255,0.4);
+    padding: 4px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+
+  .level-title {
+    font-family: 'ZCOOL XiaoWei', serif;
+    font-size: clamp(20px, 5vw, 36px);
+    background: linear-gradient(135deg, var(--gold), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .level-bg-text {
+    font-size: 14px;
+    color: var(--dim);
+    margin-top: 8px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .progress-bar-wrap span {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(0,212,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .score-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    color: var(--gold);
+  }
+
+  /* ============ GAME AREAS ============ */
+  .game-panel {
+    background: var(--panel);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .game-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  /* ── Level 1: Connect ── */
+  .connect-area {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .connect-col {
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .connect-item {
+    background: var(--panel2);
+    border: 2px solid rgba(0,212,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-size: 13px;
+    text-align: center;
+    user-select: none;
+  }
+
+  .connect-item:hover { border-color: var(--accent); box-shadow: var(--glow); }
+  .connect-item.selected { border-color: var(--accent2); background: rgba(255,107,53,0.15); box-shadow: var(--glow2); }
+  .connect-item.matched { border-color: var(--accent3); background: rgba(168,255,62,0.1); color: var(--accent3); pointer-events: none; }
+  .connect-item.wrong { border-color: #ff3366; background: rgba(255,51,102,0.1); animation: shake 0.3s; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  /* ── Level 1: Atom Builder ── */
+  .atom-builder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .particle-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 60px;
+    padding: 10px;
+    border: 2px dashed rgba(0,212,255,0.2);
+    border-radius: 12px;
+    width: 100%;
+  }
+
+  .particle {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: grab;
+    transition: all 0.2s;
+    user-select: none;
+    border: 2px solid;
+  }
+
+  .particle.proton { background: rgba(255,80,80,0.2); border-color: #ff5050; color: #ff9090; }
+  .particle.neutron { background: rgba(120,120,180,0.2); border-color: #8888cc; color: #aaaaee; }
+  .particle.electron { background: rgba(0,200,255,0.2); border-color: #00c8ff; color: #00e8ff; }
+  .particle:hover { transform: scale(1.15); }
+  .particle.dragging { opacity: 0.5; cursor: grabbing; }
+
+  .atom-zones {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .drop-zone {
+    min-width: 120px;
+    min-height: 100px;
+    border: 2px dashed rgba(0,212,255,0.3);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    gap: 6px;
+    transition: all 0.25s;
+    position: relative;
+  }
+
+  .drop-zone.over { border-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .drop-zone.correct { border-color: var(--accent3); background: rgba(168,255,62,0.08); }
+  .drop-zone.wrong-drop { border-color: #ff3366; animation: shake 0.3s; }
+
+  .drop-zone-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .dropped-particles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .dropped-particles .particle {
+    width: 36px; height: 36px;
+    font-size: 10px;
+    cursor: default;
+  }
+
+  /* ── Level 2: Element Sort ── */
+  .element-rain {
+    position: relative;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--panel2);
+  }
+
+  .falling-element {
+    position: absolute;
+    top: -60px;
+    width: 54px; height: 54px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(20,40,80,0.9);
+    transition: transform 0.1s;
+    z-index: 2;
+    user-select: none;
+  }
+
+  .falling-element .sym { font-size: 20px; font-weight: 700; }
+  .falling-element .name { font-size: 9px; color: var(--dim); }
+  .falling-element:hover { transform: scale(1.1); border-color: var(--accent); }
+
+  .sort-bins {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .sort-bin {
+    flex: 1;
+    min-height: 80px;
+    border: 2px dashed;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .sort-bin.metal { border-color: #ffd700; background: rgba(255,215,0,0.05); }
+  .sort-bin.nonmetal { border-color: #a8ff3e; background: rgba(168,255,62,0.05); }
+
+  .sort-bin-title {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .sort-bin.metal .sort-bin-title { color: var(--gold); }
+  .sort-bin.nonmetal .sort-bin-title { color: var(--accent3); }
+
+  .sorted-elements {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .sorted-tag {
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .symbol-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sym-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sym-badge {
+    font-family: 'Orbitron', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--panel2);
+    border: 2px solid rgba(0,212,255,0.3);
+    border-radius: 10px;
+    padding: 8px 16px;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .sym-input {
+    flex: 1;
+    background: var(--panel2);
+    border: 2px solid rgba(0,212,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans SC', sans-serif;
+    outline: none;
+    transition: border-color 0.25s;
+    min-width: 150px;
+  }
+
+  .sym-input:focus { border-color: var(--accent); }
+  .sym-input.correct { border-color: var(--accent3); background: rgba(168,255,62,0.08); }
+  .sym-input.wrong2 { border-color: #ff3366; background: rgba(255,51,102,0.08); }
+
+  /* ── Level 3: Molecule Builder ── */
+  .molecule-builder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .atom-cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .atom-card {
+    width: 60px; height: 60px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid;
+    transition: all 0.25s;
+    user-select: none;
+  }
+
+  .atom-card.H-card { border-color: #88ddff; background: rgba(136,221,255,0.15); color: #88ddff; }
+  .atom-card.O-card { border-color: #ff8855; background: rgba(255,136,85,0.15); color: #ff8855; }
+  .atom-card.Na-card { border-color: var(--gold); background: rgba(255,215,0,0.12); color: var(--gold); }
+  .atom-card.Cl-card { border-color: #88ff88; background: rgba(136,255,136,0.12); color: #88ff88; }
+  .atom-card:hover { transform: scale(1.1); }
+  .atom-card.used { opacity: 0.3; pointer-events: none; }
+  .atom-card .card-sub { font-size: 10px; color: var(--dim); margin-top: 2px; }
+
+  .reaction-zone {
+    width: 100%;
+    min-height: 80px;
+    border: 2px dashed rgba(0,212,255,0.3);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    flex-wrap: wrap;
+    background: rgba(0,20,60,0.3);
+  }
+
+  .reaction-atom {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    border: 2px solid;
+    position: relative;
+  }
+
+  .bond-line {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.3);
+  }
+
+  .electron-transfer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .ion-display {
+    text-align: center;
+    padding: 14px;
+    border-radius: 14px;
+    min-width: 90px;
+  }
+
+  .ion-display.cation { background: rgba(255,215,0,0.08); border: 2px solid rgba(255,215,0,0.3); }
+  .ion-display.anion { background: rgba(136,255,136,0.08); border: 2px solid rgba(136,255,136,0.3); }
+
+  .ion-symbol {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+  }
+
+  .cation .ion-symbol { color: var(--gold); }
+  .anion .ion-symbol { color: #88ff88; }
+
+  .electron-dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .electron-dot.transferred {
+    background: #88ff88;
+    box-shadow: 0 0 8px #88ff88;
+    animation: transferAnim 0.5s ease;
+  }
+
+  @keyframes transferAnim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+
+  .transfer-arrow {
+    font-size: 28px;
+    color: var(--accent);
+    animation: arrowBounce 1s ease-in-out infinite;
+  }
+
+  @keyframes arrowBounce {
+    0%,100% { transform: translateX(0); }
+    50% { transform: translateX(6px); }
+  }
+
+  /* ── Level 4: Mass Calculator ── */
+  .mass-calc {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .formula-display {
+    font-size: clamp(20px, 5vw, 36px);
+    text-align: center;
+    font-family: 'Orbitron', monospace;
+    color: var(--accent);
+    padding: 16px;
+    background: var(--panel2);
+    border-radius: 12px;
+    letter-spacing: 2px;
+  }
+
+  .formula-display sub { font-size: 0.6em; vertical-align: sub; }
+
+  .calc-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .calc-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .calc-step .element-box {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    color: var(--accent2);
+    width: 36px;
+    text-align: center;
+  }
+
+  .calc-step .count { color: var(--dim); }
+  .calc-step .mass-val { color: var(--gold); font-weight: 700; margin-left: auto; }
+
+  .calc-answer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .answer-input {
+    width: 100px;
+    background: var(--panel2);
+    border: 2px solid rgba(0,212,255,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 20px;
+    font-family: 'Orbitron', monospace;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.25s;
+  }
+
+  .answer-input:focus { border-color: var(--accent); }
+  .answer-input.correct { border-color: var(--accent3); }
+  .answer-input.wrong2 { border-color: #ff3366; }
+
+  .tf-question {
+    background: var(--panel2);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tf-q-text { font-size: 14px; line-height: 1.5; }
+
+  .tf-buttons { display: flex; gap: 10px; }
+
+  .tf-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.25s;
+  }
+
+  .tf-btn.true-btn { border-color: var(--accent3); color: var(--accent3); }
+  .tf-btn.false-btn { border-color: #ff3366; color: #ff3366; }
+  .tf-btn:hover { opacity: 0.7; transform: scale(1.03); }
+  .tf-btn.answered-correct { background: rgba(168,255,62,0.2); }
+  .tf-btn.answered-wrong { background: rgba(255,51,102,0.2); }
+
+  /* ── Level 5: Kitchen Lab ── */
+  .kitchen-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .kitchen-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--panel2);
+    border: 2px solid rgba(0,212,255,0.1);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kitchen-step.available {
+    border-color: rgba(0,212,255,0.4);
+    cursor: pointer;
+    animation: stepGlow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes stepGlow {
+    0%,100% { box-shadow: none; }
+    50% { box-shadow: 0 0 15px rgba(0,212,255,0.3); }
+  }
+
+  .kitchen-step.done {
+    border-color: var(--accent3);
+    background: rgba(168,255,62,0.05);
+    cursor: default;
+  }
+
+  .kitchen-step.locked { opacity: 0.4; cursor: not-allowed; }
+
+  .step-icon { font-size: 32px; flex-shrink: 0; }
+
+  .step-info { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .step-desc { font-size: 12px; color: var(--dim); }
+
+  .step-status {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .step-result {
+    position: absolute;
+    right: 10px;
+    bottom: 4px;
+    font-size: 10px;
+    color: var(--accent3);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  .kitchen-step.done .step-result { opacity: 1; }
+
+  /* mixture visual */
+  .mixture-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+
+  .mix-particle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.5s;
+    border: 2px solid;
+  }
+
+  .mix-iron { background: rgba(150,150,150,0.3); border-color: #aaa; color: #ccc; }
+  .mix-sand { background: rgba(200,180,100,0.3); border-color: #c8b464; color: #e0cc88; }
+  .mix-salt { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); color: #fff; }
+
+  .mix-particle.removed { transform: scale(0); opacity: 0; }
+
+  /* ── Buttons ── */
+  .action-btn {
+    padding: 11px 28px;
+    border-radius: 50px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .action-btn:hover { background: rgba(0,212,255,0.15); transform: scale(1.04); }
+  .action-btn.primary { background: linear-gradient(135deg, var(--accent), #0070ff); color: #fff; border-color: transparent; box-shadow: var(--glow); }
+  .action-btn.primary:hover { transform: scale(1.06); opacity: 0.9; }
+  .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  /* ── Feedback messages ── */
+  .feedback {
+    text-align: center;
+    font-size: 13px;
+    min-height: 20px;
+    transition: all 0.3s;
+    padding: 4px 0;
+  }
+
+  .feedback.success { color: var(--accent3); }
+  .feedback.error { color: #ff6688; }
+
+  /* ── Tip box ── */
+  .tip-box {
+    background: linear-gradient(135deg, rgba(0,100,60,0.2), rgba(0,60,100,0.2));
+    border: 1px solid rgba(168,255,62,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--accent3);
+  }
+
+  .tip-box strong { color: #fff; }
+
+  /* ============ END SCREEN ============ */
+  #end-screen {
+    text-align: center;
+    padding: 30px 20px;
+    position: relative;
+  }
+
+  .medal {
+    font-size: 80px;
+    animation: medalBounce 1s ease-out;
+    display: inline-block;
+  }
+
+  @keyframes medalBounce {
+    0% { transform: scale(0) rotate(-30deg); }
+    60% { transform: scale(1.2) rotate(5deg); }
+    80% { transform: scale(0.95) rotate(-2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  .end-title {
+    font-family: 'ZCOOL XiaoWei', serif;
+    font-size: clamp(24px, 6vw, 48px);
+    background: linear-gradient(135deg, var(--gold), var(--accent2), #ff0080);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 16px 0;
+  }
+
+  .final-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 40px;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.6);
+    margin: 10px 0;
+  }
+
+  .stars {
+    font-size: 36px;
+    letter-spacing: 4px;
+    margin: 10px 0;
+  }
+
+  .kofi-box {
+    background: var(--panel);
+    border: 1px solid rgba(255,107,53,0.4);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 500px;
+    margin: 20px auto;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--dim);
+  }
+
+  .kofi-box .kofi-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+
+  /* confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
+    z-index: 100;
+  }
+
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* nav between tasks */
+  .task-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .task-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,212,255,0.3);
+    background: transparent;
+    color: var(--dim);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+
+  .task-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.1); }
+  .task-tab.completed { border-color: var(--accent3); color: var(--accent3); }
+
+  .task-pane { display: none; }
+  .task-pane.active { display: block; }
+
+  /* notification toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--panel2);
+    border: 1px solid var(--accent3);
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-size: 13px;
+    color: var(--accent3);
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    box-shadow: 0 0 20px rgba(168,255,62,0.3);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* responsive */
+  @media (max-width: 480px) {
+    .connect-area { flex-direction: column; }
+    .atom-zones { flex-direction: column; align-items: center; }
+    .electron-transfer { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- ====== TITLE SCREEN ====== -->
+<div id="title-screen" class="screen active" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+  <div class="game-logo">⚛️ MICROVERSE QUEST</div>
+  <div class="game-subtitle">微观宇宙：从原子到万物</div>
+
+  <div class="atom-visual">
+    <div class="nucleus"></div>
+    <div class="orbit"><div class="electron"></div></div>
+    <div class="orbit"><div class="electron"></div></div>
+    <div class="orbit"><div class="electron"></div></div>
+  </div>
+
+  <p style="color:var(--dim);font-size:13px;margin:8px 0 20px;text-align:center;">探索物质的终极奥秘，解锁宇宙的微观密码</p>
+
+  <div class="level-cards">
+    <div class="level-preview" onclick="jumpToLevel(1)">
+      <div class="lv-num">LEVEL 01</div>
+      <div class="lv-icon">⏳</div>
+      <div class="lv-name">时光隧道</div>
+    </div>
+    <div class="level-preview" onclick="jumpToLevel(2)">
+      <div class="lv-num">LEVEL 02</div>
+      <div class="lv-icon">🪪</div>
+      <div class="lv-name">身份证解码</div>
+    </div>
+    <div class="level-preview" onclick="jumpToLevel(3)">
+      <div class="lv-num">LEVEL 03</div>
+      <div class="lv-icon">🔗</div>
+      <div class="lv-name">超级组队</div>
+    </div>
+    <div class="level-preview" onclick="jumpToLevel(4)">
+      <div class="lv-num">LEVEL 04</div>
+      <div class="lv-icon">⚖️</div>
+      <div class="lv-name">重量级挑战</div>
+    </div>
+    <div class="level-preview" onclick="jumpToLevel(5)">
+      <div class="lv-num">LEVEL 05</div>
+      <div class="lv-icon">🍳</div>
+      <div class="lv-name">厨房大救灾</div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startGame()">🚀 开始冒险（从第一关）</button>
+</div>
+
+<!-- ====== LEVEL SCREEN ====== -->
+<div id="level-screen" class="screen">
+  <div style="width:100%;max-width:800px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="progress-bar-wrap" style="flex:1;margin-bottom:0;">
+        <span id="level-indicator">LV 1/5</span>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
+        <span class="score-display" id="score-display">⭐ 0</span>
+      </div>
+    </div>
+
+    <div id="level-content"></div>
+  </div>
+</div>
+
+<!-- ====== END SCREEN ====== -->
+<div id="end-screen" class="screen">
+  <div style="width:100%;max-width:680px;padding:24px;text-align:center;">
+
+    <div class="medal" style="font-size:72px;animation:medalBounce 1s ease-out;display:inline-block;">🏅</div>
+    <div class="end-title">恭喜通关！</div>
+    <div class="final-score" id="final-score">0 pts</div>
+    <div class="stars" id="final-stars" style="font-size:32px;letter-spacing:4px;margin:8px 0;">⭐⭐⭐</div>
+
+    <!-- Name input -->
+    <div id="cert-input-section" style="margin:18px 0;">
+      <p style="color:var(--dim);font-size:14px;margin-bottom:12px;">输入你的名字，生成专属证书！</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <input id="cert-name-input" type="text" placeholder="你的名字..."
+          style="background:var(--panel2);border:2px solid rgba(0,212,255,0.4);border-radius:10px;
+                 padding:10px 16px;color:var(--text);font-size:16px;font-family:'Noto Sans SC',sans-serif;
+                 outline:none;min-width:180px;max-width:260px;"
+          onkeydown="if(event.key==='Enter')generateCert()">
+        <button class="action-btn primary" onclick="generateCert()">🎓 生成证书</button>
+      </div>
+    </div>
+
+    <!-- Canvas certificate -->
+    <div id="cert-section" style="display:none;margin-top:16px;">
+      <canvas id="cert-canvas" width="800" height="560"
+        style="width:100%;border-radius:12px;box-shadow:0 0 40px rgba(255,215,0,0.3);"></canvas>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="action-btn primary" onclick="downloadCert()">💾 下载证书</button>
+        <button class="action-btn" onclick="restartGame()">🔄 再玩一次</button>
+      </div>
+    </div>
+
+    <div id="no-cert-btns" style="margin-top:12px;">
+      <button class="action-btn" onclick="restartGame()">🔄 再玩一次</button>
+    </div>
+
+    <div class="kofi-box" style="margin-top:18px;">
+      <div class="kofi-title">☕ 分享你的成就！</div>
+      "我刚刚通过了微观宇宙挑战！如果你觉得游戏设计很有趣，请我喝杯 Milo Ais 支持一下吧！🧋"
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ GAME STATE ============
+let currentLevel = 0;
+let totalScore = 0;
+
+// ── Level 1 state ──
+const CONNECT_DATA = [
+  { sciId:'dalton',     sciLabel:'道尔顿',   modId:'solid',      modLabel:'⚫ 实心球模型' },
+  { sciId:'thomson',    sciLabel:'汤姆生',   modId:'watermelon', modLabel:'🍉 西瓜模型' },
+  { sciId:'rutherford', sciLabel:'卢瑟福',   modId:'nuclear',    modLabel:'⚛️ 核式结构模型' },
+  { sciId:'bohr',       sciLabel:'玻尔',     modId:'orbit',      modLabel:'🪐 特定轨道模型' },
+  { sciId:'chadwick',   sciLabel:'查德威克', modId:'neutron',    modLabel:'🔵 发现中子' },
+];
+const connectAnswers = Object.fromEntries(CONNECT_DATA.map(d => [d.sciId, d.modId]));
+let connectSel = { scientist: null, model: null };
+let connectMatched = 0;
+let task1aDone = false;
+let task1bDone = false;
+
+const ATOM_POOL = [
+  { name:'氢 H',  proton:1,  neutron:0,  electron:1,  mass:1    },
+  { name:'氦 He', proton:2,  neutron:2,  electron:2,  mass:4    },
+  { name:'锂 Li', proton:3,  neutron:4,  electron:3,  mass:7    },
+  { name:'碳 C',  proton:6,  neutron:6,  electron:6,  mass:12   },
+  { name:'氮 N',  proton:7,  neutron:7,  electron:7,  mass:14   },
+  { name:'氧 O',  proton:8,  neutron:8,  electron:8,  mass:16   },
+  { name:'氟 F',  proton:9,  neutron:10, electron:9,  mass:19   },
+  { name:'氖 Ne', proton:10, neutron:10, electron:10, mass:20   },
+//峇株吧辖华仁中学蔡逸众制作
+  { name:'钠 Na', proton:11, neutron:12, electron:11, mass:23   },
+  { name:'镁 Mg', proton:12, neutron:12, electron:12, mass:24   },
+  { name:'铝 Al', proton:13, neutron:14, electron:13, mass:27   },
+  { name:'硅 Si', proton:14, neutron:14, electron:14, mass:28   },
+  { name:'磷 P',  proton:15, neutron:16, electron:15, mass:31   },
+  { name:'硫 S',  proton:16, neutron:16, electron:16, mass:32   },
+  { name:'氯 Cl', proton:17, neutron:18, electron:17, mass:35.5 },
+  { name:'氩 Ar', proton:18, neutron:22, electron:18, mass:40   },
+  { name:'钾 K',  proton:19, neutron:20, electron:19, mass:39   },
+  { name:'钙 Ca', proton:20, neutron:20, electron:20, mass:40   },
+];
+let atomPuzzleQueue = [];
+let atomPuzzleIdx   = 0;
+let atomPuzzleCompleted = 0;
+let apValues = { proton:0, neutron:0, electron:0 };
+
+// ── Level 2 state ──
+const ALL_ELEMENTS = [
+  { sym:'H',  zh:'氢',  en:'Hydrogen',   type:'nonmetal', color:'#88ddff' },
+  { sym:'He', zh:'氦',  en:'Helium',     type:'nonmetal', color:'#ccffee' },
+  { sym:'Li', zh:'锂',  en:'Lithium',    type:'metal',    color:'#ffd700' },
+  { sym:'Be', zh:'铍',  en:'Beryllium',  type:'metal',    color:'#eecc44' },
+  { sym:'B',  zh:'硼',  en:'Boron',      type:'nonmetal', color:'#ffaa66' },
+  { sym:'C',  zh:'碳',  en:'Carbon',     type:'nonmetal', color:'#aaaaaa' },
+  { sym:'N',  zh:'氮',  en:'Nitrogen',   type:'nonmetal', color:'#aaddff' },
+  { sym:'O',  zh:'氧',  en:'Oxygen',     type:'nonmetal', color:'#55aaff' },
+  { sym:'F',  zh:'氟',  en:'Fluorine',   type:'nonmetal', color:'#aaff88' },
+  { sym:'Ne', zh:'氖',  en:'Neon',       type:'nonmetal', color:'#ff88cc' },
+  { sym:'Na', zh:'钠',  en:'Sodium',     type:'metal',    color:'#ffcc44' },
+  { sym:'Mg', zh:'镁',  en:'Magnesium',  type:'metal',    color:'#ddbb33' },
+  { sym:'Al', zh:'铝',  en:'Aluminium',  type:'metal',    color:'#bbbbbb' },
+  { sym:'Si', zh:'硅',  en:'Silicon',    type:'nonmetal', color:'#cc9966' },
+  { sym:'P',  zh:'磷',  en:'Phosphorus', type:'nonmetal', color:'#ffaa00' },
+  { sym:'S',  zh:'硫',  en:'Sulfur',     type:'nonmetal', color:'#ffee00' },
+  { sym:'Cl', zh:'氯',  en:'Chlorine',   type:'nonmetal', color:'#99ff66' },
+  { sym:'Ar', zh:'氩',  en:'Argon',      type:'nonmetal', color:'#cc88ff' },
+  { sym:'K',  zh:'钾',  en:'Potassium',  type:'metal',    color:'#ffdd77' },
+  { sym:'Ca', zh:'钙',  en:'Calcium',    type:'metal',    color:'#eecc88' },
+  { sym:'Fe', zh:'铁',  en:'Iron',       type:'metal',    color:'#cccccc' },
+  { sym:'Cu', zh:'铜',  en:'Copper',     type:'metal',    color:'#cc7733' },
+  { sym:'Zn', zh:'锌',  en:'Zinc',       type:'metal',    color:'#aabbcc' },
+  { sym:'Ag', zh:'银',  en:'Silver',     type:'metal',    color:'#dddddd' },
+  { sym:'Au', zh:'金',  en:'Gold',       type:'metal',    color:'#ffd700' },
+  { sym:'Hg', zh:'汞',  en:'Mercury',    type:'metal',    color:'#88ccff' },
+  { sym:'Br', zh:'溴',  en:'Bromine',    type:'nonmetal', color:'#cc4400' },
+  { sym:'I',  zh:'碘',  en:'Iodine',     type:'nonmetal', color:'#9966cc' },
+];
+let symQuizData = [];
+let tetrisQueue   = [];
+let tetrisCurrent = null;
+let tetrisMetalOk = 0;
+let tetrisNonmetalOk = 0;
+let tetrisDone    = 0;
+let tetrisFalling = false;
+let tetrisFallTimer = null;
+
+// ── Level 4 state ──
+const ATOM_MASS = { H:1, C:12, N:14, O:16, Na:23, Mg:24, Al:27, S:32, Cl:35.5, K:39, Ca:40, Fe:56, Cu:64, Zn:65 };
+const MOLECULE_BANK = [
+  { name:'水',         formula:'H₂O',    display:'H<sub>2</sub>O',                                    parts:[{el:'H',n:2},{el:'O',n:1}] },
+  { name:'二氧化碳',   formula:'CO₂',    display:'CO<sub>2</sub>',                                     parts:[{el:'C',n:1},{el:'O',n:2}] },
+  { name:'氨气',       formula:'NH₃',    display:'NH<sub>3</sub>',                                     parts:[{el:'N',n:1},{el:'H',n:3}] },
+  { name:'甲烷',       formula:'CH₄',    display:'CH<sub>4</sub>',                                     parts:[{el:'C',n:1},{el:'H',n:4}] },
+  { name:'盐酸',       formula:'HCl',    display:'HCl',                                               parts:[{el:'H',n:1},{el:'Cl',n:1}] },
+  { name:'硫酸',       formula:'H₂SO₄',  display:'H<sub>2</sub>SO<sub>4</sub>',                        parts:[{el:'H',n:2},{el:'S',n:1},{el:'O',n:4}] },
+  { name:'硝酸',       formula:'HNO₃',   display:'HNO<sub>3</sub>',                                    parts:[{el:'H',n:1},{el:'N',n:1},{el:'O',n:3}] },
+  { name:'氢氧化钠',   formula:'NaOH',   display:'NaOH',                                              parts:[{el:'Na',n:1},{el:'O',n:1},{el:'H',n:1}] },
+  { name:'氯化钠',     formula:'NaCl',   display:'NaCl',                                              parts:[{el:'Na',n:1},{el:'Cl',n:1}] },
+  { name:'碳酸钙',     formula:'CaCO₃',  display:'CaCO<sub>3</sub>',                                   parts:[{el:'Ca',n:1},{el:'C',n:1},{el:'O',n:3}] },
+  { name:'氢氧化钙',   formula:'Ca(OH)₂',display:'Ca(OH)<sub>2</sub>',                                 parts:[{el:'Ca',n:1},{el:'O',n:2},{el:'H',n:2}] },
+  { name:'葡萄糖',     formula:'C₆H₁₂O₆',display:'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>',           parts:[{el:'C',n:6},{el:'H',n:12},{el:'O',n:6}] },
+  { name:'酒精(乙醇)', formula:'C₂H₅OH', display:'C<sub>2</sub>H<sub>5</sub>OH',                       parts:[{el:'C',n:2},{el:'H',n:6},{el:'O',n:1}] },
+  { name:'醋酸',       formula:'CH₃COOH',display:'CH<sub>3</sub>COOH',                                 parts:[{el:'C',n:2},{el:'H',n:4},{el:'O',n:2}] },
+  { name:'硫酸铜',     formula:'CuSO₄',  display:'CuSO<sub>4</sub>',                                   parts:[{el:'Cu',n:1},{el:'S',n:1},{el:'O',n:4}] },
+];
+let lv4Queue = [];
+let lv4Idx   = 0;
+let lv4MassDone = false;
+let lv4TFDone   = false;
+
+// ── Level 5 state ──
+// (no extra globals needed beyond _kitchenProgress/_kitchenSteps set at render time)
+
+function showToast(msg, isGood = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isGood ? 'var(--accent3)' : '#ff6688';
+  t.style.color = isGood ? 'var(--accent3)' : '#ff6688';
+  t.style.boxShadow = isGood ? '0 0 20px rgba(168,255,62,0.3)' : '0 0 20px rgba(255,102,136,0.3)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function startGame() {
+  currentLevel = 1;
+  totalScore = 0;
+  showScreen('level-screen');
+  renderLevel(1);
+}
+
+function jumpToLevel(n) {
+  currentLevel = n;
+  totalScore = 0;
+  showScreen('level-screen');
+  renderLevel(n);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const target = document.getElementById(id);
+  target.classList.add('active');
+  target.style.display = 'flex';
+  target.style.flexDirection = 'column';
+  target.style.alignItems = 'center';
+  target.style.justifyContent = 'center';
+  window.scrollTo(0, 0);
+}
+
+function updateHeader() {
+  document.getElementById('level-indicator').textContent = `LV ${currentLevel}/5`;
+  document.getElementById('score-display').textContent = `⭐ ${totalScore}`;
+  document.getElementById('progress-fill').style.width = (currentLevel / 5 * 100) + '%';
+//峇株吧辖蔡逸众制作
+}
+
+function nextLevel() {
+  clearInterval(tetrisFallTimer);
+  if (currentLevel >= 5) {
+    endGame();
+    return;
+  }
+  currentLevel++;
+  updateHeader();
+  renderLevel(currentLevel);
+}
+
+function endGame() {
+  showScreen('end-screen');
+  document.getElementById('final-score').textContent = totalScore + ' pts';
+  const stars = totalScore >= 350 ? '⭐⭐⭐' : totalScore >= 200 ? '⭐⭐' : '⭐';
+  document.getElementById('final-stars').textContent = stars;
+  // reset cert UI
+  document.getElementById('cert-section').style.display = 'none';
+  document.getElementById('cert-input-section').style.display = 'block';
+  document.getElementById('no-cert-btns').style.display = 'block';
+  const inp = document.getElementById('cert-name-input');
+  if (inp) inp.value = '';
+  launchConfetti();
+}
+
+function restartGame() {
+  startGame();
+}
+
+function generateCert() {
+  const nameInput = document.getElementById('cert-name-input');
+  const name = (nameInput && nameInput.value.trim()) || '微观探索者';
+
+  document.getElementById('cert-section').style.display = 'block';
+  document.getElementById('cert-input-section').style.display = 'none';
+  document.getElementById('no-cert-btns').style.display = 'none';
+
+  const canvas = document.getElementById('cert-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;  // 800 x 560, landscape
+
+  // ── Background ──
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#020c24');
+  bg.addColorStop(0.45, '#041030');
+  bg.addColorStop(1, '#020818');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Starfield
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for (let i = 0; i < 120; i++) {
+    const sx = Math.random()*W, sy = Math.random()*H, sr = Math.random()*1.3;
+    ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── Borders ──
+  ctx.strokeStyle = 'rgba(255,215,0,0.75)';
+  ctx.lineWidth = 3;
+  roundRect(ctx, 14, 14, W-28, H-28, 18);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 26, 26, W-52, H-52, 14);
+  ctx.stroke();
+
+  // Corner ornaments
+  [[36,36],[W-36,36],[36,H-36],[W-36,H-36]].forEach(([cx,cy]) => {
+    ctx.strokeStyle = 'rgba(255,215,0,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx,cy,11,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,215,0,0.18)';
+    ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fill();
+  });
+
+  // Atom decorations
+  drawAtomDeco(ctx, 80, 110, 36, 'rgba(0,212,255,0.22)');
+  drawAtomDeco(ctx, W-80, H-110, 36, 'rgba(255,107,53,0.22)');
+
+  // ── Content (centred, top-down) ──
+  ctx.textAlign = 'center';
+
+  // Top label
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('CERTIFICATE  OF  ACHIEVEMENT', W/2, 75);
+
+  // Chinese title
+  ctx.font = 'bold 26px serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('微观宇宙：从原子到万物', W/2, 116);
+
+  // Divider
+  const grad = ctx.createLinearGradient(100,130,W-100,130);
+  grad.addColorStop(0,'transparent'); grad.addColorStop(0.3,'#ffd700');
+  grad.addColorStop(0.7,'#ffd700'); grad.addColorStop(1,'transparent');
+  ctx.strokeStyle = grad; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(100,132); ctx.lineTo(W-100,132); ctx.stroke();
+
+  // Certifies label
+  ctx.font = '16px serif';
+  ctx.fillStyle = 'rgba(180,210,255,0.75)';
+  ctx.fillText('兹证明', W/2, 170);
+
+  // Name
+  ctx.font = 'bold 42px serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,212,255,0.65)';
+  ctx.shadowBlur = 20;
+  ctx.fillText(name, W/2, 226);
+  ctx.shadowBlur = 0;
+
+  // Description lines
+  ctx.font = '16px serif';
+  ctx.fillStyle = 'rgba(180,210,255,0.85)';
+  ctx.fillText('已成功完成《微观宇宙：从原子到万物》全部五关挑战', W/2, 268);
+  ctx.font = '14px serif';
+  ctx.fillStyle = 'rgba(160,195,240,0.7)';
+  ctx.fillText('掌握原子结构、元素周期律、分子与离子、相对分子质量及混合物分离', W/2, 292);
+
+  // Score
+  const stars2 = totalScore >= 350 ? '⭐⭐⭐' : totalScore >= 200 ? '⭐⭐' : '⭐';
+  ctx.font = '13px monospace';
+  ctx.fillStyle = 'rgba(0,212,255,0.65)';
+  ctx.fillText(`最终得分：${totalScore} 分　　评级：${stars2}`, W/2, 322);
+
+  // Divider 2
+  ctx.strokeStyle = grad; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(100,342); ctx.lineTo(W-100,342); ctx.stroke();
+
+  // Medal + title
+  ctx.font = '44px serif';
+  ctx.fillText('🏅', W/2, 392);
+
+  ctx.font = 'bold 22px serif';
+  ctx.fillStyle = '#ffd700';
+  ctx.shadowColor = 'rgba(255,215,0,0.5)'; ctx.shadowBlur = 14;
+  ctx.fillText('初级炼金术师', W/2, 432);
+  ctx.shadowBlur = 0;
+
+  // Date
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  ctx.font = '12px monospace';
+  ctx.fillStyle = 'rgba(150,180,220,0.5)';
+  ctx.fillText(`颁发日期：${dateStr}`, W/2, 472);
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = 'rgba(100,140,190,0.4)';
+  ctx.fillText('峇株吧辖华仁中学 · 蔡逸众制作 · 《微观宇宙》教育游戏', W/2, 492);
+
+  // Bottom divider
+  ctx.strokeStyle = grad; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(100,505); ctx.lineTo(W-100,505); ctx.stroke();
+
+  // Corner text decoration
+  ctx.font = '10px monospace';
+  ctx.fillStyle = 'rgba(255,215,0,0.3)';
+  ctx.textAlign = 'left';  ctx.fillText('⚛', 46, 52);
+  ctx.textAlign = 'right'; ctx.fillText('⚛', W-46, 52);
+  ctx.textAlign = 'left';  ctx.fillText('⚛', 46, H-38);
+  ctx.textAlign = 'right'; ctx.fillText('⚛', W-46, H-38);
+}
+
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function drawAtomDeco(ctx, cx, cy, r, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  // nucleus
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.18, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
+  // 3 orbits
+  for (let i = 0; i < 3; i++) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(i * Math.PI / 3);
+    ctx.scale(1, 0.4);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
+    ctx.restore();
+    ctx.stroke();
+  }
+}
+
+function downloadCert() {
+  const canvas = document.getElementById('cert-canvas');
+  const name = document.getElementById('cert-name-input')?.value.trim() || '微观探索者';
+  const link = document.createElement('a');
+  link.download = `微观宇宙证书_${name}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function launchConfetti() {
+  const colors = ['#00d4ff','#ffd700','#ff6b35','#a8ff3e','#ff3366','#cc88ff'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = Math.random() * 1 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }, i * 30);
+  }
+}
+
+// ============ LEVEL RENDERER ============
+function renderLevel(n) {
+  updateHeader();
+  const content = document.getElementById('level-content');
+  const renderers = [null, renderLevel1, renderLevel2, renderLevel3, renderLevel4, renderLevel5];
+  content.innerHTML = '';
+  renderers[n](content);
+}
+
+// ============================
+// LEVEL 1: 时光隧道
+// ============================
+function renderLevel1(container) {
+  container.innerHTML = `
+    <div class="level-header">
+      <div class="level-tag">LEVEL 01</div>
+      <div class="level-title">⏳ 时光隧道——寻找原子的"核"心</div>
+      <div class="level-bg-text">你被传送回了200年前！帮助科学家们建立原子模型，并亲手拼出一个原子。</div>
+    </div>
+
+    <div class="task-tabs">
+      <button class="task-tab active" id="tab1a" onclick="switchTab('1a')">任务一：连连看</button>
+      <button class="task-tab" id="tab1b" onclick="switchTab('1b')">任务二：原子拼图</button>
+    </div>
+
+    <div id="pane1a" class="task-pane active">
+      <div class="game-panel">
+        <div class="panel-title">📡 将科学家与他们的原子模型匹配</div>
+        <div class="connect-area">
+          <div class="connect-col" id="scientists"></div>
+          <div class="connect-col" id="models"></div>
+        </div>
+        <div class="feedback" id="connect-feedback"></div>
+        <div class="btn-row">
+          <button class="action-btn" onclick="resetConnect()">🔄 重置</button>
+          <button class="action-btn primary" id="btn-next-1a" onclick="completeTask1a()" disabled>下一题 →</button>
+        </div>
+      </div>
+      <div class="tip-box">💡 <strong>通关秘籍：</strong>记住原子模型的发展历程：实心球→西瓜→核式→特定轨道，查德威克发现了中子！</div>
+    </div>
+
+//Made by ecchua79
+    <div id="pane1b" class="task-pane">
+      <div class="game-panel">
+        <div class="panel-title">⚛️ 原子拼图挑战 — 完成 4 个原子！</div>
+
+        <!-- Progress dots -->
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;" id="atom-progress-dots"></div>
+
+        <!-- Current atom name -->
+        <div style="text-align:center;margin-bottom:12px;">
+          <span style="font-family:'Orbitron',monospace;font-size:11px;color:var(--dim);letter-spacing:2px;">当前目标：</span>
+          <span style="font-family:'Orbitron',monospace;font-size:18px;color:var(--gold);font-weight:700;" id="atom-target-name">—</span>
+        </div>
+
+        <!-- Particle selectors: 3 types with +/- controls -->
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;" id="particle-selectors"></div>
+
+        <!-- Atom diagram: SVG rings -->
+        <div style="display:flex;justify-content:center;margin-bottom:14px;">
+          <svg id="atom-svg" width="240" height="240" viewBox="0 0 240 240">
+            <!-- outer ring = 核外 -->
+            <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="22" stroke-dasharray="4 4"/>
+            <text x="120" y="14" text-anchor="middle" fill="rgba(0,212,255,0.5)" font-size="9" font-family="monospace">核外轨道（电子）</text>
+            <!-- inner ring = 核内 -->
+            <circle cx="120" cy="120" r="52" fill="rgba(255,107,53,0.08)" stroke="rgba(255,107,53,0.35)" stroke-width="22"/>
+            <text x="120" y="80" text-anchor="middle" fill="rgba(255,150,80,0.7)" font-size="9" font-family="monospace">原子核</text>
+            <!-- labels inside rings -->
+            <text id="svg-proton-label"  x="120" y="117" text-anchor="middle" fill="#ff9090" font-size="11" font-family="monospace">质子: 0</text>
+            <text id="svg-neutron-label" x="120" y="133" text-anchor="middle" fill="#aaaaee" font-size="11" font-family="monospace">中子: 0</text>
+            <text id="svg-electron-label" x="120" y="197" text-anchor="middle" fill="#00e8ff" font-size="12" font-family="monospace">电子: 0</text>
+          </svg>
+        </div>
+
+        <div class="feedback" id="atom-feedback"></div>
+        <div class="btn-row">
+          <button class="action-btn" onclick="resetAtomPuzzle()">🔄 重置本题</button>
+          <button class="action-btn primary" onclick="checkAtomPuzzle()">✅ 确认放置</button>
+        </div>
+      </div>
+      <div class="tip-box">💡 <strong>通关秘籍：</strong>质子和中子放入<strong>原子核（内圈）</strong>，电子放入<strong>核外轨道（外圈）</strong>。原子电中性：质子数 = 电子数！</div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="action-btn primary" id="btn-lv1-next" onclick="finishLevel1()" disabled>✨ 通关第一关！</button>
+    </div>
+  `;
+
+  initConnect();
+  initAtomBuilder();
+}
+
+// Connect state (declared at top)
+
+function buildConnectLists() {
+  const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+  const sciCol = document.getElementById('scientists');
+  const modCol = document.getElementById('models');
+  if (!sciCol || !modCol) return;
+  sciCol.innerHTML = '';
+  modCol.innerHTML = '';
+  const sciOrder = shuffle(CONNECT_DATA);
+  const modOrder = shuffle(CONNECT_DATA);
+  sciOrder.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'connect-item';
+    el.dataset.id = d.sciId;
+    el.textContent = d.sciLabel;
+    el.onclick = () => selectConnect(el, 'scientist');
+    sciCol.appendChild(el);
+  });
+  modOrder.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'connect-item';
+    el.dataset.id = d.modId;
+    el.textContent = d.modLabel;
+    el.onclick = () => selectConnect(el, 'model');
+    modCol.appendChild(el);
+  });
+}
+
+function initConnect() {
+  connectSel = { scientist: null, model: null };
+  connectMatched = 0;
+  buildConnectLists();
+}
+
+function resetConnect() {
+  connectSel = { scientist: null, model: null };
+  connectMatched = 0;
+  task1aDone = false;
+  buildConnectLists();
+  document.getElementById('connect-feedback').textContent = '';
+  document.getElementById('btn-next-1a').disabled = true;
+}
+
+function selectConnect(el, type) {
+  if (el.classList.contains('matched')) return;
+  const opposite = type === 'scientist' ? 'model' : 'scientist';
+
+  if (connectSel[type]) connectSel[type].classList.remove('selected');
+  connectSel[type] = el;
+  el.classList.add('selected');
+
+  if (connectSel.scientist && connectSel.model) {
+    const sci = connectSel.scientist.dataset.id;
+    const mod = connectSel.model.dataset.id;
+    if (connectAnswers[sci] === mod) {
+      connectSel.scientist.classList.remove('selected');
+      connectSel.model.classList.remove('selected');
+      connectSel.scientist.classList.add('matched');
+      connectSel.model.classList.add('matched');
+      connectMatched++;
+      showToast('✅ 匹配正确！+20分');
+      totalScore += 20;
+      updateHeader();
+      if (connectMatched === 5) {
+        task1aDone = true;
+        document.getElementById('connect-feedback').className = 'feedback success';
+        document.getElementById('connect-feedback').textContent = '🎉 全部匹配完成！科学家的贡献记录完毕！';
+        document.getElementById('btn-next-1a').disabled = false;
+        document.getElementById('tab1a').classList.add('completed');
+        checkLevel1Done();
+      }
+    } else {
+      connectSel.scientist.classList.add('wrong');
+      connectSel.model.classList.add('wrong');
+      showToast('❌ 不匹配，再试试！', false);
+      setTimeout(() => {
+        connectSel.scientist.classList.remove('wrong','selected');
+        connectSel.model.classList.remove('wrong','selected');
+      }, 600);
+//峇株吧辖华仁中学蔡逸众制作
+    }
+    connectSel = { scientist: null, model: null };
+  }
+}
+
+function completeTask1a() {
+  switchTab('1b');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.task-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.task-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab1' + tab.slice(1)).classList.add('active');
+  document.getElementById('pane1' + tab.slice(1)).classList.add('active');
+}
+
+// ── Atom Puzzle (new) ── (data declared at top)
+
+function initAtomBuilder() {
+  // pick 4 random distinct atoms
+  const shuffled = [...ATOM_POOL].sort(() => Math.random()-0.5);
+  atomPuzzleQueue = shuffled.slice(0,4);
+  atomPuzzleIdx = 0;
+  atomPuzzleCompleted = 0;
+  renderAtomPuzzle();
+}
+
+function renderAtomPuzzle() {
+  renderProgressDots();
+  const atom = atomPuzzleQueue[atomPuzzleIdx];
+  // Show name + relative atomic mass
+  document.getElementById('atom-target-name').textContent =
+    `${atom.name}　（相对原子质量 = ${atom.mass}）`;
+  apValues = { proton:0, neutron:0, electron:0 };
+  renderParticleSelectors();
+  updateAtomSVG();
+  document.getElementById('atom-feedback').textContent = '';
+  document.getElementById('atom-feedback').className = 'feedback';
+}
+
+function renderProgressDots() {
+  const wrap = document.getElementById('atom-progress-dots');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      width:28px;height:28px;border-radius:50%;border:2px solid;
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:700;
+      ${i < atomPuzzleCompleted
+        ? 'border-color:var(--accent3);background:rgba(168,255,62,0.2);color:var(--accent3);'
+        : i === atomPuzzleIdx
+        ? 'border-color:var(--gold);background:rgba(255,215,0,0.15);color:var(--gold);'
+        : 'border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.2);'}
+    `;
+    dot.textContent = i < atomPuzzleCompleted ? '✓' : i+1;
+    wrap.appendChild(dot);
+  }
+}
+
+function renderParticleSelectors() {
+  const wrap = document.getElementById('particle-selectors');
+  if (!wrap) return;
+  const types = [
+    { key:'proton',   label:'质子 P⁺', zone:'核内', col:'#ff9090', bg:'rgba(255,80,80,0.12)',   border:'#ff5050' },
+    { key:'neutron',  label:'中子 N',   zone:'核内', col:'#aaaaee', bg:'rgba(120,120,180,0.12)', border:'#8888cc' },
+    { key:'electron', label:'电子 e⁻',  zone:'核外', col:'#00e8ff', bg:'rgba(0,200,255,0.12)',   border:'#00c8ff' },
+  ];
+  wrap.innerHTML = types.map(t => `
+    <div style="
+      background:${t.bg};border:2px solid ${t.border};border-radius:14px;
+      padding:10px 14px;min-width:110px;text-align:center;
+    ">
+      <div style="font-size:13px;font-weight:700;color:${t.col};margin-bottom:2px;">${t.label}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.35);margin-bottom:8px;">放入：${t.zone}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button onclick="adjustAP('${t.key}',-1)" style="
+          width:28px;height:28px;border-radius:50%;border:1px solid ${t.border};
+          background:transparent;color:${t.col};font-size:18px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;line-height:1;
+        ">−</button>
+        <span id="ap-val-${t.key}" style="font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:${t.col};min-width:28px;text-align:center;">0</span>
+        <button onclick="adjustAP('${t.key}',+1)" style="
+          width:28px;height:28px;border-radius:50%;border:1px solid ${t.border};
+          background:transparent;color:${t.col};font-size:18px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;line-height:1;
+        ">+</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adjustAP(key, delta) {
+  apValues[key] = Math.max(0, apValues[key] + delta);
+  const el = document.getElementById('ap-val-' + key);
+  if (el) el.textContent = apValues[key];
+  updateAtomSVG();
+}
+
+function updateAtomSVG() {
+  const pl = document.getElementById('svg-proton-label');
+  const nl = document.getElementById('svg-neutron-label');
+  const el = document.getElementById('svg-electron-label');
+  if (pl) pl.textContent = '质子: ' + apValues.proton;
+  if (nl) nl.textContent = '中子: ' + apValues.neutron;
+  if (el) el.textContent = '电子: ' + apValues.electron;
+
+  // Draw animated particles inside SVG rings
+  const svg = document.getElementById('atom-svg');
+  if (!svg) return;
+
+  // Remove old dynamic particles
+  svg.querySelectorAll('.dyn-particle').forEach(e => e.remove());
+
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // Protons in nucleus (inner circle centre ~120,120 r~41)
+  const protonPositions = circlePositions(120, 120, 18, apValues.proton);
+  protonPositions.forEach((pos, i) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', pos.x); c.setAttribute('cy', pos.y); c.setAttribute('r', '5');
+    c.setAttribute('fill', '#ff5050'); c.setAttribute('stroke', '#ff9090'); c.setAttribute('stroke-width', '1');
+    c.setAttribute('class', 'dyn-particle');
+    c.style.animation = `particlePop 0.3s ease ${i*0.04}s both`;
+    svg.appendChild(c);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', pos.x); t.setAttribute('y', pos.y + 3);
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '5');
+    t.setAttribute('fill', '#ffcccc'); t.setAttribute('class', 'dyn-particle');
+    t.setAttribute('pointer-events', 'none');
+    t.textContent = '+';
+//峇株吧辖蔡逸众制作
+    svg.appendChild(t);
+  });
+
+  // Neutrons in nucleus
+  const neutronPositions = circlePositions(120, 120, 28, apValues.neutron);
+  neutronPositions.forEach((pos, i) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', pos.x); c.setAttribute('cy', pos.y); c.setAttribute('r', '5');
+    c.setAttribute('fill', '#6666aa'); c.setAttribute('stroke', '#aaaaee'); c.setAttribute('stroke-width', '1');
+    c.setAttribute('class', 'dyn-particle');
+    c.style.animation = `particlePop 0.3s ease ${i*0.04}s both`;
+    svg.appendChild(c);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', pos.x); t.setAttribute('y', pos.y + 3);
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '5');
+    t.setAttribute('fill', '#ccccff'); t.setAttribute('class', 'dyn-particle');
+    t.setAttribute('pointer-events', 'none');
+    t.textContent = 'n';
+    svg.appendChild(t);
+  });
+
+  // Electrons on outer orbit (r=97)
+  const electronPositions = circlePositions(120, 120, 97, apValues.electron);
+  electronPositions.forEach((pos, i) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', pos.x); c.setAttribute('cy', pos.y); c.setAttribute('r', '5');
+    c.setAttribute('fill', '#00aadd'); c.setAttribute('stroke', '#00e8ff'); c.setAttribute('stroke-width', '1.5');
+    c.setAttribute('class', 'dyn-particle');
+    c.style.animation = `particlePop 0.3s ease ${i*0.04}s both`;
+    svg.appendChild(c);
+  });
+}
+
+function circlePositions(cx, cy, r, count) {
+  if (count === 0) return [];
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i / count) - Math.PI / 2;
+    positions.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+  }
+  return positions;
+}
+
+function resetAtomPuzzle() {
+  apValues = { proton:0, neutron:0, electron:0 };
+  ['proton','neutron','electron'].forEach(k => {
+    const el = document.getElementById('ap-val-' + k);
+    if (el) el.textContent = '0';
+  });
+  updateAtomSVG();
+  document.getElementById('atom-feedback').textContent = '';
+  document.getElementById('atom-feedback').className = 'feedback';
+}
+
+function checkAtomPuzzle() {
+  const atom = atomPuzzleQueue[atomPuzzleIdx];
+  const fb = document.getElementById('atom-feedback');
+  const { proton, neutron, electron } = apValues;
+
+  if (proton === atom.proton && neutron === atom.neutron && electron === atom.electron) {
+    fb.className = 'feedback success';
+    fb.textContent = `🎉 正确！${atom.name}：${proton}质子 ${neutron}中子 ${electron}电子，电中性！`;
+    showToast(`⚛️ ${atom.name} 构建成功！+20分`);
+    totalScore += 20;
+    updateHeader();
+    atomPuzzleCompleted++;
+    atomPuzzleIdx++;
+
+    if (atomPuzzleCompleted >= 4) {
+      task1bDone = true;
+      document.getElementById('tab1b').classList.add('completed');
+      fb.textContent = '🏆 全部4个原子构建完成！你是原子大师！';
+      checkLevel1Done();
+      renderProgressDots();
+    } else {
+      setTimeout(() => {
+        renderAtomPuzzle();
+      }, 1200);
+    }
+  } else {
+    fb.className = 'feedback error';
+    if (proton === 0 && neutron === 0 && electron === 0) {
+      // Nothing entered — only reveal proton count
+      fb.textContent = `❌ 请先用 + 按钮输入数量！提示：该原子的质子数 = ${atom.proton}。`;
+    } else if (proton !== atom.proton) {
+      fb.textContent = `❌ 质子数不对！一个原子的质子数就是它的原子序数。（当前：${proton}，正确：${atom.proton}）`;
+    } else if (electron !== atom.electron) {
+      fb.textContent = `❌ 电子数不对！一个原子的电子数与其质子数相同。（当前：${electron}，质子数：${proton}）`;
+    } else {
+      fb.textContent = `❌ 中子数不对！一个原子的质子数与其中子数共同构成其相对原子质量（${atom.mass}）。（当前中子：${neutron}）`;
+    }
+  }
+}
+
+// kept for compat (unused now)
+function resetAtom() { resetAtomPuzzle(); }
+function checkAtom() { checkAtomPuzzle(); }
+
+function checkLevel1Done() {
+  if (task1aDone && task1bDone) {
+    document.getElementById('btn-lv1-next').disabled = false;
+  }
+}
+
+function finishLevel1() {
+  showToast('🏆 第一关通关！前往第二关！');
+  setTimeout(nextLevel, 800);
+}
+
+// ============================
+// LEVEL 2: 元素周期表
+// ============================
+// (ALL_ELEMENTS and symQuizData declared at top)
+
+function renderLevel2(container) {
+  // Pick 5 random elements for quiz
+  symQuizData = [...ALL_ELEMENTS].sort(() => Math.random()-0.5).slice(0, 5);
+
+  // Pick 10 for Tetris (ensure mix of metal/nonmetal)
+  const metals    = ALL_ELEMENTS.filter(e=>e.type==='metal');
+  const nonmetals = ALL_ELEMENTS.filter(e=>e.type==='nonmetal');
+  const tetrisList = [
+    ...metals.sort(()=>Math.random()-0.5).slice(0,5),
+    ...nonmetals.sort(()=>Math.random()-0.5).slice(0,5),
+  ].sort(()=>Math.random()-0.5);
+
+  container.innerHTML = `
+    <div class="level-header">
+      <div class="level-tag">LEVEL 02</div>
+      <div class="level-title">🪪 身份证解码器——元素周期表大搜寻</div>
+//华仁中学蔡逸众制作
+      <div class="level-bg-text">宇宙中有100多种元素，它们都有独特的"身份证"！</div>
+    </div>
+
+    <div class="task-tabs">
+      <button class="task-tab active" id="tab2a" onclick="switchTab2('a')">任务一：符号填空</button>
+      <button class="task-tab" id="tab2b" onclick="switchTab2('b')">任务二：元素分类</button>
+    </div>
+
+    <!-- TASK A: Symbol quiz -->
+    <div id="pane2a" class="task-pane active">
+      <div class="game-panel">
+        <div class="panel-title">🔤 看到元素符号，写出中文或英文名称（8题随机）</div>
+        <div id="symbol-quiz" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="action-btn" onclick="resetSymbols()">🔄 换一批题目</button>
+          <button class="action-btn primary" onclick="checkSymbols()">✅ 提交答案</button>
+        </div>
+        <div class="feedback" id="sym-feedback"></div>
+      </div>
+      <div class="tip-box">💡 <strong>提示：</strong>写中文名或英文名均可。例如 Fe → 铁 或 Iron 都算对！</div>
+    </div>
+
+    <!-- TASK B: Tetris sorter -->
+    <div id="pane2b" class="task-pane">
+      <div class="game-panel" style="padding:14px;">
+        <div class="panel-title">🎮 左右移动球，把金属移到左边，非金属移到右边！</div>
+
+        <!-- scoreboard -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;">
+          <span style="color:var(--gold);">🔩 金属: <strong id="t-metal-count">0</strong>/5</span>
+          <span id="t-remain" style="color:var(--dim);">剩余: 10</span>
+          <span style="color:var(--accent3);">💨 非金属: <strong id="t-nonmetal-count">0</strong>/5</span>
+        </div>
+
+        <!-- game canvas -->
+        <div id="tetris-wrap" style="position:relative;width:100%;height:340px;background:rgba(0,10,30,0.6);border-radius:12px;overflow:hidden;border:1px solid rgba(0,212,255,0.15);">
+
+          <!-- divider line -->
+          <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(255,255,255,0.08);pointer-events:none;"></div>
+          <!-- bin labels -->
+          <div style="position:absolute;bottom:8px;left:0;width:50%;text-align:center;font-size:11px;color:rgba(255,215,0,0.5);pointer-events:none;">← 金属</div>
+          <div style="position:absolute;bottom:8px;right:0;width:50%;text-align:center;font-size:11px;color:rgba(168,255,62,0.5);pointer-events:none;">非金属 →</div>
+
+          <!-- bucket walls -->
+          <div id="bucket-metal"    style="position:absolute;bottom:0;left:0;width:50%;height:60px;border-top:2px solid rgba(255,215,0,0.4);background:rgba(255,215,0,0.04);display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px;"></div>
+          <div id="bucket-nonmetal" style="position:absolute;bottom:0;right:0;width:50%;height:60px;border-top:2px solid rgba(168,255,62,0.4);background:rgba(168,255,62,0.04);display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px;"></div>
+
+          <!-- active ball container -->
+          <div id="tetris-ball-layer"></div>
+        </div>
+
+        <!-- controls -->
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">
+          <button class="action-btn" id="btn-left"  onpointerdown="tetrisMove(-1)" style="font-size:20px;padding:10px 24px;">←</button>
+          <button class="action-btn" id="btn-drop"  onpointerdown="tetrisDrop()"  style="font-size:13px;padding:10px 20px;letter-spacing:1px;">⬇ 确认放入</button>
+          <button class="action-btn" id="btn-right" onpointerdown="tetrisMove(1)"  style="font-size:20px;padding:10px 24px;">→</button>
+        </div>
+
+        <div class="feedback" id="rain-feedback" style="margin-top:8px;"></div>
+      </div>
+      <div class="tip-box" style="margin-top:10px;">💡 <strong>规则：</strong>球从上方落下，用 ← → 移动到左（金属）或右（非金属）侧，按 ⬇ 确认。汞(Hg)虽是金属但分类为金属！</div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="action-btn primary" id="btn-lv2-next" onclick="finishLevel2()" disabled>✨ 通关第二关！</button>
+    </div>
+  `;
+
+  buildSymbolQuiz();
+  // Store tetrisList but DON'T start tetris yet — wait until tab2b is opened
+  window._tetrisList = tetrisList;
+  window._tetrisStarted = false;
+  window._lv2_sym_done = false;
+  window._lv2_rain_done = false;
+}
+
+function buildSymbolQuiz() {
+  const quiz = document.getElementById('symbol-quiz');
+  if (!quiz) return;
+  quiz.innerHTML = '';
+  symQuizData.forEach((q, i) => {
+    const answers = [q.zh, q.en, q.en.toLowerCase()];
+    quiz.innerHTML += `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="
+          font-family:'Orbitron',monospace;font-size:20px;font-weight:700;
+          color:var(--accent);background:var(--panel2);border:2px solid rgba(0,212,255,0.3);
+          border-radius:10px;padding:7px 14px;min-width:64px;text-align:center;
+        ">${q.sym}</div>
+        <span style="color:var(--dim);font-size:13px;">→</span>
+        <input class="sym-input" id="sym-input-${i}"
+          placeholder="中文或英文名..."
+          data-answers='${JSON.stringify(answers)}'
+          data-hint="${q.zh} / ${q.en}"
+          onkeydown="if(event.key==='Enter')checkSymbols()"
+          style="flex:1;min-width:140px;">
+      </div>
+    `;
+  });
+}
+
+function switchTab2(tab) {
+  // Only allow switching to tab b after task a is done
+  if (tab === 'b' && !window._lv2_sym_done) {
+    showToast('⚠️ 请先完成任务一（符号填空）！', false);
+    return;
+  }
+  document.querySelectorAll('.task-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.task-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab2' + tab).classList.add('active');
+  document.getElementById('pane2' + tab).classList.add('active');
+  // Start tetris the first time tab b is opened
+  if (tab === 'b' && !window._tetrisStarted) {
+    window._tetrisStarted = true;
+    setTimeout(() => initTetris(window._tetrisList), 100);
+  }
+}
+
+function resetSymbols() {
+  // re-randomize 5 questions
+  symQuizData = [...ALL_ELEMENTS].sort(()=>Math.random()-0.5).slice(0,5);
+  buildSymbolQuiz();
+  document.getElementById('sym-feedback').textContent = '';
+  document.getElementById('sym-feedback').className = 'feedback';
+}
+
+function checkSymbols() {
+  let correct = 0;
+  const inputs = document.querySelectorAll('.sym-input');
+  inputs.forEach(inp => {
+//Made by ecchua79
+    const answers = JSON.parse(inp.dataset.answers);
+    const val = inp.value.trim();
+    if (val && answers.some(a => a.toLowerCase() === val.toLowerCase())) {
+      inp.className = 'sym-input correct';
+      correct++;
+    } else {
+      inp.className = 'sym-input wrong2';
+      if (!val) inp.placeholder = '提示: ' + inp.dataset.hint;
+    }
+  });
+
+  const fb = document.getElementById('sym-feedback');
+  const total = inputs.length;
+  if (correct >= 4) {  // need 4/5
+    fb.className = 'feedback success';
+    fb.textContent = `🎉 ${correct}/${total} 正确！通过！+${correct*5}分 → 现在去完成任务二！`;
+    totalScore += correct * 5;
+    updateHeader();
+    window._lv2_sym_done = true;
+    document.getElementById('tab2a').classList.add('completed');
+    checkLevel2Done();
+    // auto switch to task b after 1.2s
+    setTimeout(() => switchTab2('b'), 1200);
+  } else {
+    fb.className = 'feedback error';
+    fb.textContent = `${correct}/${total} 正确，需要至少 4 题才能通过。再试试！`;
+  }
+}
+
+// ── TETRIS SORTER ── (vars declared at top)
+
+function initTetris(list) {
+  tetrisQueue = [...list];
+  tetrisCurrent = null;
+  tetrisMetalOk = 0;
+  tetrisNonmetalOk = 0;
+  tetrisDone = 0;
+  tetrisFalling = false;
+  clearInterval(tetrisFallTimer);
+  // clear buckets
+  const bm = document.getElementById('bucket-metal');
+  const bn = document.getElementById('bucket-nonmetal');
+  if (bm) bm.innerHTML = '';
+  if (bn) bn.innerHTML = '';
+  const mc = document.getElementById('t-metal-count');
+  const nc = document.getElementById('t-nonmetal-count');
+  const tr = document.getElementById('t-remain');
+  const rf = document.getElementById('rain-feedback');
+  if (mc) mc.textContent = '0';
+  if (nc) nc.textContent = '0';
+  if (tr) tr.textContent = '剩余: ' + tetrisQueue.length;
+  if (rf) rf.textContent = '';
+  // defer spawn so the DOM (and offsetWidth) is fully laid out
+  setTimeout(spawnTetrisBall, 120);
+}
+
+function spawnTetrisBall() {
+  if (tetrisQueue.length === 0) return;
+  clearInterval(tetrisFallTimer);
+  tetrisFalling = false;
+
+  const data = tetrisQueue.shift();
+  document.getElementById('t-remain').textContent = '剩余: ' + (tetrisQueue.length + 1);
+
+  const wrap = document.getElementById('tetris-ball-layer');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  const ball = document.createElement('div');
+  const ww = wrap.offsetWidth || 300;
+  const ballW = 72;
+  // start centre of left or right half
+  const startLeft = Math.random() < 0.5
+    ? Math.round(ww * 0.25 - ballW / 2)
+    : Math.round(ww * 0.75 - ballW / 2);
+
+  ball.style.cssText = `
+    position:absolute;
+    width:${ballW}px;height:${ballW}px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, ${data.color}cc, ${data.color}44);
+    border: 2px solid ${data.color};
+    box-shadow: 0 0 14px ${data.color}66;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    top:10px;
+    left:${startLeft}px;
+    transition:left 0.15s ease;
+    user-select:none;
+    z-index:10;
+  `;
+  ball.innerHTML = `
+    <span style="font-size:18px;font-weight:900;color:#fff;text-shadow:0 0 8px ${data.color};line-height:1;">${data.sym}</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.8);line-height:1.3;">${data.zh}</span>
+    <span style="font-size:8px;color:rgba(255,255,255,0.55);">${data.en}</span>
+  `;
+
+  wrap.appendChild(ball);
+  tetrisCurrent = { el: ball, data, side: (startLeft + ballW / 2) < ww / 2 ? 'left' : 'right' };
+
+  // auto-fall slowly
+  let topPx = 10;
+  tetrisFalling = true;
+  tetrisFallTimer = setInterval(() => {
+    if (!tetrisFalling || !tetrisCurrent) { clearInterval(tetrisFallTimer); return; }
+    topPx += 0.7;
+    ball.style.top = topPx + 'px';
+    if (topPx >= 255) {
+      clearInterval(tetrisFallTimer);
+      tetrisFalling = false;
+      landBall();
+    }
+  }, 20);
+}
+
+function tetrisMove(dir) {
+  if (!tetrisCurrent || !tetrisFalling) return;
+  const { el } = tetrisCurrent;
+  const wrap = document.getElementById('tetris-ball-layer');
+  if (!wrap) return;
+  const ww = wrap.offsetWidth || 300;
+  const ballW = 72;
+  // read current left in px
+  let curLeft = parseFloat(el.style.left) || (ww / 2 - ballW / 2);
+  curLeft += dir * Math.round(ww * 0.25);
+  curLeft = Math.max(0, Math.min(ww - ballW, curLeft));
+  el.style.left = curLeft + 'px';
+  tetrisCurrent.side = (curLeft + ballW / 2) < ww / 2 ? 'left' : 'right';
+}
+
+function tetrisDrop() {
+  if (!tetrisCurrent || !tetrisFalling) return;
+  // accelerate to bottom instantly
+  clearInterval(tetrisFallTimer);
+  const { el } = tetrisCurrent;
+  el.style.top = '255px';
+  setTimeout(landBall, 120);
+}
+
+function landBall() {
+  if (!tetrisCurrent) return;
+//峇株吧辖华仁中学蔡逸众制作
+  const { data, el } = tetrisCurrent;
+  const wrap = document.getElementById('tetris-ball-layer');
+  const ww = wrap ? (wrap.offsetWidth || 300) : 300;
+  const ballW = 72;
+  const curLeft = parseFloat(el.style.left) || 0;
+  const ballCentre = curLeft + ballW / 2;
+
+  tetrisCurrent = null;
+  tetrisDone++;
+
+  // middle zone = within 15% of centre on either side → wrong
+  const midZone = ww * 0.15;
+  const inMiddle = Math.abs(ballCentre - ww / 2) < midZone;
+  const chosenMetal = ballCentre < ww / 2;
+
+  if (inMiddle) {
+    // animate ball bouncing back
+    el.style.transition = 'transform 0.4s, opacity 0.4s';
+    el.style.transform = 'scale(1.3)';
+    el.style.opacity = '0';
+    showToast(`⚠️ 球落在中间，判为错误！请移到左或右侧！`, false);
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 500);
+    setTimeout(spawnTetrisBall, 700);
+    return;
+  }
+
+  const correct = (data.type === 'metal') === chosenMetal;
+
+  // mini badge into bucket
+  const bucket = document.getElementById(chosenMetal ? 'bucket-metal' : 'bucket-nonmetal');
+  const badge = document.createElement('div');
+  badge.style.cssText = `
+    width:28px;height:28px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,${data.color}cc,${data.color}44);
+    border:2px solid ${correct ? data.color : '#ff3366'};
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;color:#fff;
+    ${correct ? '' : 'opacity:0.5;'}
+  `;
+  badge.textContent = data.sym;
+  badge.title = correct ? '✅ 正确' : `❌ 应为${data.type==='metal'?'金属（左）':'非金属（右）'}`;
+  if (bucket) bucket.appendChild(badge);
+
+  // animate ball off screen
+  el.style.transition = 'transform 0.3s, opacity 0.3s';
+  el.style.transform = `translateY(${correct ? '60px' : '-120px'}) scale(${correct ? 0.5 : 1.4})`;
+  el.style.opacity = '0';
+
+  if (correct) {
+    showToast(`✅ ${data.zh}(${data.sym}) 正确！`);
+    totalScore += 8;
+    updateHeader();
+    if (data.type === 'metal') {
+      tetrisMetalOk++;
+      document.getElementById('t-metal-count').textContent = tetrisMetalOk;
+    } else {
+      tetrisNonmetalOk++;
+      document.getElementById('t-nonmetal-count').textContent = tetrisNonmetalOk;
+    }
+  } else {
+    showToast(`❌ ${data.zh}是${data.type==='metal'?'金属，应移左':'非金属，应移右'}！`, false);
+  }
+
+  document.getElementById('t-remain').textContent = '剩余: ' + tetrisQueue.length;
+
+  if (tetrisQueue.length === 0) {
+    // all done
+    setTimeout(() => {
+      const fb = document.getElementById('rain-feedback');
+      if (!fb) return;
+      const score = tetrisMetalOk + tetrisNonmetalOk;
+      if (score >= 8) {
+        fb.className = 'feedback success';
+        fb.textContent = `🎉 完成！${score}/10 正确，你是元素分类大师！`;
+        window._lv2_rain_done = true;
+        document.getElementById('tab2b').classList.add('completed');
+        checkLevel2Done();
+      } else {
+        fb.className = 'feedback error';
+        fb.textContent = `${score}/10 正确。点击重置再试！`;
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'action-btn';
+        resetBtn.textContent = '🔄 重新挑战';
+        resetBtn.style.marginLeft = '12px';
+        resetBtn.onclick = () => {
+          const metals    = ALL_ELEMENTS.filter(e=>e.type==='metal');
+          const nonmetals = ALL_ELEMENTS.filter(e=>e.type==='nonmetal');
+          const newList = [
+            ...metals.sort(()=>Math.random()-0.5).slice(0,5),
+            ...nonmetals.sort(()=>Math.random()-0.5).slice(0,5),
+          ].sort(()=>Math.random()-0.5);
+          initTetris(newList);
+        };
+        fb.appendChild(resetBtn);
+      }
+    }, 400);
+    return;
+  }
+
+  setTimeout(spawnTetrisBall, 600);
+}
+
+function checkLevel2Done() {
+  if (window._lv2_sym_done && window._lv2_rain_done) {
+    document.getElementById('btn-lv2-next').disabled = false;
+  }
+}
+
+function finishLevel2() {
+  showToast('🏆 第二关通关！前往第三关！');
+  clearInterval(tetrisFallTimer);
+  setTimeout(nextLevel, 800);
+}
+
+// ============================
+// LEVEL 3: 分子与离子
+// ============================
+function renderLevel3(container) {
+  container.innerHTML = `
+    <div class="level-header">
+      <div class="level-tag">LEVEL 03</div>
+      <div class="level-title">🔗 超级组队——分子与离子的诞生</div>
+      <div class="level-bg-text">合成3种分子，再制造3种盐！</div>
+    </div>
+
+    <div class="task-tabs">
+      <button class="task-tab active" id="tab3a" onclick="switchTab3('a')">任务一：合成分子</button>
+      <button class="task-tab" id="tab3b" onclick="switchTab3('b')">任务二：制造离子化合物</button>
+    </div>
+
+    <!-- TASK A: Molecule synthesis -->
+    <div id="pane3a" class="task-pane active">
+      <div class="game-panel">
+        <div class="panel-title" id="mol-panel-title">🧪 合成分子 — 第 1/3 种</div>
+        <div id="mol-target-display" style="text-align:center;margin:8px 0;font-size:13px;color:var(--dim);"></div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;" id="mol-atom-pool"></div>
+        <div id="mol-reaction-zone" style="
+          min-height:70px;border:2px dashed rgba(0,212,255,0.3);border-radius:12px;
+          display:flex;align-items:center;justify-content:center;gap:8px;
+          padding:10px;flex-wrap:wrap;background:rgba(0,20,60,0.3);margin-bottom:10px;
+//峇株吧辖蔡逸众制作
+        "><span style="color:var(--dim);font-size:13px;">点击上方原子添加</span></div>
+        <!-- Animated molecule display -->
+        <div id="mol-result-anim" style="display:none;text-align:center;padding:10px;"></div>
+        <div class="feedback" id="mol-feedback"></div>
+        <div class="btn-row">
+          <button class="action-btn" onclick="resetMolReaction()">🔄 重置</button>
+          <button class="action-btn primary" onclick="checkMolReaction()">⚗️ 合成！</button>
+        </div>
+      </div>
+      <div class="tip-box" id="mol-tip">💡 按照分子式选择正确数量的原子，化合价代数和 = 0！</div>
+    </div>
+
+    <!-- TASK B: Ion compounds -->
+    <div id="pane3b" class="task-pane">
+      <div class="game-panel">
+        <div class="panel-title" id="salt-panel-title">🧂 制造离子化合物 — 第 1/3 种</div>
+        <div id="salt-desc" style="text-align:center;font-size:13px;color:var(--dim);margin-bottom:8px;"></div>
+
+        <div style="display:flex;justify-content:center;margin-bottom:10px;">
+          <svg id="nacl-svg" viewBox="0 0 340 200" width="100%" style="max-height:190px;background:rgba(0,8,30,0.5);border-radius:12px;border:1px solid rgba(0,212,255,0.1);" pointer-events="all">
+            <g id="salt-svg-content"></g>
+          </svg>
+        </div>
+
+        <div id="salt-result" style="text-align:center;font-size:17px;letter-spacing:2px;color:var(--dim);margin:6px 0;"></div>
+        <div class="feedback" id="nacl-feedback"></div>
+        <div class="btn-row">
+          <button class="action-btn" onclick="resetSalt()">🔄 重置</button>
+        </div>
+      </div>
+      <div class="tip-box" id="salt-tip">💡 点击发光电子，看它飞向接受方！</div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="action-btn primary" id="btn-lv3-next" onclick="finishLevel3()" disabled>✨ 通关第三关！</button>
+    </div>
+  `;
+
+  // ── Task A state ──
+  const MOLECULES = [
+    { name:'水',    formula:'H₂O',   display:'H₂O',   atoms:{H:2,O:1},   colors:{H:'#88ddff',O:'#ff8855'}, tip:'H=+1，O=-2，2×(+1)+(-2)=0 ✓' },
+    { name:'氨气',  formula:'NH₃',   display:'NH₃',   atoms:{N:1,H:3},   colors:{N:'#aaddff',H:'#88ddff'}, tip:'N=-3，H=+1，(-3)+3×(+1)=0 ✓' },
+    { name:'二氧化碳', formula:'CO₂', display:'CO₂',  atoms:{C:1,O:2},   colors:{C:'#aaaaaa',O:'#ff8855'}, tip:'C=+4，O=-2，(+4)+2×(-2)=0 ✓' },
+  ];
+  window._molIdx = 0;
+  window._molDone = 0;
+  window._molCurrent = {};
+  window._lv3_mol_done = false;
+
+  // ── Task B state ──
+  const SALTS = [
+    {
+      name:'氯化钠 NaCl', formula:'NaCl',
+      donor:{ sym:'Na', label:'钠', protons:11, elecs:11, outerE:1, color:'#ffd700', charge:'Na⁺' },
+      acceptor:{ sym:'Cl', label:'氯', protons:17, elecs:17, emptySlots:1, color:'#88ff88', charge:'Cl⁻' },
+      eCount:1, tip:'Na最外层1个电子 → Cl缺1个，转移后各达稳定结构！'
+    },
+    {
+      name:'氧化镁 MgO', formula:'MgO',
+      donor:{ sym:'Mg', label:'镁', protons:12, elecs:12, outerE:2, color:'#ffee66', charge:'Mg²⁺' },
+      acceptor:{ sym:'O',  label:'氧', protons:8,  elecs:8,  emptySlots:2, color:'#55aaff', charge:'O²⁻' },
+      eCount:2, tip:'Mg最外层2个电子 → O缺2个，转移2个电子！'
+    },
+    {
+      name:'氯化铝 AlCl₃', formula:'AlCl₃',
+      donor:{ sym:'Al', label:'铝', protons:13, elecs:13, outerE:3, color:'#cccccc', charge:'Al³⁺' },
+      acceptor:{ sym:'Cl', label:'氯', protons:17, elecs:17, emptySlots:1, color:'#88ff88', charge:'Cl⁻' },
+      acceptorCount:3,
+      eCount:3, tip:'Al最外层3个电子，分别给3个Cl各1个，形成AlCl₃！'
+    },
+  ];
+  window._saltIdx = 0;
+  window._saltDone = 0;
+  window._lv3_nacl_done = false;
+  window._transferred = false;
+  window._SALTS = SALTS;
+
+  window._lv3_mol_done = false;
+
+  renderMolQuestion();
+}
+
+// ── Task A: Molecule synthesis ──
+const ATOM_COLORS = { H:'#88ddff', O:'#ff8855', N:'#aaddff', C:'#aaaaaa', S:'#ffee00', Cl:'#99ff66' };
+
+function renderMolQuestion() {
+  const mol = [
+    { name:'水',       formula:'H₂O', display:'H₂O',  atoms:{H:2,O:1}, colors:{H:'#88ddff',O:'#ff8855'}, tip:'H=+1，O=-2，2×(+1)+(-2)=0 ✓' },
+    { name:'氨气',     formula:'NH₃', display:'NH₃',  atoms:{N:1,H:3}, colors:{N:'#aaddff',H:'#88ddff'}, tip:'N=-3，H=+1，(-3)+3×(+1)=0 ✓' },
+    { name:'二氧化碳', formula:'CO₂', display:'CO₂',  atoms:{C:1,O:2}, colors:{C:'#aaaaaa',O:'#ff8855'}, tip:'C=+4，O=-2，(+4)+2×(-2)=0 ✓' },
+  ][window._molIdx];
+
+  window._molCurrent = mol;
+  window._molCurrentAtoms = {};
+
+  document.getElementById('mol-panel-title').textContent = `🧪 合成分子 — 第 ${window._molIdx+1}/3 种`;
+  document.getElementById('mol-target-display').innerHTML =
+    `目标：<strong style="color:var(--gold);font-size:18px;">${mol.display}</strong>（${mol.name}）`;
+
+  // Build atom pool
+  const pool = document.getElementById('mol-atom-pool');
+  pool.innerHTML = '';
+  // Provide extra atoms so student must choose right count
+  const available = {};
+  for (const el in mol.atoms) available[el] = mol.atoms[el] + 2;
+  // Also add a wrong atom as distractor
+  const distractors = ['H','O','N','C','Cl'].filter(e=>!(e in mol.atoms));
+  if (distractors.length) available[distractors[0]] = 2;
+
+  for (const el in available) {
+    for (let i = 0; i < available[el]; i++) {
+      const card = document.createElement('div');
+      card.className = 'atom-card ' + el + '-card';
+      card.style.cssText = `
+        width:50px;height:50px;border-radius:10px;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;font-size:18px;font-weight:700;
+        cursor:pointer;border:2px solid ${mol.colors[el]||ATOM_COLORS[el]||'#888'};
+        background:${(mol.colors[el]||ATOM_COLORS[el]||'#888')}22;
+        color:${mol.colors[el]||ATOM_COLORS[el]||'#888'};
+        transition:all 0.2s;user-select:none;
+      `;
+      card.textContent = el;
+      card.dataset.el = el;
+      card.onclick = () => addMolAtom(el, mol.colors[el]||ATOM_COLORS[el]||'#888');
+      pool.appendChild(card);
+    }
+  }
+
+  document.getElementById('mol-reaction-zone').innerHTML =
+    '<span style="color:var(--dim);font-size:13px;">点击上方原子添加</span>';
+  document.getElementById('mol-result-anim').style.display = 'none';
+  document.getElementById('mol-feedback').textContent = '';
+  document.getElementById('mol-feedback').className = 'feedback';
+  const tip = document.getElementById('mol-tip');
+  if (tip) tip.textContent = '💡 ' + mol.tip;
+}
+
+function addMolAtom(el, color) {
+  if (!window._molCurrentAtoms) window._molCurrentAtoms = {};
+  window._molCurrentAtoms[el] = (window._molCurrentAtoms[el] || 0) + 1;
+
+  // Rebuild zone display
+  const zone = document.getElementById('mol-reaction-zone');
+  zone.innerHTML = '';
+  const total = Object.values(window._molCurrentAtoms).reduce((a,b)=>a+b,0);
+  if (total === 0) { zone.innerHTML = '<span style="color:var(--dim);font-size:13px;">点击上方原子添加</span>'; return; }
+
+  let first = true;
+  for (const sym in window._molCurrentAtoms) {
+    const cnt = window._molCurrentAtoms[sym];
+//华仁中学蔡逸众制作
+    const col = ATOM_COLORS[sym] || '#888';
+    for (let i = 0; i < cnt; i++) {
+      if (!first) {
+        const line = document.createElement('div');
+        line.style.cssText = 'width:16px;height:3px;border-radius:2px;background:rgba(255,255,255,0.25);flex-shrink:0;';
+        zone.appendChild(line);
+      }
+      first = false;
+      const div = document.createElement('div');
+      div.style.cssText = `
+        width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        font-size:15px;font-weight:700;border:2px solid ${col};
+        background:${col}22;color:${col};flex-shrink:0;
+      `;
+      div.textContent = sym;
+      zone.appendChild(div);
+    }
+  }
+}
+
+function resetMolReaction() {
+  window._molCurrentAtoms = {};
+  const zone = document.getElementById('mol-reaction-zone');
+  if (zone) zone.innerHTML = '<span style="color:var(--dim);font-size:13px;">点击上方原子添加</span>';
+  const fb = document.getElementById('mol-feedback');
+  if (fb) { fb.textContent = ''; fb.className = 'feedback'; }
+  const anim = document.getElementById('mol-result-anim');
+  if (anim) anim.style.display = 'none';
+}
+
+function checkMolReaction() {
+  const mol = window._molCurrent;
+  const got = window._molCurrentAtoms || {};
+  const fb = document.getElementById('mol-feedback');
+
+  // compare
+  const correct = Object.keys(mol.atoms).every(el => got[el] === mol.atoms[el]) &&
+                  Object.keys(got).every(el => mol.atoms[el] === got[el]);
+
+  if (correct) {
+    fb.className = 'feedback success';
+    fb.textContent = `🎉 ${mol.name}（${mol.formula}）合成成功！+20分`;
+    totalScore += 20; updateHeader();
+    showToast(`✅ ${mol.display} 合成！`);
+
+    // Show molecule animation
+    showMolAnim(mol);
+
+    window._molDone++;
+    window._molIdx++;
+    if (window._molDone >= 3) {
+      window._lv3_mol_done = true;
+      document.getElementById('tab3a').classList.add('completed');
+      checkLevel3Done();
+      setTimeout(() => switchTab3('b'), 2000);
+    } else {
+      setTimeout(renderMolQuestion, 2200);
+    }
+  } else {
+    fb.className = 'feedback error';
+    const expected = Object.entries(mol.atoms).map(([k,v])=>`${k}×${v}`).join(' + ');
+    fb.textContent = `❌ 不对！${mol.name} 需要：${expected}。检查原子种类和数量！`;
+  }
+}
+
+function showMolAnim(mol) {
+  const anim = document.getElementById('mol-result-anim');
+  anim.style.display = 'block';
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 320 130');
+  svg.style.cssText = 'width:100%;max-width:320px;background:rgba(0,20,60,0.4);border-radius:10px;border:1px solid rgba(255,255,255,0.1);display:block;margin:0 auto;';
+
+  // Molecule-specific layouts: { sym, x, y, bonds:[[x1,y1,x2,y2,order],...] }
+  const LAYOUTS = {
+    'H₂O': {
+      atoms: [
+        {sym:'O', x:160, y:52, col:'#ff8855'},
+        {sym:'H', x:110, y:95, col:'#88ddff'},
+        {sym:'H', x:210, y:95, col:'#88ddff'},
+      ],
+      bonds: [
+        {x1:147,y1:64,x2:120,y2:85, order:1},
+        {x1:173,y1:64,x2:200,y2:85, order:1},
+      ],
+      name:'水（弯曲形）', bondAngle:'∠HOH ≈ 104.5°'
+    },
+    'NH₃': {
+      atoms: [
+        {sym:'N', x:160, y:45, col:'#aaddff'},
+        {sym:'H', x:100, y:95, col:'#88ddff'},
+        {sym:'H', x:160, y:105, col:'#88ddff'},
+        {sym:'H', x:220, y:95, col:'#88ddff'},
+      ],
+      bonds: [
+        {x1:148,y1:58,x2:112,y2:83, order:1},
+        {x1:160,y1:60,x2:160,y2:91, order:1},
+        {x1:172,y1:58,x2:208,y2:83, order:1},
+      ],
+      name:'氨气（三角锥形）', bondAngle:'∠HNH ≈ 107°'
+    },
+    'CO₂': {
+      atoms: [
+        {sym:'O', x:70,  y:60, col:'#ff8855'},
+        {sym:'C', x:160, y:60, col:'#aaaaaa'},
+        {sym:'O', x:250, y:60, col:'#ff8855'},
+      ],
+      bonds: [
+        {x1:84, y1:60,x2:143,y2:60, order:2},
+        {x1:177,y1:60,x2:236,y2:60, order:2},
+      ],
+      name:'二氧化碳（直线形）', bondAngle:'∠OCO = 180°'
+    },
+  };
+
+  const layout = LAYOUTS[mol.formula] || LAYOUTS['H₂O'];
+
+  // Draw bonds first (behind atoms)
+  layout.bonds.forEach((b, bi) => {
+    if (b.order === 2) {
+      // Double bond: two parallel lines
+      const dx = b.x2 - b.x1, dy = b.y2 - b.y1;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      const px = -dy/len*3, py = dx/len*3;
+      [[px,py],[-px,-py]].forEach(([ox,oy]) => {
+        const line = document.createElementNS(ns,'line');
+        line.setAttribute('x1',b.x1+ox); line.setAttribute('y1',b.y1+oy);
+        line.setAttribute('x2',b.x2+ox); line.setAttribute('y2',b.y2+oy);
+        line.setAttribute('stroke','rgba(255,255,255,0.5)'); line.setAttribute('stroke-width','2');
+        line.style.animation = `particlePop 0.3s ease ${bi*0.1+0.1}s both`;
+        svg.appendChild(line);
+      });
+    } else {
+      const line = document.createElementNS(ns,'line');
+      line.setAttribute('x1',b.x1); line.setAttribute('y1',b.y1);
+      line.setAttribute('x2',b.x2); line.setAttribute('y2',b.y2);
+      line.setAttribute('stroke','rgba(255,255,255,0.45)'); line.setAttribute('stroke-width','3');
+      line.style.animation = `particlePop 0.3s ease ${bi*0.1+0.1}s both`;
+      svg.appendChild(line);
+    }
+  });
+
+  // Draw atoms
+  layout.atoms.forEach((a, ai) => {
+    const delay = (ai * 0.12 + 0.05) + 's';
+    const glow = document.createElementNS(ns,'circle');
+    glow.setAttribute('cx',a.x); glow.setAttribute('cy',a.y); glow.setAttribute('r','22');
+    glow.setAttribute('fill', a.col+'28');
+    glow.style.animation = `particlePop 0.35s ease ${delay} both`;
+    svg.appendChild(glow);
+
+    const c = document.createElementNS(ns,'circle');
+    c.setAttribute('cx',a.x); c.setAttribute('cy',a.y); c.setAttribute('r','16');
+    c.setAttribute('fill', a.col+'99'); c.setAttribute('stroke',a.col); c.setAttribute('stroke-width','2');
+    c.style.animation = `particlePop 0.35s ease ${delay} both`;
+    svg.appendChild(c);
+
+    const t = document.createElementNS(ns,'text');
+    t.setAttribute('x',a.x); t.setAttribute('y',a.y+5);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','13');
+    t.setAttribute('font-weight','bold'); t.setAttribute('fill','#fff');
+    t.setAttribute('pointer-events','none');
+    t.style.animation = `particlePop 0.35s ease ${delay} both`;
+    t.textContent = a.sym;
+    svg.appendChild(t);
+  });
+
+  // Labels
+  const fml = document.createElementNS(ns,'text');
+  fml.setAttribute('x','160'); fml.setAttribute('y','120');
+  fml.setAttribute('text-anchor','middle'); fml.setAttribute('font-size','10');
+  fml.setAttribute('fill','rgba(168,255,62,0.9)'); fml.setAttribute('font-family','monospace');
+  fml.textContent = `✓ ${mol.formula}  ${layout.name}  ${layout.bondAngle}`;
+  svg.appendChild(fml);
+
+  anim.innerHTML = '';
+  anim.appendChild(svg);
+}
+
+// ── Task B: Ion compounds ──
+function switchTab3(tab) {
+  if (tab === 'b' && !window._lv3_mol_done) {
+    showToast('⚠️ 请先完成任务一（合成3种分子）！', false);
+    return;
+  }
+  document.querySelectorAll('.task-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.task-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab3' + tab).classList.add('active');
+  document.getElementById('pane3' + tab).classList.add('active');
+  if (tab === 'b') renderSaltQuestion();
+}
+
+function renderSaltQuestion() {
+  const salt = window._SALTS[window._saltIdx];
+  window._transferred = false;
+  window._transferCount = 0;
+  window._saltElecLeft = salt.eCount;
+
+  document.getElementById('salt-panel-title').textContent =
+    `🧂 制造离子化合物 — 第 ${window._saltIdx+1}/3 种`;
+  document.getElementById('salt-desc').textContent =
+    `目标：${salt.name}　需要转移 ${salt.eCount} 个电子`;
+  document.getElementById('salt-result').style.color = 'var(--dim)';
+  document.getElementById('salt-result').textContent =
+    `${salt.donor.sym} + ${salt.acceptor.sym} = ?`;
+//Made by ecchua79
+
+  const fb = document.getElementById('nacl-feedback');
+  if (fb) { fb.className='feedback'; fb.textContent=''; }
+
+  const tip = document.getElementById('salt-tip');
+  if (tip) tip.textContent = '💡 ' + salt.tip;
+
+  buildSaltSVG(salt);
+}
+
+function buildSaltSVG(salt) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = document.getElementById('salt-svg-content');
+  if (!g) return;
+  g.innerHTML = '';
+
+  const d = salt.donor;
+  const a = salt.acceptor;
+  const nAcceptor = salt.acceptorCount || 1;
+
+  // ── Donor atom (left, always at 85,100) ──
+  addSVGAtom(g, ns, 85, 100, 34, d.color, d.sym, `${d.protons}p`);
+
+  // Donor outer electrons (clickable)
+  const ePositions = circlePositions(85, 100, 50, d.outerE);
+  ePositions.forEach((pos, i) => {
+    const ec = document.createElementNS(ns, 'circle');
+    ec.setAttribute('cx', pos.x); ec.setAttribute('cy', pos.y); ec.setAttribute('r', '8');
+    ec.setAttribute('fill', '#00d4ff'); ec.setAttribute('stroke', '#00ffff'); ec.setAttribute('stroke-width', '2');
+    ec.setAttribute('pointer-events', 'all');
+    ec.setAttribute('id', `donor-e-${i}`);
+    ec.style.cssText = 'cursor:pointer;filter:drop-shadow(0 0 5px #00d4ff);animation:naElectronPulse 1.2s ease-in-out infinite;';
+    ec.setAttribute('onclick', `clickDonorElectron(${i})`);
+    g.appendChild(ec);
+    const lbl = document.createElementNS(ns, 'text');
+    lbl.setAttribute('x', pos.x); lbl.setAttribute('y', pos.y + 3);
+    lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('font-size', '7');
+    lbl.setAttribute('fill', '#fff'); lbl.setAttribute('pointer-events', 'none');
+    lbl.textContent = 'e⁻';
+    g.appendChild(lbl);
+  });
+
+  // ── Acceptor atoms (right side, stacked vertically if multiple) ──
+  // Place them evenly between y=40 and y=160
+  const aXBase = 255;
+  const aYPositions = nAcceptor === 1
+    ? [100]
+    : nAcceptor === 2
+    ? [70, 130]
+    : [45, 100, 155]; // 3 acceptors
+
+  // Store slot target positions for electron animation
+  window._saltSlotPositions = [];
+
+  aYPositions.forEach((ay, ai) => {
+    const r = nAcceptor > 1 ? 26 : 34;
+    addSVGAtom(g, ns, aXBase, ay, r, a.color, a.sym, `${a.protons}p`);
+
+    // One empty slot per acceptor atom
+    const slotAngle = nAcceptor > 1
+      ? (ai === 0 ? -Math.PI/2 : ai === 2 ? Math.PI/2 : Math.PI) // top/bottom/left
+      : 0; // single: left side
+    // Target slot position = left side of acceptor atom facing donor
+    const slotX = aXBase - (r + 10) * (nAcceptor > 1 ? 0.5 : 1);
+    const slotY = ay;
+    window._saltSlotPositions.push({ x: slotX, y: slotY });
+
+    const slot = document.createElementNS(ns, 'circle');
+    slot.setAttribute('cx', slotX); slot.setAttribute('cy', slotY); slot.setAttribute('r', '8');
+    slot.setAttribute('fill', 'rgba(100,255,100,0.05)');
+    slot.setAttribute('stroke', 'rgba(100,255,100,0.4)'); slot.setAttribute('stroke-width', '1.5');
+    slot.setAttribute('stroke-dasharray', '3 2');
+    slot.setAttribute('id', `acceptor-slot-${ai}`);
+    g.appendChild(slot);
+
+    // Charge label per acceptor (hidden)
+    const acLbl = document.createElementNS(ns, 'text');
+    const chargeX = nAcceptor > 1 ? aXBase + r + 8 : aXBase;
+    acLbl.setAttribute('x', chargeX); acLbl.setAttribute('y', ay - r - 4);
+    acLbl.setAttribute('text-anchor', 'middle'); acLbl.setAttribute('font-size', '11');
+    acLbl.setAttribute('font-weight', 'bold'); acLbl.setAttribute('fill', a.color);
+    acLbl.setAttribute('opacity', '0'); acLbl.setAttribute('id', `svg-acceptor-charge-${ai}`);
+    acLbl.setAttribute('pointer-events', 'none');
+    acLbl.textContent = a.charge;
+    g.appendChild(acLbl);
+  });
+
+  // Donor charge label (hidden)
+  const dCharge = document.createElementNS(ns, 'text');
+  dCharge.setAttribute('x','85'); dCharge.setAttribute('y','22');
+  dCharge.setAttribute('text-anchor','middle'); dCharge.setAttribute('font-size','14');
+  dCharge.setAttribute('font-weight','bold'); dCharge.setAttribute('fill', d.color);
+  dCharge.setAttribute('opacity','0'); dCharge.setAttribute('id','svg-donor-charge');
+  dCharge.setAttribute('pointer-events','none');
+  dCharge.textContent = d.charge;
+  g.appendChild(dCharge);
+
+  // Attraction lines (one per acceptor, hidden)
+  aYPositions.forEach((ay, ai) => {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1','127'); line.setAttribute('y1', ay <= 80 ? '80' : ay >= 120 ? '120' : '100');
+    line.setAttribute('x2', String(aXBase - 36)); line.setAttribute('y2', String(ay));
+    line.setAttribute('stroke','rgba(255,255,255,0)'); line.setAttribute('stroke-width','1.5');
+    line.setAttribute('stroke-dasharray','5 3'); line.setAttribute('id',`svg-attract-line-${ai}`);
+    line.setAttribute('pointer-events','none');
+    g.appendChild(line);
+  });
+
+  const lineLbl = document.createElementNS(ns, 'text');
+  lineLbl.setAttribute('x','170'); lineLbl.setAttribute('y','188');
+  lineLbl.setAttribute('text-anchor','middle'); lineLbl.setAttribute('font-size','9');
+  lineLbl.setAttribute('fill','rgba(255,255,255,0)'); lineLbl.setAttribute('id','svg-attract-lbl');
+  lineLbl.setAttribute('pointer-events','none'); lineLbl.setAttribute('font-family','monospace');
+  lineLbl.textContent = '离子键';
+  g.appendChild(lineLbl);
+}
+
+function addSVGAtom(g, ns, cx, cy, r, color, sym, sub) {
+  const bg = document.createElementNS(ns, 'circle');
+  bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+  bg.setAttribute('fill', color+'18'); bg.setAttribute('stroke', color+'88'); bg.setAttribute('stroke-width','1.5');
+  g.appendChild(bg);
+  const ring = document.createElementNS(ns, 'circle');
+  ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',r-8);
+  ring.setAttribute('fill','none'); ring.setAttribute('stroke', color+'44'); ring.setAttribute('stroke-width','1');
+  ring.setAttribute('stroke-dasharray','3 2');
+  g.appendChild(ring);
+  const t1 = document.createElementNS(ns, 'text');
+  t1.setAttribute('x',cx); t1.setAttribute('y',cy-3);
+  t1.setAttribute('text-anchor','middle'); t1.setAttribute('font-size','14');
+  t1.setAttribute('font-weight','bold'); t1.setAttribute('fill', color);
+  t1.setAttribute('pointer-events','none');
+  t1.textContent = sym;
+  g.appendChild(t1);
+  const t2 = document.createElementNS(ns, 'text');
+  t2.setAttribute('x',cx); t2.setAttribute('y',cy+11);
+  t2.setAttribute('text-anchor','middle'); t2.setAttribute('font-size','8');
+  t2.setAttribute('fill', color+'88'); t2.setAttribute('pointer-events','none');
+  t2.textContent = sub;
+  g.appendChild(t2);
+}
+
+function clickDonorElectron(i) {
+  if (window._transferred) return;
+  const salt = window._SALTS[window._saltIdx];
+
+  const eEl = document.getElementById(`donor-e-${i}`);
+  if (!eEl || eEl.getAttribute('opacity') === '0') return;
+  eEl.setAttribute('opacity','0');
+  eEl.style.animation = 'none';
+
+  const count = (window._transferCount || 0);
+  window._transferCount = count + 1;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = document.getElementById('salt-svg-content');
+  const flyE = document.createElementNS(ns, 'circle');
+  const startPos = circlePositions(85, 100, 50, salt.donor.outerE)[i];
+  flyE.setAttribute('cx', startPos.x); flyE.setAttribute('cy', startPos.y);
+  flyE.setAttribute('r','8'); flyE.setAttribute('fill','#00d4ff'); flyE.setAttribute('stroke','#00ffff');
+  flyE.setAttribute('stroke-width','2'); flyE.setAttribute('pointer-events','none');
+  flyE.style.filter = 'drop-shadow(0 0 8px #00ffff)';
+  g.appendChild(flyE);
+
+  // Use pre-computed slot position for this transfer index
+  const slots = window._saltSlotPositions || [];
+  const endPos = slots[count] || { x: 220, y: 100 };
+
+  const dur = 800, start = performance.now();
+  const sx = startPos.x, sy = startPos.y, ex = endPos.x, ey = endPos.y;
+
+  function fly(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    flyE.setAttribute('cx', sx + (ex-sx)*ease);
+    flyE.setAttribute('cy', sy + (ey-sy)*ease - 35*Math.sin(Math.PI*t));
+    if (t < 1) { requestAnimationFrame(fly); return; }
+
+    flyE.setAttribute('fill','#88ff88'); flyE.setAttribute('stroke','#88ff88');
+    flyE.style.filter = 'drop-shadow(0 0 6px #88ff88)';
+
+    const slot = document.getElementById(`acceptor-slot-${count}`);
+    if (slot) { slot.setAttribute('fill','rgba(100,255,100,0.4)'); slot.setAttribute('stroke-dasharray','none'); }
+
+    if (window._transferCount >= salt.eCount) {
+      window._transferred = true;
+      setTimeout(() => finishSaltTransfer(salt), 400);
+    }
+  }
+  requestAnimationFrame(fly);
+}
+
+function finishSaltTransfer(salt) {
+  const nAcceptor = salt.acceptorCount || 1;
+  const dc = document.getElementById('svg-donor-charge');
+  if (dc) dc.setAttribute('opacity','1');
+
+  for (let ai = 0; ai < nAcceptor; ai++) {
+    const ac = document.getElementById(`svg-acceptor-charge-${ai}`);
+    if (ac) ac.setAttribute('opacity','1');
+    const line = document.getElementById(`svg-attract-line-${ai}`);
+    if (line) line.setAttribute('stroke','rgba(255,255,200,0.6)');
+  }
+  const lbl = document.getElementById('svg-attract-lbl');
+  if (lbl) lbl.setAttribute('fill','rgba(255,255,200,0.8)');
+
+  const result = document.getElementById('salt-result');
+  if (result) { result.style.color='var(--accent3)'; result.textContent=`${salt.donor.charge} + ${nAcceptor > 1 ? nAcceptor+'×'+salt.acceptor.charge : salt.acceptor.charge} = ${salt.formula} 🎉`; }
+
+  const fb = document.getElementById('nacl-feedback');
+  if (fb) {
+    fb.className='feedback success';
+    fb.textContent = `🎉 ${salt.name} 形成！Al³⁺ 与 ${nAcceptor} 个 ${salt.acceptor.charge} 形成离子键，化合价代数和 = 0 ✓  +25分`;
+  }
+  totalScore += 25; updateHeader();
+  showToast(`✅ ${salt.formula} 形成！`);
+
+  window._saltDone++;
+  window._saltIdx++;
+
+  if (window._saltDone >= 3) {
+    window._lv3_nacl_done = true;
+    document.getElementById('tab3b').classList.add('completed');
+    checkLevel3Done();
+  } else {
+    setTimeout(() => { resetSalt(); renderSaltQuestion(); }, 2000);
+  }
+}
+
+function resetSalt() {
+  window._transferred = false;
+  window._transferCount = 0;
+  const salt = window._SALTS[window._saltIdx];
+  if (salt) renderSaltQuestion();
+  const fb = document.getElementById('nacl-feedback');
+  if (fb) { fb.className='feedback'; fb.textContent=''; }
+}
+
+// kept for compat
+function resetIon() { resetSalt(); }
+function transferElectron() {} // handled by clickDonorElectron
+function renderNaElectrons() {}
+
+function checkLevel3Done() {
+  if (window._lv3_mol_done && window._lv3_nacl_done) {
+    document.getElementById('btn-lv3-next').disabled = false;
+  }
+}
+
+function finishLevel3() {
+  showToast('🏆 第三关通关！前往第四关！');
+  setTimeout(nextLevel, 800);
+}
+
+// ============================
+// LEVEL 4: 相对分子质量
+// ============================
+// (ATOM_MASS, MOLECULE_BANK, lv4* vars declared at top)
+
+function calcMolMass(parts) {
+  return parts.reduce((s, p) => s + ATOM_MASS[p.el] * p.n, 0);
+}
+
+function renderLevel4(container) {
+  // pick 5 random molecules
+  lv4Queue = [...MOLECULE_BANK].sort(()=>Math.random()-0.5).slice(0,5);
+  lv4Idx   = 0;
+  lv4MassDone = false;
+  lv4TFDone   = false;
+
+  container.innerHTML = `
+    <div class="level-header">
+      <div class="level-tag">LEVEL 04</div>
+      <div class="level-title">⚖️ 重量级挑战——相对分子质量大比拼</div>
+      <div class="level-bg-text">原子太轻了（10⁻²⁶ kg），科学家用"相对分子质量"来衡量。一共 5 道随机题！</div>
+    </div>
+
+    <div class="game-panel" id="mass-panel">
+      <div class="panel-title" id="mass-panel-title">📊 计算相对分子质量 — 题目 1/5</div>
+      <div id="mass-calc-area"></div>
+      <div class="feedback" id="mass-feedback"></div>
+    </div>
+
+    <div class="game-panel" id="tf-panel" style="display:none;">
+      <div class="panel-title">🔍 判断真假</div>
+      <div class="tf-question">
+        <div class="tf-q-text">❓ 相对原子质量的单位是"克（g）"？</div>
+        <div class="tf-buttons">
+          <button class="tf-btn true-btn" onclick="checkTF(true)">✅ 真的</button>
+          <button class="tf-btn false-btn" onclick="checkTF(false)">❌ 假的</button>
+        </div>
+        <div class="feedback" id="tf-feedback"></div>
+      </div>
+    </div>
+
+    <div class="tip-box">💡 <strong>通关秘籍：</strong>把每种元素的原子数 × 相对原子质量，全部加起来就是相对分子质量。它是一个<strong>没有单位的比值</strong>！</div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="action-btn primary" id="btn-lv4-next" onclick="finishLevel4()" disabled>✨ 通关第四关！</button>
+    </div>
+  `;
+
+  renderMassQuestion();
+}
+
+function renderMassQuestion() {
+  if (lv4Idx >= lv4Queue.length) {
+    // all mass questions done
+    lv4MassDone = true;
+    document.getElementById('mass-panel').style.display = 'none';
+    document.getElementById('tf-panel').style.display = 'block';
+    return;
+  }
+
+  const mol = lv4Queue[lv4Idx];
+  const answer = calcMolMass(mol.parts);
+  document.getElementById('mass-panel-title').textContent = `📊 计算相对分子质量 — 题目 ${lv4Idx+1}/5`;
+
+  const knownStr = [...new Set(mol.parts.map(p=>p.el))].map(el=>`${el}=${ATOM_MASS[el]}`).join('，');
+
+  const stepsHTML = mol.parts.map(p => `
+    <div class="calc-step">
+      <span class="element-box">${p.el}</span>
+      <span class="count">× ${p.n} 个</span>
+      <span style="color:var(--dim);">=</span>
+      <span class="mass-val">${ATOM_MASS[p.el]} × ${p.n} = ${ATOM_MASS[p.el]*p.n}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('mass-calc-area').innerHTML = `
+    <div class="mass-calc">
+      <div class="formula-display">${mol.display}</div>
+      <div style="font-size:12px;color:var(--dim);margin:6px 0;">已知：${knownStr}</div>
+      <div class="calc-steps">
+        ${stepsHTML}
+        <div style="border-top:1px solid rgba(0,212,255,0.2);padding-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:13px;">${mol.name}（${mol.formula}）总计 =</span>
+          <div class="calc-answer">
+            <input class="answer-input" id="mass-answer" placeholder="?" type="number"
+              onkeydown="if(event.key==='Enter')checkMass()"
+              data-answer="${answer}">
+            <button class="action-btn primary" onclick="checkMass()">✅ 确认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('mass-feedback').textContent = '';
+  document.getElementById('mass-feedback').className = 'feedback';
+}
+
+function checkMass() {
+  const inp = document.getElementById('mass-answer');
+  const val = parseFloat(inp.value);
+  const answer = parseFloat(inp.dataset.answer);
+  const fb = document.getElementById('mass-feedback');
+  const mol = lv4Queue[lv4Idx];
+
+  if (Math.abs(val - answer) < 0.6) {
+    inp.className = 'answer-input correct';
+    fb.className = 'feedback success';
+    fb.textContent = `🎉 正确！${mol.name} 的相对分子质量 = ${answer}！+15分`;
+    totalScore += 15;
+    updateHeader();
+    showToast(`⚖️ 第${lv4Idx+1}题正确！+15分`);
+    lv4Idx++;
+    setTimeout(renderMassQuestion, 1000);
+  } else {
+    inp.className = 'answer-input wrong2';
+    fb.className = 'feedback error';
+    fb.textContent = `${val || '?'} 不对，再算算看！提示：把各元素小计全部相加。`;
+  }
+}
+
+function checkTF(answer) {
+  const fb = document.getElementById('tf-feedback');
+  const btns = document.querySelectorAll('.tf-btn');
+  btns.forEach(b => b.disabled = true);
+  if (!answer) {
+    btns[1].classList.add('answered-correct');
+    fb.className = 'feedback success';
+    fb.textContent = '✅ 正确！相对原子质量是比值，没有单位！+20分';
+    totalScore += 20;
+    updateHeader();
+    lv4TFDone = true;
+    showToast('🔬 判断正确！+20分');
+    checkLevel4Done();
+  } else {
+    btns[0].classList.add('answered-wrong');
+    fb.className = 'feedback error';
+    fb.textContent = '❌ 错误！相对原子质量是比值，不是克，没有单位！';
+    setTimeout(() => { btns.forEach(b=>b.disabled=false); btns[0].classList.remove('answered-wrong'); }, 1500);
+  }
+}
+
+function checkLevel4Done() {
+  if (lv4MassDone && lv4TFDone) {
+    document.getElementById('btn-lv4-next').disabled = false;
+  }
+}
+
+function finishLevel4() {
+  showToast('🏆 第四关通关！最终关卡！');
+  setTimeout(nextLevel, 800);
+}
+
+// ============================
+// LEVEL 5: 混合物分离（动画版）
+// ============================
+function renderLevel5(container) {
+  const STEPS_DEF = [
+    { id:'magnet',    icon:'🧲', title:'磁铁吸铁屑',     principle:'利用铁的磁性',       animate: animMagnet   },
+    { id:'filter',    icon:'🚰', title:'加水过滤（除沙）', principle:'利用溶解性差异',     animate: animFilter   },
+    { id:'evaporate', icon:'🔥', title:'蒸发结晶（取盐）', principle:'加热让水分蒸发',     animate: animEvaporate },
+    { id:'distill',   icon:'🧪', title:'蒸馏获取纯净水',  principle:'蒸汽冷凝得纯水',     animate: animDistill  },
+  ];
+  const CORRECT_ORDER = ['magnet','filter','evaporate','distill'];
+
+  container.innerHTML = `
+    <div class="level-header">
+      <div class="level-tag">LEVEL 05</div>
+      <div class="level-title">🍳 厨房大救灾——混合物分离大师</div>
+      <div class="level-bg-text">拖动步骤卡片，排出正确的分离顺序，然后点击"执行"！</div>
+    </div>
+
+    <div class="game-panel" style="padding:14px;">
+      <!-- SVG stage -->
+      <svg id="sep-svg" viewBox="0 0 360 220" width="100%" style="max-height:200px;display:block;background:rgba(0,10,30,0.5);border-radius:10px;border:1px solid rgba(0,212,255,0.1);">
+        <rect x="120" y="60" width="120" height="130" rx="6" fill="rgba(0,30,80,0.6)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+        <rect x="125" y="65" width="110" height="120" rx="4" fill="rgba(0,50,120,0.25)"/>
+        <text x="180" y="210" text-anchor="middle" font-size="10" fill="rgba(0,212,255,0.5)" font-family="monospace">烧杯</text>
+        <g id="g-iron">
+          <circle cx="148" cy="155" r="5" fill="#888"/><circle cx="162" cy="162" r="4" fill="#999"/>
+          <circle cx="175" cy="150" r="5" fill="#777"/><circle cx="190" cy="160" r="4" fill="#888"/>
+          <circle cx="205" cy="153" r="5" fill="#999"/><circle cx="218" cy="162" r="4" fill="#888"/>
+        </g>
+        <g id="g-sand">
+          <rect x="144" y="140" width="8" height="8" rx="2" fill="#c8a850"/><rect x="158" y="133" width="7" height="7" rx="2" fill="#d4b45e"/>
+          <rect x="172" y="138" width="8" height="8" rx="2" fill="#c8a850"/><rect x="188" y="135" width="7" height="7" rx="2" fill="#d4b45e"/>
+          <rect x="202" y="141" width="8" height="8" rx="2" fill="#c8a850"/><rect x="215" y="133" width="7" height="7" rx="2" fill="#d4b45e"/>
+        </g>
+        <g id="g-salt">
+          <text x="150" y="130" font-size="10" fill="rgba(255,255,255,0.7)" font-family="monospace">Na⁺</text>
+          <text x="170" y="125" font-size="10" fill="rgba(255,255,255,0.7)" font-family="monospace">Cl⁻</text>
+          <text x="193" y="130" font-size="10" fill="rgba(255,255,255,0.7)" font-family="monospace">Na⁺</text>
+          <text x="210" y="122" font-size="10" fill="rgba(255,255,255,0.7)" font-family="monospace">Cl⁻</text>
+        </g>
+        <g id="g-magnet" opacity="0" transform="translate(180,30)">
+          <rect x="-24" y="-10" width="20" height="22" rx="3" fill="#cc2222" stroke="#ff4444" stroke-width="1"/>
+          <rect x="4" y="-10" width="20" height="22" rx="3" fill="#2244cc" stroke="#4466ff" stroke-width="1"/>
+          <text x="0" y="5" text-anchor="middle" font-size="10" fill="white" font-family="monospace">N S</text>
+        </g>
+        <g id="g-filter" opacity="0">
+          <polygon points="130,70 230,70 190,130" fill="rgba(180,120,60,0.3)" stroke="rgba(200,150,80,0.6)" stroke-width="1.5"/>
+          <rect x="185" y="130" width="4" height="30" fill="rgba(200,150,80,0.6)"/>
+          <text x="180" y="65" text-anchor="middle" font-size="9" fill="rgba(200,150,80,0.8)" font-family="monospace">过滤漏斗</text>
+          <rect x="165" y="168" width="30" height="25" rx="3" fill="rgba(0,100,200,0.2)" stroke="rgba(0,150,255,0.4)" stroke-width="1"/>
+        </g>
+        <g id="g-evaporate" opacity="0">
+          <ellipse cx="160" cy="195" rx="10" ry="5" fill="rgba(255,100,0,0.4)"/>
+          <ellipse cx="180" cy="197" rx="12" ry="5" fill="rgba(255,150,0,0.5)"/>
+          <ellipse cx="200" cy="195" rx="10" ry="5" fill="rgba(255,100,0,0.4)"/>
+          <path d="M150,180 Q148,170 152,162" stroke="rgba(200,220,255,0.5)" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
+          <path d="M170,178 Q168,165 172,155" stroke="rgba(200,220,255,0.5)" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
+          <path d="M190,180 Q188,168 192,158" stroke="rgba(200,220,255,0.5)" stroke-width="2" fill="none" stroke-dasharray="3,3"/>
+          <text x="180" y="212" text-anchor="middle" font-size="9" fill="rgba(255,180,0,0.7)" font-family="monospace">加热蒸发</text>
+        </g>
+        <g id="g-distill" opacity="0">
+          <path d="M120,100 Q80,100 60,140" stroke="rgba(0,200,255,0.5)" stroke-width="5" fill="none"/>
+          <circle id="water-drop" cx="60" cy="140" r="6" fill="rgba(0,200,255,0.6)" opacity="0"/>
+          <text x="42" y="160" font-size="9" fill="rgba(0,200,255,0.7)" font-family="monospace">纯净水</text>
+          <text x="180" y="55" text-anchor="middle" font-size="9" fill="rgba(0,200,255,0.5)" font-family="monospace">蒸馏冷凝</text>
+        </g>
+        <text id="sep-result-label" x="180" y="18" text-anchor="middle" font-size="10" fill="rgba(168,255,62,0)" font-family="monospace">✓</text>
+      </svg>
+
+      <!-- Step ordering area -->
+      <div style="margin:12px 0 6px;font-size:12px;color:var(--dim);text-align:center;">
+        拖动卡片调整顺序，然后点击执行 ↓
+      </div>
+      <div id="step-order-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="action-btn primary" id="btn-run-steps" onclick="runSteps()">▶ 执行分离操作</button>
+      </div>
+      <div class="feedback" id="kitchen-feedback" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="tip-box">💡 正确顺序：<strong>磁铁 → 过滤 → 蒸发 → 蒸馏</strong>，每步利用不同的物理性质！</div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="action-btn primary" id="btn-lv5-next" onclick="finishLevel5()" disabled>🏆 完成所有关卡！</button>
+    </div>
+  `;
+
+  window._STEPS_DEF = STEPS_DEF;
+  window._CORRECT_ORDER = CORRECT_ORDER;
+  window._kitchenProgress = 0;
+
+  // Shuffle ensuring result is NEVER equal to correct order
+  let shuffled;
+  do {
+    shuffled = [...STEPS_DEF].sort(() => Math.random() - 0.5);
+  } while (shuffled.every((s, i) => s.id === CORRECT_ORDER[i]));
+  window._playerOrder = shuffled.map(s => s.id);
+  renderStepOrderList();
+}
+
+function renderStepOrderList() {
+  const list = document.getElementById('step-order-list');
+  if (!list) return;
+  list.innerHTML = '';
+  window._playerOrder.forEach((id, idx) => {
+    const step = window._STEPS_DEF.find(s => s.id === id);
+    const div = document.createElement('div');
+    div.className = 'kitchen-step available';
+    div.dataset.id = id;
+    div.dataset.idx = idx;
+    div.style.cursor = 'grab';
+    div.innerHTML = `
+      <div style="font-size:20px;margin-right:4px;color:var(--dim);cursor:grab;">⠿</div>
+      <div class="step-icon" style="font-size:24px;">${step.icon}</div>
+      <div class="step-info">
+        <div class="step-title">${step.title}</div>
+        <div class="step-desc" style="font-size:11px;color:var(--dim);">${step.principle}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button onclick="moveStep(${idx},-1)" style="background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:var(--dim);cursor:pointer;padding:2px 8px;font-size:14px;" ${idx===0?'disabled':''}>▲</button>
+        <button onclick="moveStep(${idx},+1)" style="background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:var(--dim);cursor:pointer;padding:2px 8px;font-size:14px;" ${idx===window._playerOrder.length-1?'disabled':''}>▼</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function moveStep(idx, dir) {
+  const order = window._playerOrder;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  renderStepOrderList();
+}
+
+function runSteps() {
+  const player = window._playerOrder;
+  const correct = window._CORRECT_ORDER;
+  const isCorrect = player.every((id, i) => id === correct[i]);
+
+  const btn = document.getElementById('btn-run-steps');
+  if (btn) btn.disabled = true;
+
+  const fb = document.getElementById('kitchen-feedback');
+
+  if (!isCorrect) {
+    // Find first wrong step
+    let firstWrong = -1;
+    for (let i = 0; i < correct.length; i++) {
+      if (player[i] !== correct[i]) { firstWrong = i; break; }
+    }
+    const wrongStep = window._STEPS_DEF.find(s => s.id === player[firstWrong]);
+    const rightStep = window._STEPS_DEF.find(s => s.id === correct[firstWrong]);
+
+    // Flash all step cards red
+    document.querySelectorAll('#step-order-list .kitchen-step').forEach((el, i) => {
+      if (player[i] !== correct[i]) el.style.borderColor = '#ff3366';
+    });
+
+    if (fb) {
+      fb.className = 'feedback error';
+      fb.textContent = `❌ 顺序错误！第${firstWrong+1}步应该是"${rightStep.icon}${rightStep.title}"，而不是"${wrongStep.icon}${wrongStep.title}"。重新排列再试！`;
+    }
+    if (btn) btn.disabled = false;
+    // Reset border colors after 2s
+    setTimeout(() => {
+      document.querySelectorAll('#step-order-list .kitchen-step').forEach(el => el.style.borderColor = '');
+    }, 2000);
+    return;
+  }
+
+  // Correct! Run animations sequentially
+  if (fb) { fb.className = 'feedback'; fb.textContent = '✅ 顺序正确！开始执行分离操作...'; }
+
+  // Disable order buttons
+  document.querySelectorAll('#step-order-list button').forEach(b => b.disabled = true);
+
+  const stepEls = document.querySelectorAll('#step-order-list .kitchen-step');
+
+  function runNext(i) {
+    if (i >= correct.length) {
+      if (fb) {
+        fb.className = 'feedback success';
+        fb.textContent = '🎉 全部分离完成！混合物完美分开！+20分奖励';
+      }
+      totalScore += 20; updateHeader();
+      document.getElementById('btn-lv5-next').disabled = false;
+      return;
+    }
+    const stepId = correct[i];
+    const stepDef = window._STEPS_DEF.find(s => s.id === stepId);
+    const stepEl = stepEls[i];
+
+    // Highlight current step
+    if (stepEl) {
+      stepEl.classList.remove('available');
+      stepEl.classList.add('done');
+      stepEl.querySelector('.step-info .step-title').style.color = 'var(--accent3)';
+    }
+
+    if (fb) { fb.className = 'feedback'; fb.textContent = `⚙️ 执行第${i+1}步：${stepDef.icon} ${stepDef.title}...`; }
+
+    stepDef.animate(() => {
+      totalScore += 15; updateHeader();
+      showToast(`✅ 第${i+1}步完成！+15分`);
+      setTimeout(() => runNext(i + 1), 500);
+    });
+  }
+
+  setTimeout(() => runNext(0), 400);
+}
+
+function renderSepDots(n) {}  // no longer used but kept for compat
+function doSepStep(idx) {}
+
+// ── individual animations (unchanged) ──
+function svgAnimate(el, attrs, durationMs, cb) {
+  // simple JS tween for SVG attributes
+  const start = performance.now();
+  const fromVals = {};
+  const toVals = {};
+  for (const k in attrs) {
+    fromVals[k] = parseFloat(el.getAttribute(k)) || 0;
+    toVals[k] = attrs[k];
+  }
+  function tick(now) {
+    const t = Math.min((now - start) / durationMs, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    for (const k in attrs) {
+      el.setAttribute(k, fromVals[k] + (toVals[k]-fromVals[k])*ease);
+    }
+    if (t < 1) requestAnimationFrame(tick);
+    else if (cb) cb();
+  }
+  requestAnimationFrame(tick);
+}
+
+function animMagnet(done) {
+  const mag = document.getElementById('g-magnet');
+  const iron = document.getElementById('g-iron');
+  const label = document.getElementById('sep-result-label');
+  // show magnet, animate it down then iron fades
+  mag.setAttribute('opacity','1');
+  let y = 30;
+  const t1 = setInterval(() => {
+    y += 3;
+    mag.setAttribute('transform', `translate(180,${y})`);
+    if (y >= 130) {
+      clearInterval(t1);
+      // iron moves up toward magnet
+      let oy = 0;
+      const t2 = setInterval(() => {
+        oy -= 4;
+        iron.setAttribute('transform', `translate(0,${oy})`);
+        if (oy <= -80) {
+          clearInterval(t2);
+          iron.setAttribute('opacity','0');
+          mag.setAttribute('opacity','0');
+          label.textContent = '✅ 铁屑已分离！';
+          svgAnimate(label, {}, 0, null);
+          label.setAttribute('fill','rgba(168,255,62,0.9)');
+          setTimeout(done, 400);
+        }
+      }, 20);
+    }
+  }, 20);
+}
+
+function animFilter(done) {
+  const filter = document.getElementById('g-filter');
+  const sand   = document.getElementById('g-sand');
+  const label  = document.getElementById('sep-result-label');
+  filter.setAttribute('opacity','1');
+  // sand shrinks and moves to funnel area
+  let scale = 1;
+  const t = setInterval(() => {
+    scale -= 0.04;
+    sand.setAttribute('transform', `translate(0,${(1-scale)*30}) scale(${Math.max(scale,0.01)})`);
+    if (scale <= 0.02) {
+      clearInterval(t);
+      sand.setAttribute('opacity','0');
+      label.textContent = '✅ 沙子已过滤！';
+      label.setAttribute('fill','rgba(168,255,62,0.9)');
+      setTimeout(done, 400);
+    }
+  }, 30);
+}
+
+function animEvaporate(done) {
+  const evap  = document.getElementById('g-evaporate');
+  const salt  = document.getElementById('g-salt');
+  const label = document.getElementById('sep-result-label');
+  evap.setAttribute('opacity','1');
+  // salt ions drift upward and fade (steam)
+  let oy = 0, op = 1;
+  const t = setInterval(() => {
+    oy -= 2; op -= 0.04;
+    salt.setAttribute('transform', `translate(0,${oy})`);
+    salt.setAttribute('opacity', Math.max(op,0));
+    if (op <= 0) {
+      clearInterval(t);
+      // show salt crystal remaining
+      label.textContent = '✅ 水分蒸发，食盐析出！';
+      label.setAttribute('fill','rgba(168,255,62,0.9)');
+      setTimeout(done, 500);
+    }
+  }, 40);
+}
+
+function animDistill(done) {
+  const distill = document.getElementById('g-distill');
+  const drop    = document.getElementById('water-drop');
+  const label   = document.getElementById('sep-result-label');
+  distill.setAttribute('opacity','1');
+  // animate water drop appearing and dripping
+  drop.setAttribute('opacity','0');
+  let op = 0, cy = 140;
+  const t = setInterval(() => {
+    op = Math.min(op+0.05, 1);
+    cy += 0.5;
+    drop.setAttribute('opacity', op);
+    drop.setAttribute('cy', cy);
+    if (cy >= 160) {
+      clearInterval(t);
+      label.textContent = '✅ 纯净水已蒸馏获取！';
+      label.setAttribute('fill','rgba(168,255,62,0.9)');
+      setTimeout(done, 500);
+    }
+  }, 30);
+}
+
+function finishLevel5() {
+  showToast('🏆 全部关卡通关！获得初级炼金术师勋章！');
+  setTimeout(endGame, 1200);
+}
+</script>
+</body>
+</html>
