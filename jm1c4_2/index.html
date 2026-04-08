@@ -2,65 +2,167 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>生命大冒险 · 280天的奇迹</title>
 <!--峇株吧辖华仁中学蔡逸众制作-->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a}
+
+/* ── Desktop layout: two-column with sidebar ── */
+html,body{width:100%;min-height:100vh;background:#0a0a1a;overflow-x:hidden}
+
+/* Outer shell – centers the game panel on wide screens */
+#shell{
+  display:flex;min-height:100vh;
+  background:#0a0a1a;
+}
+
+/* Left sidebar (desktop only) */
+#sidebar{
+  display:none;
+  width:260px;
+  flex-shrink:0;
+  background:rgba(255,255,255,.025);
+  border-right:1px solid rgba(255,255,255,.06);
+  padding:28px 20px;
+  flex-direction:column;
+  gap:14px;
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+}
+#sidebar-title{font-family:'Fredoka One',cursive;font-size:18px;background:linear-gradient(135deg,#ff6b9d,#ffd93d,#6bcfff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
+#sidebar-sub{font-size:11px;color:#6bcfff;letter-spacing:1.5px;font-family:'Fredoka One',cursive}
+#sidebar-nav{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.sdb-btn{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:8px;background:transparent}
+.sdb-btn:disabled{opacity:.28;cursor:not-allowed}
+.sdb-badge{font-size:8px;margin-left:auto;padding:2px 6px;border-radius:8px;font-weight:700;white-space:nowrap}
+#sidebar-score{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;margin-top:auto}
+#sidebar-score .lbl{font-size:10px;color:#777;margin-bottom:4px}
+#sidebar-score .val{font-size:22px;font-weight:700;color:#ffd93d;font-family:'Fredoka One',cursive}
+#sidebar-foot{font-size:8px;color:#333;text-align:center;line-height:1.6;margin-top:4px}
+
+/* Main game panel */
 #gr{
   font-family:'Nunito',sans-serif;
   background:#0a0a1a;
   color:#fff;
-  width:100%;
-  max-width:480px;
-  min-height:100dvh;
-  margin:0 auto;
-  position:relative;
+  flex:1;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
   overflow-x:hidden;
   overflow-y:auto;
 }
-.screen{display:none;padding:12px 14px 20px;min-height:100dvh;flex-direction:column;align-items:center;gap:7px}
+
+/* Game screens */
+.screen{display:none;padding:16px 20px 28px;flex-direction:column;align-items:center;gap:8px;min-height:100vh}
 .screen.active{display:flex}
-.gtitle{font-family:'Fredoka One',cursive;font-size:20px;background:linear-gradient(135deg,#ff6b9d,#ffd93d,#6bcfff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.2}
+
+.gtitle{font-family:'Fredoka One',cursive;font-size:22px;background:linear-gradient(135deg,#ff6b9d,#ffd93d,#6bcfff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.2}
 .snav{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
-.spill{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;border:1.5px solid #333;color:#555;cursor:pointer;transition:all .15s}
-.spill:hover{border-color:#888;color:#aaa}
+.spill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;border:1.5px solid #333;color:#555;cursor:default;transition:all .15s}
+.spill.done{border-color:#4ade80;color:#4ade80;cursor:pointer}
 .spill.active{border-color:#ffd93d;color:#ffd93d;background:rgba(255,217,61,.1)}
-.sbar{display:flex;gap:8px;background:rgba(255,255,255,.05);padding:5px 12px;border-radius:30px;font-size:11px;font-weight:600;flex-wrap:wrap;justify-content:center}
-.ibox{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 12px;font-size:11px;color:#bbb;line-height:1.55;width:100%;max-width:440px;text-align:center}
+
+.sbar{display:flex;gap:10px;background:rgba(255,255,255,.05);padding:6px 16px;border-radius:30px;font-size:12px;font-weight:600;flex-wrap:wrap;justify-content:center}
+.ibox{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;font-size:12px;color:#bbb;line-height:1.6;width:100%;max-width:560px;text-align:center}
 .ibox strong{color:#ffd93d}
-.btnp{background:linear-gradient(135deg,#ff6b9d,#ff8e53);border:none;padding:10px 22px;border-radius:30px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s;box-shadow:0 4px 16px rgba(255,107,157,.4);touch-action:manipulation}
+
+.btnp{background:linear-gradient(135deg,#ff6b9d,#ff8e53);border:none;padding:11px 26px;border-radius:30px;color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s, box-shadow .15s;box-shadow:0 4px 18px rgba(255,107,157,.4);touch-action:manipulation}
+.btnp:hover{transform:scale(1.04);box-shadow:0 6px 22px rgba(255,107,157,.5)}
 .btnp:active{transform:scale(0.97)}
-.ptrack{width:100%;max-width:440px;height:9px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden}
+
+.ptrack{width:100%;max-width:560px;height:9px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden}
 .pfill{height:100%;border-radius:5px;transition:width .2s;background:linear-gradient(90deg,#6bcfff,#4ade80)}
-.fpop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;border:2px solid #ffd93d;border-radius:16px;padding:18px;max-width:320px;width:92%;text-align:center;z-index:1000;display:none}
+
+.fpop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;border:2px solid #ffd93d;border-radius:16px;padding:22px;max-width:380px;width:92%;text-align:center;z-index:1000;display:none}
 .fpop.show{display:block}
-.fpop h3{font-family:'Fredoka One',cursive;font-size:17px;color:#ffd93d;margin-bottom:7px}
-.fpop p{font-size:11px;color:#ccc;line-height:1.6;margin-bottom:13px}
-canvas{border-radius:10px;display:block;width:100%;height:auto}
+.fpop h3{font-family:'Fredoka One',cursive;font-size:18px;color:#ffd93d;margin-bottom:8px}
+.fpop p{font-size:12px;color:#ccc;line-height:1.65;margin-bottom:14px}
+
+/* Canvas scales to container width, max 560px */
+canvas{border-radius:12px;display:block;width:100%;max-width:560px;height:auto}
+
+/* Menu stage buttons (mobile fallback) */
+.stage-btn{width:100%;padding:12px 16px;border-radius:14px;border:2px solid;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;gap:10px;touch-action:manipulation}
+.stage-btn:disabled{opacity:.3;cursor:not-allowed}
+.sbadge{font-size:10px;margin-left:auto;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+
+.name-input{width:100%;max-width:320px;padding:13px 18px;border-radius:14px;border:2px solid rgba(255,217,61,.4);background:rgba(255,255,255,.06);color:#fff;font-family:'Nunito',sans-serif;font-size:17px;font-weight:600;outline:none;text-align:center;transition:border-color .2s}
+.name-input:focus{border-color:#ffd93d}
+.name-input::placeholder{color:#444}
+
+/* ── Desktop breakpoint ── */
+@media(min-width:768px){
+  #sidebar{display:flex;position:sticky;top:0;height:100vh;overflow:hidden}
+  /* starbg2 inside sidebar */
+  #sidebar{overflow:hidden}
+  /* On desktop: hide mobile menu screen, game starts directly */
+  #sc-menu{display:none!important}
+  /* Wider canvases on desktop */
+  canvas{max-width:600px}
+  .ibox{max-width:600px;font-size:13px}
+  .ptrack{max-width:600px}
+  .gtitle{font-size:24px}
+  .sbar{font-size:13px}
+  .screen{padding:20px 28px 32px}
+  /* Desktop: pill nav shows */
+  .snav{display:flex}
+  .name-input{max-width:360px}
+}
+
+/* ── Mobile-only: full-screen pages ── */
+@media(max-width:767px){
+  html,body{overflow:hidden}
+  #gr{overflow-y:auto}
+  .screen{min-height:100dvh;padding:12px 14px 22px;gap:7px}
+  .gtitle{font-size:20px}
+  .ibox{font-size:11px}
+  .sbar{font-size:11px;gap:8px}
+  .btnp{font-size:14px;padding:10px 22px}
+  canvas{max-width:100%}
+}
 </style>
 </head>
 <body>
+<div id="shell">
+
+<!-- DESKTOP SIDEBAR -->
+<div id="sidebar">
+  <div id="starbg2" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:0"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;height:100%">
+    <div style="text-align:center">
+      <div style="font-size:40px;line-height:1;margin-bottom:6px">🌱</div>
+      <div id="sidebar-title">生命大冒险</div>
+      <div id="sidebar-sub" style="margin-top:3px">280天的奇迹</div>
+    </div>
+    <div style="font-size:10px;color:#555;text-align:center;line-height:1.5">完成全部5关，解锁专属出生证明</div>
+    <div id="sidebar-nav"></div>
+    <div id="sidebar-score" style="margin-top:auto">
+      <div class="lbl">当前总得分</div>
+      <div class="val" id="sb-score">0</div>
+    </div>
+    <div id="sidebar-foot">峇株吧辖华仁中学<br>初中科学 · 生殖与发育<br>蔡逸众制作</div>
+  </div>
+</div>
+
 <div id="gr">
 
-<!-- MENU -->
+<!-- MENU (mobile only; desktop uses sidebar) -->
 <div id="sc-menu" class="screen active" style="justify-content:center;background:radial-gradient(ellipse at 60% 30%,#1a0a2e,#0a0a1a)">
   <div id="starbg" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
-  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:11px;padding:16px;width:100%">
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;width:100%">
     <div style="font-size:52px;line-height:1">🌱</div>
     <div class="gtitle" style="font-size:26px">生命大冒险</div>
     <div style="font-family:'Fredoka One',cursive;font-size:13px;color:#6bcfff;letter-spacing:2px">280天的奇迹</div>
-    <div class="ibox">从 <strong>受精卵着床</strong> 到 <strong>婴儿诞生</strong>，共 <strong>5个关卡</strong> 🧬</div>
-    <div style="display:flex;flex-direction:column;gap:7px;width:100%;max-width:240px">
-      <button class="btnp" style="width:100%" onclick="G.s1init()">🔬 第一关：受精卵着床</button>
-      <button class="btnp" style="width:100%;background:linear-gradient(135deg,#6b6bff,#a78bfa)" onclick="G.s2init()">💓 第二关：胎心心电图</button>
-      <button class="btnp" style="width:100%;background:linear-gradient(135deg,#22c55e,#4ade80);color:#000" onclick="G.s3init()">🍎 第三关：营养输送</button>
-      <button class="btnp" style="width:100%;background:linear-gradient(135deg,#f59e0b,#fcd34d);color:#000" onclick="G.s4init()">🧩 第四关：器官拼图</button>
-      <button class="btnp" style="width:100%;background:linear-gradient(135deg,#06b6d4,#67e8f9);color:#000" onclick="G.s5init()">🌬️ 第五关：呼吸节律</button>
+    <div class="ibox">完成全部 <strong>5个关卡</strong>，见证生命的诞生！<br>关卡需<strong>依序解锁</strong>，全通后获得专属出生证明 🧬</div>
+    <div id="menu-btns-wrap" style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:300px">
+      <div id="menu-btns"></div>
     </div>
-    <div style="font-size:9px;color:#333;margin-top:4px">峇株吧辖华仁中学 · 初一科学第4章 · 生殖</div>
+    <div style="font-size:9px;color:#333;margin-top:2px">峇株吧辖华仁中学 · 初中科学 · 生殖与发育</div>
   </div>
 </div>
 
@@ -147,18 +249,31 @@ canvas{border-radius:10px;display:block;width:100%;height:auto}
   <div class="ptrack"><div class="pfill" id="p5" style="width:0%;background:linear-gradient(90deg,#ff6b9d,#ffd93d)"></div></div>
 </div>
 
-<!-- END -->
+<!-- NAME INPUT -->
 <!--Made by ecchua79-->
-<div id="sc-end" class="screen" style="justify-content:center;background:radial-gradient(ellipse at 50% 20%,#1a0a2e,#0a0a1a)">
-  <div id="cfetti" style="position:absolute;top:0;left:0;right:0;pointer-events:none;overflow:hidden;height:200px"></div>
-  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:11px;padding:16px">
-    <div class="gtitle" style="font-size:20px">🎉 宝宝诞生了！</div>
-    <div id="endbaby" style="font-size:70px;animation:bounce 1s ease-in-out infinite">👶</div>
-    <div id="endstars" style="font-size:30px;letter-spacing:8px">⭐⭐⭐</div>
-    <div id="endbox" class="ibox" style="font-size:12px"></div>
-    <div class="ibox" style="font-size:10px;border-color:#4ade80">🎓 <strong>科学小百科</strong>：人类妊娠约 <strong>280天</strong>，受精卵着床→胚胎→胎儿三阶段，分娩时产妇呼吸节律帮助控制宫缩疼痛！</div>
-    <button class="btnp" onclick="showSc('menu')">🏠 回主菜单</button>
-    <div style="font-size:9px;color:#333;margin-top:2px">峇株吧辖华仁中学 · 蔡逸众制作</div>
+<div id="sc-name" class="screen" style="justify-content:center;background:radial-gradient(ellipse at 50% 40%,#0a1a2e,#0a0a1a)">
+  <div id="name-cfetti" style="position:absolute;top:0;left:0;right:0;pointer-events:none;overflow:hidden;height:200px"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;width:100%">
+    <div style="font-size:58px;animation:bounce 1s ease-in-out infinite">🎊</div>
+    <div class="gtitle" style="font-size:22px">全部关卡完成！</div>
+    <div style="font-size:12px;color:#aaa;text-align:center;line-height:1.7">太棒了！你成功陪伴宝宝走过了<br><strong style="color:#ffd93d">280天的奇迹旅程</strong> 🌟</div>
+    <div class="ibox" style="font-size:11px">请输入你的<strong>姓名</strong>，为宝宝生成专属出生证明 📜</div>
+    <input id="player-name" class="name-input" type="text" placeholder="请输入你的姓名" maxlength="20" autocomplete="off">
+    <div style="font-size:10px;color:#666">总得分：<span id="name-score" style="color:#ffd93d;font-weight:700">0</span> 分</div>
+    <button class="btnp" onclick="G.generateCert()">🍼 生成出生证明</button>
+  </div>
+</div>
+
+<!-- CERTIFICATE -->
+<div id="sc-cert" class="screen" style="background:radial-gradient(ellipse at 50% 20%,#1a0a2e,#0a0a1a);padding-bottom:30px">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:440px;padding:4px 0">
+    <div class="gtitle" style="font-size:18px;margin-top:4px">🏅 出生证明书</div>
+    <div id="cert-card" style="width:100%;background:linear-gradient(145deg,#0d0d2b,#1a0a2e);border:1.5px solid rgba(255,217,61,.35);border-radius:20px;padding:18px 16px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,217,61,.012) 0px,rgba(255,217,61,.012) 1px,transparent 1px,transparent 20px);pointer-events:none"></div>
+      <div id="cert-inner" style="position:relative;z-index:1"></div>
+    </div>
+    <button class="btnp" style="font-size:12px;padding:9px 20px" onclick="showSc('menu');G.resetGame()">🏠 再玩一次</button>
+    <div style="font-size:9px;color:#2a2a3a">峇株吧辖华仁中学 · 蔡逸众制作</div>
   </div>
 </div>
 
@@ -167,41 +282,95 @@ canvas{border-radius:10px;display:block;width:100%;height:auto}
   <p id="fptext"></p>
   <button class="btnp" onclick="G.closefact()">继续 →</button>
 </div>
-</div>
+</div><!-- #gr -->
+</div><!-- #shell -->
 
 <style>
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.7}}
-@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(210px) rotate(400deg);opacity:0}}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(220px) rotate(400deg);opacity:0}}
 </style>
 
 <script>
 //峇株吧辖华仁中学蔡逸众制作
 const $=id=>document.getElementById(id);
 const stageNames=['','着床','心电图','营养','器官','呼吸'];
-let totalScore=0,genderX=true;
+const stageColors=['','#ff6b9d','#a78bfa','#4ade80','#fcd34d','#67e8f9'];
+const stageIcons=['','🔬','💓','🍎','🧩','🌬️'];
+const stageTitles=['','受精卵着床','胎心心电图','营养输送','器官拼图','呼吸节律'];
 
-function showSc(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('sc-'+n).classList.add('active');window.scrollTo(0,0);}
+let totalScore=0, genderX=true, stagesCleared=0, gameStartTime=null;
+
+function isDesktop(){return window.innerWidth>=768;}
+
+function syncScore(){const el=$('sb-score');if(el)el.textContent=totalScore;}
+
+function showSc(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('sc-'+n).classList.add('active');
+  const gr=$('gr');if(gr)gr.scrollTo(0,0);
+  window.scrollTo(0,0);
+  syncScore();
+  // On desktop, keep game pane visible instead of menu
+  if(n==='menu'&&isDesktop()){
+    // auto-start first available stage on desktop when returning to menu
+  }
+}
+
+function renderMenu(){
+  // Mobile list
+  const el=$('menu-btns');if(el){
+    el.innerHTML='';
+    for(let i=1;i<=5;i++){
+      const cleared=i<=stagesCleared,avail=i===stagesCleared+1||cleared,locked=!avail;
+      const col=stageColors[i];
+      const btn=document.createElement('button');
+      btn.className='stage-btn';
+      btn.style.cssText=`border-color:${locked?'#1e1e2e':col+'55'};background:${locked?'rgba(255,255,255,.02)':col+'0e'};color:${locked?'#3a3a4a':col};`;
+      const badgeBg=cleared?'#4ade8020':locked?'#ffffff08':'#ffd93d20';
+      const badgeCol=cleared?'#4ade80':locked?'#3a3a4a':'#ffd93d';
+      btn.innerHTML=`<span style="font-size:16px">${stageIcons[i]}</span><span>第${['一','二','三','四','五'][i-1]}关：${stageTitles[i]}</span><span class="sbadge" style="background:${badgeBg};color:${badgeCol}">${cleared?'✓ 完成':locked?'🔒 锁定':'▶ 开始'}</span>`;
+      if(locked)btn.disabled=true;else{const si=i;btn.onclick=()=>{G.stopAll();[null,G.s1init,G.s2init,G.s3init,G.s4init,G.s5init][si]();};}
+      el.appendChild(btn);
+    }
+  }
+  // Desktop sidebar
+  const sn=$('sidebar-nav');if(sn){
+    sn.innerHTML='';
+    for(let i=1;i<=5;i++){
+      const cleared=i<=stagesCleared,avail=i===stagesCleared+1||cleared,locked=!avail;
+      const col=stageColors[i];
+      const btn=document.createElement('button');
+      btn.className='sdb-btn';
+      btn.style.cssText=`border-color:${locked?'#1e1e2e':col+'55'};background:${locked?'transparent':col+'0e'};color:${locked?'#333':col};`;
+      const bCol=cleared?'#4ade80':locked?'#2a2a2a':'#ffd93d';
+      btn.innerHTML=`<span style="font-size:15px">${stageIcons[i]}</span><span style="flex:1;font-size:12px">${stageTitles[i]}</span><span class="sdb-badge" style="background:${col}16;color:${bCol}">${cleared?'✓':locked?'🔒':'▶'}</span>`;
+      if(locked)btn.disabled=true;else{const si=i;btn.onclick=()=>{G.stopAll();[null,G.s1init,G.s2init,G.s3init,G.s4init,G.s5init][si]();};}
+      sn.appendChild(btn);
+    }
+  }
+  syncScore();
+}
+
 function buildNav(id,cur){
-  const el=$(id);el.innerHTML='';
+  const el=$(id);if(!el)return;el.innerHTML='';
   for(let i=1;i<=5;i++){
     const p=document.createElement('div');
-    p.className='spill'+(i===cur?' active':'');
-    p.textContent=stageNames[i];
-    const si=i;
-    p.onclick=()=>{G.stopAll();[null,G.s1init,G.s2init,G.s3init,G.s4init,G.s5init][si]();};
+    const isDone=i<cur,isAct=i===cur,isLock=i>cur&&i>stagesCleared+1;
+    p.className='spill'+(isDone?' done':isAct?' active':'');
+    p.textContent=(isDone?'✓ ':isLock?'🔒 ':'')+stageNames[i];
+    if(!isLock){const si=i;p.style.cursor='pointer';p.onclick=()=>{if(si<=stagesCleared+1){G.stopAll();[null,G.s1init,G.s2init,G.s3init,G.s4init,G.s5init][si]();}};}
     el.appendChild(p);
   }
 }
+
 function showFact(t,tx,cb){$('fptitle').textContent=t;$('fptext').textContent=tx;$('fpop').classList.add('show');$('fpop')._cb=cb;}
+// Canvas scale: logical width 440, but canvas element scales via CSS
+function cvScale(cv){return 440/cv.offsetWidth;}
 
-// canvas logical dimensions (match canvas width/height attributes)
-const CW=440;
-
-(()=>{const b=$('starbg');for(let i=0;i<55;i++){const s=document.createElement('div');s.style.cssText=`position:absolute;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px;background:white;border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:.2;animation:twinkle ${2+Math.random()*3}s ease-in-out infinite ${Math.random()*3}s`;b.appendChild(s);}})();
-
-// Helper: get canvas scale (CSS px → logical px)
-function cvScale(cv){return{x:CW/cv.offsetWidth,y:CW/cv.offsetWidth};}
+// Stars for both backgrounds
+function spawnStars(el){if(!el)return;for(let i=0;i<55;i++){const s=document.createElement('div');s.style.cssText=`position:absolute;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px;background:white;border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:.18;animation:twinkle ${2+Math.random()*3}s ease-in-out infinite ${Math.random()*3}s`;el.appendChild(s);}}
+spawnStars($('starbg'));spawnStars($('starbg2'));
 
 const G={
   closefact(){$('fpop').classList.remove('show');const cb=$('fpop')._cb;$('fpop')._cb=null;if(cb)cb();},
@@ -211,149 +380,94 @@ const G={
     clearInterval(G.s3.iv);G.s3.active=false;
     clearInterval(G.s5.iv);G.s5.active=false;
   },
+  resetGame(){totalScore=0;stagesCleared=0;genderX=Math.random()>.5;gameStartTime=null;renderMenu();syncScore();},
 
-  // ══ S1 — 受精卵分化→着床 ══════════════════
-  s1:{active:false,timer:45,score:0,divCount:1,egg:{x:40,y:110},
-      diffCount:0,tick:0,iv:null,cd:null,site:null,siteQueue:0,cooldown:0},
-
+  // ══ S1 ══════════════════════════════════
+  s1:{active:false,timer:45,score:0,divCount:1,egg:{x:40,y:110},diffCount:0,tick:0,iv:null,cd:null,site:null,siteQueue:0,cooldown:0},
   s1init(){
-    G.stopAll();showSc('s1');buildNav('nav1',1);genderX=Math.random()>.5;
-    const s=G.s1;
-    Object.assign(s,{active:true,timer:45,score:0,divCount:1,diffCount:0,tick:0,
-      egg:{x:40,y:110},site:null,siteQueue:0,cooldown:0});
-    $('s1sc').textContent=0;$('s1div').textContent=1;$('s1tm').textContent=45;
-    $('s1hits').textContent='0/3';$('s1msg').textContent='';$('p1').style.width='0%';
+    G.stopAll();showSc('s1');buildNav('nav1',1);
+    genderX=Math.random()>.5;
+    if(!gameStartTime)gameStartTime=new Date();
+    const s=G.s1;Object.assign(s,{active:true,timer:45,score:0,divCount:1,diffCount:0,tick:0,egg:{x:40,y:110},site:null,siteQueue:0,cooldown:0});
+    $('s1sc').textContent=0;$('s1div').textContent=1;$('s1tm').textContent=45;$('s1hits').textContent='0/3';$('s1msg').textContent='';$('p1').style.width='0%';
     clearInterval(s.iv);clearInterval(s.cd);
     s.iv=setInterval(G.s1loop,40);
     s.cd=setInterval(()=>{if(!s.active)return;s.timer--;$('s1tm').textContent=s.timer;if(s.timer<=0)G.s1end(false);},1000);
   },
-
-  s1sitePositions:[
-    {x:130,y:106,label:'分化！'},
-    {x:230,y:118,label:'分化！'},
-    {x:330,y:103,label:'分化！'},
-    {x:310,y:182,label:'着床！',isImplant:true},
-  ],
-
-  s1spawnSite(){
-    const s=G.s1;
-    const pos=G.s1sitePositions[s.siteQueue];
-    if(!pos)return;
-    s.site={...pos,r:20,life:0,maxLife:130};s.siteQueue++;
-  },
-
+  s1sitePos:[{x:130,y:106,label:'分化！'},{x:230,y:118,label:'分化！'},{x:330,y:103,label:'分化！'},{x:310,y:182,label:'着床！',isImplant:true}],
+  s1spawn(){const s=G.s1;const pos=G.s1sitePos[s.siteQueue];if(!pos)return;s.site={...pos,r:20,life:0,maxLife:130};s.siteQueue++;},
   s1click(e){
     const s=G.s1;if(!s.active)return;
     if(s.divCount<4&&!s.site){$('s1msg').textContent='⚠️ 等受精卵分裂到4个细胞以上！';return;}
     if(!s.site){$('s1msg').textContent='⏳ 等待点位出现…';return;}
-    const cv=$('c1'),rect=cv.getBoundingClientRect();
-    const sc=cvScale(cv);
-    const sx=(e.clientX-rect.left)*sc.x, sy=(e.clientY-rect.top)*sc.y;
-    const dx=sx-s.site.x,dy=sy-s.site.y;
-    if(Math.sqrt(dx*dx+dy*dy)<s.site.r+18){
-      if(s.site.isImplant){
-        s.score+=80;totalScore+=80;$('s1sc').textContent=s.score;
-        s.site=null;$('s1msg').textContent='🎉 着床成功！生命旅程正式开始！';
-        $('p1').style.width='100%';setTimeout(()=>G.s1end(true),700);
-      } else {
-        s.diffCount++;s.score+=40;totalScore+=40;s.site=null;s.cooldown=45;
-        $('s1sc').textContent=s.score;$('s1hits').textContent=s.diffCount+'/3';
-        $('p1').style.width=(s.diffCount/4*100)+'%';
-        $('s1msg').textContent=['✅ 第1次分化完成！','✅ 第2次分化完成！','✅ 第3次分化！快找着床点！'][s.diffCount-1]||'';
-      }
+    const cv=$('c1'),rect=cv.getBoundingClientRect(),sc=cvScale(cv);
+    const sx=(e.clientX-rect.left)*sc,sy=(e.clientY-rect.top)*sc;
+    if(Math.sqrt((sx-s.site.x)**2+(sy-s.site.y)**2)<s.site.r+18){
+      if(s.site.isImplant){s.score+=80;totalScore+=80;$('s1sc').textContent=s.score;s.site=null;$('s1msg').textContent='🎉 着床成功！';$('p1').style.width='100%';setTimeout(()=>G.s1end(true),700);}
+      else{s.diffCount++;s.score+=40;totalScore+=40;s.site=null;s.cooldown=45;$('s1sc').textContent=s.score;$('s1hits').textContent=s.diffCount+'/3';$('p1').style.width=(s.diffCount/4*100)+'%';$('s1msg').textContent=['✅ 第1次分化！','✅ 第2次分化！','✅ 第3次分化！快找着床点！'][s.diffCount-1]||'';}
     } else {$('s1msg').textContent='❌ 没点到！';}
   },
-
   s1loop(){
     const s=G.s1;if(!s.active)return;
-    const cv=$('c1'),ctx=cv.getContext('2d');
-    const W=440,H=240;s.tick++;
-    const divM=[0,65,115,160,200],divC=[1,2,4,8,16];
-    for(let i=divM.length-1;i>=0;i--){if(s.tick>=divM[i]){s.divCount=divC[i];break;}}
-    $('s1div').textContent=s.divCount;
-    const targetX=s.diffCount>=3?390:Math.min(390,40+s.tick*0.85);
-    if(s.egg.x<targetX)s.egg.x+=0.85;
-    if(s.egg.x<390)s.egg.y=110+Math.sin(s.egg.x*0.036)*26;
-    else s.egg.y=110+(182-110)*Math.min((s.egg.x-390)/32,1);
-    if(s.divCount>=4&&!s.site&&s.siteQueue<=s.diffCount&&s.diffCount<3){
-      if(s.cooldown>0)s.cooldown--;else G.s1spawnSite();
-    }
-    if(s.diffCount>=3&&!s.site&&s.siteQueue===3&&s.egg.x>360)G.s1spawnSite();
-    if(s.site&&!s.site.isImplant){
-      s.site.life++;
-      if(s.site.life>=s.site.maxLife){s.site=null;s.cooldown=25;s.timer=Math.max(5,s.timer-5);$('s1msg').textContent='⚠️ 分化点消失！失去5秒';s.siteQueue--;}
-    }
+    const cv=$('c1'),ctx=cv.getContext('2d');const W=440,H=240;s.tick++;
+    const divM=[0,65,115,160,200],divC=[1,2,4,8,16];for(let i=divM.length-1;i>=0;i--){if(s.tick>=divM[i]){s.divCount=divC[i];break;}}$('s1div').textContent=s.divCount;
+    const tX=s.diffCount>=3?390:Math.min(390,40+s.tick*0.85);if(s.egg.x<tX)s.egg.x+=0.85;
+    s.egg.y=s.egg.x<390?110+Math.sin(s.egg.x*0.036)*26:110+(182-110)*Math.min((s.egg.x-390)/32,1);
+    if(s.divCount>=4&&!s.site&&s.siteQueue<=s.diffCount&&s.diffCount<3){if(s.cooldown>0)s.cooldown--;else G.s1spawn();}
+    if(s.diffCount>=3&&!s.site&&s.siteQueue===3&&s.egg.x>360)G.s1spawn();
+    if(s.site&&!s.site.isImplant){s.site.life++;if(s.site.life>=s.site.maxLife){s.site=null;s.cooldown=25;s.timer=Math.max(5,s.timer-5);$('s1msg').textContent='⚠️ 分化点消失！失去5秒';s.siteQueue--;}}
     if(s.site&&s.site.isImplant)s.site.life++;
     ctx.fillStyle='#05080e';ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='rgba(255,107,157,.3)';ctx.lineWidth=14;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(20,110);for(let x=20;x<=390;x+=4)ctx.lineTo(x,110+Math.sin(x*0.036)*26);ctx.stroke();
-    ctx.fillStyle='rgba(255,107,157,.07)';ctx.strokeStyle='rgba(255,107,157,.28)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.ellipse(295,182,118,46,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(255,107,157,.3)';ctx.lineWidth=14;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(20,110);for(let x=20;x<=390;x+=4)ctx.lineTo(x,110+Math.sin(x*0.036)*26);ctx.stroke();
+    ctx.fillStyle='rgba(255,107,157,.07)';ctx.strokeStyle='rgba(255,107,157,.28)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(295,182,118,46,0,0,Math.PI*2);ctx.fill();ctx.stroke();
     ctx.strokeStyle='rgba(255,200,100,.14)';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(295,182,110,38,0,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='rgba(107,207,255,.5)';ctx.font='8px sans-serif';ctx.textAlign='left';ctx.fillText('输卵管',8,16);
-    ctx.fillStyle='rgba(255,107,157,.5)';ctx.fillText('子宫',400,178);
+    ctx.fillStyle='rgba(107,207,255,.5)';ctx.font='8px sans-serif';ctx.textAlign='left';ctx.fillText('输卵管',8,16);ctx.fillStyle='rgba(255,107,157,.5)';ctx.fillText('子宫',400,178);
     if(s.site){
-      const lr=s.site.isImplant?0:s.site.life/s.site.maxLife;
-      const pulse=Math.sin(s.tick*0.15)*0.3+0.7;
+      const lr=s.site.isImplant?0:s.site.life/s.site.maxLife,pulse=Math.sin(s.tick*0.15)*0.3+0.7;
       const col=s.site.isImplant?`rgba(74,222,128,${0.85*pulse})`:lr>0.65?`rgba(255,80,80,${0.85*pulse})`:`rgba(255,200,60,${0.85*pulse})`;
       const fc=s.site.isImplant?`rgba(74,222,128,${0.2*pulse})`:lr>0.65?`rgba(255,80,80,${0.18*pulse})`:`rgba(255,200,60,${0.18*pulse})`;
-      const dr=s.site.r*(1-lr*0.3);
-      ctx.fillStyle=fc;ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([4,3]);
-      ctx.beginPath();ctx.arc(s.site.x,s.site.y,dr,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);
+      const dr=s.site.r*(1-lr*0.3);ctx.fillStyle=fc;ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(s.site.x,s.site.y,dr,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);
       if(!s.site.isImplant){ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(s.site.x,s.site.y,dr+5,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-lr));ctx.stroke();}
       else{ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(s.site.x,s.site.y,dr+5,0,Math.PI*2);ctx.stroke();}
       ctx.fillStyle=col;ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillText(s.site.label,s.site.x,s.site.y+4);
     }
     if(s.divCount<4){ctx.fillStyle='rgba(255,217,61,.3)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('等待细胞分裂到4个…',220,230);}
     ctx.save();ctx.translate(s.egg.x,s.egg.y);
-    const cols=[[255,217,61],[107,207,255],[255,107,157],[74,222,128],[167,139,250],[251,146,60]];
+    const EGG_COLS=[[255,217,61],[107,207,255],[255,107,157],[74,222,128],[167,139,250],[251,146,60]];
     const n=Math.min(s.divCount,16);
     if(n===1){ctx.fillStyle='rgba(255,217,61,.9)';ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffd93d';ctx.lineWidth=2;ctx.stroke();}
-    else{const cr=12/(n>4?2.3:1.9);for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2+s.tick*0.025,rr=7;const c=cols[i%cols.length];ctx.fillStyle=`rgba(${c[0]},${c[1]},${c[2]},.85)`;ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,cr,0,Math.PI*2);ctx.fill();ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},1)`;ctx.lineWidth=1;ctx.stroke();}}
+    else{const cr=12/(n>4?2.3:1.9);for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2+s.tick*0.025,c=EGG_COLS[i%EGG_COLS.length];ctx.fillStyle=`rgba(${c[0]},${c[1]},${c[2]},.85)`;ctx.beginPath();ctx.arc(Math.cos(a)*7,Math.sin(a)*7,cr,0,Math.PI*2);ctx.fill();ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},1)`;ctx.lineWidth=1;ctx.stroke();}}
     ctx.restore();
   },
+  s1end(win){
+    G.s1.active=false;clearInterval(G.s1.iv);clearInterval(G.s1.cd);
+    if(win&&stagesCleared<1){stagesCleared=1;renderMenu();}
+    showFact('🔬 科学知识：受精卵分化与着床','受精卵在输卵管中一边分裂（1→2→4→8→16细胞），一边向子宫移动。分裂的同时细胞开始分化，形成不同功能的细胞群。约7天后到达子宫，在子宫内膜上"着床"——这才是真正着床的一次！着床成功后才会分泌hCG激素，让验孕棒显示阳性。',
+    win?()=>G.s2init():()=>showSc('menu'));
+  },
 
-  s1end(win){G.s1.active=false;clearInterval(G.s1.iv);clearInterval(G.s1.cd);showFact('🔬 科学知识：受精卵分化与着床','受精卵在输卵管中一边分裂（1→2→4→8→16细胞），一边向子宫移动。分裂的同时细胞开始分化，形成不同功能的细胞群。约7天后到达子宫，在子宫内膜上"着床"——这才是真正着床的一次！着床成功后才会分泌hCG激素，让验孕棒显示阳性。',()=>G.s2init());},
-
-  // ══ S2 — ECG 静止波形+移动虚线 ═══════════
+  // ══ S2 ══════════════════════════════════
   //华仁中学蔡逸众制作
-  s2:{active:false,score:0,lives:3,hits:0,tick:0,iv:null,
-      markerX:0,SPEED:0.9,SPACING:155,HIT_WIN:20,OFFSET:85,
-      handled:null,fbTimer:0},
-
+  s2:{active:false,score:0,lives:3,hits:0,tick:0,iv:null,markerX:0,SPEED:0.9,SPACING:155,HIT_WIN:20,OFFSET:85,handled:null,fbTimer:0},
   s2init(){
+    if(stagesCleared<1){showSc('menu');return;}
     G.stopAll();showSc('s2');buildNav('nav2',2);
-    const s=G.s2;
-    s.active=true;s.score=0;s.lives=3;s.hits=0;s.tick=0;s.fbTimer=0;
-    s.markerX=0;s.handled=new Set();
-    $('s2sc').textContent=0;$('s2lives').textContent=3;$('s2hit').textContent=0;$('s2fb').textContent='';
-    G.s2buildDots();clearInterval(s.iv);s.iv=setInterval(G.s2loop,25);
+    const s=G.s2;s.active=true;s.score=0;s.lives=3;s.hits=0;s.tick=0;s.fbTimer=0;s.markerX=0;s.handled=new Set();
+    $('s2sc').textContent=0;$('s2lives').textContent=3;$('s2hit').textContent=0;$('s2fb').textContent='';G.s2dots();clearInterval(s.iv);s.iv=setInterval(G.s2loop,25);
   },
-
-  s2getPeaks(){
-    const s=G.s2,W=440,peaks=[];
-    const totalX=s.tick*s.SPEED;
-    const kMin=Math.floor((totalX-W)/s.SPACING);
-    const kMax=Math.ceil((totalX+W)/s.SPACING)+1;
-    for(let k=Math.max(0,kMin);k<=kMax;k++){
-      const canvasX=s.OFFSET+k*s.SPACING-totalX;
-      if(canvasX>=-s.HIT_WIN-5&&canvasX<=W+5)peaks.push({k,canvasX});
-    }
-    return peaks;
+  s2peaks(){
+    const s=G.s2,W=440,res=[];const tx=s.tick*s.SPEED,kMin=Math.floor((tx-W)/s.SPACING),kMax=Math.ceil((tx+W)/s.SPACING)+1;
+    for(let k=Math.max(0,kMin);k<=kMax;k++){const cx=s.OFFSET+k*s.SPACING-tx;if(cx>=-s.HIT_WIN-5&&cx<=W+5)res.push({k,cx});}return res;
   },
-
   s2loop(){
     const s=G.s2;if(!s.active)return;
-    const cv=$('c2'),ctx=cv.getContext('2d');
-    const W=440,H=150;
+    const cv=$('c2'),ctx=cv.getContext('2d');const W=440,H=150;
     s.tick++;s.markerX+=s.SPEED;if(s.markerX>=W)s.markerX-=W;
-    const peaks=G.s2getPeaks();
-    peaks.forEach(({k,canvasX})=>{
+    G.s2peaks().forEach(({k,cx})=>{
       if(s.handled.has(k))return;
-      if(canvasX<s.markerX-s.HIT_WIN-2){
+      if(cx<s.markerX-s.HIT_WIN-2){
         s.handled.add(k);s.hits=Math.max(0,s.hits-1);s.lives=Math.max(0,s.lives-1);
-        G.s2buildDots();$('s2hit').textContent=s.hits;$('s2lives').textContent=s.lives;
-        G.s2showFb('💔 错过！',false);
+        G.s2dots();$('s2hit').textContent=s.hits;$('s2lives').textContent=s.lives;G.s2fb('💔 错过！',false);
         if(s.lives<=0){s.active=false;clearInterval(s.iv);setTimeout(()=>G.s2init(),1400);}
       }
     });
@@ -362,289 +476,234 @@ const G={
     ctx.strokeStyle='rgba(0,200,100,.07)';ctx.lineWidth=0.5;
     for(let x=0;x<W;x+=22){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
     for(let y=0;y<H;y+=18){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-    ctx.strokeStyle='#00e676';ctx.lineWidth=2;ctx.shadowColor='#00e676';ctx.shadowBlur=4;
-    ctx.beginPath();
-    for(let px=0;px<W;px++){
-      const nearestPeakX=Math.round((px-s.OFFSET)/s.SPACING)*s.SPACING+s.OFFSET;
-      const t=px-nearestPeakX;
-      const y=G.s2ecgY(t,H);
-      if(px===0)ctx.moveTo(px,y);else ctx.lineTo(px,y);
-    }
+    ctx.strokeStyle='#00e676';ctx.lineWidth=2;ctx.shadowColor='#00e676';ctx.shadowBlur=4;ctx.beginPath();
+    for(let px=0;px<W;px++){const nPX=Math.round((px-s.OFFSET)/s.SPACING)*s.SPACING+s.OFFSET;const y=G.s2ecg(px-nPX,H);if(px===0)ctx.moveTo(px,y);else ctx.lineTo(px,y);}
     ctx.stroke();ctx.shadowBlur=0;
-    peaks.forEach(({k,canvasX})=>{
-      if(s.handled.has(k))return;if(canvasX<-5||canvasX>W+5)return;
-      const peakY=G.s2ecgY(0,H);
-      const near=Math.abs(canvasX-s.markerX)<45;
-      ctx.beginPath();ctx.arc(canvasX,peakY,near?11:7,0,Math.PI*2);ctx.fillStyle=near?'rgba(255,217,61,.45)':'rgba(255,217,61,.2)';ctx.fill();
-      ctx.beginPath();ctx.arc(canvasX,peakY,near?5:3.5,0,Math.PI*2);ctx.fillStyle='#ffd93d';ctx.fill();
-      ctx.beginPath();ctx.arc(canvasX,peakY,near?2.5:1.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+    G.s2peaks().forEach(({k,cx})=>{
+      if(s.handled.has(k)||cx<-5||cx>W+5)return;
+      const py=G.s2ecg(0,H),near=Math.abs(cx-s.markerX)<45;
+      ctx.beginPath();ctx.arc(cx,py,near?11:7,0,Math.PI*2);ctx.fillStyle=near?'rgba(255,217,61,.45)':'rgba(255,217,61,.2)';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,py,near?5:3.5,0,Math.PI*2);ctx.fillStyle='#ffd93d';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,py,near?2.5:1.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
     });
-    ctx.save();ctx.strokeStyle='rgba(255,217,61,.9)';ctx.lineWidth=2;ctx.setLineDash([5,4]);
-    ctx.beginPath();ctx.moveTo(s.markerX,0);ctx.lineTo(s.markerX,H);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(255,217,61,.9)';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(s.markerX,0);ctx.lineTo(s.markerX,H);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     ctx.fillStyle='rgba(255,217,61,.05)';ctx.fillRect(s.markerX-s.HIT_WIN,0,s.HIT_WIN*2,H);
     ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px sans-serif';ctx.textAlign='left';ctx.fillText('❤ '+s.score,5,13);
   },
-
-  s2ecgY(t,H){
-    let y=H/2;
-    if(Math.abs(t+38)<16)y-=7*Math.exp(-0.5*((t+38)/7)**2);
-    if(Math.abs(t+9)<7)y+=5*Math.exp(-0.5*((t+9)/3.5)**2);
-    if(Math.abs(t)<13)y-=48*Math.exp(-0.5*(t/4.5)**2);
-    if(Math.abs(t-11)<7)y+=10*Math.exp(-0.5*((t-11)/3.5)**2);
-    if(Math.abs(t-36)<20)y-=12*Math.exp(-0.5*((t-36)/8)**2);
-    return y;
-  },
-
-  s2buildDots(){
-    const el=$('s2dots');el.innerHTML='';
-    for(let i=0;i<5;i++){const d=document.createElement('div');d.style.cssText=`width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,107,157,.4);background:${i<G.s2.hits?'#ff6b9d':'transparent'};transition:background .2s`;el.appendChild(d);}
-  },
-
-  s2showFb(msg,good){
-    $('s2fb').textContent=msg;$('s2fb').style.color=good?'#4ade80':'#ff4a6b';G.s2.fbTimer=22;
-    const b=$('tapbtn');b.style.transform='scale(1.1)';b.style.borderColor=good?'#4ade80':'#ff4a6b';
-    setTimeout(()=>{b.style.transform='scale(1)';b.style.borderColor='rgba(255,107,157,.5)';},140);
-  },
-
+  s2ecg(t,H){let y=H/2;if(Math.abs(t+38)<16)y-=7*Math.exp(-0.5*((t+38)/7)**2);if(Math.abs(t+9)<7)y+=5*Math.exp(-0.5*((t+9)/3.5)**2);if(Math.abs(t)<13)y-=48*Math.exp(-0.5*(t/4.5)**2);if(Math.abs(t-11)<7)y+=10*Math.exp(-0.5*((t-11)/3.5)**2);if(Math.abs(t-36)<20)y-=12*Math.exp(-0.5*((t-36)/8)**2);return y;},
+  s2dots(){const el=$('s2dots');el.innerHTML='';for(let i=0;i<5;i++){const d=document.createElement('div');d.style.cssText=`width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,107,157,.4);background:${i<G.s2.hits?'#ff6b9d':'transparent'};transition:background .2s`;el.appendChild(d);}},
+  s2fb(msg,good){$('s2fb').textContent=msg;$('s2fb').style.color=good?'#4ade80':'#ff4a6b';G.s2.fbTimer=22;const b=$('tapbtn');b.style.transform='scale(1.1)';b.style.borderColor=good?'#4ade80':'#ff4a6b';setTimeout(()=>{b.style.transform='scale(1)';b.style.borderColor='rgba(255,107,157,.5)';},140);},
   s2tap(){
-    const s=G.s2;if(!s.active)return;
-    const peaks=G.s2getPeaks();
-    let bestK=null,bestDist=9999;
-    peaks.forEach(({k,canvasX})=>{
-      if(s.handled.has(k))return;
-      const dist=Math.abs(canvasX-s.markerX);
-      if(dist<=s.HIT_WIN&&dist<bestDist){bestDist=dist;bestK=k;}
-    });
-    if(bestK!==null){
-      s.handled.add(bestK);
-      const pts=bestDist<8?30:bestDist<14?20:12;
-      s.hits=Math.min(5,s.hits+1);s.score+=pts;
-      $('s2sc').textContent=s.score;$('s2hit').textContent=s.hits;G.s2buildDots();
-      G.s2showFb(bestDist<8?'🎯 完美！':'👍 命中！',true);
-      if(s.hits>=5){s.active=false;clearInterval(s.iv);totalScore+=s.score;setTimeout(()=>showFact('💓 科学知识：胎儿心跳','胎儿心脏约在孕22天开始跳动！孕6-8周可用超声波听到胎心音，心率约120-160次/分钟。心电图中最高的"R波"是心室收缩信号，是监测心脏健康的重要指标。',()=>G.s3init()),400);}
-    } else {G.s2showFb('😬 偏了！',false);}
+    const s=G.s2;if(!s.active)return;let bK=null,bD=9999;
+    G.s2peaks().forEach(({k,cx})=>{if(s.handled.has(k))return;const d=Math.abs(cx-s.markerX);if(d<=s.HIT_WIN&&d<bD){bD=d;bK=k;}});
+    if(bK!==null){
+      s.handled.add(bK);const pts=bD<8?30:bD<14?20:12;s.hits=Math.min(5,s.hits+1);s.score+=pts;$('s2sc').textContent=s.score;$('s2hit').textContent=s.hits;G.s2dots();G.s2fb(bD<8?'🎯 完美！':'👍 命中！',true);
+      if(s.hits>=5){s.active=false;clearInterval(s.iv);totalScore+=s.score;if(stagesCleared<2){stagesCleared=2;renderMenu();}setTimeout(()=>showFact('💓 科学知识：胎儿心跳','胎儿心脏约在孕22天开始跳动！孕6-8周可用超声波听到胎心音，心率约120-160次/分钟。心电图中最高的"R波"是心室收缩信号，是监测心脏健康的重要指标。',()=>G.s3init()),400);}
+    } else G.s2fb('😬 偏了！',false);
   },
 
-  // ══ S3 — 营养输送 ══════════════════════════
-  s3:{active:false,nut:50,oxy:50,score:0,goodTicks:0,GOAL_TICKS:0,items:[],tick:0,iv:null,idC:0},
-  s3goods:[{e:'🍎',n:'葡萄糖',dn:14,do2:7},{e:'🥦',n:'叶酸',dn:11,do2:5},{e:'🥛',n:'钙质',dn:9,do2:4},{e:'💧',n:'氧气',dn:5,do2:16},{e:'🫐',n:'铁质',dn:10,do2:6}],
-  s3bads:[{e:'🚬',n:'烟草',dn:-22,do2:-20},{e:'🍷',n:'酒精',dn:-25,do2:-18},{e:'☢️',n:'辐射',dn:-20,do2:-22}],
-  S3W:440,S3H:220,
-
+  // ══ S3 ══════════════════════════════════
+  s3:{active:false,nut:50,oxy:50,score:0,goodTicks:0,GOAL:0,items:[],tick:0,iv:null,idC:0},
+  s3G:[{e:'🍎',n:'葡萄糖',dn:14,do2:7},{e:'🥦',n:'叶酸',dn:11,do2:5},{e:'🥛',n:'钙质',dn:9,do2:4},{e:'💧',n:'氧气',dn:5,do2:16},{e:'🫐',n:'铁质',dn:10,do2:6}],
+  s3B:[{e:'🚬',n:'烟草',dn:-22,do2:-20},{e:'🍷',n:'酒精',dn:-25,do2:-18},{e:'☢️',n:'辐射',dn:-20,do2:-22}],
   s3init(){
+    if(stagesCleared<2){showSc('menu');return;}
     G.stopAll();showSc('s3');buildNav('nav3',3);
-    const s=G.s3;s.active=true;s.nut=50;s.oxy=50;s.score=0;s.goodTicks=0;
-    s.GOAL_TICKS=Math.round(5000/35);s.items=[];s.tick=0;
-    $('s3nt').textContent=50;$('s3ox').textContent=50;$('s3sc').textContent=0;$('s3tm').textContent='0.0';$('p3').style.width='0%';
-    $('s3msg').textContent='让营养和氧气都超过70%并维持5秒！';
+    const s=G.s3;s.active=true;s.nut=50;s.oxy=50;s.score=0;s.goodTicks=0;s.GOAL=Math.round(5000/35);s.items=[];s.tick=0;
+    $('s3nt').textContent=50;$('s3ox').textContent=50;$('s3sc').textContent=0;$('s3tm').textContent='0.0';$('p3').style.width='0%';$('s3msg').textContent='让营养和氧气都超过70%并维持5秒！';
     clearInterval(s.iv);s.iv=setInterval(G.s3loop,35);
   },
-
   s3loop(){
     const s=G.s3;if(!s.active)return;s.tick++;
     s.nut=Math.max(0,s.nut-0.14);s.oxy=Math.max(0,s.oxy-0.12);
     if(s.nut<=0||s.oxy<=0){G.s3fail();return;}
-    if(s.nut>=70&&s.oxy>=70)s.goodTicks++;
-    else s.goodTicks=Math.max(0,s.goodTicks-1);
-    const progress=Math.min(100,(s.goodTicks/s.GOAL_TICKS)*100);
-    $('p3').style.width=progress+'%';$('s3tm').textContent=(s.goodTicks/s.GOAL_TICKS*5).toFixed(1);
-    if(s.tick%22===0)G.s3spawn();
-    s.items.forEach(it=>{it.y+=it.speed;});s.items=s.items.filter(it=>it.y<G.S3H+20);
-    G.s3render();
-    $('s3nt').textContent=Math.round(s.nut);$('s3ox').textContent=Math.round(s.oxy);
-    $('s3msg').textContent=s.nut>=70&&s.oxy>=70?`✅ 保持！再撑 ${(5-s.goodTicks/s.GOAL_TICKS*5).toFixed(1)} 秒…`:'⚠️ 快点好物质，让两项都超过70%！';
-    if(s.goodTicks>=s.GOAL_TICKS)G.s3end(true);
+    s.nut>=70&&s.oxy>=70?s.goodTicks++:s.goodTicks=Math.max(0,s.goodTicks-1);
+    $('p3').style.width=Math.min(100,s.goodTicks/s.GOAL*100)+'%';$('s3tm').textContent=(s.goodTicks/s.GOAL*5).toFixed(1);
+    if(s.tick%22===0)G.s3spawn();s.items.forEach(it=>it.y+=it.speed);s.items=s.items.filter(it=>it.y<240);
+    G.s3draw();$('s3nt').textContent=Math.round(s.nut);$('s3ox').textContent=Math.round(s.oxy);
+    $('s3msg').textContent=s.nut>=70&&s.oxy>=70?`✅ 保持！再撑 ${(5-s.goodTicks/s.GOAL*5).toFixed(1)} 秒…`:'⚠️ 快点好物质，让两项都超过70%！';
+    if(s.goodTicks>=s.GOAL)G.s3end();
   },
-
   s3fail(){const s=G.s3;s.active=false;clearInterval(s.iv);$('s3msg').textContent='💀 失败！营养耗尽，重新开始…';setTimeout(()=>G.s3init(),1400);},
-
-  s3spawn(){
-    const s=G.s3;const isGood=Math.random()>.4;
-    const pool=isGood?G.s3goods:G.s3bads;const d=pool[Math.floor(Math.random()*pool.length)];
-    s.items.push({...d,x:40+Math.random()*(G.S3W-80),y:-30,speed:5+Math.random()*3,id:++s.idC,isGood,r:22});
-  },
-
-  //Made by ecchua79
-  s3render(){
-    const s=G.s3;const cv=$('c3'),ctx=cv.getContext('2d');const W=G.S3W,H=G.S3H;
+  s3spawn(){const s=G.s3;const g=Math.random()>.4;const pool=g?G.s3G:G.s3B;const d=pool[Math.floor(Math.random()*pool.length)];s.items.push({...d,x:40+Math.random()*360,y:-30,speed:5+Math.random()*3,id:++s.idC,good:g,r:22});},
+  s3draw(){
+    const s=G.s3;const cv=$('c3'),ctx=cv.getContext('2d');const W=440,H=220;
     ctx.fillStyle='#060a06';ctx.fillRect(0,0,W,H);
-    s.items.forEach(it=>{
-      const col=it.isGood?'#4ade80':'#ff4a6b';
-      ctx.fillStyle=col+'2a';ctx.strokeStyle=col;ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(it.x,it.y,it.r,0,Math.PI*2);ctx.fill();ctx.stroke();
-      ctx.font='19px serif';ctx.textAlign='center';ctx.fillText(it.e,it.x,it.y+7);
-      ctx.fillStyle=col;ctx.font='9px sans-serif';ctx.fillText(it.n,it.x,it.y+24);
-    });
-    const barH=H-20;
-    const nH=Math.max(0,(s.nut/100)*barH),oH=Math.max(0,(s.oxy/100)*barH);
+    s.items.forEach(it=>{const c=it.good?'#4ade80':'#ff4a6b';ctx.fillStyle=c+'2a';ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.arc(it.x,it.y,it.r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.font='19px serif';ctx.textAlign='center';ctx.fillText(it.e,it.x,it.y+7);ctx.fillStyle=c;ctx.font='9px sans-serif';ctx.fillText(it.n,it.x,it.y+24);});
+    const bH=H-20;const nH=Math.max(0,s.nut/100*bH),oH=Math.max(0,s.oxy/100*bH);
     ctx.fillStyle='rgba(74,222,128,.12)';ctx.fillRect(4,H-nH-10,16,nH);ctx.fillStyle=s.nut>=70?'#4ade80':'#fb923c';ctx.fillRect(4,H-nH-10,16,nH);
     ctx.fillStyle='rgba(107,207,255,.12)';ctx.fillRect(22,H-oH-10,16,oH);ctx.fillStyle=s.oxy>=70?'#6bcfff':'#fb923c';ctx.fillRect(22,H-oH-10,16,oH);
-    ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;ctx.strokeRect(4,10,16,barH);ctx.strokeRect(22,10,16,barH);
-    const m70=10+barH*0.3;ctx.strokeStyle='rgba(255,217,61,.7)';ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(2,m70);ctx.lineTo(40,m70);ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;ctx.strokeRect(4,10,16,bH);ctx.strokeRect(22,10,16,bH);
+    const m70=10+bH*0.3;ctx.strokeStyle='rgba(255,217,61,.7)';ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(2,m70);ctx.lineTo(40,m70);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='rgba(255,217,61,.6)';ctx.font='7px sans-serif';ctx.textAlign='left';ctx.fillText('70%',4,m70-2);
     ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='9px sans-serif';ctx.fillText('🌱',5,H-2);ctx.fillText('💧',23,H-2);
   },
-
   s3click(e){
     const s=G.s3;if(!s.active)return;
     const cv=$('c3'),rect=cv.getBoundingClientRect();
-    const scaleX=G.S3W/cv.offsetWidth,scaleY=G.S3H/cv.offsetHeight;
-    const sx=(e.clientX-rect.left)*scaleX,sy=(e.clientY-rect.top)*scaleY;
+    const sx=(e.clientX-rect.left)*(440/cv.offsetWidth),sy=(e.clientY-rect.top)*(220/cv.offsetHeight);
     let hit=false;
-    s.items=s.items.filter(it=>{
-      if(hit)return true;
-      const dx=sx-it.x,dy=sy-it.y;
-      if(Math.sqrt(dx*dx+dy*dy)<it.r+6){
-        hit=true;
-        if(it.isGood){s.nut=Math.min(100,s.nut+it.dn);s.oxy=Math.min(100,s.oxy+it.do2);s.score+=20;totalScore+=20;}
-        else{s.nut=Math.max(0,s.nut+it.dn);s.oxy=Math.max(0,s.oxy+it.do2);s.score+=15;totalScore+=15;}
-        $('s3sc').textContent=s.score;return false;
-      }
-      return true;
-    });
+    s.items=s.items.filter(it=>{if(hit)return true;if(Math.sqrt((sx-it.x)**2+(sy-it.y)**2)<it.r+6){hit=true;if(it.good){s.nut=Math.min(100,s.nut+it.dn);s.oxy=Math.min(100,s.oxy+it.do2);s.score+=20;totalScore+=20;}else{s.nut=Math.max(0,s.nut+it.dn);s.oxy=Math.max(0,s.oxy+it.do2);s.score+=15;totalScore+=15;}$('s3sc').textContent=s.score;return false;}return true;});
+  },
+  s3end(){
+    G.s3.active=false;clearInterval(G.s3.iv);totalScore+=G.s3.score;if(stagesCleared<3){stagesCleared=3;renderMenu();}
+    showFact('🍀 科学知识：胎盘功能','胎盘从母血摄取葡萄糖、氨基酸、钙质和氧气，通过脐带传给胎儿，同时将胎儿产生的二氧化碳和代谢废物送回母体。母婴血液不直接混合，但烟酒辐射等有害物质会穿过胎盘屏障伤害胎儿！',()=>G.s4init());
   },
 
-  s3end(win){G.s3.active=false;clearInterval(G.s3.iv);totalScore+=G.s3.score;showFact('🍀 科学知识：胎盘功能','胎盘从母血摄取葡萄糖、氨基酸、钙质和氧气，通过脐带传给胎儿，同时将胎儿产生的二氧化碳和代谢废物送回母体。母婴血液不直接混合，但烟酒辐射等有害物质会穿过胎盘屏障伤害胎儿！',()=>G.s4init());},
-
-  // ══ S4 — 器官拼图 ══════════════════════════
+  // ══ S4 ══════════════════════════════════
   //峇株吧辖蔡逸众制作
-  s4organs:[
-    {name:'心脏',emoji:'❤️',slot:'循环系统',color:'#ff6b9d',placed:false},
-    {name:'大脑',emoji:'🧠',slot:'神经系统',color:'#a78bfa',placed:false},
-    {name:'肺部',emoji:'🫁',slot:'呼吸系统',color:'#6bcfff',placed:false},
-    {name:'胃',  emoji:'🫃',slot:'消化系统',color:'#fb923c',placed:false},
-    {name:'骨骼',emoji:'🦴',slot:'运动系统',color:'#e2e8f0',placed:false},
-    {name:'眼睛',emoji:'👁',slot:'感觉器官',color:'#4ade80',placed:false},
-  ],
-  s4:{score:0,correct:0,selected:null,slotOrder:[],cardOrder:[]},
-
+  s4organs:[{name:'心脏',emoji:'❤️',slot:'循环系统',color:'#ff6b9d',placed:false},{name:'大脑',emoji:'🧠',slot:'神经系统',color:'#a78bfa',placed:false},{name:'肺部',emoji:'🫁',slot:'呼吸系统',color:'#6bcfff',placed:false},{name:'胃',emoji:'🫃',slot:'消化系统',color:'#fb923c',placed:false},{name:'骨骼',emoji:'🦴',slot:'运动系统',color:'#e2e8f0',placed:false},{name:'眼睛',emoji:'👁',slot:'感觉器官',color:'#4ade80',placed:false}],
+  s4:{score:0,correct:0,sel:null,sO:[],cO:[]},
   s4init(){
-    G.stopAll();showSc('s4');buildNav('nav4',4);
-    G.s4organs.forEach(o=>o.placed=false);
-    const s=G.s4;s.score=0;s.correct=0;s.selected=null;
-    s.slotOrder=[...G.s4organs].sort(()=>Math.random()-.5);
-    s.cardOrder=[...G.s4organs].sort(()=>Math.random()-.5);
-    $('s4sc').textContent=0;$('s4ok').textContent='0/6';G.s4render();
+    if(stagesCleared<3){showSc('menu');return;}
+    G.stopAll();showSc('s4');buildNav('nav4',4);G.s4organs.forEach(o=>o.placed=false);
+    const s=G.s4;s.score=0;s.correct=0;s.sel=null;s.sO=[...G.s4organs].sort(()=>Math.random()-.5);s.cO=[...G.s4organs].sort(()=>Math.random()-.5);
+    $('s4sc').textContent=0;$('s4ok').textContent='0/6';G.s4draw();
   },
-
-  s4render(){
-    const s=G.s4;
-    const sl=$('s4slots');sl.innerHTML='';
-    s.slotOrder.forEach(org=>{
-      const d=document.createElement('div');
-      d.style.cssText='border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;cursor:pointer;transition:all .2s;text-align:center;padding:5px 3px;';
-      if(org.placed){
-        d.style.border=`2px solid ${org.color}`;d.style.background=org.color+'22';
-        d.innerHTML=`<div style="font-size:20px">${org.emoji}</div><div style="color:${org.color};font-weight:700;font-size:9px;margin-top:2px">${org.name}</div><div style="font-size:8px;color:${org.color}88">${org.slot}</div>`;
-      } else {
-        const hasSel=s.selected!==null;
-        d.style.border=`2px dashed ${hasSel?'rgba(255,255,255,.4)':'rgba(255,255,255,.2)'}`;
-        d.style.background=hasSel?'rgba(255,255,255,.05)':'transparent';
-        d.innerHTML=`<div style="font-size:10px;color:#777;line-height:1.4;padding:3px">${org.slot}</div>`;
-        d.dataset.slot=org.slot;d.onclick=()=>G.s4place(org.slot);
-        if(hasSel){d.onmouseenter=()=>{d.style.borderColor='#ffd93d';d.style.background='rgba(255,217,61,.08)';};d.onmouseleave=()=>{d.style.borderColor='rgba(255,255,255,.4)';d.style.background='rgba(255,255,255,.05)';};}
-      }
+  s4draw(){
+    const s=G.s4;const sl=$('s4slots');sl.innerHTML='';
+    s.sO.forEach(org=>{
+      const d=document.createElement('div');d.style.cssText='border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68px;cursor:pointer;transition:all .2s;text-align:center;padding:5px 3px;';
+      if(org.placed){d.style.border=`2px solid ${org.color}`;d.style.background=org.color+'22';d.innerHTML=`<div style="font-size:20px">${org.emoji}</div><div style="color:${org.color};font-weight:700;font-size:9px;margin-top:2px">${org.name}</div><div style="font-size:8px;color:${org.color}88">${org.slot}</div>`;}
+      else{const h=s.sel!==null;d.style.border=`2px dashed ${h?'rgba(255,255,255,.4)':'rgba(255,255,255,.2)'}`;d.style.background=h?'rgba(255,255,255,.05)':'transparent';d.innerHTML=`<div style="font-size:10px;color:#777;line-height:1.4;padding:3px">${org.slot}</div>`;d.dataset.slot=org.slot;d.onclick=()=>G.s4place(org.slot);if(h){d.onmouseenter=()=>{d.style.borderColor='#ffd93d';d.style.background='rgba(255,217,61,.08)';};d.onmouseleave=()=>{d.style.borderColor='rgba(255,255,255,.4)';d.style.background='rgba(255,255,255,.05)';};};}
       sl.appendChild(d);
     });
     const ca=$('s4cards');ca.innerHTML='';
-    s.cardOrder.forEach(org=>{
-      if(org.placed)return;
-      const btn=document.createElement('button');const isSel=s.selected===org.name;
-      btn.style.cssText=`padding:6px 11px;border-radius:20px;border:2px solid ${org.color};background:${isSel?org.color+'44':'transparent'};color:${org.color};font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;transform:${isSel?'scale(1.08)':'scale(1)'};outline:none;touch-action:manipulation`;
-      btn.textContent=org.emoji+' '+org.name;btn.onclick=()=>{s.selected=org.name;G.s4render();};
-      ca.appendChild(btn);
-    });
+    s.cO.forEach(org=>{if(org.placed)return;const btn=document.createElement('button');const iS=s.sel===org.name;btn.style.cssText=`padding:6px 11px;border-radius:20px;border:2px solid ${org.color};background:${iS?org.color+'44':'transparent'};color:${org.color};font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;transform:${iS?'scale(1.08)':'scale(1)'};outline:none;touch-action:manipulation`;btn.textContent=org.emoji+' '+org.name;btn.onclick=()=>{s.sel=org.name;G.s4draw();};ca.appendChild(btn);});
   },
-
   s4place(slot){
-    const s=G.s4;if(!s.selected)return;
-    const org=G.s4organs.find(o=>o.name===s.selected);if(!org||org.placed)return;
-    if(org.slot===slot){
-      org.placed=true;s.correct++;s.score+=30;s.selected=null;
-      $('s4sc').textContent=s.score;$('s4ok').textContent=s.correct+'/6';G.s4render();
-      if(s.correct>=6){totalScore+=s.score;setTimeout(()=>showFact('🧬 科学知识：器官发育','心脏最早（孕22天）开始跳动，神经管孕4周闭合，消化器官孕8周基本成形，骨骼初期为软骨后骨化，肺是最后完全成熟的器官（约孕36周）！',()=>G.s5init()),500);}
+    const s=G.s4;if(!s.sel)return;const org=G.s4organs.find(o=>o.name===s.sel);if(!org||org.placed)return;
+    if(org.slot===slot){org.placed=true;s.correct++;s.score+=30;s.sel=null;$('s4sc').textContent=s.score;$('s4ok').textContent=s.correct+'/6';G.s4draw();
+      if(s.correct>=6){totalScore+=s.score;if(stagesCleared<4){stagesCleared=4;renderMenu();}setTimeout(()=>showFact('🧬 科学知识：器官发育','心脏最早（孕22天）开始跳动，神经管孕4周闭合，消化器官孕8周基本成形，骨骼初期为软骨后骨化，肺是最后完全成熟的器官（约孕36周）！',()=>G.s5init()),500);}
     } else {
       $('s4slots').querySelectorAll('[data-slot]').forEach(d=>{if(d.dataset.slot===slot){d.style.borderColor='#ff4a6b';d.style.background='rgba(255,74,107,.12)';setTimeout(()=>{d.style.borderColor='rgba(255,255,255,.4)';d.style.background='rgba(255,255,255,.05)';},500);}});
       s.score=Math.max(0,s.score-5);$('s4sc').textContent=s.score;
     }
   },
 
-  // ══ S5 — 呼吸节律 ══════════════════════════
-  s5rounds:[['ex','in','ex','in'],['ex','in','ex','in','in'],['in','ex','in','ex','in'],['ex','in','ex','ex','in'],['in','ex','in','ex','ex']],
-  s5:{active:false,score:0,okCount:0,roundIdx:0,stepIdx:0,phase:'show',phaseTimer:0,waveData:[],tick:0,iv:null},
-
+  // ══ S5 ══════════════════════════════════
+  s5R:[['ex','in','ex','in'],['ex','in','ex','in','in'],['in','ex','in','ex','in'],['ex','in','ex','ex','in'],['in','ex','in','ex','ex']],
+  s5:{active:false,score:0,ok:0,ri:0,si:0,phase:'show',pt:0,wave:[],tick:0,iv:null},
   s5init(){
+    if(stagesCleared<4){showSc('menu');return;}
     G.stopAll();showSc('s5');buildNav('nav5',5);
-    const s=G.s5;s.active=true;s.score=0;s.okCount=0;s.roundIdx=0;s.stepIdx=0;
-    s.phase='show';s.phaseTimer=0;s.waveData=new Array(440).fill(44);s.tick=0;
+    const s=G.s5;s.active=true;s.score=0;s.ok=0;s.ri=0;s.si=0;s.phase='show';s.pt=0;s.wave=new Array(440).fill(44);s.tick=0;
     $('s5ok').textContent='0/5';$('s5sc').textContent=0;$('p5').style.width='0%';$('s5fb').textContent='';
-    clearInterval(s.iv);s.iv=setInterval(G.s5loop,28);G.s5renderSeq();
+    clearInterval(s.iv);s.iv=setInterval(G.s5loop,28);G.s5seq();
   },
-
-  s5curPat(){return G.s5rounds[Math.min(G.s5.roundIdx,4)];},
-  s5curExp(){return G.s5curPat()[G.s5.stepIdx]||null;},
-
-  s5renderSeq(){
+  s5pat(){return G.s5R[Math.min(G.s5.ri,4)];},
+  s5exp(){return G.s5pat()[G.s5.si]||null;},
+  s5seq(){
     const s=G.s5;const el=$('s5seq');el.innerHTML='';
-    G.s5curPat().forEach((step,i)=>{
-      const span=document.createElement('span');
-      const done=i<s.stepIdx,cur=i===s.stepIdx&&s.phase==='window';
-      span.style.cssText=`font-size:16px;font-weight:700;font-family:'Fredoka One',cursive;padding:4px 9px;border-radius:10px;color:${done?'#4ade8099':cur?'#fff':'#555'};background:${cur?(step==='ex'?'rgba(107,207,255,.2)':'rgba(255,107,157,.2)'):'transparent'};border:1.5px solid ${done?'#4ade8044':cur?(step==='ex'?'#6bcfff':'#ff6b9d'):'#333'};`;
-      span.textContent=step==='ex'?'呼':'吸';el.appendChild(span);
-    });
+    G.s5pat().forEach((step,i)=>{const sp=document.createElement('span');const done=i<s.si,cur=i===s.si&&s.phase==='window';sp.style.cssText=`font-size:16px;font-weight:700;font-family:'Fredoka One',cursive;padding:4px 9px;border-radius:10px;color:${done?'#4ade8099':cur?'#fff':'#555'};background:${cur?(step==='ex'?'rgba(107,207,255,.2)':'rgba(255,107,157,.2)'):'transparent'};border:1.5px solid ${done?'#4ade8044':cur?(step==='ex'?'#6bcfff':'#ff6b9d'):'#333'};`;sp.textContent=step==='ex'?'呼':'吸';el.appendChild(sp);});
     const dots=document.createElement('div');dots.style.cssText='display:flex;gap:4px;align-items:center;margin-left:7px;';
-    for(let i=0;i<5;i++){const d=document.createElement('div');d.style.cssText=`width:7px;height:7px;border-radius:50%;background:${i<s.okCount?'#4ade80':'rgba(255,255,255,.15)'};border:1px solid ${i<s.okCount?'#4ade80':'rgba(255,255,255,.2)'};`;dots.appendChild(d);}
+    for(let i=0;i<5;i++){const d=document.createElement('div');d.style.cssText=`width:7px;height:7px;border-radius:50%;background:${i<s.ok?'#4ade80':'rgba(255,255,255,.15)'};border:1px solid ${i<s.ok?'#4ade80':'rgba(255,255,255,.2)'};`;dots.appendChild(d);}
     el.appendChild(dots);
   },
-
   s5loop(){
-    const s=G.s5;if(!s.active)return;s.tick++;s.phaseTimer++;
-    s.waveData.push(44+Math.sin(s.tick*0.16)*(s.phase==='window'?20:9));
-    if(s.waveData.length>440)s.waveData.shift();
-    G.s5render();
-    if(s.phase==='show'){if(s.phaseTimer>=90){s.phase='window';s.phaseTimer=0;G.s5renderSeq();}}
-    else if(s.phase==='window'){if(s.phaseTimer>=40)G.s5failRound('⏰ 来不及了！重来这一轮');}
-    else if(s.phase==='pause'){if(s.phaseTimer>=18){s.stepIdx++;if(s.stepIdx>=G.s5curPat().length){s.okCount++;s.score+=60;$('s5ok').textContent=s.okCount+'/5';$('s5sc').textContent=s.score;$('p5').style.width=(s.okCount/5*100)+'%';if(s.okCount>=5){s.active=false;clearInterval(s.iv);totalScore+=s.score;setTimeout(()=>G.endGame(),500);return;}$('s5fb').textContent='🎉 这一轮完美！';$('s5fb').style.color='#ffd93d';s.roundIdx++;s.stepIdx=0;s.phase='show';s.phaseTimer=0;}else{s.phase='window';s.phaseTimer=0;}G.s5renderSeq();}}
-    else if(s.phase==='fail'){if(s.phaseTimer>=55){s.stepIdx=0;s.phase='show';s.phaseTimer=0;G.s5renderSeq();}}
+    const s=G.s5;if(!s.active)return;s.tick++;s.pt++;
+    s.wave.push(44+Math.sin(s.tick*0.16)*(s.phase==='window'?20:9));if(s.wave.length>440)s.wave.shift();
+    G.s5draw();
+    if(s.phase==='show'){if(s.pt>=90){s.phase='window';s.pt=0;G.s5seq();}}
+    else if(s.phase==='window'){if(s.pt>=40)G.s5fail('⏰ 来不及了！重来这一轮');}
+    else if(s.phase==='pause'){if(s.pt>=18){s.si++;if(s.si>=G.s5pat().length){s.ok++;s.score+=60;$('s5ok').textContent=s.ok+'/5';$('s5sc').textContent=s.score;$('p5').style.width=(s.ok/5*100)+'%';if(s.ok>=5){s.active=false;clearInterval(s.iv);totalScore+=s.score;if(stagesCleared<5){stagesCleared=5;renderMenu();}setTimeout(()=>G.nameScreen(),500);return;}$('s5fb').textContent='🎉 这一轮完美！';$('s5fb').style.color='#ffd93d';s.ri++;s.si=0;s.phase='show';s.pt=0;}else{s.phase='window';s.pt=0;}G.s5seq();}}
+    else if(s.phase==='fail'){if(s.pt>=55){s.si=0;s.phase='show';s.pt=0;G.s5seq();}}
   },
-
-  s5failRound(msg){const s=G.s5;s.phase='fail';s.phaseTimer=0;s.stepIdx=0;$('s5fb').textContent=msg;$('s5fb').style.color='#ff4a6b';G.s5renderSeq();},
-
+  s5fail(msg){const s=G.s5;s.phase='fail';s.pt=0;s.si=0;$('s5fb').textContent=msg;$('s5fb').style.color='#ff4a6b';G.s5seq();},
   s5press(type){
     const s=G.s5;if(!s.active||s.phase!=='window')return;
-    if(type===G.s5curExp()){s.phase='pause';s.phaseTimer=0;$('s5fb').textContent='✅ 正确！';$('s5fb').style.color='#4ade80';const btn=type==='ex'?$('btn-ex'):$('btn-in');btn.style.transform='scale(1.15)';setTimeout(()=>btn.style.transform='scale(1)',120);G.s5renderSeq();}
-    else{G.s5failRound('❌ 按错了！重来这一轮');const btn=type==='ex'?$('btn-ex'):$('btn-in');btn.style.transform='scale(0.9)';setTimeout(()=>btn.style.transform='scale(1)',120);}
+    if(type===G.s5exp()){s.phase='pause';s.pt=0;$('s5fb').textContent='✅ 正确！';$('s5fb').style.color='#4ade80';const b=type==='ex'?$('btn-ex'):$('btn-in');b.style.transform='scale(1.15)';setTimeout(()=>b.style.transform='scale(1)',120);G.s5seq();}
+    else{G.s5fail('❌ 按错了！重来这一轮');const b=type==='ex'?$('btn-ex'):$('btn-in');b.style.transform='scale(0.9)';setTimeout(()=>b.style.transform='scale(1)',120);}
   },
-
   //峇株吧辖华仁中学蔡逸众制作
-  s5render(){
+  s5draw(){
     const s=G.s5;const cv=$('c5'),ctx=cv.getContext('2d');const W=440,H=88;
-    ctx.fillStyle='#080a06';ctx.fillRect(0,0,W,H);
-    const col=s.phase==='window'?'#4ade80':'rgba(255,255,255,.3)';
-    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.shadowColor=col;ctx.shadowBlur=s.phase==='window'?5:0;
-    ctx.beginPath();s.waveData.forEach((v,i)=>{if(i===0)ctx.moveTo(i,v);else ctx.lineTo(i,v);});ctx.stroke();ctx.shadowBlur=0;
-    if(s.phase==='window'){const ratio=1-s.phaseTimer/40;ctx.fillStyle='rgba(74,222,128,.15)';ctx.fillRect(18,H-13,404,7);ctx.fillStyle='#4ade80';ctx.fillRect(18,H-13,Math.max(0,ratio)*404,7);ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='8px sans-serif';ctx.textAlign='left';ctx.fillText('时机窗口',20,H-16);}
-    const labels=G.s5curPat().map(p=>p==='ex'?'呼':'吸').join('');
-    ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('第'+(s.roundIdx+1)+'轮：'+labels,W-5,14);
+    ctx.fillStyle='#080a06';ctx.fillRect(0,0,W,H);const col=s.phase==='window'?'#4ade80':'rgba(255,255,255,.3)';
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.shadowColor=col;ctx.shadowBlur=s.phase==='window'?5:0;ctx.beginPath();s.wave.forEach((v,i)=>{if(i===0)ctx.moveTo(i,v);else ctx.lineTo(i,v);});ctx.stroke();ctx.shadowBlur=0;
+    if(s.phase==='window'){const r=1-s.pt/40;ctx.fillStyle='rgba(74,222,128,.15)';ctx.fillRect(18,H-13,404,7);ctx.fillStyle='#4ade80';ctx.fillRect(18,H-13,Math.max(0,r)*404,7);ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='8px sans-serif';ctx.textAlign='left';ctx.fillText('时机窗口',20,H-16);}
+    ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.fillText('第'+(s.ri+1)+'轮：'+G.s5pat().map(p=>p==='ex'?'呼':'吸').join(''),W-5,14);
   },
 
-  endGame(){
-    showSc('end');$('endbaby').textContent=genderX?'👧':'👦';
-    $('endstars').textContent=totalScore>500?'⭐⭐⭐':totalScore>250?'⭐⭐':'⭐';
-    $('endbox').innerHTML=`<strong>总得分：${totalScore}</strong><br>宝宝：${genderX?'女孩 👧':'男孩 👦'}<br>恭喜完成280天的奇迹旅程！`;
-    const c=$('cfetti');c.innerHTML='';
+  // ══ NAME + CERT ══════════════════════════
+  nameScreen(){
+    const c=$('name-cfetti');c.innerHTML='';
     const cols=['#ff6b9d','#ffd93d','#6bcfff','#4ade80','#a78bfa'];
     for(let i=0;i<22;i++){const d=document.createElement('div');d.style.cssText=`position:absolute;width:7px;height:7px;border-radius:2px;background:${cols[i%cols.length]};left:${Math.random()*100}%;animation:fall ${2+Math.random()*2}s linear infinite ${Math.random()*2}s`;c.appendChild(d);}
+    $('name-score').textContent=totalScore;showSc('name');
+    setTimeout(()=>$('player-name').focus(),400);
+  },
+
+  generateCert(){
+    const name=($('player-name').value||'').trim();
+    if(!name){
+      $('player-name').style.borderColor='#ff4a6b';
+      $('player-name').placeholder='请先输入姓名！';
+      setTimeout(()=>{$('player-name').style.borderColor='rgba(255,217,61,.4)';$('player-name').placeholder='请输入你的姓名';},1300);return;
+    }
+    const now=new Date();
+    const isBoy=Math.random()>.5;
+    const baby=isBoy?'👦':'👧', gender=isBoy?'男宝宝':'女宝宝';
+    const pad=n=>String(n).padStart(2,'0');
+    const dateStr=`${now.getFullYear()}年${pad(now.getMonth()+1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const zodiacs=[{n:'摩羯座',e:'♑',m:1,d:19},{n:'水瓶座',e:'♒',m:2,d:18},{n:'双鱼座',e:'♓',m:3,d:20},{n:'白羊座',e:'♈',m:4,d:19},{n:'金牛座',e:'♉',m:5,d:20},{n:'双子座',e:'♊',m:6,d:21},{n:'巨蟹座',e:'♋',m:7,d:22},{n:'狮子座',e:'♌',m:8,d:22},{n:'处女座',e:'♍',m:9,d:22},{n:'天秤座',e:'♎',m:10,d:23},{n:'天蝎座',e:'♏',m:11,d:22},{n:'射手座',e:'♐',m:12,d:21}];
+    const m=now.getMonth()+1,d=now.getDate();let z=zodiacs[0];
+    for(let i=0;i<zodiacs.length;i++){if(m<zodiacs[i].m||(m===zodiacs[i].m&&d<=zodiacs[i].d)){z=zodiacs[i];break;}if(i===zodiacs.length-1)z=zodiacs[0];}
+    const elapsed=gameStartTime?Math.floor((now-gameStartTime)/1000):0;
+    const eMin=Math.floor(elapsed/60),eSec=elapsed%60;
+    const timeStr=eMin>0?`${eMin}分${eSec}秒`:`${eSec}秒`;
+    const stars=totalScore>500?'⭐⭐⭐':totalScore>250?'⭐⭐':'⭐';
+    const msgs=isBoy
+      ?['愿他健康成长，探索生命的无限可能！','愿他充满活力，好奇心永不熄灭！','愿他聪明勇敢，成为闪耀的星光！']
+      :['愿她温柔善良，绽放属于自己的芬芳！','愿她聪慧美丽，人生每步都踏实有力！','愿她快乐成长，让世界因她更美好！'];
+    const msg=msgs[Math.floor(Math.random()*msgs.length)];
+
+    $('cert-inner').innerHTML=`
+      <div style="text-align:center;margin-bottom:12px">
+        <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ffd93d,#ff8e53);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 8px;box-shadow:0 0 18px rgba(255,217,61,.35)">🌟</div>
+        <div style="font-size:9px;color:rgba(255,217,61,.45);letter-spacing:3px;margin-bottom:3px">BIRTH CERTIFICATE</div>
+        <div style="font-family:'Fredoka One',cursive;font-size:17px;background:linear-gradient(135deg,#ffd93d,#ff6b9d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">生命诞生证明书</div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);padding:12px 0;margin-bottom:11px">
+        <div style="text-align:center;margin-bottom:9px">
+          <div style="font-size:48px;animation:bounce 1.2s ease-in-out infinite">${baby}</div>
+          <div style="font-family:'Fredoka One',cursive;font-size:15px;color:#ffd93d;margin-top:4px">恭喜！${gender}平安诞生 🎉</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11px">
+          <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center"><div style="color:#777;font-size:9px;margin-bottom:2px">性别</div><div style="color:#fff;font-weight:700">${gender}</div></div>
+          <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center"><div style="color:#777;font-size:9px;margin-bottom:2px">星座</div><div style="color:#fff;font-weight:700">${z.e} ${z.n}</div></div>
+          <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center;grid-column:span 2"><div style="color:#777;font-size:9px;margin-bottom:2px">诞生时刻</div><div style="color:#ffd93d;font-weight:700;font-size:11px">${dateStr}</div></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11px;margin-bottom:11px">
+        <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center"><div style="color:#777;font-size:9px;margin-bottom:2px">助产士</div><div style="color:#6bcfff;font-weight:700;font-size:12px">${name}</div></div>
+        <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center"><div style="color:#777;font-size:9px;margin-bottom:2px">完成得分</div><div style="color:#4ade80;font-weight:700">${stars} ${totalScore}分</div></div>
+        <div style="background:rgba(255,255,255,.04);border-radius:9px;padding:7px;text-align:center;grid-column:span 2"><div style="color:#777;font-size:9px;margin-bottom:2px">完成时间</div><div style="color:#a78bfa;font-weight:700">历时 ${timeStr} 完成全部关卡</div></div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(255,107,157,.08),rgba(107,207,255,.08));border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:10px 12px;text-align:center;margin-bottom:10px">
+        <div style="font-size:11px;color:#ddd;line-height:1.7;font-style:italic">"${msg}"</div>
+      </div>
+      <div style="text-align:center;font-size:8px;color:rgba(255,255,255,.18);line-height:1.6">峇株吧辖华仁中学 · 生命大冒险 · 蔡逸众制作<br>${now.getFullYear()}年 初中科学 · 生殖与发育</div>
+    `;
+    showSc('cert');
   }
 };
 
 //Made by ecchua79
-// attach canvas events
+renderMenu();
 document.getElementById('c1').addEventListener('click',e=>G.s1click(e));
 document.getElementById('c1').addEventListener('touchend',e=>{e.preventDefault();G.s1click(e.changedTouches[0]);},{passive:false});
 const c3el=document.getElementById('c3');
 c3el.addEventListener('click',e=>G.s3click(e));
 c3el.addEventListener('touchend',e=>{e.preventDefault();G.s3click(e.changedTouches[0]);},{passive:false});
+$('player-name').addEventListener('keydown',e=>{if(e.key==='Enter')G.generateCert();});
+
+// On desktop: auto-show the first stage instead of menu
+if(isDesktop()){
+  G.s1init();
+}
+
+// Handle sidebar position on resize
+window.addEventListener('resize',()=>{renderMenu();});
 </script>
 <!--华仁中学蔡逸众制作-->
 <!--Made by ecchua79-->
