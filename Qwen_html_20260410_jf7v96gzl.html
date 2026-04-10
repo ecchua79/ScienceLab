@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌱 植物生殖大冒险 | 初一科学第4章</title>
+  <style>
+    :root {
+      --primary: #4CAF50; --secondary: #8BC34A; --accent: #FF9800;
+      --bg: #f4f9f4; --text: #333; --card: #ffffff; --wrong: #e74c3c; --right: #2ecc71;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+    #game-container {
+      width: 100%; max-width: 750px; background: var(--card);
+      border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      padding: 24px; position: relative; overflow: hidden;
+    }
+    header { text-align: center; font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-bottom: 12px; }
+    #progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+    #progress-fill { height: 100%; background: linear-gradient(90deg, var(--secondary), var(--primary)); width: 0%; transition: width 0.4s ease; }
+    .stage-title { font-size: 1.2rem; margin-bottom: 10px; color: var(--accent); }
+    .question-box { background: #f8f9fa; padding: 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.6; border-left: 4px solid #ddd; transition: border-color 0.3s; }
+    .question-box.correct-q { border-left-color: var(--right); background: #e8f5e9; }
+    .question-box.wrong-q { border-left-color: var(--wrong); background: #ffebee; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .q-feedback { font-size: 0.9rem; margin-top: 8px; display: none; padding: 8px; border-radius: 6px; }
+    .q-feedback.show { display: block; }
+    .q-feedback.correct { background: #dcedc8; color: #33691e; }
+    .q-feedback.wrong { background: #ffcdd2; color: #b71c1c; }
+    
+    button {
+      padding: 12px 16px; border: 2px solid var(--secondary); background: white;
+      border-radius: 8px; cursor: pointer; font-size: 1rem; transition: all 0.2s;
+    }
+    button:hover:not(:disabled) { background: var(--secondary); color: white; transform: translateY(-2px); }
+    button.correct { background: var(--right); border-color: var(--right); color: white; }
+    button.wrong { background: var(--wrong); border-color: var(--wrong); color: white; }
+    button:disabled { opacity: 0.7; cursor: not-allowed; }
+    
+    #feedback { padding: 12px; border-radius: 8px; margin-top: 12px; display: none; line-height: 1.5; font-size: 0.95rem; }
+    #feedback.show { display: block; }
+    #next-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; margin-top: 16px; display: none; transition: all 0.3s; }
+    #next-btn:hover { background: #388E3C; transform: scale(1.02); }
+    .hidden { display: none; }
+    .hint { font-size: 0.85rem; color: #666; margin-top: 5px; }
+    .sub-score { font-size: 0.9rem; color: #888; margin-top: 5px; text-align: right; }
+
+    .flower-label-stage { text-align: center; }
+    .label-spot { cursor: pointer; transition: all 0.2s; }
+    .label-spot:hover circle { r: 16; fill: #ffeb3b; }
+    .label-spot.correct circle { fill: var(--right); stroke: #2e7d32; stroke-width: 2; }
+    .label-spot.wrong circle { fill: var(--wrong); animation: shake 0.3s; }
+    .label-spot text { font-size: 13px; font-weight: bold; fill: white; pointer-events: none; }
+    .tag-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 15px 0; }
+    .tag {
+      padding: 8px 14px; background: white; border: 2px solid var(--secondary);
+      border-radius: 20px; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;
+    }
+    .tag:hover:not(.used) { background: var(--secondary); color: white; }
+    .tag.selected { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); }
+    .tag.used { opacity: 0.5; cursor: default; text-decoration: line-through; border-color: #ccc; background: #f0f0f0; }
+
+    .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+    .match-col { display: flex; flex-direction: column; gap: 12px; }
+    .match-card, .germ-box {
+      background: white; border: 2px solid #ddd; border-radius: 10px;
+      padding: 10px; cursor: pointer; text-align: center; transition: all 0.2s;
+      display: flex; flex-direction: column; align-items: center; position: relative;
+    }
+    .match-card:hover:not(.matched), .germ-box:hover:not(.matched) { border-color: var(--secondary); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .match-card.selected, .germ-box.selected { border-color: var(--primary); background: #e8f5e9; transform: scale(1.03); }
+    .match-card.matched, .germ-box.matched { border-color: var(--right); background: #e8f5e9; cursor: default; opacity: 0.8; }
+    .match-card.matched::after, .germ-box.matched::after { content: '✅'; position: absolute; top: -5px; right: -5px; font-size: 1.2rem; }
+    .match-card svg, .germ-box svg { width: 80px; height: 80px; margin-bottom: 5px; }
+    .germ-box svg { width: 100%; height: 140px; }
+    .match-card span, .germ-box span { font-size: 0.95rem; font-weight: bold; color: #444; }
+    .match-label { font-size: 0.85rem; color: #888; margin-bottom: 5px; font-weight: bold; }
+    
+    .lab-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 15px 0; }
+    .lab-item { 
+      background: #f8f9fa; border-radius: 10px; padding: 12px; width: 130px; 
+      text-align: center; border: 2px solid #ddd; transition: all 0.2s;
+    }
+    .switch-wrapper { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0; }
+    .switch-btn {
+      width: 44px; height: 24px; background: #ccc; border-radius: 12px;
+      position: relative; cursor: pointer; transition: all 0.3s; flex-shrink: 0;
+    }
+    .switch-btn::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; background: white; border-radius: 50%;
+      transition: all 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .switch-btn.active { background: var(--primary); }
+    .switch-btn.active::after { left: 22px; }
+    .switch-label { font-size: 0.85rem; font-weight: bold; color: #666; min-width: 24px; }
+    .lab-item.correct-lab { border-color: var(--right); background: #e8f5e9; }
+    .lab-item.wrong-lab { border-color: var(--wrong); background: #ffebee; animation: shake 0.4s; }
+    
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    @keyframes pop { 0%{transform:scale(0.8)} 100%{transform:scale(1)} }
+    .pop-anim { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+    /* 萌发动画 */
+    .germ-anim { animation: germLoop 6s infinite linear; }
+    @keyframes germLoop { 0%, 20% { transform: scale(0.98); opacity: 0.8; } 30%, 100% { transform: scale(1); opacity: 1; } }
+    .root-grow { animation: rootDown 6s infinite; transform-origin: 60px 100px; }
+    @keyframes rootDown { 0%,30%{transform:scaleY(0);opacity:0} 60%,100%{transform:scaleY(1);opacity:1} }
+    .epi-hypo { animation: hypoGrow 6s infinite; transform-origin: 60px 100px; }
+    @keyframes hypoGrow { 0%, 30% { transform: scaleY(0); opacity: 0; } 55%, 100% { transform: scaleY(1); opacity: 1; } }
+    .epi-cotyl { animation: cotylRise 6s infinite; }
+    @keyframes cotylRise { 0%, 30% { transform: translateY(60px); opacity: 0; } 55%, 100% { transform: translateY(0px); opacity: 1; } }
+    .epi-leaf { animation: leafExpand 6s infinite; opacity: 0; }
+    @keyframes leafExpand { 0%, 60%{opacity:0} 80%, 100%{opacity:1} }
+    .hypo-cotyl { opacity: 0; animation: cotylStay 6s infinite; }
+    @keyframes cotylStay { 0%, 30%{opacity:0} 50%, 100%{opacity:0.8} }
+    .hypo-epic { animation: epicGrow 6s infinite; transform-origin: 60px 100px; }
+    @keyframes epicGrow { 0%, 35% { transform: scaleY(0); opacity: 0; } 60%, 100% { transform: scaleY(1); opacity: 1; } }
+    .hypo-leaf { animation: hLeafUp 6s infinite; opacity: 0; }
+    @keyframes hLeafUp { 0%, 60%{opacity:0} 80%, 100%{opacity:1} }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <header>🌱 植物生殖大冒险</header>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="game-screen"></div>
+  <div class="sub-score" id="sub-score"></div>
+  <div id="feedback"></div>
+  <button id="next-btn" onclick="nextStage()">下一关 ➡️</button>
+</div>
+
+<script>
+const stages = [
+  {
+    id: 0, title: "🌸 第一关：两性花结构标注",
+    content: `花是植物的生殖器官。请点击下方<b>结构名称</b>，再点击花图上对应的<b>字母标注点</b>完成配对。`,
+    type: "flower_label",
+    spots: [
+      { id: "A", answer: "柱头" }, { id: "B", answer: "花药" },
+      { id: "C", answer: "花瓣" }, { id: "D", answer: "萼片" },
+      { id: "E", answer: "子房" }, { id: "F", answer: "花丝" }
+    ],
+    tags: ["柱头", "花药", "花瓣", "萼片", "子房", "花丝", "胚珠", "花柱", "花托"],
+    explain: `✅ <b>花的核心结构回顾</b>：<br>• 雌蕊 = 柱头 + 花柱 + 子房（内含胚珠）<br>• 雄蕊 = 花药（产花粉） + 花丝（支撑花药）<br>• 花瓣：吸引昆虫；萼片：保护花蕾；花托：支撑整朵花`
+  },
+  {
+    id: 1, title: "🌼 第二关：传粉媒介大判断",
+    content: `不同植物演化出不同的传粉策略。请根据描述判断传粉媒介。（共3题，情境固定但内容随机）`,
+    type: "multi_choice",
+    questions: [
+      { id: 1, desc: `花朵较大、花瓣颜色鲜艳、有芳香气味和花蜜；花粉粒较大且表面粗糙带黏性；柱头较小且有黏性。`, options: ["风力", "昆虫", "水流", "自动弹力"], correct: 1, explain: `✅ <b>虫媒花</b>：鲜艳花瓣+蜜香吸引昆虫；花粉大且带黏性/钩，易黏附昆虫。` },
+      { id: 2, desc: `花朵小或无花瓣，花药暴露在外；花粉小而轻、表面光滑、数量极多；柱头大且呈羽毛状，伸出花瓣外。`, options: ["风力", "昆虫", "鸟类", "自动弹力"], correct: 0, explain: `✅ <b>风媒花</b>：花粉轻小量多；柱头羽毛状外露以捕获风中的花粉。如玉米。` },
+      { id: 3, desc: `水生植物，雄花释放大量花粉；花粉浮在水面漂流或下沉落在柱头上；柱头浮在水中，大且呈羽毛状。`, options: ["风力", "昆虫", "水流", "哺乳动物"], correct: 2, explain: `✅ <b>水媒花</b>：花粉靠水漂流；柱头浮于水中捕获花粉。` }
+    ]
+  },
+  {
+    id: 2, title: "🔗 第三关：受精后的发育匹配",
+    content: `受精作用完成后，请配对发育关系。左右顺序已<b>完全随机打乱</b>。`,
+    type: "match_svg",
+    pairs: [
+      { left: "子房", right: "果实", leftSvg: `<svg viewBox="0 0 60 60"><path d="M15 35 Q10 20 30 15 Q50 20 45 35 Q30 42 15 35Z" fill="#81c784"/><path d="M30 15 L30 8" stroke="#4caf50" stroke-width="2"/><text x="30" y="55" font-size="9" text-anchor="middle" fill="#333">子房</text></svg>`, rightSvg: `<svg viewBox="0 0 60 60"><path d="M30 10 Q12 10 10 28 Q8 42 30 48 Q52 42 50 28 Q48 10 30 10Z" fill="#e57373"/><text x="30" y="56" font-size="9" text-anchor="middle" fill="#fff">果实</text></svg>` },
+      { left: "子房壁", right: "果皮", leftSvg: `<svg viewBox="0 0 60 60"><path d="M15 35 Q10 20 30 15 Q50 20 45 35 Q30 42 15 35Z" fill="none" stroke="#81c784" stroke-width="3"/><text x="30" y="55" font-size="9" text-anchor="middle" fill="#333">子房壁</text></svg>`, rightSvg: `<svg viewBox="0 0 60 60"><path d="M30 12 Q14 12 12 28 Q10 40 30 46 Q50 40 48 28 Q46 12 30 12Z" fill="none" stroke="#e57373" stroke-width="3"/><text x="30" y="56" font-size="9" text-anchor="middle" fill="#fff">果皮</text></svg>` },
+      { left: "胚珠", right: "种子", leftSvg: `<svg viewBox="0 0 60 60"><circle cx="30" cy="28" r="10" fill="#c8e6c9" stroke="#4caf50" stroke-width="2"/><text x="30" y="55" font-size="9" text-anchor="middle" fill="#333">胚珠</text></svg>`, rightSvg: `<svg viewBox="0 0 60 60"><ellipse cx="30" cy="30" rx="14" ry="9" fill="#8d6e63" transform="rotate(-30 30 30)"/><text x="30" y="56" font-size="9" text-anchor="middle" fill="#333">种子</text></svg>` },
+      { left: "受精卵", right: "胚", leftSvg: `<svg viewBox="0 0 60 60"><circle cx="30" cy="28" r="12" fill="#e0f2f1" stroke="#26a69a" stroke-width="2"/><circle cx="30" cy="28" r="3" fill="#ff7043"/><text x="30" y="55" font-size="9" text-anchor="middle" fill="#333">受精卵</text></svg>`, rightSvg: `<svg viewBox="0 0 60 60"><path d="M22 38 Q22 22 30 16 Q38 22 38 38" fill="none" stroke="#66bb6a" stroke-width="3"/><text x="30" y="56" font-size="9" text-anchor="middle" fill="#333">胚</text></svg>` }
+    ],
+    explain: `✅ <b>核心考点</b>：受精后，子房→果实，子房壁→果皮，胚珠→种子，受精卵→胚。`
+  },
+  {
+    id: 3, title: "🔬 第四关：萌发条件实验室",
+    content: `请精确设置<b>外部必要条件</b>（开/关），直到实验<b>成功</b>。<br><span style="color:#666;font-size:0.85rem">💡 提示：必须且只能打开真正必要的条件！顺序已打乱，请仔细辨认。</span>`,
+    type: "lab",
+    conditions: [
+      { name: "适量水分", req: true }, { name: "适宜温度", req: true }, { name: "充足空气", req: true },
+      { name: "充足阳光", req: false }, { name: "肥沃土壤", req: false }
+    ],
+    explain: `✅ <b>实验成功！</b><br>外部条件：适宜的温度、适量的水分、充足的空气。<br>内部条件：完整且有生命力的胚、充足的营养储备、不处于休眠状态。<br>注意：阳光和土壤肥力不是种子萌发的必要条件！`
+  },
+  {
+    id: 4, title: "🌱 第五关：萌发模式配对",
+    content: `观察<b>两组萌发动画</b>（注意子叶位置），点击名称标签后点击对应动画框配对。`,
+    type: "germ_match",
+    pairs: [
+      { id: "left", name: "出土萌发", desc: "下胚轴伸长，子叶出土。例：大豆", correct: "epigeal" },
+      { id: "right", name: "留土萌发", desc: "子叶留土，上胚轴伸长。例：小麦", correct: "hypogeal" }
+    ],
+    explain: `✅ <b>核心考点</b>：<br>• <b>出土萌发</b>：下胚轴伸长 → 顶出子叶 → 子叶出土（大豆、南瓜）<br>• <b>留土萌发</b>：子叶留土 → 上胚轴伸长 → 真叶出土（小麦、豌豆）`
+  }
+];
+
+let currentStage = 0, score = 0, matchedPairs = 0, selectedCard = null, selectedTag = null;
+let answered = false, labState = {}, labVerified = false, multiScore = 0, multiTotal = 0;
+const screen = document.getElementById('game-screen'), feedback = document.getElementById('feedback');
+const nextBtn = document.getElementById('next-btn'), progress = document.getElementById('progress-fill');
+const subScore = document.getElementById('sub-score');
+
+function renderStage() {
+  const stage = stages[currentStage];
+  progress.style.width = `${(currentStage / stages.length) * 100}%`;
+  screen.innerHTML = `<div class="stage-title">${stage.title}</div><div class="question-box">${stage.content}</div>`;
+  feedback.className = ''; feedback.style.display = 'none'; 
+  nextBtn.style.display = 'none'; answered = false; labVerified = false;
+  selectedCard = null; selectedTag = null; matchedPairs = 0;
+  subScore.textContent = '';
+
+  if (stage.type === 'flower_label') renderFlowerLabel(stage);
+  else if (stage.type === 'multi_choice') renderMultiChoice(stage);
+  else if (stage.type === 'match_svg') renderMatchSvg(stage);
+  else if (stage.type === 'lab') renderLab(stage);
+  else if (stage.type === 'germ_match') renderGermMatch(stage);
+}
+
+// ---------- 0. 花结构标注关（参考附件风格重绘） ----------
+function renderFlowerLabel(stage) {
+  const container = document.createElement('div'); container.className = 'flower-label-stage';
+  // 植物学标准图示风格：半透明花瓣层叠、柔和渐变、清晰轮廓
+  const svgHtml = `
+    <svg viewBox="0 0 240 320" style="max-width:380px;width:100%;margin:10px auto;display:block;background:#fafafa;border-radius:10px;padding:8px">
+      <defs>
+        <!-- 花瓣渐变 -->
+        <radialGradient id="petalGrad" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#f06292" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#e91e63" stop-opacity="0.85"/>
+        </radialGradient>
+        <radialGradient id="petalGrad2" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#f48fb1" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#ec407a" stop-opacity="0.8"/>
+        </radialGradient>
+        <!-- 子房渐变 -->
+        <radialGradient id="ovaryGrad" cx="40%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#64b5f6"/>
+          <stop offset="100%" stop-color="#42a5f5"/>
+        </radialGradient>
+        <!-- 柱头渐变 -->
+        <radialGradient id="stigmaGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ba68c8"/>
+          <stop offset="100%" stop-color="#9c27b0"/>
+        </radialGradient>
+        <!-- 花药渐变 -->
+        <radialGradient id="antherGrad" cx="40%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#ffb74d"/>
+          <stop offset="100%" stop-color="#f57c00"/>
+        </radialGradient>
+      </defs>
+      
+      <!-- 花托 (支撑基部) -->
+      <path d="M100 245 Q120 230 140 245 L135 260 L105 260 Z" fill="#6d4c41" stroke="#5d4037" stroke-width="1.5"/>
+      
+      <!-- 萼片 (绿色保护结构) -->
+      <path d="M100 245 Q75 255 65 275 Q75 260 95 245 Z" fill="#4caf50" stroke="#388e3c" stroke-width="1.5"/>
+      <path d="M140 245 Q165 255 175 275 Q165 260 145 245 Z" fill="#4caf50" stroke="#388e3c" stroke-width="1.5"/>
+      
+      <!-- 子房 (中心膨大部分) -->
+      <ellipse cx="120" cy="210" rx="20" ry="16" fill="url(#ovaryGrad)" stroke="#1976d2" stroke-width="1.5"/>
+      <!-- 胚珠 (子房内) -->
+      <circle cx="115" cy="205" r="5" fill="#bbdefb" stroke="#2196f3" stroke-width="1"/>
+      <circle cx="125" cy="205" r="5" fill="#bbdefb" stroke="#2196f3" stroke-width="1"/>
+      <circle cx="120" cy="215" r="5" fill="#bbdefb" stroke="#2196f3" stroke-width="1"/>
+      
+      <!-- 花柱 -->
+      <rect x="116" y="130" width="8" height="75" fill="#8e24aa" stroke="#6a1b9a" stroke-width="1" rx="4"/>
+      <!-- 柱头 -->
+      <ellipse cx="120" cy="120" rx="15" ry="8" fill="url(#stigmaGrad)" stroke="#7b1fa2" stroke-width="1.5"/>
+      
+      <!-- 雄蕊 (左右对称) -->
+      <!-- 左侧 -->
+      <path d="M100 240 Q85 190 75 145" stroke="#ff9800" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="73" cy="140" rx="7" ry="4.5" fill="url(#antherGrad)" stroke="#ef6c00" stroke-width="1.5" transform="rotate(-15 73 140)"/>
+      <!-- 右侧 -->
+      <path d="M140 240 Q155 190 165 145" stroke="#ff9800" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="167" cy="140" rx="7" ry="4.5" fill="url(#antherGrad)" stroke="#ef6c00" stroke-width="1.5" transform="rotate(15 167 140)"/>
+      
+      <!-- 花瓣 (层叠半透明) -->
+      <!-- 后层花瓣 -->
+      <path d="M105 245 Q65 190 75 90 Q95 150 115 215 Z" fill="url(#petalGrad2)" stroke="#c2185b" stroke-width="1.5" opacity="0.8"/>
+      <path d="M135 245 Q175 190 165 90 Q145 150 125 215 Z" fill="url(#petalGrad2)" stroke="#c2185b" stroke-width="1.5" opacity="0.8"/>
+      <!-- 前层花瓣 -->
+      <path d="M110 245 Q70 170 45 195 Q65 225 100 245 Z" fill="url(#petalGrad)" stroke="#c2185b" stroke-width="1.5"/>
+      <path d="M130 245 Q170 170 195 195 Q175 225 140 245 Z" fill="url(#petalGrad)" stroke="#c2185b" stroke-width="1.5"/>
+      
+      <!-- 标注点 (清晰分布，避开重叠) -->
+      <g class="label-spot" data-ans="柱头"><circle cx="120" cy="120" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="120" y="125" text-anchor="middle" font-weight="bold">A</text></g>
+      <g class="label-spot" data-ans="花药"><circle cx="73" cy="140" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="73" y="145" text-anchor="middle" font-weight="bold">B</text></g>
+      <g class="label-spot" data-ans="花瓣"><circle cx="180" cy="160" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="180" y="165" text-anchor="middle" font-weight="bold">C</text></g>
+      <g class="label-spot" data-ans="萼片"><circle cx="65" cy="265" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="65" y="270" text-anchor="middle" font-weight="bold">D</text></g>
+      <g class="label-spot" data-ans="子房"><circle cx="120" cy="210" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="120" y="215" text-anchor="middle" font-weight="bold">E</text></g>
+      <g class="label-spot" data-ans="花丝"><circle cx="85" cy="195" r="12" fill="rgba(0,0,0,0.5)" stroke="#333" stroke-width="1.5"/><text x="85" y="200" text-anchor="middle" font-weight="bold">F</text></g>
+    </svg>`;
+  container.innerHTML = svgHtml;
+  const tagPool = document.createElement('div'); tagPool.className = 'tag-pool';
+  [...stage.tags].sort(() => Math.random() - 0.5).forEach(tag => {
+    const t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; t.dataset.val = tag;
+    t.onclick = () => handleTagClick(t); tagPool.appendChild(t);
+  });
+  container.appendChild(tagPool); screen.appendChild(container);
+  const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = '💡 提示：先点击下方名称标签，再点击花图上对应的字母圆圈';
+  screen.appendChild(hint);
+  document.querySelectorAll('.label-spot').forEach(spot => { spot.onclick = () => handleSpotClick(spot, stage); });
+}
+
+function handleTagClick(tag) {
+  if(tag.classList.contains('used') || answered) return;
+  document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+  tag.classList.add('selected'); selectedTag = tag;
+}
+function handleSpotClick(spot, stage) {
+  if(spot.classList.contains('correct') || !selectedTag || answered) return;
+  if(spot.dataset.ans === selectedTag.dataset.val) {
+    spot.classList.add('correct'); spot.classList.add('pop-anim');
+    selectedTag.classList.add('used'); selectedTag.classList.remove('selected');
+    matchedPairs++;
+    if(matchedPairs === stage.spots.length) { score++; answered = true; showFeedback(true, stage.explain); nextBtn.style.display = 'block'; nextBtn.classList.add('pop-anim'); }
+  } else { spot.classList.add('wrong'); setTimeout(() => spot.classList.remove('wrong'), 400); }
+  selectedTag = null; document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+}
+
+// ---------- 1. 多题传粉判断 ----------
+function renderMultiChoice(stage) {
+  multiScore = 0; multiTotal = stage.questions.length;
+  subScore.textContent = `当前得分：0 / ${multiTotal}`;
+  const container = document.createElement('div');
+  const shuffledIndices = [0, 1, 2].sort(() => Math.random() - 0.5);
+  
+  shuffledIndices.forEach((origIdx, i) => {
+    const q = stage.questions[origIdx];
+    const correctText = q.options[q.correct];
+    const shuffledOpts = q.options.map(o => ({text: o, isCorrect: o === correctText})).sort(() => Math.random() - 0.5);
+    
+    const qBox = document.createElement('div'); qBox.className = 'question-box'; qBox.style.marginBottom = '15px';
+    qBox.innerHTML = `<p style="margin-bottom:10px">🔍 <b>情境${i + 1}：</b>${q.desc}</p><div class="q-feedback"></div>`;
+    
+    const optBox = document.createElement('div'); optBox.className = 'options';
+    shuffledOpts.forEach((opt) => {
+      const btn = document.createElement('button'); btn.textContent = opt.text; btn.dataset.correct = opt.isCorrect;
+      btn.onclick = () => handleMultiChoice(btn, i, opt.isCorrect, q, qBox);
+      optBox.appendChild(btn);
+    });
+    qBox.appendChild(optBox); container.appendChild(qBox);
+  });
+  screen.appendChild(container);
+}
+
+function handleMultiChoice(btn, qIdx, isCorrect, q, qBox) {
+  const optBox = btn.parentElement; if(optBox.dataset.answered) return;
+  optBox.dataset.answered = 'true'; optBox.querySelectorAll('button').forEach(b => b.disabled = true);
+  const fBox = qBox.querySelector('.q-feedback');
+  if(isCorrect) { 
+    btn.classList.add('correct'); qBox.classList.add('correct-q'); multiScore++;
+    fBox.textContent = "✅ 正确！"; fBox.className = "q-feedback show correct";
+  } else { 
+    btn.classList.add('wrong'); qBox.classList.add('wrong-q');
+    const correctBtn = [...optBox.querySelectorAll('button')].find(b => b.dataset.correct==='true');
+    fBox.textContent = `❌ 错误。正确答案：${correctBtn.textContent}。<br>${q.explain}`;
+    fBox.className = "q-feedback show wrong";
+  }
+  subScore.textContent = `当前得分：${multiScore} / ${multiTotal}`;
+  if(document.querySelectorAll('[data-answered]').length === multiTotal) {
+    answered = true; if(multiScore === multiTotal) score++;
+    const btnNext = document.createElement('button'); btnNext.textContent = '进入总结 ➡️';
+    btnNext.style.width = '100%'; btnNext.style.marginTop = '10px';
+    btnNext.onclick = () => { 
+      if(multiScore === multiTotal) showFeedback(true, "🎉 全对！传粉策略掌握得很好！");
+      else showFeedback(false, "复习一下错题解析，下次一定能全对！");
+      nextBtn.style.display = 'block';
+    };
+    qBox.parentElement.appendChild(btnNext);
+  }
+}
+
+// ---------- 2. SVG匹配 ----------
+function renderMatchSvg(stage) {
+  const container = document.createElement('div'); container.className = 'match-grid';
+  const leftCol = document.createElement('div'); leftCol.className = 'match-col';
+  const rightCol = document.createElement('div'); rightCol.className = 'match-col';
+  leftCol.innerHTML = `<div class="match-label">🌸 花朵结构</div>`; rightCol.innerHTML = `<div class="match-label">🍎 发育结果</div>`;
+  const leftPairs = [...stage.pairs].sort(() => Math.random() - 0.5);
+  const rightPairs = [...stage.pairs].sort(() => Math.random() - 0.5);
+  leftPairs.forEach(pair => {
+    const l = document.createElement('div'); l.className = 'match-card'; l.dataset.type = 'left'; l.dataset.val = pair.left;
+    l.innerHTML = `${pair.leftSvg}<span>${pair.left}</span>`; l.onclick = () => handleMatchClick(l); leftCol.appendChild(l);
+  });
+  rightPairs.forEach(pair => {
+    const r = document.createElement('div'); r.className = 'match-card'; r.dataset.type = 'right'; r.dataset.val = pair.right;
+    r.innerHTML = `${pair.rightSvg}<span>${pair.right}</span>`; r.onclick = () => handleMatchClick(r); rightCol.appendChild(r);
+  });
+  container.appendChild(leftCol); container.appendChild(rightCol); screen.appendChild(container);
+}
+function handleMatchClick(card) {
+  if(card.classList.contains('matched') || answered) return;
+  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('selected'));
+  if(!selectedCard) { selectedCard = card; card.classList.add('selected'); return; }
+  if(selectedCard === card) { selectedCard = null; return; }
+  const stage = stages[currentStage];
+  if(selectedCard.dataset.type !== card.dataset.type) {
+    const pair = stage.pairs.find(p => (p.left === selectedCard.dataset.val && p.right === card.dataset.val) || (p.right === selectedCard.dataset.val && p.left === card.dataset.val));
+    if(pair) {
+      selectedCard.classList.remove('selected'); selectedCard.classList.add('matched'); card.classList.add('matched');
+      selectedCard.classList.add('pop-anim'); card.classList.add('pop-anim');
+      if(document.querySelectorAll('.match-card.matched').length === stage.pairs.length * 2) {
+        score++; answered = true; selectedCard = null; showFeedback(true, stage.explain); nextBtn.style.display = 'block'; nextBtn.classList.add('pop-anim');
+      }
+    } else { card.classList.add('wrong'); setTimeout(()=>card.classList.remove('wrong'),400); }
+  } else { selectedCard.classList.remove('selected'); selectedCard = card; card.classList.add('selected'); return; }
+  selectedCard = null;
+}
+
+// ---------- 3. 萌发实验室 (按钮随机打乱) ----------
+function renderLab(stage) {
+  labState = {}; labVerified = false; 
+  const container = document.createElement('div'); container.style.textAlign = 'center';
+  const labBox = document.createElement('div'); labBox.className = 'lab-container';
+  
+  // 随机打乱按钮显示顺序
+  const shuffled = [...stage.conditions].sort(() => Math.random() - 0.5);
+  shuffled.forEach((cond) => {
+    const origIdx = stage.conditions.indexOf(cond);
+    const item = document.createElement('div'); item.className = 'lab-item'; item.dataset.idx = origIdx;
+    item.innerHTML = `<div style="font-weight:bold;margin-bottom:5px">${cond.name}</div><div class="switch-wrapper"><div class="switch-btn" data-idx="${origIdx}"></div><span class="switch-label">OFF</span></div>`;
+    labBox.appendChild(item);
+    item.querySelector('.switch-btn').onclick = () => {
+      if(labVerified) return;
+      const btn = item.querySelector('.switch-btn');
+      const isActive = btn.classList.toggle('active'); labState[origIdx] = isActive;
+      item.querySelector('.switch-label').textContent = isActive ? 'ON' : 'OFF';
+      item.querySelector('.switch-label').style.color = isActive ? 'var(--primary)' : '#666';
+    };
+  });
+  container.appendChild(labBox);
+  const vBtn = document.createElement('button'); vBtn.textContent = '🧪 验证实验结果'; vBtn.style.width = '100%'; vBtn.style.marginTop = '15px';
+  
+  vBtn.onclick = () => {
+    if(labVerified) return;
+    let ok = true; const err = [];
+    stage.conditions.forEach((c,i) => {
+      const act = labState[i]||false, item = document.querySelector(`.lab-item[data-idx="${i}"]`);
+      if(c.req !== act) { ok = false; err.push(c.name); item.classList.add('wrong-lab'); setTimeout(()=>item.classList.remove('wrong-lab'),600); }
+      else item.classList.add('correct-lab');
+    });
+    if(ok) {
+      labVerified = true; score++;
+      showFeedback(true, stage.explain); nextBtn.style.display = 'block';
+    } else {
+      showFeedback(false, `❌ 实验失败！错误条件：<b>${err.join('、')}</b>。<br>请重新调整开关，直到所有条件正确！`);
+    }
+  };
+  container.appendChild(vBtn); screen.appendChild(container);
+}
+
+// ---------- 4. 萌发动画配对 (修复胚轴连接) ----------
+function renderGermMatch(stage) {
+  const container = document.createElement('div'); container.style.textAlign = 'center';
+  const animBox = document.createElement('div'); animBox.style.display = 'flex'; animBox.style.justifyContent = 'space-around'; animBox.style.margin = '20px 0'; animBox.style.gap = '15px';
+  const isLeftEpi = Math.random() > 0.5;
+  const leftType = isLeftEpi ? 'epigeal' : 'hypogeal';
+  const rightType = isLeftEpi ? 'hypogeal' : 'epigeal';
+  
+  function createGermSVG(type) {
+    const soilRect = `<rect x="0" y="100" width="120" height="40" fill="#d7ccc8" opacity="0.4"/><line x1="0" y1="100" x2="120" y2="100" stroke="#8d6e63" stroke-width="2"/>`;
+    if(type === 'epigeal') {
+      return `<svg viewBox="0 0 120 140">
+        ${soilRect}
+        <path d="M60 100 Q58 115 62 125" stroke="#5d4037" stroke-width="2.5" fill="none" class="root-grow"/>
+        <path d="M60 100 L60 45" stroke="#4caf50" stroke-width="3" fill="none" class="epi-hypo"/>
+        <g class="epi-cotyl">
+          <ellipse cx="56" cy="45" rx="5" ry="3.5" fill="#8bc34a"/>
+          <ellipse cx="64" cy="45" rx="5" ry="3.5" fill="#8bc34a"/>
+          <path d="M60 45 Q50 30 40 38" stroke="#388e3c" stroke-width="2" fill="#a5d6a7" class="epi-leaf"/>
+          <path d="M60 45 Q70 30 80 38" stroke="#388e3c" stroke-width="2" fill="#a5d6a7" class="epi-leaf"/>
+        </g>
+      </svg>`;
+    } else {
+      return `<svg viewBox="0 0 120 140">
+        ${soilRect}
+        <path d="M60 100 Q58 115 62 125" stroke="#5d4037" stroke-width="2.5" fill="none" class="root-grow"/>
+        <g class="hypo-cotyl">
+          <ellipse cx="56" cy="105" rx="5" ry="3.5" fill="#8bc34a"/>
+          <ellipse cx="64" cy="105" rx="5" ry="3.5" fill="#8bc34a"/>
+        </g>
+        <!-- 上胚轴从子叶节点(100)连续延伸到真叶基部(50) -->
+        <path d="M60 100 L60 50" stroke="#4caf50" stroke-width="3" fill="none" class="hypo-epic"/>
+        <g class="hypo-leaf">
+          <path d="M60 50 Q50 35 40 43" stroke="#388e3c" stroke-width="2" fill="#a5d6a7"/>
+          <path d="M60 50 Q70 35 80 43" stroke="#388e3c" stroke-width="2" fill="#a5d6a7"/>
+        </g>
+      </svg>`;
+    }
+  }
+  
+  const lBox = document.createElement('div'); lBox.className = 'germ-box'; lBox.dataset.type = 'left'; lBox.dataset.correct = leftType;
+  lBox.innerHTML = `<div class="germ-anim">${createGermSVG(leftType)}</div><span>动画 A</span>`;
+  lBox.onclick = () => handleGermClick(lBox);
+  const rBox = document.createElement('div'); rBox.className = 'germ-box'; rBox.dataset.type = 'right'; rBox.dataset.correct = rightType;
+  rBox.innerHTML = `<div class="germ-anim">${createGermSVG(rightType)}</div><span>动画 B</span>`;
+  rBox.onclick = () => handleGermClick(rBox);
+  animBox.appendChild(lBox); animBox.appendChild(rBox); container.appendChild(animBox);
+  
+  const tagPool = document.createElement('div'); tagPool.className = 'tag-pool';
+  stage.pairs.forEach(p => {
+    const t = document.createElement('span'); t.className = 'tag'; t.textContent = p.name; t.dataset.val = p.correct;
+    t.onclick = () => handleGermTagClick(t); tagPool.appendChild(t);
+  });
+  container.appendChild(tagPool); screen.appendChild(container);
+  const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = '💡 提示：观察子叶位置。点击名称标签，再点击对应动画框';
+  screen.appendChild(hint);
+}
+
+function handleGermTagClick(tag) {
+  if(tag.classList.contains('used') || answered) return;
+  document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+  tag.classList.add('selected'); selectedTag = tag;
+}
+function handleGermClick(box) {
+  if(box.classList.contains('matched') || answered || !selectedTag) return;
+  const stage = stages[currentStage];
+  const correctType = box.dataset.correct;
+  if(selectedTag.dataset.val === correctType) {
+    box.classList.add('matched'); selectedTag.classList.add('used'); selectedTag.classList.remove('selected');
+    matchedPairs++;
+    if(matchedPairs === stage.pairs.length) { score++; answered = true; showFeedback(true, stage.explain); nextBtn.style.display = 'block'; nextBtn.classList.add('pop-anim'); }
+  } else { box.classList.add('wrong'); setTimeout(()=>box.classList.remove('wrong'),400); }
+  selectedTag = null; document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+}
+
+// ==================== 通用函数 ====================
+function showFeedback(isCorrect, html) {
+  feedback.innerHTML = html; feedback.className = 'show'; feedback.style.background = isCorrect ? '#e8f5e9' : '#ffebee';
+  feedback.style.borderLeft = `4px solid ${isCorrect ? 'var(--right)' : 'var(--wrong)'}`;
+}
+function nextStage() { currentStage++; if(currentStage >= stages.length) renderEndScreen(); else renderStage(); }
+function renderEndScreen() {
+  progress.style.width = '100%';
+  screen.innerHTML = `
+    <div style="text-align:center">
+      <h2 style="color:var(--primary)">🎉 冒险完成！</h2>
+      <p style="font-size:1.2rem;margin:15px 0">你的得分：<b style="color:var(--primary);font-size:2rem">${score} / ${stages.length}</b></p>
+      <div style="background:#f8f9fa;padding:15px;border-radius:8px;text-align:left;font-size:0.95rem;line-height:1.6">
+        📖 <b>本章重点回顾：</b><br>
+        • 花结构：雌蕊(柱头/花柱/子房)、雄蕊(花药/花丝)、花瓣、萼片<br>
+        • 传粉：虫媒(鲜艳/黏粉)、风媒(轻粉/羽毛柱头)、水媒<br>
+        • 发育：子房→果实，子房壁→果皮，胚珠→种子，受精卵→胚<br>
+        • 萌发条件：水、温、气；活胚、营养、非休眠<br>
+        • 萌发模式：出土(子叶出土/大豆)、留土(子叶留土/小麦)<br>
+        • 顺序：吸水→胚根→胚轴→胚芽→光合作用
+      </div>
+      <button style="background:var(--accent);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;margin-top:20px" onclick="location.reload()">🔄 再玩一次</button>
+    </div>`;
+  nextBtn.style.display = 'none'; feedback.style.display = 'none'; subScore.textContent = '';
+}
+
+const shakeStyle = document.createElement("style");
+shakeStyle.textContent = `@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }`;
+document.head.appendChild(shakeStyle);
+renderStage();
+</script>
+</body>
+</html>
