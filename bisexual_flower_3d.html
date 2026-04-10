@@ -1,0 +1,355 @@
+
+<style>
+  canvas { display: block; }
+  #controls { display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--color-text-secondary); margin-top:8px; }
+  label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  #info-box { background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); border-radius:8px; padding:6px 12px; font-size:12px; color:var(--color-text-secondary); min-width:120px; }
+</style>
+<canvas id="c" width="680" height="500"></canvas>
+<div id="controls">
+  <label>自动旋转 <input type="checkbox" id="autoRot" checked></label>
+  <label>仰角 <input type="range" id="elev" min="10" max="80" value="35" style="width:80px"></label>
+  <label>旋转 <input type="range" id="azim" min="0" max="360" value="30" style="width:80px"></label>
+  <div id="info-box">点击花朵部位了解更多</div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 500;
+canvas.width = W; canvas.height = H;
+
+let azimuth = 30, elevation = 35, autoRot = true, frame = 0;
+let hitRegions = [];
+
+document.getElementById('autoRot').addEventListener('change', e => { autoRot = e.target.checked; });
+document.getElementById('elev').addEventListener('input', e => { elevation = +e.target.value; azimuth += 0; });
+document.getElementById('azim').addEventListener('input', e => { azimuth = +e.target.value; });
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (W / rect.width);
+  const my = (e.clientY - rect.top) * (H / rect.height);
+  let found = null;
+  for (let i = hitRegions.length - 1; i >= 0; i--) {
+    const r = hitRegions[i];
+    const dx = mx - r.x, dy = my - r.y;
+    if (dx*dx + dy*dy < r.r*r.r) { found = r.label; break; }
+  }
+  document.getElementById('info-box').textContent = found || '点击花朵部位了解更多';
+});
+
+// 3D projection
+function project(x, y, z, az, el) {
+  const azR = az * Math.PI / 180;
+  const elR = el * Math.PI / 180;
+  const x2 = x * Math.cos(azR) - y * Math.sin(azR);
+  const y2 = x * Math.sin(azR) + y * Math.cos(azR);
+  const z2 = z;
+  const yp = -y2 * Math.sin(elR) + z2 * Math.cos(elR);
+  const zp = y2 * Math.cos(elR) + z2 * Math.sin(elR);
+  const scale = 1.5 + zp * 0.002;
+  return { sx: W/2 + x2 * scale, sy: H/2 - yp * scale, z: zp };
+}
+
+function bezierPetal(ctx, p0, p1, p2, p3) {
+  ctx.moveTo(p0.sx, p0.sy);
+  ctx.bezierCurveTo(p1.sx, p1.sy, p2.sx, p2.sy, p3.sx, p3.sy);
+}
+
+function drawFlower(az, el) {
+  ctx.clearRect(0, 0, W, H);
+  hitRegions = [];
+
+  const PETALS = 5;
+  const petalLen = 100, petalW = 42;
+  const sepalLen = 80, sepalW = 22;
+  const stamenH = 55, pistilH = 68;
+
+  // ---- SEPAL (萼片) ----
+  for (let i = 0; i < PETALS; i++) {
+    const ang = (i / PETALS) * Math.PI * 2 + Math.PI / PETALS;
+    const tilt = 0.55;
+    const pts = [];
+    for (let t = 0; t <= 1; t += 0.05) {
+      const r = Math.sin(t * Math.PI) * sepalW;
+      const len = t * sepalLen;
+      const lx = Math.cos(ang) * len;
+      const ly = Math.sin(ang) * len * tilt;
+      const lz = -6 + t * 8;
+      const nx = -Math.sin(ang) * r;
+      const ny = Math.cos(ang) * r * tilt;
+      pts.push(project(lx + nx, ly + ny, lz, az, el));
+    }
+    const sorted = [...pts].sort((a,b) => a.z - b.z);
+    const meanZ = sorted[Math.floor(sorted.length/2)].z;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].sx, pts[0].sy);
+    for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j].sx, pts[j].sy);
+    for (let j = pts.length-1; j >= 0; j--) {
+      const r = Math.sin((pts.length-1-j)/(pts.length-1) * Math.PI) * sepalW * 0.7;
+      const len = (pts.length-1-j)/(pts.length-1) * sepalLen;
+      const lx = Math.cos(ang) * len;
+      const ly = Math.sin(ang) * len * tilt;
+      const lz = -6 + (pts.length-1-j)/(pts.length-1) * 8;
+      const nx = Math.sin(ang) * r;
+      const ny = -Math.cos(ang) * r * tilt;
+      const pp = project(lx + nx, ly + ny, lz, az, el);
+      ctx.lineTo(pp.sx, pp.sy);
+    }
+    ctx.closePath();
+    const g = ctx.createLinearGradient(pts[0].sx, pts[0].sy, pts[pts.length-1].sx, pts[pts.length-1].sy);
+    g.addColorStop(0, '#3a8c4e');
+    g.addColorStop(1, '#5cb870');
+    ctx.fillStyle = g;
+    ctx.globalAlpha = 0.88;
+    ctx.fill();
+    ctx.strokeStyle = '#2d6e3c';
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- RECEPTACLE / FLORAL BASE (花托) ----
+  const baseSegs = 20;
+  ctx.beginPath();
+  for (let i = 0; i <= baseSegs; i++) {
+    const a = (i / baseSegs) * Math.PI * 2;
+    const r = 18;
+    const p = project(Math.cos(a)*r, Math.sin(a)*r, -5, az, el);
+    i === 0 ? ctx.moveTo(p.sx, p.sy) : ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#6baa5e';
+  ctx.fill();
+  ctx.strokeStyle = '#3a6e35';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  // ---- PETALS (花瓣) - drawn with depth sort ----
+  const petalData = [];
+  for (let i = 0; i < PETALS; i++) {
+    const ang = (i / PETALS) * Math.PI * 2;
+    const tilt = 0.45;
+    const midLen = petalLen * 0.5;
+    const midX = Math.cos(ang) * midLen;
+    const midY = Math.sin(ang) * midLen * tilt;
+    const midZ = 12;
+    const mpt = project(midX, midY, midZ, az, el);
+    petalData.push({ i, ang, tilt, z: mpt.z });
+  }
+  petalData.sort((a, b) => a.z - b.z);
+
+  for (const { i, ang, tilt } of petalData) {
+    const steps = 30;
+    const left = [], right = [];
+    for (let t = 0; t <= 1; t += 1/steps) {
+      const profile = Math.sin(t * Math.PI);
+      const len = t * petalLen;
+      const elev3d = Math.sin(t * Math.PI) * 18 + 2;
+      const lx = Math.cos(ang) * len;
+      const ly = Math.sin(ang) * len * tilt;
+      const lz = elev3d;
+      const hw = profile * petalW;
+      const nx = -Math.sin(ang) * hw;
+      const ny = Math.cos(ang) * hw * tilt;
+      left.push(project(lx + nx, ly + ny, lz, az, el));
+      right.push(project(lx - nx, ly - ny, lz, az, el));
+    }
+    ctx.beginPath();
+    ctx.moveTo(left[0].sx, left[0].sy);
+    for (const p of left) ctx.lineTo(p.sx, p.sy);
+    for (let j = right.length - 1; j >= 0; j--) ctx.lineTo(right[j].sx, right[j].sy);
+    ctx.closePath();
+    // petal gradient
+    const tip = project(Math.cos(ang)*petalLen, Math.sin(ang)*petalLen*tilt, 2, az, el);
+    const base = project(0, 0, 2, az, el);
+    const pg = ctx.createLinearGradient(base.sx, base.sy, tip.sx, tip.sy);
+    const hue = 290 + i * 8;
+    pg.addColorStop(0, `hsla(${hue},70%,80%,1)`);
+    pg.addColorStop(0.4, `hsla(${hue+10},75%,72%,1)`);
+    pg.addColorStop(1, `hsla(${hue+20},65%,88%,1)`);
+    ctx.fillStyle = pg;
+    ctx.globalAlpha = 0.93;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue+20},50%,60%,0.6)`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Petal vein
+    const mid0 = project(0, 0, 2, az, el);
+    const mid1 = project(Math.cos(ang)*petalLen*0.7, Math.sin(ang)*petalLen*0.7*tilt, 12, az, el);
+    ctx.beginPath();
+    ctx.moveTo(mid0.sx, mid0.sy);
+    ctx.lineTo(mid1.sx, mid1.sy);
+    ctx.strokeStyle = `hsla(${hue+20},40%,62%,0.45)`;
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // hit region for petal
+    const midPt = project(Math.cos(ang)*petalLen*0.55, Math.sin(ang)*petalLen*0.55*tilt, 12, az, el);
+    hitRegions.push({ x: midPt.sx, y: midPt.sy, r: 30, label: `花瓣（第${i+1}枚）：两性花共有${PETALS}枚花瓣，吸引传粉者` });
+  }
+
+  // ---- STAMENS (雄蕊) - filament + anther ----
+  const STAMENS = 10;
+  const stamenData = [];
+  for (let i = 0; i < STAMENS; i++) {
+    const ang = (i / STAMENS) * Math.PI * 2;
+    const r = 14 + (i % 2) * 6;
+    const h = stamenH + (i % 3) * 8;
+    const fx = Math.cos(ang) * r, fy = Math.sin(ang) * r * 0.6;
+    const top = project(fx, fy, h, az, el);
+    stamenData.push({ ang, r, h, fx, fy, z: top.z, i });
+  }
+  stamenData.sort((a,b) => a.z - b.z);
+
+  for (const { ang, r, h, fx, fy, i } of stamenData) {
+    const base = project(fx * 0.5, fy * 0.5, 2, az, el);
+    const top  = project(fx, fy, h, az, el);
+    // filament (花丝)
+    ctx.beginPath();
+    ctx.moveTo(base.sx, base.sy);
+    ctx.lineTo(top.sx, top.sy);
+    ctx.strokeStyle = '#d4a017';
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.85;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // anther (花药) - ellipse
+    const aSize = 5;
+    ctx.beginPath();
+    ctx.save();
+    ctx.translate(top.sx, top.sy);
+    ctx.scale(1, 0.55);
+    ctx.arc(0, 0, aSize, 0, Math.PI*2);
+    ctx.restore();
+    ctx.fillStyle = '#c0860a';
+    ctx.fill();
+    ctx.strokeStyle = '#8a5e00';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // pollen dots
+    for (let p = 0; p < 4; p++) {
+      const pa = (p/4)*Math.PI*2;
+      const px = top.sx + Math.cos(pa)*7, py = top.sy + Math.sin(pa)*3.5;
+      ctx.beginPath();
+      ctx.arc(px, py, 1.2, 0, Math.PI*2);
+      ctx.fillStyle = '#f0c040';
+      ctx.globalAlpha = 0.7;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    hitRegions.push({ x: top.sx, y: top.sy, r: 10, label: '雄蕊：花丝支撑花药，花药产生花粉（花粉囊）' });
+  }
+
+  // ---- PISTIL (雌蕊) ----
+  const pistilSegs = 16;
+  // Ovary (子房) - base bulge
+  ctx.beginPath();
+  for (let i = 0; i <= pistilSegs; i++) {
+    const a = (i / pistilSegs) * Math.PI * 2;
+    const r = 10;
+    const p = project(Math.cos(a)*r, Math.sin(a)*r*0.7, 4, az, el);
+    i === 0 ? ctx.moveTo(p.sx, p.sy) : ctx.lineTo(p.sx, p.sy);
+  }
+  ctx.closePath();
+  const og = ctx.createRadialGradient(W/2-4, H/2-4, 0, W/2, H/2, 18);
+  og.addColorStop(0, '#e8b4c8');
+  og.addColorStop(1, '#c87090');
+  ctx.fillStyle = og;
+  ctx.fill();
+  ctx.strokeStyle = '#a05070';
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+
+  // Style (花柱)
+  const styleBot = project(0, 0, 6, az, el);
+  const styleMid = project(0, 0, pistilH * 0.7, az, el);
+  const styleTop = project(0, 0, pistilH, az, el);
+  ctx.beginPath();
+  ctx.moveTo(styleBot.sx, styleBot.sy);
+  ctx.quadraticCurveTo(styleMid.sx + 2, styleMid.sy - 2, styleTop.sx, styleTop.sy);
+  ctx.strokeStyle = '#d070a0';
+  ctx.lineWidth = 3.5;
+  ctx.globalAlpha = 0.9;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  hitRegions.push({ x: styleMid.sx, y: styleMid.sy, r: 10, label: '花柱：连接柱头与子房的通道' });
+
+  // Stigma (柱头) - sticky top
+  for (let b = 0; b < 3; b++) {
+    const ba = (b / 3) * Math.PI * 2;
+    const bx = Math.cos(ba) * 4, by = Math.sin(ba) * 4 * 0.6;
+    const bp = project(bx, by, pistilH + 4, az, el);
+    ctx.beginPath();
+    ctx.arc(bp.sx, bp.sy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8306a';
+    ctx.fill();
+    ctx.strokeStyle = '#a02050';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+  const stigmaP = project(0, 0, pistilH + 6, az, el);
+  hitRegions.push({ x: stigmaP.sx, y: stigmaP.sy, r: 14, label: '柱头：接受花粉的黏性顶端，是两性花雌性部分' });
+
+  // Ovary label region
+  const ovaryP = project(0, 0, 2, az, el);
+  hitRegions.push({ x: ovaryP.sx, y: ovaryP.sy, r: 14, label: '子房：内含胚珠，受精后发育为果实' });
+
+  // ---- LABELS (floating annotations) ----
+  const labelStyle = (dark) => {
+    return { fill: dark ? '#ccc' : '#333', stroke: dark ? '#555' : '#ccc' };
+  };
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const tc = isDark ? '#c8c4b8' : '#3a3a38';
+  const sc = isDark ? '#555' : '#e0ddd5';
+
+  function drawLabel(text, wx, wy, wz, offX, offY) {
+    const wp = project(wx, wy, wz, az, el);
+    const tx = wp.sx + offX, ty = wp.sy + offY;
+    ctx.beginPath();
+    ctx.setLineDash([2,3]);
+    ctx.moveTo(wp.sx, wp.sy);
+    ctx.lineTo(tx, ty);
+    ctx.strokeStyle = sc;
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = tc;
+    ctx.textAlign = offX > 0 ? 'left' : 'right';
+    ctx.fillText(text, tx + (offX > 0 ? 3 : -3), ty + 4);
+  }
+
+  drawLabel('柱头', 0, 0, pistilH + 6, 90, -35);
+  drawLabel('花柱', 0, 0, pistilH * 0.55, 90, -10);
+  drawLabel('子房', 0, 0, 3, 90, 18);
+  drawLabel('花药', Math.cos(0.3)*14, Math.sin(0.3)*8, stamenH + 4, 90, 38);
+  drawLabel('花丝', Math.cos(0.3)*8, Math.sin(0.3)*4.8, stamenH*0.4, 90, 55);
+  drawLabel('花瓣', Math.cos(0)*petalLen*0.6, Math.sin(0)*petalLen*0.6*0.45, 14, -90, -40);
+  drawLabel('萼片', Math.cos(Math.PI/PETALS)*sepalLen*0.55, Math.sin(Math.PI/PETALS)*sepalLen*0.55*0.55, 2, -90, 30);
+  drawLabel('花托', 16, 0, -4, -90, 55);
+
+  // ---- TITLE ----
+  ctx.font = '500 15px sans-serif';
+  ctx.fillStyle = tc;
+  ctx.textAlign = 'center';
+  ctx.fillText('两性花（完全花）结构示意图', W/2, 26);
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = isDark ? '#888' : '#999';
+  ctx.fillText('拖动滑块旋转 · 点击部位了解详情', W/2, 44);
+}
+
+function loop() {
+  if (autoRot) {
+    azimuth = (azimuth + 0.4) % 360;
+    document.getElementById('azim').value = azimuth;
+  }
+  drawFlower(azimuth, elevation);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
