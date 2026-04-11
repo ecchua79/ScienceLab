@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>两性花3D</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f8f7f4;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:10px 8px 20px}
+@media(prefers-color-scheme:dark){body{background:#1e1d1a}}
+#canvas-wrap{width:100%;max-width:680px;position:relative}
+canvas{display:block;width:100%;border-radius:10px;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+#mode-bar{width:100%;max-width:680px;display:flex;gap:8px;margin-top:10px}
+.mode-btn{flex:1;padding:7px 0;border-radius:8px;border:1.5px solid #d5d2ca;background:#fff;font-size:13px;cursor:pointer;color:#555;transition:all .15s;font-family:inherit}
+@media(prefers-color-scheme:dark){.mode-btn{background:#2a2926;border-color:#3a3835;color:#999}}
+.mode-btn.active{background:#7c6cd4;border-color:#7c6cd4;color:#fff;font-weight:500}
+#explore-ui{width:100%;max-width:680px;display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12.5px;color:#666}
+@media(prefers-color-scheme:dark){#controls{color:#999}}
+.ctrl{display:flex;align-items:center;gap:6px;flex:1;min-width:110px}
+input[type=range]{flex:1;min-width:50px;accent-color:#7c6cd4}
+.tog{position:relative;width:30px;height:17px;border-radius:9px;background:#ccc;transition:background .2s;flex-shrink:0}
+.tog:has(input:checked){background:#7c6cd4}
+.tog input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none}
+.tog:has(input:checked) .thumb{transform:translateX(13px)}
+#info-box{background:#fff;border:0.5px solid #e0ddd5;border-radius:8px;padding:6px 12px;font-size:12px;color:#555;text-align:center;min-height:28px}
+@media(prefers-color-scheme:dark){#info-box{background:#2a2926;border-color:#3a3835;color:#999}}
+#quiz-ui{width:100%;max-width:680px;display:none;flex-direction:column;gap:10px;margin-top:10px}
+#quiz-prompt{background:#fff;border:0.5px solid #e0ddd5;border-radius:10px;padding:10px 14px;font-size:13px;color:#444;text-align:center;line-height:1.6}
+@media(prefers-color-scheme:dark){#quiz-prompt{background:#2a2926;border-color:#3a3835;color:#bbb}}
+.hi{color:#7c6cd4;font-weight:500}
+#options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt-btn{padding:10px 8px;border-radius:8px;border:1.5px solid #d5d2ca;background:#fff;font-size:13px;cursor:pointer;color:#444;transition:all .15s;font-family:inherit;line-height:1.3}
+@media(prefers-color-scheme:dark){.opt-btn{background:#2a2926;border-color:#3a3835;color:#bbb}}
+.opt-btn:active{transform:scale(0.97)}
+.opt-btn.correct{background:#eaf3de;border-color:#5cb85c;color:#2d6e2d}
+.opt-btn.wrong{background:#fce8e8;border-color:#e05050;color:#8b2020}
+.opt-btn.reveal{background:#eaf3de;border-color:#5cb85c;color:#2d6e2d}
+.opt-btn:disabled{cursor:default}
+#score-bar{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#888}
+#score-bar span{font-weight:500;color:#7c6cd4}
+#feedback{min-height:20px;font-size:12.5px;text-align:center;color:#666;line-height:1.5}
+#feedback.ok{color:#3a8c4e}
+#feedback.err{color:#c03030}
+#next-btn{display:none;margin:0 auto;padding:8px 28px;border-radius:8px;background:#7c6cd4;color:#fff;border:none;font-size:13px;cursor:pointer;font-family:inherit}
+#hint{margin-top:4px;font-size:11px;color:#bbb;text-align:center}
+</style>
+</head>
+<body>
+<div id="canvas-wrap"><canvas id="c"></canvas></div>
+<div id="mode-bar">
+  <button class="mode-btn active" id="btn-explore" onclick="setMode('explore')">🌸 探索模式</button>
+  <button class="mode-btn" id="btn-quiz" onclick="setMode('quiz')">🎯 闯关模式</button>
+</div>
+<div id="explore-ui">
+  <div id="controls">
+    <label class="ctrl">
+      <span style="white-space:nowrap">自动旋转</span>
+      <span class="tog"><input type="checkbox" id="autoRot" checked><span class="thumb"></span></span>
+    </label>
+    <div class="ctrl"><span style="white-space:nowrap">仰角</span><input type="range" id="elev" min="10" max="80" value="35"></div>
+    <div class="ctrl"><span style="white-space:nowrap">旋转</span><input type="range" id="azim" min="0" max="360" value="30"></div>
+  </div>
+  <div id="info-box">点击花朵部位了解更多 · 单指拖拽旋转 · 双指平移/缩放</div>
+</div>
+<div id="quiz-ui">
+  <div id="score-bar">
+    <div>第 <span id="q-num">1</span> 题 / 共 <span id="q-total">8</span> 题</div>
+    <div>✓ <span id="q-correct">0</span> &nbsp; ✗ <span id="q-wrong">0</span></div>
+  </div>
+  <div id="quiz-prompt">请找到画面上<span class="hi">高亮闪烁的部位</span>，然后从下方选出它的名称</div>
+  <div id="options"></div>
+  <div id="feedback"></div>
+  <button id="next-btn" onclick="nextQuestion()">下一题 →</button>
+</div>
+<div id="hint">鼠标滚轮缩放 · 双指平移/缩放</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let CW, CH;
+function resize(){
+  CW = document.getElementById('canvas-wrap').clientWidth;
+  CH = Math.round(CW*500/680);
+  canvas.width=CW; canvas.height=CH;
+}
+resize(); window.addEventListener('resize',resize);
+
+let azimuth=30,elevation=35,autoRot=true;
+let panX=0,panY=0,scaleF=1;
+let dragging=false,lastX=0,lastY=0;
+let lastDist=0,lastMidX=0,lastMidY=0;
+let touchStartX=0,touchStartY=0,touchMoved=false;
+let hitRegions=[];
+let mode='explore';
+
+const ALL_PARTS=[
+  {key:'stigma', name:'柱头', desc:'接受花粉的黏性顶端，雌蕊的感受器'},
+  {key:'style',  name:'花柱', desc:'连接柱头与子房，花粉管生长的通道'},
+  {key:'ovary',  name:'子房', desc:'内含胚珠，受精后发育成果实与种子'},
+  {key:'anther', name:'花药', desc:'产生并储存花粉的囊状结构'},
+  {key:'filament',name:'花丝',desc:'支撑花药的细长结构'},
+  {key:'stamen', name:'雄蕊', desc:'花丝与花药的总称，两性花的雄性器官'},
+  {key:'petal',  name:'花瓣', desc:'色彩鲜艳，吸引传粉昆虫'},
+  {key:'sepal',  name:'萼片', desc:'保护花蕾，位于花瓣外轮的绿色叶状结构'},
+  {key:'receptacle',name:'花托',desc:'托住整朵花所有器官的基座'},
+];
+
+let quizQueue=[],quizIdx=0,quizCorrect=0,quizWrong=0;
+let currentQuestion=null,answered=false;
+let highlightKey=null,hlFrame=0;
+
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5);}
+
+function startQuiz(){
+  quizQueue=shuffle(ALL_PARTS).slice(0,8);
+  quizIdx=0;quizCorrect=0;quizWrong=0;
+  document.getElementById('q-total').textContent=quizQueue.length;
+  loadQuestion();
+}
+
+function loadQuestion(){
+  answered=false;hlFrame=0;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='';
+  document.getElementById('next-btn').style.display='none';
+  currentQuestion=quizQueue[quizIdx];
+  highlightKey=currentQuestion.key;
+  document.getElementById('q-num').textContent=quizIdx+1;
+  document.getElementById('q-correct').textContent=quizCorrect;
+  document.getElementById('q-wrong').textContent=quizWrong;
+  document.getElementById('quiz-prompt').innerHTML=
+    '请找到画面上<span class="hi">高亮闪烁的部位</span>，然后从下方选出它的名称';
+  const wrong=shuffle(ALL_PARTS.filter(p=>p.key!==currentQuestion.key)).slice(0,3);
+  const opts=shuffle([currentQuestion,...wrong]);
+  const container=document.getElementById('options');
+  container.innerHTML='';
+  opts.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn'; btn.textContent=opt.name;
+    btn.onclick=()=>answerQuestion(opt.key,btn,opts,container);
+    container.appendChild(btn);
+  });
+}
+
+function answerQuestion(chosen,clickedBtn,opts,container){
+  if(answered)return;
+  answered=true;
+  const correct=currentQuestion.key;
+  Array.from(container.children).forEach(btn=>{
+    btn.disabled=true;
+    const part=opts.find(o=>o.name===btn.textContent);
+    if(part.key===correct) btn.classList.add('reveal');
+  });
+  const fb=document.getElementById('feedback');
+  if(chosen===correct){
+    clickedBtn.classList.remove('reveal'); clickedBtn.classList.add('correct');
+    quizCorrect++;
+    fb.textContent='✓ 正确！'+currentQuestion.desc;
+    fb.className='ok';
+  } else {
+    clickedBtn.classList.add('wrong'); quizWrong++;
+    fb.textContent='✗ 答错了。正确答案是「'+currentQuestion.name+'」— '+currentQuestion.desc;
+    fb.className='err';
+  }
+  document.getElementById('q-correct').textContent=quizCorrect;
+  document.getElementById('q-wrong').textContent=quizWrong;
+  highlightKey=null;
+  if(quizIdx+1<quizQueue.length){
+    document.getElementById('next-btn').style.display='block';
+  } else {
+    setTimeout(showResult,500);
+  }
+}
+
+function nextQuestion(){quizIdx++;loadQuestion();}
+
+function showResult(){
+  const total=quizQueue.length,pct=Math.round(quizCorrect/total*100);
+  const grade=pct===100?'满分！🌸':pct>=75?'优秀！🎉':pct>=50?'继续加油！💪':'再来一次吧！📚';
+  document.getElementById('quiz-prompt').innerHTML=
+    '<strong>答题完成</strong> · 答对 '+quizCorrect+'/'+total+' 题（'+pct+'%）<br>'+grade;
+  document.getElementById('options').innerHTML='';
+  document.getElementById('feedback').textContent='';
+  const nb=document.getElementById('next-btn');
+  nb.textContent='再来一轮 ↺'; nb.style.display='block';
+  nb.onclick=()=>startQuiz();
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('btn-explore').classList.toggle('active',m==='explore');
+  document.getElementById('btn-quiz').classList.toggle('active',m==='quiz');
+  document.getElementById('explore-ui').style.display=m==='explore'?'flex':'none';
+  document.getElementById('quiz-ui').style.display=m==='quiz'?'flex':'none';
+  if(m==='quiz'){autoRot=false;document.getElementById('autoRot').checked=false;startQuiz();}
+  else highlightKey=null;
+}
+document.getElementById('explore-ui').style.display='flex';
+
+document.getElementById('autoRot').addEventListener('change',e=>{autoRot=e.target.checked;});
+document.getElementById('elev').addEventListener('input',e=>{elevation=+e.target.value;});
+document.getElementById('azim').addEventListener('input',e=>{azimuth=+e.target.value;});
+
+let mouseMoved=false,mouseStartX=0,mouseStartY=0;
+canvas.addEventListener('mousedown',e=>{
+  dragging=true;mouseMoved=false;
+  mouseStartX=lastX=e.clientX;mouseStartY=lastY=e.clientY;
+  autoRot=false;document.getElementById('autoRot').checked=false;
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  if(Math.hypot(e.clientX-mouseStartX,e.clientY-mouseStartY)>5)mouseMoved=true;
+  azimuth=(azimuth+(e.clientX-lastX)*0.5+360)%360;
+  elevation=Math.max(10,Math.min(80,elevation-(e.clientY-lastY)*0.3));
+  document.getElementById('azim').value=Math.round(azimuth);
+  document.getElementById('elev').value=Math.round(elevation);
+  lastX=e.clientX;lastY=e.clientY;
+});
+window.addEventListener('mouseup',()=>{dragging=false;});
+
+function handleTap(cx,cy){
+  if(mode!=='explore')return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=(cx-rect.left)*(CW/rect.width),my=(cy-rect.top)*(CH/rect.height);
+  let found=null;
+  for(let i=hitRegions.length-1;i>=0;i--){
+    const r=hitRegions[i];
+    if((mx-r.x)**2+(my-r.y)**2<r.r*r.r){found=r;break;}
+  }
+  document.getElementById('info-box').textContent=
+    found?'【'+found.name+'】'+found.desc:'点击花朵部位了解更多 · 单指拖拽旋转 · 双指平移/缩放';
+}
+canvas.addEventListener('click',e=>{if(!mouseMoved)handleTap(e.clientX,e.clientY);});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  scaleF=Math.max(0.4,Math.min(3.5,scaleF*(e.deltaY<0?1.1:0.91)));
+},{passive:false});
+
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(e.touches.length===1){
+    dragging=true;touchMoved=false;
+    lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;
+    touchStartX=lastX;touchStartY=lastY;
+    autoRot=false;document.getElementById('autoRot').checked=false;
+  } else if(e.touches.length===2){
+    dragging=false;touchMoved=true;
+    const t0=e.touches[0],t1=e.touches[1];
+    lastDist=Math.hypot(t1.clientX-t0.clientX,t1.clientY-t0.clientY);
+    lastMidX=(t0.clientX+t1.clientX)/2;lastMidY=(t0.clientY+t1.clientY)/2;
+  }
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&dragging){
+    if(Math.hypot(e.touches[0].clientX-touchStartX,e.touches[0].clientY-touchStartY)>8)touchMoved=true;
+    const dx=e.touches[0].clientX-lastX,dy=e.touches[0].clientY-lastY;
+    azimuth=(azimuth+dx*0.5+360)%360;
+    elevation=Math.max(10,Math.min(80,elevation-dy*0.3));
+    document.getElementById('azim').value=Math.round(azimuth);
+    document.getElementById('elev').value=Math.round(elevation);
+    lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;
+  } else if(e.touches.length===2){
+    const t0=e.touches[0],t1=e.touches[1];
+    const dist=Math.hypot(t1.clientX-t0.clientX,t1.clientY-t0.clientY);
+    const midX=(t0.clientX+t1.clientX)/2,midY=(t0.clientY+t1.clientY)/2;
+    const ratio=CW/canvas.getBoundingClientRect().width;
+    panX+=(midX-lastMidX)*ratio;panY+=(midY-lastMidY)*ratio;
+    if(lastDist>0)scaleF=Math.max(0.4,Math.min(3.5,scaleF*dist/lastDist));
+    lastDist=dist;lastMidX=midX;lastMidY=midY;
+  }
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  if(e.touches.length===0){if(!touchMoved)handleTap(touchStartX,touchStartY);dragging=false;}
+},{passive:false});
+
+function project(x,y,z,az,el){
+  const azR=az*Math.PI/180,elR=el*Math.PI/180;
+  const x2=x*Math.cos(azR)-y*Math.sin(azR);
+  const y2=x*Math.sin(azR)+y*Math.cos(azR);
+  const yp=-y2*Math.sin(elR)+z*Math.cos(elR);
+  const zp= y2*Math.cos(elR)+z*Math.sin(elR);
+  const sc=(CW/680)*scaleF*(1.5+zp*0.002);
+  return{sx:CW/2+panX+x2*sc,sy:CH/2+panY-yp*sc,z:zp};
+}
+
+function hlAlpha(key){
+  if(highlightKey!==key)return 0;
+  hlFrame++;
+  return 0.3+0.3*Math.sin(hlFrame*0.13);
+}
+
+function drawFlower(az,el){
+  ctx.clearRect(0,0,CW,CH);
+  hitRegions=[];
+  const PETALS=5,petalLen=100,petalW=42,sepalLen=80,sepalW=22,stamenH=55,pistilH=68;
+
+  // Sepals
+  for(let i=0;i<PETALS;i++){
+    const ang=(i/PETALS)*Math.PI*2+Math.PI/PETALS,tilt=0.55,pts=[];
+    for(let t=0;t<=1;t+=0.05){
+      const r=Math.sin(t*Math.PI)*sepalW,len=t*sepalLen;
+      pts.push(project(Math.cos(ang)*len-Math.sin(ang)*r,Math.sin(ang)*len*tilt+Math.cos(ang)*r*tilt,-6+t*8,az,el));
+    }
+    ctx.beginPath();ctx.moveTo(pts[0].sx,pts[0].sy);
+    for(let j=1;j<pts.length;j++)ctx.lineTo(pts[j].sx,pts[j].sy);
+    for(let j=pts.length-1;j>=0;j--){
+      const t=j/(pts.length-1),r=Math.sin(t*Math.PI)*sepalW*0.7,len=t*sepalLen;
+      const pp=project(Math.cos(ang)*len+Math.sin(ang)*r,Math.sin(ang)*len*tilt-Math.cos(ang)*r*tilt,-6+t*8,az,el);
+      ctx.lineTo(pp.sx,pp.sy);
+    }
+    ctx.closePath();
+    const g=ctx.createLinearGradient(pts[0].sx,pts[0].sy,pts[pts.length-1].sx,pts[pts.length-1].sy);
+    g.addColorStop(0,'#3a8c4e');g.addColorStop(1,'#5cb870');
+    ctx.fillStyle=g;ctx.globalAlpha=0.88;ctx.fill();
+    const ha=hlAlpha('sepal');
+    if(ha>0){ctx.fillStyle=`rgba(255,210,40,${ha})`;ctx.fill();}
+    ctx.strokeStyle='#2d6e3c';ctx.lineWidth=0.7;ctx.stroke();ctx.globalAlpha=1;
+    const mp=project(Math.cos(ang)*sepalLen*0.55,Math.sin(ang)*sepalLen*0.55*tilt,2,az,el);
+    hitRegions.push({x:mp.sx,y:mp.sy,r:22,key:'sepal',name:'萼片',desc:'保护花蕾，位于花瓣外轮的绿色叶状结构'});
+  }
+
+  // Receptacle
+  ctx.beginPath();
+  for(let i=0;i<=20;i++){const a=(i/20)*Math.PI*2,p=project(Math.cos(a)*18,Math.sin(a)*18,-5,az,el);i===0?ctx.moveTo(p.sx,p.sy):ctx.lineTo(p.sx,p.sy);}
+  ctx.closePath();ctx.fillStyle='#6baa5e';ctx.fill();
+  const rha=hlAlpha('receptacle');
+  if(rha>0){ctx.fillStyle=`rgba(255,210,40,${rha})`;ctx.fill();}
+  ctx.strokeStyle='#3a6e35';ctx.lineWidth=0.5;ctx.stroke();
+  const recP=project(16,0,-4,az,el);
+  hitRegions.push({x:recP.sx,y:recP.sy,r:14,key:'receptacle',name:'花托',desc:'托住整朵花所有器官的基座'});
+
+  // Petals
+  const pd=[];
+  for(let i=0;i<PETALS;i++){
+    const ang=(i/PETALS)*Math.PI*2;
+    const mp=project(Math.cos(ang)*petalLen*0.5,Math.sin(ang)*petalLen*0.5*0.45,12,az,el);
+    pd.push({i,ang,z:mp.z});
+  }
+  pd.sort((a,b)=>a.z-b.z);
+  for(const{i,ang}of pd){
+    const tilt=0.45,left=[],right=[];
+    for(let t=0;t<=1;t+=1/30){
+      const profile=Math.sin(t*Math.PI),len=t*petalLen,e3=Math.sin(t*Math.PI)*18+2;
+      const lx=Math.cos(ang)*len,ly=Math.sin(ang)*len*tilt,hw=profile*petalW;
+      left.push(project(lx-Math.sin(ang)*hw,ly+Math.cos(ang)*hw*tilt,e3,az,el));
+      right.push(project(lx+Math.sin(ang)*hw,ly-Math.cos(ang)*hw*tilt,e3,az,el));
+    }
+    ctx.beginPath();ctx.moveTo(left[0].sx,left[0].sy);
+    for(const p of left)ctx.lineTo(p.sx,p.sy);
+    for(let j=right.length-1;j>=0;j--)ctx.lineTo(right[j].sx,right[j].sy);
+    ctx.closePath();
+    const tip=project(Math.cos(ang)*petalLen,Math.sin(ang)*petalLen*tilt,2,az,el);
+    const base=project(0,0,2,az,el);
+    const pg=ctx.createLinearGradient(base.sx,base.sy,tip.sx,tip.sy);
+    const hue=290+i*8;
+    pg.addColorStop(0,`hsla(${hue},70%,80%,1)`);pg.addColorStop(0.4,`hsla(${hue+10},75%,72%,1)`);pg.addColorStop(1,`hsla(${hue+20},65%,88%,1)`);
+    ctx.fillStyle=pg;ctx.globalAlpha=0.93;ctx.fill();
+    const pha=hlAlpha('petal');
+    if(pha>0){ctx.fillStyle=`rgba(255,210,40,${pha})`;ctx.globalAlpha=1;ctx.fill();}
+    ctx.strokeStyle=`hsla(${hue+20},50%,60%,0.6)`;ctx.lineWidth=0.6;ctx.stroke();ctx.globalAlpha=1;
+    const m0=project(0,0,2,az,el),m1=project(Math.cos(ang)*petalLen*0.7,Math.sin(ang)*petalLen*0.7*tilt,12,az,el);
+    ctx.beginPath();ctx.moveTo(m0.sx,m0.sy);ctx.lineTo(m1.sx,m1.sy);
+    ctx.strokeStyle=`hsla(${hue+20},40%,62%,0.45)`;ctx.lineWidth=0.8;ctx.stroke();
+    const mp2=project(Math.cos(ang)*petalLen*0.55,Math.sin(ang)*petalLen*0.55*tilt,12,az,el);
+    hitRegions.push({x:mp2.sx,y:mp2.sy,r:28,key:'petal',name:'花瓣',desc:'色彩鲜艳，吸引传粉昆虫'});
+  }
+
+  // Stamens
+  const sd=[];
+  for(let i=0;i<10;i++){
+    const ang=(i/10)*Math.PI*2,r=14+(i%2)*6,h=stamenH+(i%3)*8;
+    const fx=Math.cos(ang)*r,fy=Math.sin(ang)*r*0.6;
+    sd.push({ang,r,h,fx,fy,z:project(fx,fy,h,az,el).z,i});
+  }
+  sd.sort((a,b)=>a.z-b.z);
+  for(const{h,fx,fy}of sd){
+    const base=project(fx*0.5,fy*0.5,2,az,el),top=project(fx,fy,h,az,el);
+    ctx.beginPath();ctx.moveTo(base.sx,base.sy);ctx.lineTo(top.sx,top.sy);
+    ctx.strokeStyle='#d4a017';ctx.lineWidth=1.2;ctx.globalAlpha=0.85;ctx.stroke();ctx.globalAlpha=1;
+    const fha=hlAlpha('filament');
+    if(fha>0){ctx.beginPath();ctx.moveTo(base.sx,base.sy);ctx.lineTo(top.sx,top.sy);ctx.strokeStyle=`rgba(255,210,40,${fha})`;ctx.lineWidth=5;ctx.stroke();}
+    ctx.beginPath();ctx.save();ctx.translate(top.sx,top.sy);ctx.scale(1,0.55);ctx.arc(0,0,5,0,Math.PI*2);ctx.restore();
+    ctx.fillStyle='#c0860a';ctx.fill();
+    const aha=hlAlpha('anther'),sha=hlAlpha('stamen');
+    if(aha>0){ctx.fillStyle=`rgba(255,210,40,${aha})`;ctx.fill();}
+    if(sha>0){ctx.fillStyle=`rgba(255,210,40,${sha})`;ctx.fill();}
+    ctx.strokeStyle='#8a5e00';ctx.lineWidth=0.5;ctx.stroke();
+    for(let p=0;p<4;p++){
+      const pa=(p/4)*Math.PI*2;
+      ctx.beginPath();ctx.arc(top.sx+Math.cos(pa)*7,top.sy+Math.sin(pa)*3.5,1.2,0,Math.PI*2);
+      ctx.fillStyle='#f0c040';ctx.globalAlpha=0.7;ctx.fill();ctx.globalAlpha=1;
+    }
+    const fmid=project(fx*0.5,fy*0.5,h*0.4,az,el);
+    hitRegions.push({x:fmid.sx,y:fmid.sy,r:8,key:'filament',name:'花丝',desc:'支撑花药的细长结构'});
+    hitRegions.push({x:top.sx,y:top.sy,r:10,key:'anther',name:'花药',desc:'产生并储存花粉的囊状结构'});
+    hitRegions.push({x:top.sx,y:top.sy,r:18,key:'stamen',name:'雄蕊',desc:'花丝与花药的总称，两性花的雄性器官'});
+  }
+
+  // Ovary
+  ctx.beginPath();
+  for(let i=0;i<=16;i++){const a=(i/16)*Math.PI*2,p=project(Math.cos(a)*10,Math.sin(a)*10*0.7,4,az,el);i===0?ctx.moveTo(p.sx,p.sy):ctx.lineTo(p.sx,p.sy);}
+  ctx.closePath();
+  const og=ctx.createRadialGradient(CW/2-4,CH/2-4,0,CW/2,CH/2,18);
+  og.addColorStop(0,'#e8b4c8');og.addColorStop(1,'#c87090');
+  ctx.fillStyle=og;ctx.fill();
+  const oha=hlAlpha('ovary');
+  if(oha>0){ctx.fillStyle=`rgba(255,210,40,${oha})`;ctx.fill();}
+  ctx.strokeStyle='#a05070';ctx.lineWidth=0.7;ctx.stroke();
+  const ovP=project(0,0,2,az,el);
+  hitRegions.push({x:ovP.sx,y:ovP.sy,r:14,key:'ovary',name:'子房',desc:'内含胚珠，受精后发育成果实与种子'});
+
+  // Style
+  const sBot=project(0,0,6,az,el),sMid=project(0,0,pistilH*0.7,az,el),sTop=project(0,0,pistilH,az,el);
+  const styleHa=hlAlpha('style');
+  if(styleHa>0){
+    ctx.beginPath();ctx.moveTo(sBot.sx,sBot.sy);ctx.quadraticCurveTo(sMid.sx+2,sMid.sy-2,sTop.sx,sTop.sy);
+    ctx.strokeStyle=`rgba(255,210,40,${styleHa})`;ctx.lineWidth=8;ctx.stroke();
+  }
+  ctx.beginPath();ctx.moveTo(sBot.sx,sBot.sy);ctx.quadraticCurveTo(sMid.sx+2,sMid.sy-2,sTop.sx,sTop.sy);
+  ctx.strokeStyle='#d070a0';ctx.lineWidth=3.5;ctx.globalAlpha=0.9;ctx.stroke();ctx.globalAlpha=1;
+  hitRegions.push({x:sMid.sx,y:sMid.sy,r:10,key:'style',name:'花柱',desc:'连接柱头与子房，花粉管生长的通道'});
+
+  // Stigma
+  for(let b=0;b<3;b++){
+    const ba=(b/3)*Math.PI*2,bp=project(Math.cos(ba)*4,Math.sin(ba)*4*0.6,pistilH+4,az,el);
+    ctx.beginPath();ctx.arc(bp.sx,bp.sy,5,0,Math.PI*2);
+    ctx.fillStyle='#e8306a';ctx.fill();
+    const sgha=hlAlpha('stigma');
+    if(sgha>0){ctx.fillStyle=`rgba(255,210,40,${sgha})`;ctx.fill();}
+    ctx.strokeStyle='#a02050';ctx.lineWidth=0.5;ctx.stroke();
+  }
+  const stP=project(0,0,pistilH+6,az,el);
+  hitRegions.push({x:stP.sx,y:stP.sy,r:14,key:'stigma',name:'柱头',desc:'接受花粉的黏性顶端，雌蕊的感受器'});
+
+  // Labels
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const tc=isDark?'#c8c4b8':'#3a3a38',lc=isDark?'#555':'#ccc';
+  const fs=Math.max(9,Math.round(11*CW/680));
+
+  function drawLbl(text,wx,wy,wz,ox,oy,key){
+    const wp=project(wx,wy,wz,az,el),tx=wp.sx+ox,ty=wp.sy+oy;
+    ctx.beginPath();ctx.setLineDash([2,3]);
+    ctx.moveTo(wp.sx,wp.sy);ctx.lineTo(tx,ty);
+    const isHL=(mode==='quiz'&&highlightKey===key);
+    ctx.strokeStyle=isHL?'rgba(124,108,212,0.6)':lc;
+    ctx.lineWidth=isHL?1.2:0.7;ctx.stroke();ctx.setLineDash([]);
+    ctx.font=(isHL?`600 `:``)+ `${fs}px sans-serif`;
+    ctx.fillStyle=isHL?'#7c6cd4':tc;
+    ctx.textAlign=ox>0?'left':'right';
+    ctx.fillText(text,tx+(ox>0?3:-3),ty+4);
+  }
+
+  const lo=CW>400?90:65;
+  drawLbl('柱头',0,0,pistilH+6,lo,-35,'stigma');
+  drawLbl('花柱',0,0,pistilH*0.55,lo,-10,'style');
+  drawLbl('子房',0,0,3,lo,18,'ovary');
+  drawLbl('花药',Math.cos(0.3)*14,Math.sin(0.3)*8,stamenH+4,lo,38,'anther');
+  drawLbl('花丝',Math.cos(0.3)*8,Math.sin(0.3)*4.8,stamenH*0.4,lo,55,'filament');
+  drawLbl('花瓣',Math.cos(0)*petalLen*0.6,Math.sin(0)*petalLen*0.6*0.45,14,-lo,-40,'petal');
+  drawLbl('萼片',Math.cos(Math.PI/PETALS)*sepalLen*0.55,Math.sin(Math.PI/PETALS)*sepalLen*0.55*0.55,2,-lo,30,'sepal');
+  drawLbl('花托',16,0,-4,-lo,55,'receptacle');
+
+  const titleFs=Math.max(12,Math.round(15*CW/680));
+  ctx.font=`500 ${titleFs}px sans-serif`;ctx.fillStyle=tc;ctx.textAlign='center';
+  ctx.fillText(mode==='quiz'?'两性花闯关 — 找出高亮闪烁的部位':'两性花（完全花）结构示意图',CW/2,22);
+  ctx.font=`${Math.max(9,Math.round(11*CW/680))}px sans-serif`;
+  ctx.fillStyle=isDark?'#666':'#bbb';
+  ctx.fillText('单指旋转 · 双指平移/缩放 · 滚轮缩放',CW/2,38);
+}
+
+function loop(){
+  if(autoRot){azimuth=(azimuth+0.4)%360;document.getElementById('azim').value=Math.round(azimuth);}
+  drawFlower(azimuth,elevation);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
