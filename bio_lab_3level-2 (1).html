@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生物解剖三关卡实验室</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+<style>
+//峇株吧辖华仁中学蔡逸众制作
+:root {
+  --bg:#06080f; --gold:#d4a017; --gold-lt:#f5d060;
+  --sky:#38bdf8; --sky-dim:rgba(56,189,248,.5);
+  --red:#e83535; --amber:#f59e0b;
+  --text:#e8eef8; --muted:rgba(232,238,248,.45);
+  --panel:rgba(6,8,15,.75); --border:rgba(255,255,255,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw;}
+
+/* ══ LEVEL SELECT ══ */
+#level-select{
+  position:fixed;inset:0;z-index:200;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 30%,#0d150d 0%,#06080f 65%);
+}
+#level-select h1{font-family:'Noto Serif SC',serif;font-size:clamp(20px,3.5vw,32px);font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:5px;text-align:center;}
+#level-select .subtitle{font-size:12px;color:var(--muted);margin-bottom:40px;letter-spacing:1px;}
+.level-cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;padding:0 16px;}
+.level-card{
+  width:210px;background:var(--panel);border:1.5px solid var(--border);
+  border-radius:20px;padding:26px 20px;text-align:center;cursor:pointer;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.level-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;}
+.level-card.flower::before{background:radial-gradient(circle at 50% 0%,rgba(232,53,53,.18),transparent 70%);}
+.level-card.bean::before  {background:radial-gradient(circle at 50% 0%,rgba(56,189,248,.15),transparent 70%);}
+.level-card.corn::before  {background:radial-gradient(circle at 50% 0%,rgba(245,158,11,.15),transparent 70%);}
+.level-card:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.25);}
+.level-card:hover::before{opacity:1;}
+.card-icon{font-size:46px;margin-bottom:12px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));}
+.level-card h2{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;margin-bottom:4px;}
+.level-card.flower h2{color:var(--red);}
+.level-card.bean   h2{color:var(--sky);}
+.level-card.corn   h2{color:var(--amber);}
+.card-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:7px;letter-spacing:.5px;}
+.tag-dicot {background:rgba(56,189,248,.15);color:var(--sky);border:1px solid rgba(56,189,248,.3);}
+.tag-monocot{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);}
+.level-card p{font-size:11px;color:var(--muted);line-height:1.7;}
+.level-badge{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:rgba(74,222,128,.15);border:2px solid rgba(74,222,128,.5);display:none;align-items:center;justify-content:center;font-size:12px;}
+.level-badge.done{display:flex;}
+.level-num{position:absolute;top:12px;left:12px;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;}
+
+/* ══ GAME SCREEN ══ */
+#game-screen{position:fixed;inset:0;display:none;}
+#canvas-container{position:fixed;inset:0;}
+
+/* top bar */
+#top-bar{
+  position:fixed;top:0;left:0;right:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px 8px;
+  background:linear-gradient(to bottom,rgba(6,8,15,.92) 70%,transparent);
+  pointer-events:none;
+}
+#back-btn{pointer-events:auto;cursor:pointer;background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:6px 13px;font-size:12px;font-weight:700;font-family:'Noto Sans SC',sans-serif;transition:all .2s;}
+#back-btn:hover{background:rgba(255,255,255,.15);color:#fff;}
+#level-title{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;color:#fff;text-align:center;line-height:1.2;}
+#level-title span{font-size:10px;display:block;color:var(--muted);font-weight:400;margin-top:2px;letter-spacing:.5px;}
+.top-right{display:flex;gap:8px;pointer-events:auto;}
+.btn-mode{padding:6px 18px;border-radius:50px;font-family:'Noto Sans SC',sans-serif;font-size:12px;font-weight:700;border:1.5px solid transparent;cursor:pointer;background:rgba(255,255,255,.07);color:var(--muted);transition:all .22s;}
+.btn-mode.active-learn{background:rgba(232,53,53,.18);border-color:var(--red);color:var(--red);}
+.btn-mode.active-quiz {background:rgba(56,189,248,.15);border-color:var(--sky);color:var(--sky);}
+
+/* panels */
+#info-panel,#quiz-panel{
+  position:fixed;right:18px;top:68px;width:255px;padding:18px;
+  background:var(--panel);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:16px;
+  display:none;z-index:40;pointer-events:auto;
+}
+#info-title{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;color:var(--gold-lt);margin-bottom:6px;}
+#info-desc {font-size:12px;color:var(--muted);line-height:1.75;}
+#quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+#quiz-header span:first-child{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+#quiz-progress{font-family:'Noto Serif SC',serif;font-size:14px;font-weight:700;color:var(--sky);}
+.prog-track{width:100%;height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:12px;}
+#prog-bar{height:100%;background:linear-gradient(90deg,#38bdf8,#818cf8);border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+#quiz-inst{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:8px;}
+#quiz-target{font-family:'Noto Serif SC',serif;font-size:15px;color:#7dd3fc;font-weight:700;margin-bottom:8px;display:none;}
+#quiz-opts{display:none;flex-direction:column;gap:5px;}
+.opt-btn{width:100%;padding:7px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-family:'Noto Sans SC',sans-serif;font-size:12px;color:var(--text);text-align:left;cursor:pointer;transition:all .18s;pointer-events:auto;}
+.opt-btn:hover{background:rgba(56,189,248,.1);border-color:var(--sky-dim);}
+.opt-btn.wrong  {background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.5);animation:shake .4s ease;}
+.opt-btn.correct{background:rgba(74,222,128,.18);border-color:rgba(74,222,128,.5);}
+
+/* view toggle */
+#view-toggle{
+  position:fixed;bottom:22px;left:18px;display:none;gap:4px;padding:4px;
+  background:var(--panel);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:12px;z-index:40;pointer-events:auto;
+}
+.btn-view{padding:6px 14px;border-radius:8px;border:none;font-family:'Noto Sans SC',sans-serif;font-size:11px;font-weight:700;color:var(--muted);background:transparent;cursor:pointer;transition:all .2s;}
+.btn-view.active{background:rgba(56,189,248,.18);color:var(--sky);}
+
+/* label nodes */
+#labels-layer{position:fixed;inset:0;pointer-events:none;z-index:35;}
+.label-node{
+  position:absolute;width:20px;height:20px;
+  background:rgba(56,189,248,.15);border:2px solid var(--sky);
+  border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;
+  transform:translate(-50%,-50%);transition:transform .25s,background .25s,box-shadow .25s;
+  pointer-events:auto;z-index:36;
+}
+.label-node::after{content:'';width:6px;height:6px;background:var(--sky);border-radius:50%;}
+.label-node:hover{transform:translate(-50%,-50%) scale(1.35);background:rgba(56,189,248,.35);box-shadow:0 0 12px var(--sky);}
+.label-node.solved{border-color:#4ade80;background:rgba(74,222,128,.15);}
+.label-node.solved::after{background:#4ade80;}
+.label-node.corn-node{border-color:var(--amber);background:rgba(245,158,11,.15);}
+.label-node.corn-node::after{background:var(--amber);}
+.label-node.corn-node:hover{box-shadow:0 0 12px var(--amber);}
+.label-node.corn-node.solved{border-color:#4ade80;background:rgba(74,222,128,.15);}
+.label-node.corn-node.solved::after{background:#4ade80;}
+.label-text{
+  position:absolute;left:26px;top:50%;transform:translateY(-50%);
+  white-space:nowrap;background:var(--sky);color:#06080f;
+  padding:3px 11px;border-radius:5px;font-family:'Noto Sans SC',sans-serif;
+  font-size:12px;font-weight:700;pointer-events:none;
+  box-shadow:0 3px 12px rgba(0,0,0,.6);
+  opacity:0;transition:opacity .2s;
+}
+.label-text.corn-label{background:var(--amber);}
+.label-node:hover .label-text,.label-text.always{opacity:1;}
+.label-node.quiz-hide:hover .label-text{opacity:0;}
+
+/* quiz mode: brighter, pulsing nodes so students know where to click */
+.label-node.quiz-hide {
+  background:rgba(56,189,248,.45);
+  border-color:#7dd3fc;
+  box-shadow:0 0 10px rgba(56,189,248,.7), 0 0 22px rgba(56,189,248,.35);
+  animation:quiz-pulse 1.8s ease-in-out infinite;
+}
+.label-node.corn-node.quiz-hide {
+  background:rgba(245,158,11,.45);
+  border-color:#fcd34d;
+  box-shadow:0 0 10px rgba(245,158,11,.7), 0 0 22px rgba(245,158,11,.35);
+}
+@keyframes quiz-pulse {
+  0%,100%{ box-shadow:0 0 8px rgba(56,189,248,.6), 0 0 18px rgba(56,189,248,.25); }
+  50%     { box-shadow:0 0 16px rgba(56,189,248,.9), 0 0 34px rgba(56,189,248,.5); }
+}
+
+#hint{position:fixed;bottom:22px;right:18px;font-size:10px;color:var(--muted);text-align:right;line-height:1.6;pointer-events:none;z-index:40;}
+
+/* ══ MODALS ══ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:150;pointer-events:auto;}
+.modal-bg.hidden{display:none;}
+#level-complete .lc-card{background:linear-gradient(150deg,#0d1a0d,#060d06);border:1px solid rgba(74,222,128,.35);border-radius:24px;padding:36px 32px;max-width:360px;width:90%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.lc-icon{font-size:52px;margin-bottom:12px;filter:drop-shadow(0 0 18px rgba(74,222,128,.5));}
+.lc-title{font-family:'Noto Serif SC',serif;font-size:21px;font-weight:900;color:#4ade80;margin-bottom:5px;}
+.lc-sub{font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.7;}
+.btn-green{width:100%;padding:13px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:11px;font-family:'Noto Sans SC',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 6px 22px rgba(22,163,74,.35);transition:all .2s;margin-bottom:9px;}
+.btn-green:hover{transform:translateY(-2px);}
+.btn-ghost{width:100%;padding:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:11px;font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
+.btn-ghost:hover{background:rgba(255,255,255,.14);color:#fff;}
+#name-modal .nm-card{background:linear-gradient(150deg,#0d1020,#06080f);border:1px solid rgba(212,160,23,.35);border-radius:24px;padding:38px 32px;max-width:390px;width:90%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.trophy{font-size:56px;margin-bottom:12px;filter:drop-shadow(0 0 18px rgba(212,160,23,.5));}
+.nm-title{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:900;color:var(--gold-lt);margin-bottom:5px;}
+.nm-sub{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.7;}
+#name-input{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(212,160,23,.3);border-radius:11px;padding:12px 16px;color:#fff;text-align:center;font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;outline:none;margin-bottom:14px;transition:border-color .2s;}
+#name-input::placeholder{color:rgba(255,255,255,.22);font-size:13px;font-weight:400;}
+#name-input:focus{border-color:var(--gold);}
+.btn-gold{width:100%;padding:13px;background:linear-gradient(135deg,var(--gold),#b8860b);border:none;border-radius:11px;font-family:'Noto Serif SC',serif;font-size:15px;font-weight:900;color:#06080f;cursor:pointer;box-shadow:0 6px 22px rgba(212,160,23,.35);transition:all .2s;letter-spacing:.5px;}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(212,160,23,.45);}
+#cert-modal .cert-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:min(600px,92vw);width:100%;}
+#cert-canvas{border-radius:12px;box-shadow:0 20px 70px rgba(212,160,23,.2);width:100%;height:auto;}
+.cert-actions{display:flex;gap:12px;}
+.btn-dl{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:11px;padding:11px 24px;font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(22,163,74,.35);transition:all .2s;}
+.btn-dl:hover{transform:translateY(-2px);}
+.btn-sec{background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.18);border-radius:11px;padding:11px 24px;font-family:'Noto Sans SC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-sec:hover{background:rgba(255,255,255,.18);color:#fff;}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes pulse-green{0%{box-shadow:0 0 0 0 rgba(74,222,128,.7)}100%{box-shadow:0 0 0 16px rgba(74,222,128,0)}}
+.correct-pulse{animation:pulse-green .5s ease;}
+#fade{position:fixed;inset:0;background:var(--bg);z-index:190;pointer-events:none;opacity:0;transition:opacity .35s;}
+</style>
+</head>
+<body>
+<div id="fade"></div>
+
+<!-- ══ LEVEL SELECT ══ -->
+<div id="level-select">
+  <h1>🌿 生物解剖三关卡实验室</h1>
+  <p class="subtitle">峇株吧辖华仁中学 · 生物科学教育</p>
+  <div class="level-cards">
+    <div class="level-card flower" onclick="startLevel('flower')">
+      <div class="level-num">关卡 1</div>
+      <div class="level-badge" id="badge-flower">✓</div>
+      <span class="card-icon">🌺</span>
+      <h2>大红花解剖</h2>
+      <p>探索朱槿的花瓣、花萼、花托、雄蕊与雌蕊柱头，识别五大结构。</p>
+    </div>
+    <div class="level-card bean" onclick="startLevel('bean')">
+      <div class="level-num">关卡 2</div>
+      <div class="level-badge" id="badge-bean">✓</div>
+      <span class="card-icon">🫘</span>
+      <h2>菜豆种子解剖</h2>
+      <div class="card-tag tag-dicot">双子叶植物</div>
+      <p>识别种皮、种脐、子叶（2片）、胚芽、胚轴与胚根六大结构。</p>
+    </div>
+    <div class="level-card corn" onclick="startLevel('corn')">
+      <div class="level-num">关卡 3</div>
+      <div class="level-badge" id="badge-corn">✓</div>
+      <span class="card-icon">🌽</span>
+      <h2>玉米种子解剖</h2>
+      <div class="card-tag tag-monocot">单子叶植物</div>
+      <p>识别果皮与种皮、胚乳、子叶（盾片）、胚芽、胚轴与胚根六大结构。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div id="game-screen">
+  <div id="canvas-container"></div>
+  <div id="top-bar">
+    <button id="back-btn" onclick="goBack()">← 返回</button>
+    <div id="level-title">大红花解剖<span>关卡 1 / 3</span></div>
+    <div class="top-right">
+      <button class="btn-mode active-learn" id="btn-learn" onclick="setMode('learn')">📖 学习</button>
+      <button class="btn-mode" id="btn-quiz" onclick="setMode('quiz')">🎮 闯关</button>
+    </div>
+  </div>
+  <div id="info-panel">
+    <div id="info-title">点击查看</div>
+    <div id="info-desc">请点击 3D 模型的任何部位开始学习。</div>
+  </div>
+  <div id="quiz-panel">
+    <div id="quiz-header"><span>闯关进度</span><span id="quiz-progress">0/5</span></div>
+    <div class="prog-track"><div id="prog-bar" style="width:0%"></div></div>
+    <div id="quiz-inst">点击模型上的结构，再选择正确名称。</div>
+    <div id="quiz-target"></div>
+    <div id="quiz-opts"></div>
+  </div>
+  <div id="view-toggle">
+    <button class="btn-view active" id="view-whole"   onclick="setSeedView('whole')">完整图</button>
+    <button class="btn-view"        id="view-section" onclick="setSeedView('section')">纵向剖面</button>
+  </div>
+  <div id="labels-layer"></div>
+  <div id="hint">拖动旋转 · 滚轮缩放</div>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div id="level-complete" class="modal-bg hidden">
+  <div class="lc-card">
+    <div class="lc-icon" id="lc-icon">🎉</div>
+    <div class="lc-title" id="lc-title">关卡完成！</div>
+    <div class="lc-sub"  id="lc-sub">你已成功识别所有结构。</div>
+    <button class="btn-green" id="lc-next-btn">继续下一关 →</button>
+    <button class="btn-ghost" onclick="goBack()">返回关卡选择</button>
+  </div>
+</div>
+<div id="name-modal" class="modal-bg hidden">
+  <div class="nm-card">
+    <div class="trophy">🏆</div>
+    <div class="nm-title">三关全通！</div>
+    <div class="nm-sub">你已完成大红花、菜豆种子与玉米种子三大解剖挑战<br>请输入姓名，领取专属荣誉证书！</div>
+    <input type="text" id="name-input" placeholder="输入你的姓名">
+    <button class="btn-gold" id="gen-cert-btn">✦ 生成荣誉证书 ✦</button>
+  </div>
+</div>
+<div id="cert-modal" class="modal-bg hidden">
+  <div class="cert-wrap">
+    <canvas id="cert-canvas" width="580" height="960"></canvas>
+    <div class="cert-actions">
+      <button class="btn-dl"  id="dl-cert-btn">💾 保存证书</button>
+      <button class="btn-sec" id="close-cert-btn">🔄 再次挑战</button>
+    </div>
+  </div>
+</div>
+
+<script>
+//峇株吧辖蔡逸众制作
+
+// ══ GLOBAL STATE ══════════════════════════════════════════
+const completed = { flower:false, bean:false, corn:false };
+let currentLevel = null;
+let appMode = 'learn';
+let renderer, camera, controls, scene, animID, tick=0;
+
+// ══ FLOWER DATA ═══════════════════════════════════════════
+let flowerClickables=[], flowerStep=0;
+const FLOWER_SEQ    = ['petals','sepals','receptacle','anthers','stigma'];
+const FLOWER_LABELS = {petals:'花瓣',sepals:'花萼',receptacle:'花托',anthers:'雄蕊（花药）',stigma:'雌蕊柱头'};
+const FLOWER_INFO   = {
+  petals:    '花瓣：大红花（朱槿）花瓣艳丽宽大，共 5 片，深红色，基部连合，主要功能是吸引昆虫和鸟类进行授粉。',
+  sepals:    '花萼：由内层正萼（5片）与外层副萼（8片）组成，质地厚实，绿色，保护未展开的花蕾。',
+  receptacle:'花托：位于花柄顶端，呈上宽下窄短圆锥台形，是着生花萼、花瓣、雄蕊群的基座。',
+  anthers:   '雄蕊：朱槿的花丝联合成一根雄蕊管（单体雄蕊），顶端散生大量花丝，末端黄色球状体即花药，内藏花粉。',
+  stigma:    '柱头：雌蕊顶端，朱槿具 5 枚球状深红色柱头，表面具粘性，用于捕捉花粉完成受精。'
+};
+
+// ══ BEAN DATA ══════════════════════════════════════════════
+//华仁中学蔡逸众制作
+let beanNodes=[], beanSolved=new Set(), beanGroupWhole, beanGroupSection;
+const BEAN_STRUCTS = [
+  {id:'coat',      name:'种皮',   desc:'包裹种子最外层，有一定物理厚度，抵御外界机械伤害与干燥失水。',             pos:new THREE.Vector3(1,1,0.5),       mode:'whole'},
+  {id:'hilum',     name:'种脐',   desc:'种皮上椭圆形疤痕，是种子与母株果荚连接处脱落后留下的痕迹。',             pos:new THREE.Vector3(-0.75,0,0.2),   mode:'whole'},
+  {id:'cotyledon', name:'子叶',   desc:'双子叶植物有两片肥厚的子叶，储存大量淀粉与蛋白质供萌发时使用。',         pos:new THREE.Vector3(0.4,-0.5,0.1),  mode:'section'},
+  {id:'plumule',   name:'胚芽',   desc:'由原始叶与茎顶端分生组织组成，将来发育成植物的茎叶。',                   pos:new THREE.Vector3(-0.55,0.25,0.1),mode:'section'},
+  {id:'hypocotyl', name:'胚轴',   desc:'连接胚芽与胚根的过渡轴，萌发时将子叶顶出地面或留在土中。',             pos:new THREE.Vector3(-0.62,-0.05,0.1),mode:'section'},
+  {id:'radicle',   name:'胚根',   desc:'最先突破种皮、向下生长，发育成植物主根，负责吸收水分与养分。',           pos:new THREE.Vector3(-0.68,-0.35,0.1),mode:'section'},
+];
+
+// ══ CORN DATA ══════════════════════════════════════════════
+let cornNodes=[], cornSolved=new Set(), cornGroupWhole, cornGroupSection, cornRoot;
+const CORN_STRUCTS = [
+  {id:'coat',      name:'果皮与种皮', desc:'两者愈合不可分离，共同保护内部的胚与胚乳，不易剥除。',              pos:new THREE.Vector3(-0.7,1.0,0.1)},
+  {id:'endosperm', name:'胚乳',      desc:'占据种子大部分体积，主要储存淀粉，供种子萌发时使用。单子叶植物胚乳发达。', pos:new THREE.Vector3(-0.2,0.6,0.1)},
+  {id:'cotyledon', name:'子叶（盾片）',desc:'单子叶植物只有一片子叶（称盾片），紧贴胚乳，负责吸收和转运营养给胚。',  pos:new THREE.Vector3(0.2,-0.1,0.1)},
+  {id:'plumule',   name:'胚芽',      desc:'生有幼叶，包裹在胚芽鞘中，将来发育成植物的茎和叶。',                 pos:new THREE.Vector3(0.38,0.15,0.1)},
+  {id:'hypocotyl', name:'胚轴',      desc:'连接胚芽和胚根的核心短轴。',                                       pos:new THREE.Vector3(0.42,-0.2,0.1)},
+  {id:'radicle',   name:'胚根',      desc:'最先突破种皮、尖端向下发育成植物的主根。',                          pos:new THREE.Vector3(0.46,-0.55,0.1)},
+];
+
+// ══ NAVIGATION ════════════════════════════════════════════
+function fade(cb){const f=document.getElementById('fade');f.style.opacity=1;setTimeout(()=>{cb();f.style.opacity=0;},360);}
+
+function startLevel(level){
+  fade(()=>{
+    currentLevel=level;
+    document.getElementById('level-select').style.display='none';
+    document.getElementById('game-screen').style.display='block';
+    initRenderer();
+    if(level==='flower') setupFlower();
+    else if(level==='bean') setupBean();
+    else setupCorn();
+  });
+}
+
+function goBack(){
+  fade(()=>{
+    teardown();
+    document.getElementById('game-screen').style.display='none';
+    document.getElementById('level-select').style.display='flex';
+    ['level-complete','name-modal','cert-modal'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    updateLevelBadges();
+  });
+}
+
+function updateLevelBadges(){
+  document.getElementById('badge-flower').classList.toggle('done',completed.flower);
+  document.getElementById('badge-bean').classList.toggle('done',completed.bean);
+  document.getElementById('badge-corn').classList.toggle('done',completed.corn);
+}
+
+function allDone(){return completed.flower&&completed.bean&&completed.corn;}
+
+// ══ RENDERER ══════════════════════════════════════════════
+function initRenderer(){
+  document.getElementById('canvas-container').innerHTML='';
+  if(renderer){renderer.dispose();renderer=null;}
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('click',onCanvasClick);
+  renderer.domElement.addEventListener('touchstart',onCanvasTouch,{passive:false});
+}
+
+function teardown(){
+  if(animID){cancelAnimationFrame(animID);animID=null;}
+  if(controls){controls.dispose();controls=null;}
+  if(scene){scene.traverse(obj=>{if(obj.geometry)obj.geometry.dispose();if(obj.material){if(Array.isArray(obj.material))obj.material.forEach(m=>m.dispose());else obj.material.dispose();}});scene=null;}
+  document.getElementById('labels-layer').innerHTML='';
+  beanNodes=[];beanSolved=new Set();
+  cornNodes=[];cornSolved=new Set();
+  flowerClickables=[];flowerStep=0;
+  cornRoot=null;cornGroupWhole=null;cornGroupSection=null;
+  beanGroupWhole=null;beanGroupSection=null;
+  tick=0;
+}
+
+function onCanvasClick(e){if(currentLevel==='flower')flowerHandleEvent(e.clientX,e.clientY);}
+function onCanvasTouch(e){e.preventDefault();if(currentLevel==='flower')flowerHandleEvent(e.touches[0].clientX,e.touches[0].clientY);}
+
+// ══ FLOWER LEVEL ══════════════════════════════════════════
+//Made by ecchua79
+
+function setupFlower(){
+  appMode='learn';flowerStep=0;
+  document.getElementById('level-title').innerHTML='大红花解剖<span>关卡 1 / 3</span>';
+  document.getElementById('view-toggle').style.display='none';
+  document.getElementById('labels-layer').innerHTML='';
+  setModeUI('learn');
+  showInfoPanel('大红花解剖实验室','点击 3D 模型的任何部位开始学习。');
+
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x08000a);scene.fog=new THREE.FogExp2(0x08000a,0.022);
+  camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,0.1,1000);camera.position.set(0,15,28);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=0.06;controls.target.set(0,5,0);controls.minDistance=10;controls.maxDistance=55;
+
+  scene.add(new THREE.AmbientLight(0xffe0b0,0.55));
+  const kl=new THREE.DirectionalLight(0xfff0e0,1.4);kl.position.set(8,20,12);kl.castShadow=true;scene.add(kl);
+  const fl=new THREE.DirectionalLight(0xc0d0ff,0.4);fl.position.set(-12,10,-5);scene.add(fl);
+  const rl=new THREE.PointLight(0xff2020,1.8,25);rl.position.set(0,-3,0);scene.add(rl);
+  const gl=new THREE.PointLight(0xffd700,1.0,18);gl.position.set(0,12,0);scene.add(gl);
+  scene._glow=gl;
+
+  const N=220,sp=new Float32Array(N*3);
+  for(let i=0;i<N;i++){sp[i*3]=(Math.random()-.5)*40;sp[i*3+1]=Math.random()*22-2;sp[i*3+2]=(Math.random()-.5)*40;}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffddaa,size:.12,transparent:true,opacity:.55})));
+
+  buildFlower();flowerUpdateQuizUI();animateFlower();
+}
+
+function buildFlower(){
+  function mm(c,o={}){return new THREE.MeshStandardMaterial({color:c,side:THREE.DoubleSide,roughness:.55,metalness:.05,...o});}
+  const mR=mm(0xd62c2c,{roughness:.45}),mP=mm(0xe83535,{roughness:.38,metalness:.06}),mG=mm(0x1a6b32,{roughness:.6}),mGd=mm(0x124a22,{roughness:.65}),mY=mm(0xf5c518,{roughness:.35,metalness:.1}),mS=mm(0x8b1010,{roughness:.4}),mSt=mm(0x1d7a38,{roughness:.7});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,5.5,20),mSt);stem.position.y=-2.45;scene.add(stem);
+  for(let s=0;s<2;s++){const a=s*Math.PI+.4,ls=new THREE.Shape();ls.moveTo(0,0);ls.bezierCurveTo(.8,.4,1.6,1.8,1.0,2.8);ls.bezierCurveTo(.4,2.2,-.2,1.0,0,0);const lm=new THREE.Mesh(new THREE.ShapeGeometry(ls,12),mG),lp=new THREE.Group();lp.position.y=-1.2-s*1.2;lp.rotation.y=a;lm.rotation.x=-.6;lp.add(lm);scene.add(lp);}
+  const rec=new THREE.Mesh(new THREE.CylinderGeometry(.85,.45,1.3,28),mGd);rec.position.y=1.05;rec.userData.id='receptacle';scene.add(rec);flowerClickables.push(rec);
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2,g=new THREE.ConeGeometry(.14,1.1,5);g.translate(0,.55,0);const m=new THREE.Mesh(g,mG),pv=new THREE.Group();pv.position.y=.55;pv.rotation.y=a;m.rotation.x=1.85;pv.add(m);scene.add(pv);}
+  const sh=new THREE.Mesh(new THREE.TorusGeometry(1.3,.7,8,18),new THREE.MeshBasicMaterial({visible:false}));sh.position.y=1.9;sh.rotation.x=Math.PI/2;sh.userData.id='sepals';scene.add(sh);flowerClickables.push(sh);
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2+.15,g=new THREE.ConeGeometry(.52,2.1,5);g.translate(0,1.05,0);const m=new THREE.Mesh(g,mG),pv=new THREE.Group();pv.position.y=1.0;pv.rotation.y=a;m.rotation.x=2.1;pv.add(m);scene.add(pv);m.userData.id='sepals';flowerClickables.push(m);}
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2,s=new THREE.Shape();s.moveTo(0,0);s.bezierCurveTo(2.5,.3,4.8,3.5,4.6,6.8);s.bezierCurveTo(4.4,9.2,.6,10.2,0,10.2);s.bezierCurveTo(-.6,10.2,-4.4,9.2,-4.6,6.8);s.bezierCurveTo(-4.8,3.5,-2.5,.3,0,0);const pt=new THREE.Mesh(new THREE.ShapeGeometry(s,30),mP),pv=new THREE.Group();pv.rotation.y=a;pt.position.set(0,1.5,.5);pt.rotation.x=-1.08;pt.userData.id='petals';pv.add(pt);scene.add(pv);flowerClickables.push(pt);for(let v=0;v<5;v++){const vx=(v-2)*.7,vs=new THREE.Shape();vs.moveTo(vx,.2);vs.bezierCurveTo(vx*.9,3,vx*.7,7,vx*.5,9.5);const vl=new THREE.Line(new THREE.BufferGeometry().setFromPoints(vs.getPoints(20)),new THREE.LineBasicMaterial({color:0xb01a1a,transparent:true,opacity:.4}));vl.position.set(0,1.5,.5);vl.rotation.x=-1.08;pv.add(vl);}}
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.22,.3,9.8,28),mR);tube.position.y=5.9;tube.userData.id='anthers';scene.add(tube);flowerClickables.push(tube);
+  const ah=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,5.5),new THREE.MeshBasicMaterial({visible:false}));ah.position.y=8.5;ah.userData.id='anthers';scene.add(ah);flowerClickables.push(ah);
+  const mFil=new THREE.MeshStandardMaterial({color:0xcc2020,roughness:.45}),mAnt=new THREE.MeshStandardMaterial({color:0xf5c518,roughness:.28,metalness:.15,emissive:0x886600,emissiveIntensity:.4});
+  for(let i=0;i<90;i++){const angle=Math.random()*Math.PI*2,t=.67+Math.random()*.33,eY=1.0+t*(10.8-1.0),tR=.30+t*(.22-.30),fL=.5+Math.random()*.8,uT=.2+Math.random()*.5,pv=new THREE.Group();pv.position.set(0,eY,0);pv.rotation.y=angle;const tG=new THREE.Group();tG.rotation.z=-(Math.PI/2-uT);pv.add(tG);const ba=new THREE.Group();ba.position.x=tR;tG.add(ba);const fg=new THREE.CylinderGeometry(.025,.020,fL,7);fg.translate(0,fL/2,0);const fm=new THREE.Mesh(fg,mFil);fm.userData.id='anthers';ba.add(fm);const am=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),mAnt);am.scale.set(1,1.7,1);am.position.y=fL;am.userData.id='anthers';ba.add(am);flowerClickables.push(fm,am);scene.add(pv);}
+  const sY=10.8,sHit=new THREE.Mesh(new THREE.SphereGeometry(2.0,8,8),new THREE.MeshBasicMaterial({visible:false}));sHit.position.set(0,sY+.5,0);sHit.userData.id='stigma';scene.add(sHit);flowerClickables.push(sHit);
+  const sRod=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,1.2,12),mm(0x8b1010,{roughness:.4}));sRod.position.y=sY-.3;scene.add(sRod);
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2,bg=new THREE.CylinderGeometry(.055,.055,1.4,10);bg.translate(0,.7,0);const br=new THREE.Mesh(bg,mm(0x8b1010,{roughness:.4})),tip=new THREE.Mesh(new THREE.SphereGeometry(.32,14,14),mm(0x8b1010,{roughness:.4}));tip.position.y=1.4;br.add(tip);const pv=new THREE.Group();pv.position.set(0,sY,0);pv.rotation.y=a;br.rotation.x=.9;pv.add(br);scene.add(pv);br.userData.id='stigma';tip.userData.id='stigma';flowerClickables.push(br,tip);}
+}
+
+const fRay=new THREE.Raycaster(),fMouse=new THREE.Vector2();
+function flowerHandleEvent(cx,cy){
+  if(currentLevel!=='flower')return;
+  fMouse.x=(cx/innerWidth)*2-1;fMouse.y=-(cy/innerHeight)*2+1;
+  fRay.setFromCamera(fMouse,camera);
+  const hits=fRay.intersectObjects(flowerClickables,true);if(!hits.length)return;
+  const id=hits[0].object.userData.id;if(!id)return;
+  if(appMode==='learn'){showInfoPanel(FLOWER_LABELS[id],FLOWER_INFO[id]);flowerFlash(id);}
+  else{if(id===FLOWER_SEQ[flowerStep]){flowerFlash(id);flowerStep++;flowerUpdateQuizUI();if(flowerStep>=FLOWER_SEQ.length)setTimeout(()=>showLevelComplete('flower'),500);}}
+}
+function flowerFlash(id){scene.traverse(o=>{if(o.userData.id===id&&o.material&&o.material.emissive){o.material.emissive.setHex(0x993300);setTimeout(()=>o.material.emissive.setHex(0x000000),350);}});}
+function flowerUpdateQuizUI(){
+  const pct=(flowerStep/FLOWER_SEQ.length)*100;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('quiz-progress').innerText=flowerStep+'/'+FLOWER_SEQ.length;
+  if(flowerStep<FLOWER_SEQ.length){document.getElementById('quiz-target').style.display='block';document.getElementById('quiz-target').innerText='寻找：'+FLOWER_LABELS[FLOWER_SEQ[flowerStep]];document.getElementById('quiz-inst').innerText='请点击模型中的【'+FLOWER_LABELS[FLOWER_SEQ[flowerStep]]+'】';}
+}
+function animateFlower(){animID=requestAnimationFrame(animateFlower);tick+=.006;TWEEN.update();controls.update();scene.rotation.y=Math.sin(tick*.3)*.04;if(scene._glow)scene._glow.intensity=.8+Math.sin(tick*1.2)*.3;renderer.render(scene,camera);}
+
+// ══ BEAN LEVEL ════════════════════════════════════════════
+//峇株吧辖华仁中学蔡逸众制作
+
+function setupBean(){
+  appMode='learn';beanSolved=new Set();beanNodes=[];
+  document.getElementById('level-title').innerHTML='菜豆种子解剖<span>关卡 2 / 3 · 双子叶植物</span>';
+  document.getElementById('view-toggle').style.display='flex';
+  document.getElementById('view-whole').classList.add('active');document.getElementById('view-section').classList.remove('active');
+  setModeUI('learn');showInfoPanel('菜豆种子解剖实验室（双子叶植物）','点击模型上的标记点开始学习。子叶共 2 片。');
+
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x060d1a);scene.fog=new THREE.FogExp2(0x060d1a,.035);
+  camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.1,100);camera.position.set(0,0,9);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=4;controls.maxDistance=18;
+
+  scene.add(new THREE.AmbientLight(0xd0e8ff,.7));
+  const kl=new THREE.DirectionalLight(0xfff5e0,1.3);kl.position.set(6,10,8);kl.castShadow=true;scene.add(kl);
+  const fl=new THREE.DirectionalLight(0xc0d8ff,.4);fl.position.set(-8,4,-4);scene.add(fl);
+  const rl=new THREE.PointLight(0x38bdf8,.7,20);rl.position.set(-3,-5,5);scene.add(rl);scene._bRim=rl;
+
+  const N=180,pos=new Float32Array(N*3);for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*30;pos[i*3+1]=(Math.random()-.5)*30;pos[i*3+2]=(Math.random()-.5)*30;}
+  const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(bg,new THREE.PointsMaterial({color:0x38bdf8,size:.06,transparent:true,opacity:.4})));
+
+  buildBean();initBeanNodes();beanUpdateQuizUI();animateBean();
+}
+
+function bm(c,r=.65,m=0,o={}){return new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m,...o});}
+function beanShape(g,sx=1.3,sy=1.8,sz=.8){const p=g.attributes.position;for(let i=0;i<p.count;i++){let x=p.getX(i)*sx,y=p.getY(i)*sy,z=p.getZ(i)*sz,ind=Math.exp(-(y*y)/1.5)*.5;if(x<0)x+=ind;p.setXYZ(i,x,y,z);}g.computeVertexNormals();return g;}
+
+function buildBean(){
+  beanGroupWhole=new THREE.Group();
+  const go=beanShape(new THREE.SphereGeometry(1,64,64));beanGroupWhole.add(new THREE.Mesh(go,bm(0x7c2d12,.70)));
+  const mH=new THREE.Mesh(new THREE.SphereGeometry(.18,24,12),bm(0xd6d3d1,.85));mH.scale.set(.8,2.5,.5);mH.position.set(-.7,0,0);beanGroupWhole.add(mH);scene.add(beanGroupWhole);
+
+  beanGroupSection=new THREE.Group();
+  const cg=beanShape(new THREE.SphereGeometry(1.02,64,64,Math.PI,Math.PI),1.31,1.81,.81);beanGroupSection.add(new THREE.Mesh(cg,bm(0x7c2d12,.70)));
+  const tg=beanShape(new THREE.RingGeometry(.97,1.02,64),1.31,1.81,1);const tm=new THREE.Mesh(tg,bm(0x451a03,.80,0,{side:THREE.DoubleSide}));tm.position.x=0;beanGroupSection.add(tm);
+  const ig=beanShape(new THREE.CircleGeometry(.96,64),1.27,1.77,1);const im=new THREE.Mesh(ig,bm(0xfde68a,.75));im.position.x=.012;beanGroupSection.add(im);
+
+  const emb=new THREE.Group();emb.position.set(-.55,0,.1);
+  const hm=new THREE.Mesh(new THREE.CylinderGeometry(.06,.05,.22,16),bm(0xffedd5,.65));hm.position.y=-.04;emb.add(hm);
+  const js=new THREE.Mesh(new THREE.SphereGeometry(.065,16,16),bm(0xffedd5,.65));js.position.y=.07;emb.add(js);
+  const pg=new THREE.Group();pg.position.y=.05;const lg=new THREE.SphereGeometry(.1,16,16);
+  const lL=new THREE.Mesh(lg,bm(0x4ade80,.40,.05));lL.scale.set(.3,1.2,.7);lL.position.set(-.04,.08,0);lL.rotation.z=.3;pg.add(lL);
+  const lR=new THREE.Mesh(lg,bm(0x4ade80,.40,.05));lR.scale.set(.3,1.1,.6);lR.position.set(.04,.06,0);lR.rotation.z=-.3;pg.add(lR);emb.add(pg);
+  const rg=new THREE.Group();rg.position.y=-.15;
+  const rm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.02,.25,16),bm(0xe5e7eb,.50));rm.position.y=-.125;rg.add(rm);
+  const rt=new THREE.Mesh(new THREE.SphereGeometry(.02,16,16),bm(0xe5e7eb,.50));rt.position.y=-.25;rg.add(rt);emb.add(rg);
+  beanGroupSection.add(emb);beanGroupSection.visible=false;scene.add(beanGroupSection);
+}
+
+function initBeanNodes(){
+  const layer=document.getElementById('labels-layer');layer.innerHTML='';beanNodes=[];
+  BEAN_STRUCTS.forEach(s=>{
+    const div=document.createElement('div');div.className='label-node';if(appMode==='quiz')div.classList.add('quiz-hide');
+    const txt=document.createElement('div');txt.className='label-text';txt.innerText=s.name;div.appendChild(txt);
+    div.onclick=e=>{e.stopPropagation();beanHandleNodeClick(s);};
+    document.getElementById('labels-layer').appendChild(div);beanNodes.push({el:div,txt,data:s});
+  });
+}
+
+function beanHandleNodeClick(s){
+  if(appMode==='learn'){beanNodes.forEach(n=>n.txt.classList.remove('always'));const me=beanNodes.find(n=>n.data.id===s.id);if(me)me.txt.classList.add('always');showInfoPanel(s.name,s.desc);}
+  else{if(beanSolved.has(s.id))return;showSeedOptions(s,beanSolved,beanNodes,BEAN_STRUCTS,'bean');}
+}
+function beanUpdateQuizUI(){
+  document.getElementById('prog-bar').style.width=(beanSolved.size/BEAN_STRUCTS.length*100)+'%';
+  document.getElementById('quiz-progress').innerText=beanSolved.size+'/'+BEAN_STRUCTS.length;
+}
+function animateBean(){animID=requestAnimationFrame(animateBean);tick+=.005;controls.update();if(scene._bRim)scene._bRim.intensity=.55+Math.sin(tick*1.5)*.18;
+  beanNodes.forEach(node=>{const tg=node.data.mode==='whole'?beanGroupWhole:beanGroupSection;if(!tg||!tg.visible){node.el.style.display='none';return;}const v=node.data.pos.clone();v.project(camera);if(v.z>-1&&v.z<1){node.el.style.display='flex';node.el.style.left=((v.x*.5+.5)*innerWidth)+'px';node.el.style.top=((-v.y*.5+.5)*innerHeight)+'px';}else node.el.style.display='none';});
+  renderer.render(scene,camera);}
+
+function setSeedView(v){
+  // works for both bean and corn
+  if(currentLevel==='bean'){beanGroupWhole.visible=(v==='whole');beanGroupSection.visible=(v==='section');}
+  else if(currentLevel==='corn'){cornGroupWhole.visible=(v==='whole');cornGroupSection.visible=(v==='section');}
+  document.getElementById('view-whole').classList.toggle('active',v==='whole');
+  document.getElementById('view-section').classList.toggle('active',v==='section');
+}
+
+// ══ CORN LEVEL ════════════════════════════════════════════
+//华仁中学蔡逸众制作
+
+function setupCorn(){
+  appMode='learn';cornSolved=new Set();cornNodes=[];
+  document.getElementById('level-title').innerHTML='玉米种子解剖<span>关卡 3 / 3 · 单子叶植物</span>';
+  document.getElementById('view-toggle').style.display='flex';
+  document.getElementById('view-whole').classList.remove('active');document.getElementById('view-section').classList.add('active');
+  setModeUI('learn');showInfoPanel('玉米种子解剖实验室（单子叶植物）','点击标记点开始学习。只有 1 片子叶（盾片）。');
+
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x0d0a00);scene.fog=new THREE.FogExp2(0x0d0a00,.04);
+  camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.1,100);camera.position.set(0,0,8);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=4;controls.maxDistance=16;
+
+  scene.add(new THREE.AmbientLight(0xfff8e0,.8));
+  const kl=new THREE.DirectionalLight(0xffffff,.6);kl.position.set(5,8,5);kl.castShadow=true;scene.add(kl);
+  const rl=new THREE.PointLight(0xf59e0b,.6,15);rl.position.set(-3,-4,4);scene.add(rl);scene._cRim=rl;
+
+  const N=160,pos=new Float32Array(N*3);for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*25;pos[i*3+1]=(Math.random()-.5)*25;pos[i*3+2]=(Math.random()-.5)*25;}
+  const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(bg,new THREE.PointsMaterial({color:0xf59e0b,size:.05,transparent:true,opacity:.35})));
+
+  buildCorn();initCornNodes();cornUpdateQuizUI();animateCorn();
+}
+
+function applyCornShape(geo){
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);y*=1.4;let ws=1.0+(y*.15);x*=ws*.95;z*=.4;if(y>1.0)y-=.08*Math.cos(x*1.5);if(y<-.5){x*=(1.0+y*.2);z*=(1.0+y*.1);}p.setXYZ(i,x,y,z);}
+  geo.computeVertexNormals();return geo;
+}
+
+function buildCorn(){
+  const mP=new THREE.MeshStandardMaterial({color:0xf59e0b,roughness:.4,metalness:.1});
+  const mE=new THREE.MeshStandardMaterial({color:0xfef08a,roughness:.9});
+  const mC=new THREE.MeshStandardMaterial({color:0xfde047,roughness:.6});
+  const mPl=new THREE.MeshStandardMaterial({color:0xbbf7d0,roughness:.5});
+  const mH=new THREE.MeshStandardMaterial({color:0xfef9c3,roughness:.7});
+  const mR=new THREE.MeshStandardMaterial({color:0xf3f4f6,roughness:.6});
+  const mSh=new THREE.MeshStandardMaterial({color:0xfef9c3,opacity:.6,transparent:true});
+
+  cornRoot=new THREE.Group();scene.add(cornRoot);
+
+  // whole
+  cornGroupWhole=new THREE.Group();
+  const go=new THREE.SphereGeometry(1,64,64);applyCornShape(go);cornGroupWhole.add(new THREE.Mesh(go,mP));
+  const sg=new THREE.SphereGeometry(.5,32,32);const ps=sg.attributes.position;
+  for(let i=0;i<ps.count;i++){let x=ps.getX(i),y=ps.getY(i),z=ps.getZ(i);x*=.8;y*=1.4;z*=.1;ps.setXYZ(i,x,y,z);}sg.computeVertexNormals();
+  const esm=new THREE.Mesh(sg,mSh);esm.position.set(0,-.28,.38);esm.rotation.x=.1;cornGroupWhole.add(esm);
+  cornRoot.add(cornGroupWhole);
+
+  // section
+  cornGroupSection=new THREE.Group();
+  const cg=new THREE.SphereGeometry(1.01,64,64,Math.PI,Math.PI);applyCornShape(cg);
+  const eg=new THREE.CircleGeometry(.99,64);applyCornShape(eg);
+  cornGroupSection.add(new THREE.Mesh(cg,mP));cornGroupSection.add(new THREE.Mesh(eg,mE));
+
+  const embG=new THREE.Group();embG.position.set(.42,-.2,.02);
+  const cotyG=new THREE.SphereGeometry(.35,32,32);const pc=cotyG.attributes.position;
+  for(let i=0;i<pc.count;i++){let x=pc.getX(i),y=pc.getY(i),z=pc.getZ(i);x*=.6;y*=3.0;z*=.1;if(y>0)x+=y*y*.2;if(y<0)x-=y*y*.1;pc.setXYZ(i,x,y,z);}cotyG.computeVertexNormals();
+  const cotyM=new THREE.Mesh(cotyG,mC);cotyM.position.set(-.15,.1,0);
+  const hypM=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.12,32),mH);
+  const jT=new THREE.Mesh(new THREE.SphereGeometry(.065,16,16),mH);jT.position.set(0,.06,0);
+  const jB=new THREE.Mesh(new THREE.SphereGeometry(.065,16,16),mH);jB.position.set(0,-.06,0);
+  const plG=new THREE.ConeGeometry(.08,.3,32);plG.translate(0,.15,0);
+  const plM=new THREE.Mesh(plG,mPl);plM.position.set(0,.06,0);plM.rotation.z=.1;
+  const rLen=.5,rG=new THREE.ConeGeometry(.075,rLen,32);rG.rotateX(Math.PI);rG.translate(0,-rLen/2,0);
+  const rM=new THREE.Mesh(rG,mR);rM.position.set(0,-.06,0);rM.rotation.z=-.05;
+  embG.add(cotyM,hypM,jT,jB,plM,rM);
+  cornGroupSection.add(embG);cornGroupSection.visible=true;cornRoot.add(cornGroupSection);
+  cornGroupWhole.visible=false;
+}
+
+function initCornNodes(){
+  document.getElementById('labels-layer').innerHTML='';cornNodes=[];
+  CORN_STRUCTS.forEach(s=>{
+    const div=document.createElement('div');div.className='label-node corn-node';if(appMode==='quiz')div.classList.add('quiz-hide');
+    const txt=document.createElement('div');txt.className='label-text corn-label';txt.innerText=s.name;div.appendChild(txt);
+    div.onclick=e=>{e.stopPropagation();cornHandleNodeClick(s);};
+    document.getElementById('labels-layer').appendChild(div);cornNodes.push({el:div,txt,data:s});
+  });
+}
+
+function cornHandleNodeClick(s){
+  if(appMode==='learn'){cornNodes.forEach(n=>n.txt.classList.remove('always'));const me=cornNodes.find(n=>n.data.id===s.id);if(me)me.txt.classList.add('always');showInfoPanel(s.name,s.desc);}
+  else{if(cornSolved.has(s.id))return;showSeedOptions(s,cornSolved,cornNodes,CORN_STRUCTS,'corn');}
+}
+function cornUpdateQuizUI(){
+  document.getElementById('prog-bar').style.width=(cornSolved.size/CORN_STRUCTS.length*100)+'%';
+  document.getElementById('quiz-progress').innerText=cornSolved.size+'/'+CORN_STRUCTS.length;
+}
+function animateCorn(){animID=requestAnimationFrame(animateCorn);tick+=.005;controls.update();if(scene._cRim)scene._cRim.intensity=.45+Math.sin(tick*1.2)*.2;
+  cornNodes.forEach(node=>{if(!cornGroupSection.visible){node.el.style.display='none';return;}const v=node.data.pos.clone().applyMatrix4(cornRoot.matrixWorld);v.project(camera);if(v.z>-1&&v.z<1){node.el.style.display='flex';node.el.style.left=((v.x*.5+.5)*innerWidth)+'px';node.el.style.top=((-v.y*.5+.5)*innerHeight)+'px';}else node.el.style.display='none';});
+  renderer.render(scene,camera);}
+
+// ══ SHARED OPTIONS (seed levels) ══════════════════════════
+//Made by ecchua79
+
+function showSeedOptions(target,solvedSet,nodeList,structs,levelKey){
+  const box=document.getElementById('quiz-opts');box.innerHTML='';box.style.display='flex';
+  [...structs].sort(()=>Math.random()-.5).forEach(opt=>{
+    const b=document.createElement('button');b.className='opt-btn';b.innerText=opt.name;
+    b.onclick=e=>{e.stopPropagation();
+      if(opt.id===target.id){
+        b.classList.add('correct');solvedSet.add(target.id);
+        const node=nodeList.find(n=>n.data.id===target.id);
+        if(node){node.el.classList.add('solved','correct-pulse');node.el.classList.remove('quiz-hide');node.txt.classList.add('always');}
+        if(levelKey==='bean')beanUpdateQuizUI();else cornUpdateQuizUI();
+        setTimeout(()=>{box.style.display='none';box.innerHTML='';},600);
+        if(solvedSet.size===structs.length)setTimeout(()=>showLevelComplete(levelKey),900);
+      }else{b.classList.add('wrong');setTimeout(()=>b.classList.remove('wrong'),450);}
+    };box.appendChild(b);
+  });
+}
+
+// ══ SHARED UI HELPERS ═════════════════════════════════════
+function setMode(m){
+  appMode=m;setModeUI(m);
+  document.getElementById('quiz-opts').style.display='none';document.getElementById('quiz-opts').innerHTML='';
+  if(m==='learn'){
+    document.getElementById('quiz-panel').style.display='none';document.getElementById('info-panel').style.display='block';
+    if(currentLevel==='flower'){flowerStep=0;flowerUpdateQuizUI();showInfoPanel('大红花解剖实验室','点击 3D 模型的任何部位开始学习。');}
+    else if(currentLevel==='bean'){beanSolved=new Set();beanNodes.forEach(n=>{n.el.classList.remove('solved','correct-pulse','quiz-hide');n.txt.classList.remove('always');});beanUpdateQuizUI();showInfoPanel('菜豆种子解剖实验室（双子叶植物）','点击标记点开始学习。子叶共 2 片。');}
+    else{cornSolved=new Set();cornNodes.forEach(n=>{n.el.classList.remove('solved','correct-pulse','quiz-hide');n.txt.classList.remove('always');});cornUpdateQuizUI();showInfoPanel('玉米种子解剖实验室（单子叶植物）','点击标记点开始学习。只有 1 片子叶（盾片）。');}
+  }else{
+    document.getElementById('info-panel').style.display='none';document.getElementById('quiz-panel').style.display='block';
+    if(currentLevel==='flower'){flowerStep=0;flowerUpdateQuizUI();document.getElementById('quiz-progress').innerText='0/'+FLOWER_SEQ.length;}
+    else if(currentLevel==='bean'){beanSolved=new Set();beanNodes.forEach(n=>{n.el.classList.remove('solved','correct-pulse');n.el.classList.add('quiz-hide');n.txt.classList.remove('always');});beanUpdateQuizUI();document.getElementById('quiz-target').style.display='none';document.getElementById('quiz-inst').innerText='点击标记点，选择正确名称。';}
+    else{cornSolved=new Set();cornNodes.forEach(n=>{n.el.classList.remove('solved','correct-pulse');n.el.classList.add('quiz-hide');n.txt.classList.remove('always');});cornUpdateQuizUI();document.getElementById('quiz-target').style.display='none';document.getElementById('quiz-inst').innerText='点击标记点，选择正确名称。';}
+  }
+}
+function setModeUI(m){document.getElementById('btn-learn').className='btn-mode '+(m==='learn'?'active-learn':'');document.getElementById('btn-quiz').className='btn-mode '+(m==='quiz'?'active-quiz':'');}
+function showInfoPanel(t,d){document.getElementById('info-title').innerText=t;document.getElementById('info-desc').innerText=d;document.getElementById('info-panel').style.display='block';}
+
+// ══ LEVEL COMPLETE ════════════════════════════════════════
+//峇株吧辖蔡逸众制作
+
+function showLevelComplete(level){
+  completed[level]=true;updateLevelBadges();
+  const icons={flower:'🌺',bean:'🫘',corn:'🌽'};
+  const titles={flower:'大红花关卡完成！',bean:'菜豆种子关卡完成！',corn:'玉米种子关卡完成！'};
+  const subs={
+    flower:'成功识别花瓣、花萼、花托、雄蕊（花药）与雌蕊柱头！',
+    bean:  '成功识别种皮、种脐、子叶（双子叶）、胚芽、胚轴与胚根！',
+    corn:  '成功识别果皮与种皮、胚乳、子叶盾片（单子叶）、胚芽、胚轴与胚根！'
+  };
+  document.getElementById('lc-icon').innerText=icons[level];
+  document.getElementById('lc-title').innerText=titles[level];
+  document.getElementById('lc-sub').innerText=subs[level];
+  const nextBtn=document.getElementById('lc-next-btn');
+  if(allDone()){nextBtn.innerText='🏆 领取三关荣誉证书';nextBtn.onclick=()=>{document.getElementById('level-complete').classList.add('hidden');document.getElementById('name-modal').classList.remove('hidden');};}
+  else if(level==='flower'){nextBtn.innerText='前往关卡 2：菜豆种子 →';nextBtn.onclick=()=>{document.getElementById('level-complete').classList.add('hidden');fade(()=>{teardown();startLevel('bean');});};}
+  else if(level==='bean'){nextBtn.innerText='前往关卡 3：玉米种子 →';nextBtn.onclick=()=>{document.getElementById('level-complete').classList.add('hidden');fade(()=>{teardown();startLevel('corn');});};}
+  else{nextBtn.innerText='返回关卡选择';nextBtn.onclick=()=>{document.getElementById('level-complete').classList.add('hidden');goBack();};}
+  document.getElementById('level-complete').classList.remove('hidden');
+}
+
+document.getElementById('gen-cert-btn').onclick=()=>{const name=document.getElementById('name-input').value.trim()||'小小科学家';document.getElementById('name-modal').classList.add('hidden');document.getElementById('cert-modal').classList.remove('hidden');drawCert(name);};
+document.getElementById('dl-cert-btn').onclick=()=>{const a=document.createElement('a');a.download='生物解剖荣誉证书.png';a.href=document.getElementById('cert-canvas').toDataURL('image/png');a.click();};
+document.getElementById('close-cert-btn').onclick=()=>{document.getElementById('cert-modal').classList.add('hidden');completed.flower=false;completed.bean=false;completed.corn=false;updateLevelBadges();goBack();};
+
+// ══ CERTIFICATE ═══════════════════════════════════════════
+//华仁中学蔡逸众制作
+
+function drawCert(name){
+  const canvas=document.getElementById('cert-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=580,H=960;canvas.width=W;canvas.height=H;
+
+  // bg
+  const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#08030f');bg.addColorStop(.5,'#0a0818');bg.addColorStop(1,'#050210');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // glow blobs
+  ctx.save();ctx.globalAlpha=.07;
+  [[W*.3,H*.22,200,'#c0392b'],[W*.7,H*.55,170,'#1a6b32'],[W*.5,H*.78,160,'#f59e0b'],[W*.5,H*.45,250,'#d4a017']].forEach(([cx,cy,r,c])=>{const g=ctx.createRadialGradient(cx,cy,r*.2,cx,cy,r);g.addColorStop(0,c);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();});
+  ctx.restore();
+
+  function rRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+  // border
+  ctx.save();const brd=ctx.createLinearGradient(0,0,W,H);brd.addColorStop(0,'#d4a017');brd.addColorStop(.5,'#f5d060');brd.addColorStop(1,'#b8860b');
+  ctx.strokeStyle=brd;ctx.lineWidth=5;rRect(14,14,W-28,H-28,14);ctx.stroke();
+  ctx.strokeStyle='rgba(212,160,23,.3)';ctx.lineWidth=1.5;rRect(26,26,W-52,H-52,9);ctx.stroke();ctx.restore();
+
+  // corners
+  ctx.save();ctx.strokeStyle='rgba(212,160,23,.5)';ctx.lineWidth=1.5;
+  [[42,42,0],[W-42,42,Math.PI/2],[W-42,H-42,Math.PI],[42,H-42,-Math.PI/2]].forEach(([cx,cy,rot])=>{ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(0,0);ctx.lineTo(18,0);ctx.stroke();ctx.fillStyle='rgba(212,160,23,.7)';ctx.beginPath();ctx.moveTo(0,-5);ctx.lineTo(5,0);ctx.lineTo(0,5);ctx.lineTo(-5,0);ctx.closePath();ctx.fill();ctx.restore();});
+  ctx.restore();
+
+  // school
+  ctx.save();ctx.textAlign='center';ctx.font='400 12px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(212,160,23,.5)';ctx.fillText('峇株吧辖华仁中学  ·  生物科学教育',W/2,66);ctx.restore();
+
+  // 3 icons
+  ctx.save();ctx.font='30px serif';ctx.textAlign='center';ctx.fillText('🌺',W/2-44,106);ctx.fillText('🫘',W/2,106);ctx.fillText('🌽',W/2+44,106);ctx.restore();
+
+  // title
+  ctx.save();ctx.textAlign='center';ctx.shadowColor='rgba(212,160,23,.6)';ctx.shadowBlur=20;ctx.font='bold 25px "Noto Serif SC",serif';
+  const tg=ctx.createLinearGradient(W/2-110,0,W/2+110,0);tg.addColorStop(0,'#c8960a');tg.addColorStop(.4,'#f5d060');tg.addColorStop(1,'#c8960a');ctx.fillStyle=tg;ctx.fillText('生物解剖三关荣誉证书',W/2,142);ctx.restore();
+
+  function divider(y){ctx.save();ctx.strokeStyle='rgba(212,160,23,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W/2-170,y);ctx.lineTo(W/2-10,y);ctx.stroke();ctx.beginPath();ctx.moveTo(W/2+10,y);ctx.lineTo(W/2+170,y);ctx.stroke();ctx.fillStyle='rgba(212,160,23,.75)';ctx.beginPath();ctx.moveTo(W/2,y-5);ctx.lineTo(W/2+5,y);ctx.lineTo(W/2,y+5);ctx.lineTo(W/2-5,y);ctx.closePath();ctx.fill();ctx.restore();}
+  divider(158);
+
+  // 特此证明
+  ctx.save();ctx.textAlign='center';ctx.font='300 13px "Noto Serif SC",serif';ctx.fillStyle='rgba(255,255,255,.42)';ctx.fillText('特此证明，同学',W/2,194);ctx.restore();
+
+  // name
+  ctx.save();ctx.textAlign='center';ctx.shadowColor='rgba(240,192,64,.7)';ctx.shadowBlur=18;ctx.font='bold 44px "Noto Serif SC",serif';
+  const ng=ctx.createLinearGradient(W/2-110,0,W/2+110,0);ng.addColorStop(0,'#e8c060');ng.addColorStop(.5,'#fff8e0');ng.addColorStop(1,'#e8c060');ctx.fillStyle=ng;ctx.fillText(name,W/2,256);ctx.restore();
+  ctx.save();ctx.strokeStyle='rgba(212,160,23,.4)';ctx.lineWidth=1;const nw=Math.min(ctx.measureText(name).width*.55+80,W-120);ctx.beginPath();ctx.moveTo(W/2-nw/2,268);ctx.lineTo(W/2+nw/2,268);ctx.stroke();ctx.restore();
+
+  // body
+  ctx.save();ctx.textAlign='center';ctx.font='400 14px "Noto Serif SC",serif';ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillText('已成功完成以下三项生物解剖闯关挑战',W/2,304);ctx.restore();
+
+  // 3 blocks
+  //Made by ecchua79
+  const blocks=[
+    {icon:'🌺',title:'大红花解剖',items:['花瓣','花萼','花托','雄蕊（花药）','雌蕊柱头'],color:'rgba(232,53,53,'},
+    {icon:'🫘',title:'菜豆种子（双子叶）',items:['种皮','种脐','子叶（2片）','胚芽','胚轴','胚根'],color:'rgba(56,189,248,',tag:'双子叶'},
+    {icon:'🌽',title:'玉米种子（单子叶）',items:['果皮与种皮','胚乳','子叶盾片（1片）','胚芽','胚轴','胚根'],color:'rgba(245,158,11,',tag:'单子叶'},
+  ];
+  const bW=155,bGap=10,bSX=W/2-(bW*3+bGap*2)/2,bSY=325;
+  ctx.save();
+  blocks.forEach((blk,bi)=>{
+    const bx=bSX+bi*(bW+bGap),by=bSY,bH=140;
+    const bbg=ctx.createLinearGradient(bx,by,bx,by+bH);bbg.addColorStop(0,blk.color+'.14)');bbg.addColorStop(1,blk.color+'.04)');
+    ctx.fillStyle=bbg;rRect(bx,by,bW,bH,9);ctx.fill();
+    ctx.strokeStyle=blk.color+'.35)';ctx.lineWidth=1;rRect(bx,by,bW,bH,9);ctx.stroke();
+    ctx.font='15px serif';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText(blk.icon,bx+9,by+21);
+    ctx.font='bold 10px "Noto Serif SC",serif';ctx.fillStyle=blk.color+'0.9)';ctx.fillText(blk.title,bx+9,by+36);
+    ctx.font='10px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,.5)';
+    blk.items.forEach((item,ii)=>ctx.fillText('✓ '+item,bx+9,by+52+ii*13));
+  });
+  ctx.restore();
+
+  divider(482);
+
+  // badge 2x2 — larger boxes, bigger text, centred
+  const badges=[{icon:'🌺',label:'花卉达人'},{icon:'🌱',label:'植物达人'},{icon:'🌽',label:'农学先锋'},{icon:'🏅',label:'三关全通'}];
+  const bdW=118,bdH=62,bdGap=12,bdCols=2;
+  const bdTotalW=bdCols*bdW+(bdCols-1)*bdGap;
+  const bdSX=W/2-bdTotalW/2, bdSY=500;
+  ctx.save();
+  badges.forEach((b,i)=>{
+    const bx=bdSX+(i%bdCols)*(bdW+bdGap);
+    const by=bdSY+Math.floor(i/bdCols)*(bdH+10);
+    const bbg=ctx.createLinearGradient(bx,by,bx,by+bdH);
+    bbg.addColorStop(0,'rgba(212,160,23,.22)');bbg.addColorStop(1,'rgba(212,160,23,.07)');
+    ctx.fillStyle=bbg;rRect(bx,by,bdW,bdH,10);ctx.fill();
+    ctx.strokeStyle='rgba(212,160,23,.45)';ctx.lineWidth=1.5;rRect(bx,by,bdW,bdH,10);ctx.stroke();
+    ctx.font='26px serif';ctx.textAlign='left';ctx.fillStyle='#fff';
+    ctx.fillText(b.icon,bx+12,by+38);
+    ctx.font='bold 14px "Noto Sans SC",sans-serif';
+    ctx.fillStyle='rgba(212,160,23,.95)';
+    ctx.fillText(b.label,bx+46,by+38);
+  });
+  ctx.restore();
+
+  divider(648);
+
+  // comparison note
+  ctx.save();ctx.textAlign='center';
+  ctx.font='bold 11px "Noto Serif SC",serif';ctx.fillStyle='rgba(255,255,255,.45)';
+  ctx.fillText('双子叶：子叶 2 片，无胚乳（营养储存于子叶）',W/2,668);
+  ctx.fillText('单子叶：子叶 1 片（盾片），胚乳发达',W/2,686);
+  ctx.restore();
+
+  divider(702);
+
+  // award
+  ctx.save();ctx.textAlign='center';ctx.shadowColor='rgba(212,160,23,.55)';ctx.shadowBlur=10;ctx.font='bold 15px "Noto Serif SC",serif';
+  const ag=ctx.createLinearGradient(W/2-110,0,W/2+110,0);ag.addColorStop(0,'#d4a017');ag.addColorStop(.5,'#ffe87a');ag.addColorStop(1,'#d4a017');ctx.fillStyle=ag;ctx.fillText('✦  生物科学三冠解剖先锋  ✦',W/2,732);ctx.restore();
+
+  // date
+  ctx.save();ctx.textAlign='center';ctx.font='300 10px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(255,255,255,.22)';const d=new Date();ctx.fillText(`认证日期：${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`,W/2,758);ctx.restore();
+
+  // bottom deco
+  ctx.save();ctx.globalAlpha=.08;ctx.fillStyle='#e83535';for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2-Math.PI/2;ctx.beginPath();ctx.ellipse(W*.25+Math.cos(a)*14,H-54+Math.sin(a)*10,13,7,a+Math.PI/2,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#7c2d12';ctx.beginPath();ctx.ellipse(W*.5,H-54,16,11,.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f59e0b';ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2;ctx.ellipse(W*.75+Math.cos(a)*14,H-54+Math.sin(a)*8,6,4,a,0,Math.PI*2);}ctx.fill();
+  ctx.restore();
+
+  // seal
+  ctx.save();ctx.strokeStyle='rgba(212,160,23,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(W-56,H-56,34,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(212,160,23,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W-56,H-56,28,0,Math.PI*2);ctx.stroke();ctx.font='bold 9px "Noto Serif SC",serif';ctx.fillStyle='rgba(212,160,23,.72)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('三关认证',W-56,H-58);ctx.font='7px "Noto Sans SC",sans-serif';ctx.fillStyle='rgba(212,160,23,.42)';ctx.fillText('CERTIFIED',W-56,H-47);ctx.restore();
+}
+
+window.addEventListener('resize',()=>{if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
