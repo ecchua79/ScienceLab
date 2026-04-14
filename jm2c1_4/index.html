@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>化学元素连连看 · 峇株吧辖华仁中学</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0e1a}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#e2e8f0;-webkit-tap-highlight-color:transparent}
+button,input{font-family:inherit}
+#root{min-height:100vh}
+@keyframes particleFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@keyframes tileDisappear{0%{transform:scale(1);opacity:1;filter:brightness(1)}50%{transform:scale(1.3);opacity:.8;filter:brightness(2.5)}100%{transform:scale(0);opacity:0}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 8px #00f5ff55,0 0 20px #00f5ff22}50%{box-shadow:0 0 16px #00f5ffaa,0 0 40px #00f5ff44}}
+@keyframes swapPulse{0%,100%{box-shadow:0 0 8px #a855f755}50%{box-shadow:0 0 16px #a855f7cc,0 0 36px #a855f744}}
+@keyframes hintPulse{0%,100%{box-shadow:0 0 0 2px #fbbf24aa}50%{box-shadow:0 0 0 5px #fbbf24ff,0 0 18px #fbbf2466}}
+@keyframes fadeZoom{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes starPop{from{opacity:0;transform:scale(0) rotate(-30deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:.7}50%{opacity:1}}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes rotateSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.td{animation:tileDisappear .25s ease-in forwards!important}
+.ts{animation:glowPulse 1s ease-in-out infinite!important}
+.th{animation:hintPulse .8s ease-in-out infinite!important}
+.tw{animation:swapPulse .8s ease-in-out infinite!important}
+.tile-btn{transition:transform .12s;cursor:pointer}
+.tile-btn:hover{transform:scale(1.06)}
+/* canvas sits outside overflow:hidden board container */
+#line-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<canvas id="line-canvas"></canvas>
+
+<script type="text/babel">
+//峇株吧辖华仁中学蔡逸众制作
+const {useState,useEffect,useCallback,useRef}=React;
+
+/* ── Icons ─────────────────────────────────────────────────────────────────── */
+const Ic=({d,size=16})=>(
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {(Array.isArray(d)?d:[d]).map((p,i)=><path key={i} d={p}/>)}
+  </svg>
+);
+const IcRotate=({s=16})=><Ic size={s} d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>;
+const IcShuffle=({s=16})=><Ic size={s} d={["M16 3h5v5","M4 20 21 3","M21 16v5h-5","M15 15l6 6","M4 4l5 5"]}/>;
+const IcBulb=({s=16})=><Ic size={s} d={["M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5","M9 18h6","M10 22h4"]}/>;
+const IcSwap=({s=16})=><Ic size={s} d={["M8 3 4 7l4 4","M4 7h16","M16 21l4-4-4-4","M20 17H4"]}/>;
+const IcTrophy=({s=16})=><Ic size={s} d={["M6 9H4.5a2.5 2.5 0 0 1 0-5H6","M18 9h1.5a2.5 2.5 0 0 0 0-5H18","M4 22h16","M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 19.75 7 21.37 7 22","M14 14.66V17c0 .55.47.98.97 1.21C16.15 19.75 17 21.37 17 22","M18 2H6v7a6 6 0 0 0 12 0V2z"]}/>;
+const IcClock=({s=16})=><Ic size={s} d={["M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z","M12 6v6l4 2"]}/>;
+const IcNext=({s=16})=><Ic size={s} d="m9 18 6-6-6-6"/>;
+
+/* ── Data ───────────────────────────────────────────────────────────────────── */
+//Made by ecchua79
+const EL=[
+  {id:1,name:'氢',symbol:'H',cat:'nonmetal'},{id:2,name:'氦',symbol:'He',cat:'noble'},
+  {id:3,name:'锂',symbol:'Li',cat:'alkali'},{id:4,name:'铍',symbol:'Be',cat:'alkaline'},
+  {id:5,name:'硼',symbol:'B',cat:'metalloid'},{id:6,name:'碳',symbol:'C',cat:'nonmetal'},
+  {id:7,name:'氮',symbol:'N',cat:'nonmetal'},{id:8,name:'氧',symbol:'O',cat:'nonmetal'},
+  {id:9,name:'氟',symbol:'F',cat:'halogen'},{id:10,name:'氖',symbol:'Ne',cat:'noble'},
+  {id:11,name:'钠',symbol:'Na',cat:'alkali'},{id:12,name:'镁',symbol:'Mg',cat:'alkaline'},
+  {id:13,name:'铝',symbol:'Al',cat:'metal'},{id:14,name:'硅',symbol:'Si',cat:'metalloid'},
+  {id:15,name:'磷',symbol:'P',cat:'nonmetal'},{id:16,name:'硫',symbol:'S',cat:'nonmetal'},
+  {id:17,name:'氯',symbol:'Cl',cat:'halogen'},{id:18,name:'氩',symbol:'Ar',cat:'noble'},
+  {id:19,name:'钾',symbol:'K',cat:'alkali'},{id:20,name:'钙',symbol:'Ca',cat:'alkaline'},
+  {id:21,name:'铁',symbol:'Fe',cat:'transition'},{id:22,name:'铜',symbol:'Cu',cat:'transition'},
+  {id:23,name:'锌',symbol:'Zn',cat:'transition'},{id:24,name:'银',symbol:'Ag',cat:'transition'},
+  {id:25,name:'钡',symbol:'Ba',cat:'alkaline'},{id:26,name:'铂',symbol:'Pt',cat:'transition'},
+  {id:27,name:'金',symbol:'Au',cat:'transition'},{id:28,name:'汞',symbol:'Hg',cat:'transition'},
+  {id:29,name:'铅',symbol:'Pb',cat:'metal'},{id:30,name:'锡',symbol:'Sn',cat:'metal'},
+  {id:31,name:'锰',symbol:'Mn',cat:'transition'},{id:32,name:'碘',symbol:'I',cat:'halogen'},
+];
+
+//峇株吧辖蔡逸众制作
+const CC={alkali:'#f97316',alkaline:'#eab308',transition:'#06b6d4',metal:'#8b5cf6',
+  metalloid:'#10b981',nonmetal:'#3b82f6',halogen:'#ec4899',noble:'#a78bfa'};
+
+// LEVELS: first 3 are required, index 3 is the optional bonus level
+const LEVELS=[
+  {level:1,bs:4,pairs:8, hint:2,shuffle:2,swap:0,bonus:false,label:'初级实验室',emoji:'🧪',color:'#10b981'},
+  {level:2,bs:6,pairs:18,hint:3,shuffle:3,swap:0,bonus:false,label:'进阶实验室',emoji:'⚗', color:'#00f5ff'},
+  {level:3,bs:7,pairs:20,hint:5,shuffle:5,swap:3,bonus:false,label:'终极实验室',emoji:'🔬',color:'#7c3aed'},
+  {level:4,bs:8,pairs:32,hint:5,shuffle:5,swap:3,bonus:true, label:'传奇挑战', emoji:'💎',color:'#f59e0b'},
+];
+
+//华仁中学蔡逸众制作
+const isHollow=(li,r,c)=>li===2&&r>=3&&r<=5&&c>=3&&c<=5;
+
+/* ── Pure helpers ───────────────────────────────────────────────────────────── */
+const rng=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
+const fmt=s=>`${String(0|s/60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+const fmtDT=d=>{const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}年${p(d.getMonth()+1)}月${p(d.getDate())}日 ${p(d.getHours())}:${p(d.getMinutes())}`;};
+
+//Made by ecchua79
+const straight=(p1,p2,b)=>{
+  if(p1.r===p2.r){for(let c=Math.min(p1.c,p2.c)+1;c<Math.max(p1.c,p2.c);c++)if(b[p1.r][c])return false;return true;}
+  if(p1.c===p2.c){for(let r=Math.min(p1.r,p2.r)+1;r<Math.max(p1.r,p2.r);r++)if(b[r][p1.c])return false;return true;}
+  return false;
+};
+const findPath=(p1,p2,b,N)=>{
+  if((p1.r===p2.r||p1.c===p2.c)&&straight(p1,p2,b))return[p1,p2];
+  for(const cn of[{r:p1.r,c:p2.c},{r:p2.r,c:p1.c}])
+    if(!b[cn.r][cn.c]&&straight(p1,cn,b)&&straight(cn,p2,b))return[p1,cn,p2];
+  for(let c=0;c<N;c++){if(c===p1.c)continue;const c1={r:p1.r,c};if(b[c1.r][c1.c])continue;
+    if(straight(p1,c1,b)){const c2={r:p2.r,c};if(!b[c2.r][c2.c]&&straight(c1,c2,b)&&straight(c2,p2,b))return[p1,c1,c2,p2];}}
+  for(let r=0;r<N;r++){if(r===p1.r)continue;const c1={r,c:p1.c};if(b[c1.r][c1.c])continue;
+    if(straight(p1,c1,b)){const c2={r,c:p2.c};if(!b[c2.r][c2.c]&&straight(c1,c2,b)&&straight(c2,p2,b))return[p1,c1,c2,p2];}}
+  return null;
+};
+
+//峇株吧辖华仁中学蔡逸众制作
+const findHint=(b,bs,N,li=0)=>{
+  const t=[];
+  for(let r=1;r<=bs;r++)for(let c=1;c<=bs;c++)if(b[r][c]&&!isHollow(li,r,c))t.push({r,c,tile:b[r][c]});
+  for(let i=0;i<t.length;i++)for(let j=i+1;j<t.length;j++){
+    const{tile:a,r:r1,c:c1}=t[i],{tile:z,r:r2,c:c2}=t[j];
+    if(a.id===z.id&&a.type!==z.type&&findPath({r:r1,c:c1},{r:r2,c:c2},b,N))return[{r:r1,c:c1},{r:r2,c:c2}];
+  }return null;
+};
+const hasMoves=(b,bs,N,li=0)=>!!findHint(b,bs,N,li);
+
+const doShuffle=(b,bs,N,li=0)=>{
+  let nb=b.map(r=>[...r]);
+  for(let a=0;a<15;a++){
+    const t=[],p=[];
+    for(let r=1;r<=bs;r++)for(let c=1;c<=bs;c++)if(nb[r][c]&&!isHollow(li,r,c)){t.push(nb[r][c]);p.push({r,c});}
+    const s=rng(t);p.forEach((x,i)=>{nb[x.r][x.c]=s[i];});
+    if(hasMoves(nb,bs,N,li))break;
+  }return nb;
+};
+
+//华仁中学蔡逸众制作
+const buildBoard=(cfg,li)=>{
+  const{bs,pairs}=cfg,N=bs+2;
+  let t=[];
+  EL.slice(0,pairs).forEach(e=>{
+    t.push({id:e.id,type:'name',value:e.name,cat:e.cat});
+    t.push({id:e.id,type:'symbol',value:e.symbol,cat:e.cat});
+  });
+  t=rng(t);
+  let b=Array(N).fill(0).map(()=>Array(N).fill(null));
+  let i=0;for(let r=1;r<=bs;r++)for(let c=1;c<=bs;c++){if(isHollow(li,r,c))continue;b[r][c]=t[i++];}
+  if(!hasMoves(b,bs,N,li))b=doShuffle(b,bs,N,li);
+  return b;
+};
+
+/* ── Canvas line drawing (fixed outside overflow:hidden) ───────────────────── */
+//Made by ecchua79
+function drawLine(path,boardEl,bs){
+  const canvas=document.getElementById('line-canvas');
+  if(!canvas||!boardEl)return;
+  const W=canvas.width=window.innerWidth;
+  const H=canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  if(!path||path.length<2)return;
+  const rect=boardEl.getBoundingClientRect();
+  const pad=5;
+  const cellW=(rect.width-pad*2)/bs;
+  const cellH=(rect.height-pad*2)/bs;
+  const px=p=>rect.left+pad+(p.c-1)*cellW+cellW/2;
+  const py=p=>rect.top +pad+(p.r-1)*cellH+cellH/2;
+  const pts=path.map(p=>({x:px(p),y:py(p)}));
+
+  const stroke=(color,width,blur,alpha)=>{
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle=color;ctx.lineWidth=width;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.globalAlpha=alpha;ctx.shadowColor='#00f5ff';ctx.shadowBlur=blur;
+    ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;
+  };
+  stroke('#00f5ff',32,40,.10);
+  stroke('#00f5ff',16,20,.30);
+  stroke('#00f5ff', 7, 8,.70);
+  stroke('#ffffff', 2, 0,1.0);
+
+  pts.forEach((p,i)=>{
+    const isEnd=i===0||i===pts.length-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,isEnd?10:5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,245,255,0.3)';ctx.shadowColor='#00f5ff';ctx.shadowBlur=16;ctx.fill();
+    ctx.beginPath();ctx.arc(p.x,p.y,isEnd?5:3,0,Math.PI*2);
+    ctx.fillStyle='#ffffff';ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0;
+  });
+}
+function clearLine(){
+  const canvas=document.getElementById('line-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+/* ── Welcome Screen ─────────────────────────────────────────────────────────── */
+//峇株吧辖蔡逸众制作
+const Welcome=({onStart})=>{
+  const rules=[
+    {icon:'👆',title:'点击配对',desc:'点击一张牌，再点击对应的牌（元素名称 ↔ 化学符号）'},
+    {icon:'〰️',title:'连线消除',desc:'两张牌之间的连线最多弯折两次，且路径不能被其他牌阻挡'},
+    {icon:'🏆',title:'全部消除',desc:'将棋盘上所有元素对消除即可通关，共三关（可选挑战第四关）'},
+  ];
+  const skills=[
+    {icon:'💡',color:'#fbbf24',name:'提示',desc:'高亮一对可消除的牌'},
+    {icon:'🔀',color:'#00f5ff',name:'洗牌',desc:'重新打乱剩余牌的位置'},
+    {icon:'↔️',color:'#a855f7',name:'换位',desc:'（第三、四关专属）任意交换两张牌的位置'},
+  ];
+  return(
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0a0e1a 0%,#0d1530 50%,#0a0e1a 100%)',
+      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px',overflowY:'auto'}}>
+
+      {/* Hero */}
+      <div style={{textAlign:'center',marginBottom:'32px',animation:'fadeIn .8s ease-out'}}>
+        <div style={{fontSize:'72px',marginBottom:'12px',animation:'float 3s ease-in-out infinite'}}>⚛️</div>
+        <div style={{fontSize:'11px',letterSpacing:'6px',color:'rgba(0,245,255,.6)',fontWeight:700,marginBottom:'8px',
+          textTransform:'uppercase'}}>峇株吧辖华仁中学</div>
+        <h1 style={{fontSize:'clamp(26px,6vw,42px)',fontWeight:900,marginBottom:'6px',
+          background:'linear-gradient(90deg,#00f5ff,#a78bfa,#10b981)',WebkitBackgroundClip:'text',
+          WebkitTextFillColor:'transparent',backgroundClip:'text'}}>化学元素连连看</h1>
+        <p style={{color:'rgba(148,163,184,.7)',fontSize:'14px'}}>Chemistry Element Matching Game</p>
+      </div>
+
+      {/* Level overview */}
+      <div style={{display:'flex',gap:'8px',marginBottom:'28px',flexWrap:'wrap',justifyContent:'center',
+        animation:'fadeIn .8s .1s ease-out both'}}>
+        {LEVELS.map((lv,i)=>(
+          <div key={i} style={{padding:'10px 14px',borderRadius:'12px',textAlign:'center',minWidth:'70px',
+            background:lv.bonus?`${lv.color}10`:'rgba(255,255,255,.05)',
+            border:`1px solid ${lv.bonus?lv.color+'44':'rgba(255,255,255,.1)'}`,
+            position:'relative'}}>
+            {lv.bonus&&<div style={{position:'absolute',top:'-8px',left:'50%',transform:'translateX(-50%)',
+              background:lv.color,borderRadius:'99px',padding:'1px 8px',fontSize:'9px',fontWeight:800,color:'#000',
+              whiteSpace:'nowrap'}}>可选</div>}
+            <div style={{fontSize:'22px',marginBottom:'4px'}}>{lv.emoji}</div>
+            <div style={{fontSize:'10px',color:lv.color,fontWeight:700}}>第{['一','二','三','四'][i]}关</div>
+            <div style={{fontSize:'9px',color:'rgba(148,163,184,.5)',marginTop:'2px'}}>{lv.bs}×{lv.bs}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Rules */}
+      <div style={{width:'100%',maxWidth:'520px',marginBottom:'24px',animation:'fadeIn .8s .2s ease-out both'}}>
+        <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',letterSpacing:'3px',textAlign:'center',
+          marginBottom:'14px',textTransform:'uppercase'}}>游 戏 规 则</div>
+        {rules.map((r,i)=>(
+          <div key={i} style={{display:'flex',gap:'14px',padding:'14px 16px',marginBottom:'8px',
+            background:'rgba(255,255,255,.04)',borderRadius:'12px',border:'1px solid rgba(255,255,255,.07)',
+            animation:`fadeIn .6s ${.25+i*.1}s ease-out both`}}>
+            <div style={{fontSize:'26px',flexShrink:0,marginTop:'2px'}}>{r.icon}</div>
+            <div>
+              <div style={{fontWeight:700,color:'#e2e8f0',marginBottom:'4px',fontSize:'14px'}}>{r.title}</div>
+              <div style={{color:'rgba(148,163,184,.7)',fontSize:'13px',lineHeight:1.6}}>{r.desc}</div>
+            </div>
+          </div>
+        ))}
+
+        {/* Visual diagram */}
+        <div style={{padding:'16px',marginBottom:'8px',background:'rgba(0,245,255,.04)',
+          borderRadius:'12px',border:'1px solid rgba(0,245,255,.15)',animation:'fadeIn .6s .55s ease-out both'}}>
+          <div style={{fontSize:'11px',color:'rgba(0,245,255,.7)',letterSpacing:'2px',textAlign:'center',
+            marginBottom:'12px'}}>— 连线示意图 —</div>
+          {/* Mini diagram showing 0-turn, 1-turn, 2-turn paths */}
+          <div style={{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap'}}>
+            {[
+              {label:'直线',color:'#10b981',path:'M20,20 L100,20'},
+              {label:'一折',color:'#00f5ff',path:'M20,20 L20,60 L100,60'},
+              {label:'两折',color:'#a78bfa',path:'M20,20 L20,40 L80,40 L80,60'},
+            ].map(({label,color,path})=>(
+              <div key={label} style={{textAlign:'center'}}>
+                <svg width="120" height="80" style={{display:'block',marginBottom:'4px'}}>
+                  {/* start tile */}
+                  <rect x="5" y="5" width="28" height="28" rx="4"
+                    fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.4)" strokeWidth="1.5"/>
+                  <text x="19" y="24" textAnchor="middle" fill="#00f5ff" fontSize="11" fontWeight="bold" fontFamily="monospace">H</text>
+                  {/* end tile */}
+                  <rect x="87" y="47" width="28" height="28" rx="4"
+                    fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.4)" strokeWidth="1.5"/>
+                  <text x="101" y="66" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="bold">氢</text>
+                  {/* path */}
+                  <path d={path} fill="none" stroke={color} strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    style={{filter:`drop-shadow(0 0 4px ${color})`}}/>
+                  <circle cx="20" cy="20" r="3.5" fill={color}/>
+                  <circle cx={path.split(' ').pop().split(',')[0].replace('L','')} cy="60" r="3.5" fill={color}/>
+                </svg>
+                <div style={{fontSize:'10px',color:color,fontWeight:700}}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div style={{padding:'14px 16px',background:'rgba(255,255,255,.03)',borderRadius:'12px',
+          border:'1px solid rgba(255,255,255,.07)',animation:'fadeIn .6s .65s ease-out both'}}>
+          <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',letterSpacing:'2px',textAlign:'center',
+            marginBottom:'12px'}}>— 技 能 道 具 —</div>
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center'}}>
+            {skills.map(sk=>(
+              <div key={sk.name} style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 12px',
+                background:`${sk.color}10`,border:`1px solid ${sk.color}33`,borderRadius:'10px',flex:'1',minWidth:'130px'}}>
+                <span style={{fontSize:'20px'}}>{sk.icon}</span>
+                <div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:sk.color}}>{sk.name}</div>
+                  <div style={{fontSize:'10px',color:'rgba(148,163,184,.6)',lineHeight:1.4}}>{sk.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Start button */}
+      <button onClick={onStart} style={{
+        background:'linear-gradient(135deg,#0891b2,#7c3aed)',border:'none',
+        borderRadius:'16px',padding:'16px 48px',color:'#fff',fontWeight:900,fontSize:'18px',
+        cursor:'pointer',boxShadow:'0 0 32px rgba(0,245,255,.35)',
+        animation:'fadeIn .6s .75s ease-out both',letterSpacing:'1px',
+        transition:'transform .15s,box-shadow .15s'}}
+        onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.05)';e.currentTarget.style.boxShadow='0 0 48px rgba(0,245,255,.5)';}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 0 32px rgba(0,245,255,.35)';}}>
+        开始游戏 ▶
+      </button>
+      <div style={{marginTop:'12px',fontSize:'11px',color:'rgba(148,163,184,.35)',animation:'fadeIn .6s .85s ease-out both'}}>
+        峇株吧辖华仁中学 · 蔡逸众制作
+      </div>
+    </div>
+  );
+};
+
+/* ── After Level 3: Choose ──────────────────────────────────────────────────── */
+//峇株吧辖蔡逸众制作
+const BonusChoice=({time,onBonus,onCert})=>(
+  <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',
+    background:'rgba(10,14,26,.92)',backdropFilter:'blur(16px)',padding:'20px'}}>
+    <div style={{background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(251,191,36,.3)',
+      borderRadius:'20px',padding:'32px 28px',width:'100%',maxWidth:'360px',textAlign:'center',
+      animation:'fadeZoom .4s cubic-bezier(.34,1.56,.64,1)'}}>
+      <div style={{fontSize:'52px',marginBottom:'10px'}}>🏆</div>
+      <div style={{fontSize:'22px',fontWeight:900,color:'#e2e8f0',marginBottom:'6px'}}>三关全部通过！</div>
+      <div style={{fontSize:'14px',color:'rgba(148,163,184,.6)',marginBottom:'6px'}}>用时 <span style={{color:'#00f5ff',fontWeight:700}}>{time}</span></div>
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(251,191,36,.3),transparent)',margin:'18px 0'}}/>
+      <div style={{fontSize:'13px',color:'rgba(203,213,225,.75)',marginBottom:'22px',lineHeight:1.7}}>
+        你已完成全部必修关卡！<br/>
+        是否挑战<span style={{color:'#f59e0b',fontWeight:700}}>第四关——8×8传奇挑战</span>？<br/>
+        <span style={{fontSize:'11px',color:'rgba(148,163,184,.5)'}}>通过后可获得四关专属证书</span>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+        <button onClick={onBonus} style={{background:'linear-gradient(135deg,#d97706,#f59e0b)',
+          border:'none',borderRadius:'12px',padding:'14px',color:'#000',fontWeight:900,
+          fontSize:'15px',cursor:'pointer',boxShadow:'0 0 20px rgba(245,158,11,.3)'}}>
+          💎 接受挑战！（8×8）
+        </button>
+        <button onClick={onCert} style={{background:'rgba(255,255,255,.06)',
+          border:'1px solid rgba(255,255,255,.15)',borderRadius:'12px',padding:'12px',
+          color:'rgba(203,213,225,.8)',fontWeight:600,fontSize:'14px',cursor:'pointer'}}>
+          🎓 领取三关证书
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+/* ── Level Complete overlay ─────────────────────────────────────────────────── */
+const LevelComplete=({level,time,onNext,isBonus})=>{
+  const names=['一','二','三','四'];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',
+      background:'rgba(10,14,26,.92)',backdropFilter:'blur(14px)',borderRadius:'14px',
+      animation:'fadeZoom .4s cubic-bezier(.34,1.56,.64,1)'}}>
+      <div style={{textAlign:'center',padding:'28px 24px',maxWidth:'300px'}}>
+        <div style={{fontSize:'52px',marginBottom:'10px'}}>{LEVELS[level-1].emoji}</div>
+        <div style={{fontSize:'22px',fontWeight:900,color:'#e2e8f0',marginBottom:'4px'}}>
+          第{names[level-1]}关通过！{isBonus?'🎉':''}</div>
+        <div style={{fontSize:'12px',color:'rgba(148,163,184,.6)',marginBottom:'14px'}}>{LEVELS[level-1].label}</div>
+        <div style={{fontSize:'30px',fontWeight:800,color:'#00f5ff',fontFamily:'monospace',marginBottom:'18px'}}>{time}</div>
+        <div style={{display:'flex',justifyContent:'center',gap:'8px',marginBottom:'22px'}}>
+          {[0,1,2].map(i=><span key={i} style={{color:'#f59e0b',fontSize:'26px',
+            animation:`starPop .5s ${i*.15}s cubic-bezier(.34,1.56,.64,1) both`}}>★</span>)}
+        </div>
+        <button onClick={onNext} style={{background:'linear-gradient(135deg,#0891b2,#7c3aed)',border:'none',
+          borderRadius:'12px',padding:'12px 28px',color:'#fff',fontWeight:800,fontSize:'15px',
+          cursor:'pointer',display:'flex',alignItems:'center',gap:'7px',margin:'0 auto',
+          boxShadow:'0 0 24px rgba(0,245,255,.3)'}}>
+          <IcNext s={17}/>{isBonus?'领取四关证书 🎓':'领取证书 🎓'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ── Name Input ─────────────────────────────────────────────────────────────── */
+//华仁中学蔡逸众制作
+const NameInput=({levelCount,onConfirm})=>{
+  const[name,setName]=useState('');
+  return(
+    <div style={{position:'fixed',inset:0,zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',
+      background:'rgba(0,0,0,.78)',backdropFilter:'blur(10px)',padding:'20px'}}>
+      <div style={{background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(0,245,255,.3)',
+        borderRadius:'20px',padding:'36px 28px',width:'100%',maxWidth:'320px',textAlign:'center',
+        animation:'fadeZoom .4s cubic-bezier(.34,1.56,.64,1)'}}>
+        <div style={{fontSize:'44px',marginBottom:'10px'}}>{levelCount===4?'💎':'🎓'}</div>
+        <h2 style={{fontSize:'19px',fontWeight:900,color:'#e2e8f0',marginBottom:'6px'}}>
+          {levelCount===4?'四关全部通过！':'三关全部通过！'}</h2>
+        <p style={{fontSize:'13px',color:'rgba(148,163,184,.65)',marginBottom:'22px',lineHeight:1.65}}>
+          请输入您的姓名，<br/>为您生成专属{levelCount===4?<span style={{color:'#f59e0b'}}>四关通关</span>:'三关通关'}证书
+        </p>
+        <input autoFocus value={name} onChange={e=>setName(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&name.trim()&&onConfirm(name.trim())}
+          placeholder="请输入姓名…" maxLength={10}
+          style={{width:'100%',background:'rgba(255,255,255,.07)',border:'1px solid rgba(0,245,255,.35)',
+            borderRadius:'10px',padding:'11px 14px',color:'#e2e8f0',fontSize:'17px',outline:'none',
+            marginBottom:'14px',textAlign:'center',fontWeight:700,letterSpacing:'3px',boxSizing:'border-box'}}/>
+        <button onClick={()=>name.trim()&&onConfirm(name.trim())} disabled={!name.trim()}
+          style={{width:'100%',
+            background:name.trim()?levelCount===4?'linear-gradient(135deg,#d97706,#f59e0b)':'linear-gradient(135deg,#0891b2,#7c3aed)':'rgba(255,255,255,.06)',
+            border:'none',borderRadius:'12px',padding:'12px',
+            color:name.trim()?levelCount===4?'#000':'#fff':'rgba(148,163,184,.3)',
+            fontWeight:800,fontSize:'15px',cursor:name.trim()?'pointer':'not-allowed',transition:'all .2s'}}>
+          生成证书 ✨
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ── Certificate ────────────────────────────────────────────────────────────── */
+//峇株吧辖华仁中学蔡逸众制作
+const Certificate=({name,totalTime,skillsUsed,completedAt,levelCount,onRestart})=>{
+  const is4=levelCount===4;
+  const accentColor=is4?'#f59e0b':'#00f5ff';
+  const levels=LEVELS.slice(0,levelCount);
+  const totalPairs=levels.reduce((s,l)=>s+l.pairs,0);
+  return(
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0a0e1a 0%,#0d1530 60%,#0a0e1a 100%)',
+      display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:'420px',animation:'fadeZoom .6s cubic-bezier(.34,1.2,.64,1)'}}>
+        <div style={{background:'linear-gradient(160deg,#0f172a 0%,#1e1b4b 55%,#0f172a 100%)',
+          border:`1px solid ${accentColor}33`,borderRadius:'22px',overflow:'hidden',
+          boxShadow:`0 0 60px ${accentColor}15,0 0 120px rgba(124,58,237,.08)`,position:'relative'}}>
+
+          <div style={{height:'5px',background:is4
+            ?'linear-gradient(90deg,#d97706,#f59e0b,#fbbf24,#f59e0b,#d97706)'
+            :'linear-gradient(90deg,#7c3aed,#00f5ff,#10b981,#f59e0b,#7c3aed)',
+            backgroundSize:'300%',animation:'shimmer 4s linear infinite'}}/>
+
+          {[[true,true],[true,false],[false,true],[false,false]].map(([t,l],i)=>(
+            <div key={i} style={{position:'absolute',top:t?10:'auto',bottom:!t?10:'auto',
+              left:l?10:'auto',right:!l?10:'auto',width:18,height:18,
+              border:`1.5px solid ${accentColor}${i%2===0?'66':'33'}`,borderRadius:'3px',opacity:.7}}/>
+          ))}
+
+          <div style={{padding:'28px 26px 24px'}}>
+            {/* Badge */}
+            <div style={{textAlign:'center',marginBottom:'20px'}}>
+              <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center',
+                width:'70px',height:'70px',borderRadius:'50%',background:`${accentColor}10`,
+                border:`2px solid ${accentColor}55`,fontSize:'34px',marginBottom:'12px',
+                boxShadow:`0 0 24px ${accentColor}30`}}>{is4?'💎':'⚛️'}</div>
+              <div style={{fontSize:'10px',letterSpacing:'4px',color:`${accentColor}aa`,fontWeight:700,marginBottom:'4px'}}>
+                {is4?'LEGEND · MASTER':'CHEMISTRY · MASTER'}</div>
+              <div style={{fontSize:'19px',fontWeight:900,color:'#e2e8f0',letterSpacing:'3px',marginBottom:'8px'}}>
+                {is4?'四关通关证书':'通 关 证 书'}</div>
+              <div style={{width:'50px',height:'2px',background:`linear-gradient(90deg,transparent,${accentColor},transparent)`,margin:'0 auto'}}/>
+            </div>
+
+            {/* Name */}
+            <div style={{textAlign:'center',marginBottom:'18px',padding:'14px',background:`${accentColor}08`,
+              borderRadius:'12px',border:`1px solid ${accentColor}18`}}>
+              <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',marginBottom:'4px',letterSpacing:'1px'}}>此证书颁发给</div>
+              <div style={{fontSize:'26px',fontWeight:900,color:accentColor,letterSpacing:'4px',
+                textShadow:`0 0 20px ${accentColor}55`}}>{name}</div>
+            </div>
+
+            {/* Desc */}
+            <div style={{textAlign:'center',color:'rgba(203,213,225,.75)',fontSize:'12.5px',lineHeight:1.75,marginBottom:'18px'}}>
+              {is4
+                ?<>已成功挑战全部 <span style={{color:'#f59e0b',fontWeight:700}}>四个关卡</span>，<br/>包括最难的传奇挑战（8×8），<br/>展现了卓越的化学元素掌握能力！</>
+                :(<>已成功挑战全部 <span style={{color:'#10b981',fontWeight:700}}>三个关卡</span>，<br/>完成化学元素连连看全程考验，<br/>展现出色的化学元素掌握能力。</>)
+              }
+            </div>
+
+            {/* Stats */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'14px'}}>
+              {[
+                {icon:'⏱',label:'总完成时间',value:fmt(totalTime),color:'#00f5ff'},
+                {icon:'🎯',label:'完成关卡',value:`全部 ${levelCount} 关`,color:'#10b981'},
+                {icon:'⚗',label:'消除元素',value:`${totalPairs} 对`,color:'#a78bfa'},
+                {icon:'✨',label:'技能总次数',value:`${skillsUsed.hint+skillsUsed.shuffle+skillsUsed.swap} 次`,color:'#f59e0b'},
+              ].map(s=>(
+                <div key={s.label} style={{background:'rgba(255,255,255,.04)',borderRadius:'10px',padding:'10px 8px',
+                  border:'1px solid rgba(255,255,255,.06)',textAlign:'center'}}>
+                  <div style={{fontSize:'18px',marginBottom:'3px'}}>{s.icon}</div>
+                  <div style={{fontSize:'14px',fontWeight:800,color:s.color,marginBottom:'2px'}}>{s.value}</div>
+                  <div style={{fontSize:'10px',color:'rgba(148,163,184,.45)'}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Skill breakdown */}
+            <div style={{marginBottom:'14px',background:'rgba(255,255,255,.025)',borderRadius:'10px',
+              border:'1px solid rgba(255,255,255,.06)',overflow:'hidden'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.4)',padding:'7px 12px 5px',
+                letterSpacing:'2px',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,.05)'}}>— 技能使用明细 —</div>
+              {[
+                {icon:'💡',label:'提示',count:skillsUsed.hint,color:'#fbbf24'},
+                {icon:'🔀',label:'洗牌',count:skillsUsed.shuffle,color:'#00f5ff'},
+                {icon:'↔️',label:'换位',count:skillsUsed.swap,color:'#a855f7'},
+              ].map((sk,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                  padding:'7px 14px',borderBottom:i<2?'1px solid rgba(255,255,255,.04)':'none'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                    <span>{sk.icon}</span>
+                    <span style={{fontSize:'12px',color:'rgba(203,213,225,.65)'}}>{sk.label}</span>
+                  </div>
+                  <div style={{background:`${sk.color}18`,border:`1px solid ${sk.color}44`,
+                    borderRadius:'8px',padding:'2px 10px',fontSize:'12px',fontWeight:800,
+                    color:sk.count>0?sk.color:'rgba(148,163,184,.35)',fontFamily:'monospace',
+                    minWidth:'36px',textAlign:'center'}}>{sk.count} 次</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Level list */}
+            <div style={{marginBottom:'14px'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.4)',marginBottom:'7px',
+                letterSpacing:'2px',textAlign:'center'}}>— 关卡详情 —</div>
+              {levels.map((lv,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                  padding:'7px 11px',marginBottom:'4px',background:'rgba(255,255,255,.03)',
+                  borderRadius:'8px',border:`1px solid ${lv.bonus?lv.color+'22':'rgba(255,255,255,.05)'}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                    <span style={{fontSize:'14px'}}>{lv.emoji}</span>
+                    <span style={{fontSize:'11.5px',color:'rgba(203,213,225,.65)'}}>
+                      第{['一','二','三','四'][i]}关 · {lv.label}</span>
+                  </div>
+                  <div style={{display:'flex',gap:'3px'}}>
+                    {(lv.bonus?[0,1,2,3,4]:[0,1,2]).map(s=>(
+                      <span key={s} style={{color:lv.bonus?'#f59e0b':'#f59e0b',fontSize:'11px'}}>★</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Date */}
+            <div style={{textAlign:'center',marginBottom:'16px',padding:'9px',background:'rgba(255,255,255,.025)',
+              borderRadius:'8px',border:'1px solid rgba(255,255,255,.05)'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.4)',marginBottom:'3px'}}>颁发时间</div>
+              <div style={{fontSize:'12px',color:'rgba(148,163,184,.7)',fontFamily:'monospace'}}>{completedAt}</div>
+            </div>
+
+            <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${accentColor}33,transparent)`,marginBottom:'16px'}}/>
+            <button onClick={onRestart} style={{width:'100%',
+              background:is4?'linear-gradient(135deg,#d97706,#f59e0b)':'linear-gradient(135deg,#0891b2,#7c3aed)',
+              border:'none',borderRadius:'12px',padding:'13px',color:is4?'#000':'#fff',
+              fontWeight:800,fontSize:'14px',cursor:'pointer',
+              display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',
+              boxShadow:`0 0 20px ${accentColor}30`}}>
+              <IcRotate s={16}/> 再次挑战
+            </button>
+          </div>
+
+          <div style={{height:'4px',
+            background:is4?'linear-gradient(90deg,#d97706,#f59e0b,#fbbf24,#f59e0b,#d97706)':'linear-gradient(90deg,#10b981,#7c3aed,#00f5ff,#f59e0b,#10b981)',
+            backgroundSize:'300%',animation:'shimmer 4s linear infinite reverse'}}/>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Particles ──────────────────────────────────────────────────────────────── */
+//峇株吧辖蔡逸众制作
+const Particles=({p})=>(
+  <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:50,overflow:'hidden'}}>
+    {p.map(x=>(
+      <div key={x.id} style={{position:'absolute',left:x.x+'%',top:x.y+'%',
+        width:x.sz+'px',height:x.sz+'px',background:x.color,borderRadius:'50%',
+        animation:`particleFly ${x.dur}ms ease-out forwards`,animationDelay:x.delay+'ms',
+        '--dx':x.dx+'px','--dy':x.dy+'px'}}/>
+    ))}
+  </div>
+);
+
+/* ── Skill Button ───────────────────────────────────────────────────────────── */
+const SkBtn=({icon,label,count,color,disabled,onClick,active})=>{
+  const[hv,sHv]=useState(false);
+  return(
+    <button onClick={onClick} disabled={disabled}
+      onMouseEnter={()=>sHv(true)} onMouseLeave={()=>sHv(false)}
+      style={{background:active?`${color}22`:hv&&!disabled?`${color}12`:'rgba(255,255,255,.04)',
+        border:`1px solid ${active?color+'99':disabled?'rgba(255,255,255,.06)':hv&&!disabled?color+'55':'rgba(255,255,255,.12)'}`,
+        borderRadius:'10px',padding:'9px 13px',color:disabled?'rgba(148,163,184,.3)':'#e2e8f0',
+        fontWeight:600,fontSize:'13px',cursor:disabled?'not-allowed':'pointer',
+        display:'flex',alignItems:'center',gap:'5px',transition:'all .15s',
+        boxShadow:active?`0 0 14px ${color}44`:'none'}}>
+      <span style={{color:disabled?'rgba(148,163,184,.3)':color}}>{icon}</span>
+      {label}
+      {count!==null&&<span style={{background:disabled?'rgba(255,255,255,.04)':`${color}20`,
+        border:`1px solid ${disabled?'rgba(255,255,255,.06)':color+'44'}`,
+        borderRadius:'6px',padding:'1px 6px',fontSize:'11px',
+        color:disabled?'rgba(148,163,184,.3)':color,fontFamily:'monospace',fontWeight:800}}>{count}</span>}
+    </button>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN APP
+   ══════════════════════════════════════════════════════════════════════════════ */
+//华仁中学蔡逸众制作
+function App(){
+  const[screen,setScreen]=useState('welcome'); // welcome | playing | certificate
+  const[levelIdx,setLevelIdx]=useState(0);
+  const[board,setBoard]=useState(null);
+  const[selected,setSelected]=useState(null);
+  const[pathPts,setPathPts]=useState([]);
+  const[matches,setMatches]=useState(0);
+  const[busy,setBusy]=useState(false);
+  const[fading,setFading]=useState([]);
+  const[timeElapsed,setTimeElapsed]=useState(0);
+  const[hintN,setHintN]=useState(0);
+  const[shuffleN,setShuffleN]=useState(0);
+  const[swapN,setSwapN]=useState(0);
+  const[swapMode,setSwapMode]=useState(false);
+  const[swapFirst,setSwapFirst]=useState(null);
+  const[hintTiles,setHintTiles]=useState([]);
+  const[notice,setNotice]=useState('');
+  const[particles,setParticles]=useState([]);
+  const[phase,setPhase]=useState('playing'); // playing | levelComplete | bonusChoice | nameInput
+  const[completedLevels,setCompletedLevels]=useState(0); // how many levels done (3 or 4)
+  const[totalTime,setTotalTime]=useState(0);
+  const[totalSkills,setTotalSkills]=useState({hint:0,shuffle:0,swap:0});
+  const skillsNow=useRef({hint:0,shuffle:0,swap:0});
+  const[playerName,setPlayerName]=useState('');
+  const[completedAt,setCompletedAt]=useState('');
+  const boardRef=useRef(null);
+  const pid=useRef(0);
+
+  const cfg=LEVELS[levelIdx]||LEVELS[3];
+  const bs=cfg.bs, N=bs+2;
+
+  /* redraw / clear canvas whenever pathPts changes */
+  useEffect(()=>{
+    if(pathPts.length>=2) drawLine(pathPts,boardRef.current,bs);
+    else clearLine();
+  },[pathPts,bs]);
+
+  /* clear canvas on unmount */
+  useEffect(()=>()=>clearLine(),[]);
+
+  const notify=useCallback((m)=>{setNotice(m);setTimeout(()=>setNotice(''),2200);},[]);
+
+  const spawnParticles=useCallback((pos1,pos2)=>{
+    const step=100/bs;
+    const colors=['#00f5ff','#7c3aed','#10b981','#f59e0b','#ec4899'];
+    const np=[];
+    [pos1,pos2].forEach(({r,c})=>{
+      const x=(c-1)*step+step/2,y=(r-1)*step+step/2;
+      for(let i=0;i<8;i++){
+        const a=(Math.PI*2*i)/8;
+        np.push({id:pid.current++,x,y,
+          dx:Math.cos(a)*(15+Math.random()*25),dy:Math.sin(a)*(15+Math.random()*25),
+          sz:4+Math.random()*4,color:colors[0|Math.random()*colors.length],
+          dur:500+Math.random()*300,delay:Math.random()*100});
+      }
+    });
+    setParticles(p=>[...p,...np]);
+    setTimeout(()=>{const ids=np.map(x=>x.id);setParticles(p=>p.filter(x=>!ids.includes(x.id)));},1000);
+  },[bs]);
+
+  const initLevel=useCallback((idx,carryTime=0)=>{
+    const c=LEVELS[idx];
+    setBoard(buildBoard(c,idx));
+    setSelected(null);setPathPts([]);setMatches(0);setTimeElapsed(carryTime);
+    setHintN(c.hint);setShuffleN(c.shuffle);setSwapN(c.swap);
+    setSwapMode(false);setSwapFirst(null);setHintTiles([]);
+    setNotice('');setParticles([]);setFading([]);
+    setPhase('playing');
+    skillsNow.current={hint:0,shuffle:0,swap:0};
+  },[]);
+
+  const resetAll=useCallback(()=>{
+    setLevelIdx(0);setTotalTime(0);setTotalSkills({hint:0,shuffle:0,swap:0});
+    setCompletedLevels(0);setScreen('welcome');clearLine();
+  },[]);
+
+  const startGame=()=>{setScreen('playing');initLevel(0,0);};
+
+  /* timer */
+  useEffect(()=>{
+    if(screen!=='playing'||phase!=='playing')return;
+    const t=setInterval(()=>setTimeElapsed(p=>p+1),1000);
+    return()=>clearInterval(t);
+  },[screen,phase]);
+
+  /* ── Skills ── */
+  const handleShuffle=useCallback((isAuto=false)=>{
+    if(!board)return;
+    if(!isAuto&&shuffleN<=0)return;
+    setBoard(doShuffle(board,bs,N,levelIdx));
+    setSelected(null);setHintTiles([]);setSwapMode(false);setSwapFirst(null);setPathPts([]);
+    if(isAuto)notify('💥 死锁！已自动洗牌');
+    else{setShuffleN(p=>p-1);skillsNow.current.shuffle++;}
+  },[board,bs,N,levelIdx,shuffleN,notify]);
+
+  const handleHint=()=>{
+    if(hintN<=0||busy||!board)return;
+    const pair=findHint(board,bs,N,levelIdx);
+    if(pair){setHintTiles(pair);setHintN(p=>p-1);skillsNow.current.hint++;
+      setTimeout(()=>setHintTiles([]),3000);}
+    else notify('⚠️ 暂无可消除的对');
+  };
+
+  const handleSwapToggle=()=>{
+    if(swapN<=0)return;
+    const e=!swapMode;setSwapMode(e);
+    if(!e)setSwapFirst(null);else notify('🔀 点选两张牌互换位置');
+  };
+
+  /* ── Level complete logic ── */
+  const onLevelDone=useCallback(()=>{
+    const newSkills={
+      hint:totalSkills.hint+skillsNow.current.hint,
+      shuffle:totalSkills.shuffle+skillsNow.current.shuffle,
+      swap:totalSkills.swap+skillsNow.current.swap,
+    };
+    setTotalSkills(newSkills);
+    setTotalTime(timeElapsed);
+    const done=levelIdx+1; // 1-indexed count of finished levels
+    setCompletedLevels(done);
+    if(done===3){
+      // Offer bonus choice
+      setPhase('bonusChoice');
+    } else {
+      setPhase('levelComplete');
+    }
+  },[timeElapsed,levelIdx,totalSkills]);
+
+  const handleNext=()=>{
+    // Called from LevelComplete (levels 1,2, and 4)
+    if(levelIdx===3){
+      // Bonus level done
+      setCompletedAt(fmtDT(new Date()));
+      setPhase('nameInput');
+    } else {
+      const next=levelIdx+1;
+      setLevelIdx(next);setPhase('playing');initLevel(next,timeElapsed);
+    }
+  };
+
+  const handleBonusYes=()=>{
+    setLevelIdx(3);setPhase('playing');initLevel(3,timeElapsed);
+  };
+
+  const handleBonusNo=()=>{
+    setCompletedAt(fmtDT(new Date()));
+    setPhase('nameInput');
+  };
+
+  /* ── Tile click ── */
+  const handleTile=(r,c)=>{
+    if(busy||!board[r][c])return;
+    if(swapMode){
+      if(!swapFirst){setSwapFirst({r,c});return;}
+      if(swapFirst.r===r&&swapFirst.c===c){setSwapFirst(null);return;}
+      const nb=board.map(x=>[...x]);
+      const tmp=nb[swapFirst.r][swapFirst.c];nb[swapFirst.r][swapFirst.c]=nb[r][c];nb[r][c]=tmp;
+      setBoard(nb);setSwapN(p=>p-1);skillsNow.current.swap++;
+      setSwapMode(false);setSwapFirst(null);notify('✅ 换位成功！');return;
+    }
+    if(!selected){setSelected({r,c});return;}
+    if(selected.r===r&&selected.c===c){setSelected(null);return;}
+    const t1=board[selected.r][selected.c],t2=board[r][c];
+    if(t1.id===t2.id&&t1.type!==t2.type){
+      const vp=findPath(selected,{r,c},board,N);
+      if(vp){
+        setPathPts(vp);setBusy(true);setHintTiles([]);
+        const s={...selected},e={r,c};
+        setTimeout(()=>{
+          spawnParticles({r:s.r,c:s.c},{r:e.r,c:e.c});
+          setFading([`${s.r}-${s.c}`,`${e.r}-${e.c}`]);
+          setTimeout(()=>{
+            const nb=board.map(x=>[...x]);nb[s.r][s.c]=null;nb[e.r][e.c]=null;
+            setBoard(nb);setPathPts([]);setSelected(null);setFading([]);
+            setMatches(prev=>{
+              const nm=prev+1;
+              if(nm===cfg.pairs){setTimeout(()=>onLevelDone(),300);}
+              else if(!hasMoves(nb,bs,N,levelIdx)){setTimeout(()=>handleShuffle(true),400);}
+              return nm;
+            });
+            setBusy(false);
+          },250);
+        },500);
+        return;
+      }
+    }
+    setSelected({r,c});
+  };
+
+  /* ── Render ── */
+  const step=100/bs;
+  const progress=matches/cfg.pairs;
+
+  if(screen==='welcome') return <Welcome onStart={startGame}/>;
+
+  if(screen==='playing'&&phase==='nameInput')
+    return <NameInput levelCount={completedLevels}
+      onConfirm={n=>{setPlayerName(n);setScreen('certificate');}}/>;
+
+  if(screen==='certificate')
+    return <Certificate name={playerName} totalTime={totalTime} skillsUsed={totalSkills}
+      completedAt={completedAt} levelCount={completedLevels} onRestart={resetAll}/>;
+
+  /* playing screen */
+  const showBonus=phase==='bonusChoice';
+  const showLevelComplete=phase==='levelComplete';
+  const isBonus=levelIdx===3;
+
+  return(
+    <div style={{background:'linear-gradient(135deg,#0a0e1a 0%,#0d1530 50%,#0a0e1a 100%)',minHeight:'100vh',
+      display:'flex',flexDirection:'column',alignItems:'center',padding:'10px 8px',userSelect:'none'}}>
+
+      {/* Header */}
+      <div style={{width:'100%',maxWidth:'640px',marginBottom:'8px'}}>
+        <div style={{background:'rgba(255,255,255,.04)',border:`1px solid ${isBonus?'rgba(245,158,11,.25)':'rgba(0,245,255,.14)'}`,
+          backdropFilter:'blur(10px)',borderRadius:'14px',padding:'9px 13px',
+          display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'6px'}}>
+          <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+            {LEVELS.map((lv,i)=>{
+              if(lv.bonus&&completedLevels<3&&i!==levelIdx) return null;
+              return(
+                <div key={i} style={{padding:'4px 8px',borderRadius:'8px',display:'flex',alignItems:'center',gap:'4px',
+                  background:i===levelIdx?`${lv.color}15`:i<levelIdx?'rgba(16,185,129,.1)':'rgba(255,255,255,.04)',
+                  border:`1px solid ${i===levelIdx?lv.color+'55':i<levelIdx?'rgba(16,185,129,.3)':'rgba(255,255,255,.06)'}`}}>
+                  <span style={{fontSize:'12px'}}>{i<levelIdx?'✅':i===levelIdx?lv.emoji:'○'}</span>
+                  <span style={{fontSize:'11px',fontWeight:700,color:i===levelIdx?lv.color:i<levelIdx?'#10b981':'rgba(148,163,184,.35)'}}>
+                    第{['一','二','三','四'][i]}关{lv.bonus?' 💎':''}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:'flex',gap:'13px',alignItems:'center'}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.5)',display:'flex',alignItems:'center',gap:'2px',marginBottom:'1px'}}>
+                <IcTrophy s={9}/>进度</div>
+              <div style={{fontSize:'15px',fontWeight:800,color:'#10b981',fontVariantNumeric:'tabular-nums'}}>
+                {matches}<span style={{color:'rgba(148,163,184,.35)',fontSize:'10px'}}>/{cfg.pairs}</span></div>
+            </div>
+            <div style={{width:'1px',height:'24px',background:'rgba(148,163,184,.1)'}}/>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.5)',display:'flex',alignItems:'center',gap:'2px',marginBottom:'1px'}}>
+                <IcClock s={9}/>耗时</div>
+              <div style={{fontSize:'15px',fontWeight:800,color:'#00f5ff',fontFamily:'monospace'}}>{fmt(timeElapsed)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{height:'3px',background:'rgba(255,255,255,.05)',borderRadius:'99px',marginTop:'5px',overflow:'hidden'}}>
+          <div style={{height:'100%',width:`${progress*100}%`,
+            background:isBonus?'linear-gradient(90deg,#d97706,#f59e0b)':'linear-gradient(90deg,#00f5ff,#7c3aed)',
+            borderRadius:'99px',transition:'width .5s cubic-bezier(.4,0,.2,1)',
+            boxShadow:isBonus?'0 0 8px #f59e0b88':'0 0 8px #00f5ff88'}}/>
+        </div>
+      </div>
+
+      {/* Board */}
+      <div style={{width:'100%',maxWidth:'640px',position:'relative'}}>
+        <div ref={boardRef} style={{background:'rgba(255,255,255,.025)',
+          border:`1px solid ${swapMode?'rgba(168,85,247,.45)':isBonus?'rgba(245,158,11,.2)':'rgba(0,245,255,.1)'}`,
+          borderRadius:'14px',padding:'5px',position:'relative',
+          aspectRatio:'1',transition:'border-color .3s',
+          backgroundImage:'linear-gradient(rgba(0,245,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.02) 1px,transparent 1px)',
+          backgroundSize:`${step}% ${step}%`}}>
+
+          <Particles p={particles}/>
+
+          {board&&(
+            <div style={{display:'grid',width:'100%',height:'100%',position:'relative',zIndex:10,
+              gridTemplateColumns:`0 repeat(${bs},1fr) 0`,gridTemplateRows:`0 repeat(${bs},1fr) 0`}}>
+              {board.map((row,r)=>row.map((cell,c)=>{
+                if(r===0||r===N-1||c===0||c===N-1)
+                  return <div key={`${r}-${c}`} style={{width:0,height:0,overflow:'hidden'}}/>;
+
+                const isSel=selected&&selected.r===r&&selected.c===c;
+                const isHi=hintTiles.some(p=>p.r===r&&p.c===c);
+                const isDis=fading.includes(`${r}-${c}`);
+                const isSwF=swapFirst&&swapFirst.r===r&&swapFirst.c===c;
+                const hol=isHollow(levelIdx,r,c);
+                const cat=cell?(CC[cell.cat]||'#64748b'):'#64748b';
+                const symFS=bs===4?'clamp(22px,5.5vw,48px)':bs===6?'clamp(16px,3.8vw,36px)':bs===7?'clamp(17px,3.6vw,34px)':'clamp(13px,2.6vw,26px)';
+                const namFS=bs===4?'clamp(19px,4.5vw,40px)':bs===6?'clamp(14px,3.2vw,30px)':bs===7?'clamp(15px,3.0vw,28px)':'clamp(11px,2.1vw,22px)';
+                const numFS=bs===4?'clamp(11px,1.5vw,15px)':bs===6?'clamp(9px,1.2vw,13px)':'clamp(9px,1.1vw,12px)';
+                const dotSz=bs===4?8:bs===6?7:7;
+
+                if(hol) return(
+                  <div key={`${r}-${c}`} style={{padding:'3px'}}>
+                    <div style={{width:'100%',height:'100%',borderRadius:'8px',
+                      background:'rgba(0,245,255,.04)',border:'1px dashed rgba(0,245,255,.18)',
+                      display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <div style={{width:'30%',height:'30%',borderRadius:'50%',
+                        background:'rgba(0,245,255,.12)',boxShadow:'0 0 12px 4px rgba(0,245,255,.12)'}}/>
+                    </div>
+                  </div>
+                );
+
+                const cls=['tile-btn',isDis?'td':'',isSwF&&!isDis?'tw':'',
+                  isSel&&!isDis&&!swapMode?'ts':'',isHi&&!isSel&&!isDis?'th':''].filter(Boolean).join(' ');
+
+                return(
+                  <div key={`${r}-${c}`} style={{padding:'3px'}}>
+                    {cell?(
+                      <button onClick={()=>handleTile(r,c)} className={cls}
+                        style={{position:'relative',width:'100%',height:'100%',borderRadius:'8px',
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          background:cell.type==='name'
+                            ?'linear-gradient(135deg,rgba(15,23,42,.97),rgba(30,41,59,.93))'
+                            :'linear-gradient(135deg,rgba(15,23,42,.97),rgba(30,27,75,.93))',
+                          border:isSwF?'2px solid #a855f7':isSel?'1.5px solid #00f5ff':isHi?'1.5px solid #fbbf24':swapMode?'1px solid rgba(168,85,247,.2)':'1px solid rgba(255,255,255,.07)'}}>
+                        <div style={{position:'absolute',top:'4px',right:'4px',width:dotSz+'px',height:dotSz+'px',
+                          borderRadius:'50%',background:cat,opacity:.9,boxShadow:`0 0 ${dotSz}px ${cat}88`}}/>
+                        <div style={{position:'absolute',top:'3px',left:'4px',fontSize:numFS,
+                          color:'rgba(148,163,184,.48)',fontFamily:'monospace',fontWeight:700,lineHeight:1}}>{cell.id}</div>
+                        <span style={{fontWeight:800,lineHeight:1,
+                          fontSize:cell.type==='symbol'?symFS:namFS,
+                          color:cell.type==='symbol'?'#00f5ff':'#e2e8f0',
+                          fontFamily:cell.type==='symbol'?'monospace':'inherit',
+                          textShadow:cell.type==='symbol'?'0 0 10px #00f5ff88':'none'}}>
+                          {cell.value}
+                        </span>
+                      </button>
+                    ):(
+                      <div style={{width:'100%',height:'100%'}}/>
+                    )}
+                  </div>
+                );
+              }))}
+            </div>
+          )}
+
+          {notice&&<div style={{position:'absolute',top:'10px',left:'50%',zIndex:60,
+            background:'rgba(0,0,0,.88)',border:'1px solid rgba(0,245,255,.3)',borderRadius:'99px',
+            padding:'5px 16px',fontSize:'12px',fontWeight:700,color:'#00f5ff',whiteSpace:'nowrap',
+            backdropFilter:'blur(8px)',animation:'slideDown .3s ease-out'}}>{notice}</div>}
+
+          {showLevelComplete&&
+            <LevelComplete level={cfg.level} time={fmt(timeElapsed)} onNext={handleNext}
+              isBonus={isBonus}/>}
+        </div>
+
+        {swapMode&&(
+          <div style={{marginTop:'7px',padding:'7px 12px',background:'rgba(168,85,247,.1)',
+            border:'1px solid rgba(168,85,247,.3)',borderRadius:'10px',fontSize:'12px',color:'#c084fc',
+            fontWeight:600,textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
+            <span>🔀 {swapFirst?'再点第二张牌完成换位':'请点选第一张牌'}</span>
+            <button onClick={()=>{setSwapMode(false);setSwapFirst(null);}}
+              style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',
+                borderRadius:'6px',padding:'2px 8px',color:'#c084fc',cursor:'pointer',fontSize:'11px',fontWeight:700}}>取消</button>
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div style={{width:'100%',maxWidth:'640px',marginTop:'9px',display:'flex',justifyContent:'center',flexWrap:'wrap',gap:'6px'}}>
+        <SkBtn icon={<IcBulb s={14}/>} label="提示" count={hintN} color="#fbbf24"
+          disabled={busy||hintN<=0||phase!=='playing'} onClick={handleHint}/>
+        <SkBtn icon={<IcShuffle s={14}/>} label="洗牌" count={shuffleN} color="#00f5ff"
+          disabled={busy||shuffleN<=0||phase!=='playing'} onClick={()=>handleShuffle(false)}/>
+        {cfg.swap>0&&<SkBtn icon={<IcSwap s={14}/>} label="换位" count={swapN} color="#a855f7"
+          active={swapMode} disabled={swapN<=0||phase!=='playing'} onClick={handleSwapToggle}/>}
+        <SkBtn icon={<IcRotate s={14}/>} label="重新开始" count={null} color="#f87171"
+          disabled={false} onClick={resetAll}/>
+      </div>
+
+      {showBonus&&<BonusChoice time={fmt(totalTime)} onBonus={handleBonusYes} onCert={handleBonusNo}/>}
+    </div>
+  );
+}
+
+//峇株吧辖蔡逸众制作
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
