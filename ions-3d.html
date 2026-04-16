@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>离子实验室</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&family=Share+Tech+Mono&display=swap');
+:root{--bg:#04080f;--panel:rgba(8,18,35,0.88);--border:rgba(50,110,180,0.25);--pos:#ff6020;--neg:#20b8ff;--gold:#ffd060;--text:#d8eeff;--sub:#6890aa;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(20,60,120,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(20,60,120,.06) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+.tab-bar{position:relative;z-index:20;display:flex;background:rgba(4,10,22,.95);border-bottom:1px solid var(--border);padding:0 20px;}
+.tab-btn{padding:13px 22px;background:none;border:none;color:var(--sub);font-family:inherit;font-size:.88rem;cursor:pointer;letter-spacing:.06em;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--neg);}
+.tab-btn:hover:not(.active){color:#a0c8e0;}
+.tab-panel{display:none;position:relative;z-index:10;}
+.tab-panel.active{display:block;}
+.page-header{text-align:center;padding:20px 20px 8px;}
+.page-header h1{font-family:'Share Tech Mono',monospace;font-size:clamp(.95rem,3vw,1.7rem);letter-spacing:.14em;background:linear-gradient(120deg,#40c8ff 0%,#a0ffe0 50%,#ffd060 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.page-header p{font-size:.78rem;color:var(--sub);margin-top:5px;letter-spacing:.04em;}
+.legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;padding:5px 16px 2px;font-size:.75rem;}
+.legend-item{display:flex;align-items:center;gap:6px;color:#90b8cc;}
+.ldot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.ldot.pos{background:radial-gradient(circle at 35% 35%,#ff9060,#cc3300);box-shadow:0 0 5px #ff5500;}
+.ldot.neg{background:radial-gradient(circle at 35% 35%,#60c8ff,#0044cc);box-shadow:0 0 5px #0088ff;}
+.bump-legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:.72rem;padding:3px 16px 6px;}
+.bump-legend-item{display:flex;align-items:center;gap:5px;color:#7090a8;}
+.bump-swatch{width:26px;height:9px;border-radius:4px;}
+.swatch-in{background:linear-gradient(90deg,#ff3300,#ff9900);box-shadow:0 0 5px #ff6600aa;}
+.swatch-out{background:linear-gradient(90deg,#0088ff,#00eeff);box-shadow:0 0 5px #00ccffaa;}
+.ion-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:13px;padding:12px 18px 34px;max-width:1280px;margin:0 auto;}
+.ion-card{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;backdrop-filter:blur(6px);transition:transform .25s,border-color .3s,box-shadow .3s;}
+.ion-card:hover{transform:translateY(-3px) scale(1.02);}
+.ion-card.positive{border-color:rgba(255,90,20,.4);}.ion-card.positive:hover{border-color:rgba(255,120,40,.9);box-shadow:0 6px 22px rgba(255,90,20,.26);}
+.ion-card.negative{border-color:rgba(20,140,255,.4);}.ion-card.negative:hover{border-color:rgba(40,160,255,.9);box-shadow:0 6px 22px rgba(20,140,255,.26);}
+.ion-card.polyatomic{border-color:rgba(20,200,140,.4);}.ion-card.polyatomic:hover{border-color:rgba(40,230,160,.9);box-shadow:0 6px 22px rgba(20,200,140,.26);}
+.ion-preview{width:140px;height:140px;border-radius:10px;display:block;background:#060e1a;}
+.ion-name{font-size:.92rem;font-weight:700;color:#eaf4ff;}
+.ion-formula{font-family:'Share Tech Mono',monospace;font-size:.86rem;color:#70c0ff;}
+.ion-tag{font-size:.7rem;padding:2px 8px;border-radius:16px;font-weight:700;}
+.tag-pos{background:rgba(255,70,10,.14);color:#ff7040;border:1px solid rgba(255,70,10,.38);}
+.tag-neg{background:rgba(10,120,255,.14);color:#50b0ff;border:1px solid rgba(10,120,255,.38);}
+.ion-desc{font-size:.68rem;color:var(--sub);text-align:center;line-height:1.5;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;backdrop-filter:blur(6px);justify-content:center;align-items:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:rgba(5,14,28,.97);border:1px solid rgba(60,150,220,.5);border-radius:17px;padding:20px;width:min(92vw,410px);position:relative;animation:mIn .25s ease;display:flex;flex-direction:column;align-items:center;gap:8px;}
+@keyframes mIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--sub);font-size:1.3rem;cursor:pointer;}
+.modal-close:hover{color:#fff;}
+#modalCanvas{width:260px;height:260px;border-radius:12px;display:block;cursor:grab;touch-action:none;}
+#modalCanvas:active{cursor:grabbing;}
+.modal-title{font-size:1.25rem;font-weight:700;color:#eaf8ff;}
+.modal-formula{font-family:'Share Tech Mono',monospace;font-size:.96rem;color:#40b8ff;}
+.modal-info{font-size:.76rem;color:#7aaccc;text-align:center;line-height:1.8;border-top:1px solid rgba(60,120,180,.2);padding-top:8px;width:100%;}
+.modal-hint{font-size:.66rem;color:#344e62;}
+/* LAB */
+#labPanel{padding:8px 18px 36px;max-width:1100px;margin:0 auto;}
+.lab-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:620px){.lab-layout{grid-template-columns:1fr;}}
+.lab-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.lab-section h2{font-family:'Share Tech Mono',monospace;font-size:.86rem;letter-spacing:.1em;color:#60a8cc;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:7px;}
+.ion-picker-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.pick-btn{padding:4px 10px;border-radius:18px;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:.78rem;cursor:pointer;transition:all .2s;background:none;color:inherit;}
+.pick-btn.pos-btn{border-color:rgba(255,90,20,.5);color:#ff8050;}.pick-btn.pos-btn:hover,.pick-btn.pos-btn.selected{background:rgba(255,90,20,.2);border-color:#ff6030;box-shadow:0 0 7px #ff602055;}
+.pick-btn.neg-btn{border-color:rgba(20,140,255,.5);color:#50b0ff;}.pick-btn.neg-btn:hover,.pick-btn.neg-btn.selected{background:rgba(20,140,255,.2);border-color:#20a0ff;box-shadow:0 0 7px #20a0ff55;}
+.reaction-zone{min-height:200px;border-radius:13px;border:2px dashed rgba(60,120,180,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;position:relative;overflow:hidden;transition:border-color .3s;}
+.reaction-zone.ready{border-color:rgba(80,220,80,.6);box-shadow:inset 0 0 28px rgba(80,220,80,.05);}
+.reaction-zone.error{border-color:rgba(255,80,20,.5);}
+.reaction-ions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;}
+.react-ion-chip{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;}
+.react-ion-chip canvas{width:76px;height:76px;border-radius:8px;display:block;}
+.react-ion-chip .chip-label{font-family:'Share Tech Mono',monospace;font-size:.72rem;}
+.react-ion-chip .chip-count{font-size:.7rem;color:var(--gold);background:rgba(0,0,0,.5);border-radius:9px;padding:1px 5px;}
+.react-ion-chip .chip-remove{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:rgba(255,60,40,.85);border:none;color:#fff;font-size:.7rem;line-height:17px;text-align:center;cursor:pointer;display:none;}
+.react-ion-chip:hover .chip-remove{display:block;}
+.plus-sign{font-size:1.5rem;color:var(--sub);}
+.charge-bar{width:100%;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;height:7px;margin:3px 0;}
+.charge-fill{height:100%;border-radius:7px;transition:width .4s,background .4s;}
+.balance-info{font-size:.75rem;text-align:center;font-family:'Share Tech Mono',monospace;letter-spacing:.04em;}
+.synth-btn{padding:8px 24px;border-radius:22px;background:linear-gradient(135deg,#1a8a4a,#22cc66);border:none;color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .2s;letter-spacing:.05em;}
+.synth-btn:disabled{opacity:.28;cursor:not-allowed;transform:none!important;}
+.synth-btn:not(:disabled):hover{transform:scale(1.05);}
+.clear-btn{padding:8px 18px;border-radius:22px;background:rgba(80,80,100,.4);border:1px solid rgba(120,120,160,.3);color:#a0b0c0;font-family:inherit;font-size:.85rem;cursor:pointer;transition:background .2s;}
+.clear-btn:hover{background:rgba(100,100,130,.5);}
+/* Result */
+.result-panel{background:rgba(10,30,15,.65);border:1px solid rgba(60,200,80,.3);border-radius:13px;padding:12px;animation:gIn .5s ease;}
+@keyframes gIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+.result-formula{font-family:'Share Tech Mono',monospace;font-size:1.5rem;color:var(--gold);text-shadow:0 0 16px #ffd06055;letter-spacing:.1em;}
+.result-name{font-size:.82rem;color:#80e8a0;margin-top:3px;}
+.result-type{font-size:.72rem;color:var(--sub);margin-top:1px;}
+.result-equation{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:#a0c8e0;margin-top:7px;background:rgba(255,255,255,.04);border-radius:7px;padding:5px 9px;}
+/* Compound 3D viewer */
+.compound-viewer{margin-top:10px;background:rgba(4,14,28,.9);border:1px solid rgba(60,140,200,.3);border-radius:13px;overflow:hidden;}
+.compound-viewer-header{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(60,120,180,.2);}
+.compound-viewer-title{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:#60a8cc;letter-spacing:.06em;}
+.compound-hint{font-size:.66rem;color:#344e62;}
+#compoundCanvas{display:block;cursor:grab;touch-action:none;border-radius:0 0 12px 12px;}
+#compoundCanvas:active{cursor:grabbing;}
+.particle{position:absolute;border-radius:50%;animation:fly .9s ease-out forwards;}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}
+#sharedCanvas{position:fixed;top:-9999px;left:-9999px;}
+</style>
+</head>
+<body>
+<canvas id="sharedCanvas" width="160" height="160"></canvas>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('ions',this)">⚛ 离子图鉴</button>
+  <button class="tab-btn" onclick="switchTab('lab',this)">⚗ 合成实验室</button>
+</div>
+
+<!-- TAB 1 -->
+<div id="ionsPanel" class="tab-panel active">
+  <div class="page-header"><h1>离子三维图鉴</h1><p>凹陷区域（橙红高亮）= 缺电子 · 凸起区域（蓝青高亮）= 多电子</p></div>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot pos"></div>正离子（凹陷）</div>
+    <div class="legend-item"><div class="ldot neg"></div>负离子（凸起）</div>
+  </div>
+  <div class="bump-legend">
+    <div class="bump-legend-item"><div class="bump-swatch swatch-in"></div>凹陷高亮（失电子区）</div>
+    <div class="bump-legend-item"><div class="bump-swatch swatch-out"></div>凸起高亮（得电子区）</div>
+  </div>
+  <div class="ion-grid" id="ionGrid"></div>
+</div>
+
+<!-- TAB 2 -->
+<div id="labPanel" class="tab-panel">
+  <div class="page-header"><h1>⚗ 离子合成实验室</h1><p>选择正离子和负离子，电荷平衡后合成化合物</p></div>
+  <div class="lab-layout">
+    <div>
+      <div class="lab-section" style="margin-bottom:12px">
+        <h2>▲ 正离子</h2><div class="ion-picker-grid" id="posPicker"></div>
+      </div>
+      <div class="lab-section">
+        <h2>▼ 负离子</h2><div class="ion-picker-grid" id="negPicker"></div>
+      </div>
+    </div>
+    <div class="lab-section">
+      <h2>⚗ 反应区</h2>
+      <div class="reaction-zone" id="reactionZone">
+        <div id="reactionContent" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:9px;">
+          <div style="color:var(--sub);font-size:.8rem;">← 从左侧选择离子加入反应区</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="balance-info" id="balanceInfo" style="color:var(--sub)">尚未选择离子</div>
+        <div class="charge-bar" style="margin-top:5px"><div class="charge-fill" id="chargeFill" style="width:50%;background:#334"></div></div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:10px;gap:9px;">
+        <button class="synth-btn" id="synthBtn" disabled onclick="synthesize()">⚗ 合成</button>
+        <button class="clear-btn" onclick="clearReaction()">✕ 清空</button>
+      </div>
+      <div id="resultArea" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-title" id="mTitle"></div>
+    <div class="modal-formula" id="mFormula"></div>
+    <canvas id="modalCanvas" width="260" height="260"></canvas>
+    <div class="modal-info" id="mInfo"></div>
+    <div class="modal-hint">拖动旋转 · 滚轮缩放</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// CPK element colours (standard chemistry colouring)
+// ═══════════════════════════════════════════════════════════
+const CPK = {
+  H:  0xffffff,  // white
+  C:  0x444444,  // dark grey
+  N:  0x4466ff,  // blue
+  O:  0xff3322,  // red
+  S:  0xffcc00,  // yellow
+  P:  0xff8800,  // orange
+  Cl: 0x22cc44,  // green
+  Na: 0xdd9933,  // gold-orange
+  K:  0xcc6600,  // brown-orange
+  Ca: 0xaaddbb,  // pale green
+  Mg: 0x44bb88,  // teal
+  Al: 0xbbbbcc,  // light grey
+  NH4:0x4466ff,  // N colour for central atom
+};
+
+// ═══════════════════════════════════════════════════════════
+// ION DEFINITIONS
+// atoms: r=VdW radius scale, el=element key
+// pos: 3D positions (Å scale, will be normalised)
+// bumpDirs: explicit free-space directions for bumps
+// ═══════════════════════════════════════════════════════════
+const IONS = [
+  { id:'NO3', name:'硝酸根', formula:'NO₃⁻', charge:-1, cls:'polyatomic',
+    bumps:1, bumpType:'out',
+    desc:'平面三角形\n得1个电子→1个凸起',
+    detail:'电荷: -1 | 结构: 平面三角形\n氮原子与三个等价氧原子成键\n广泛存在于硝酸盐中',
+    atoms:[{r:0.35,el:'N'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'}],
+    bonds:[[0,1],[0,2],[0,3]],
+    pos:[[0,0,0],[0,0.85,0],[-0.74,-0.42,0],[0.74,-0.42,0]],
+    // Free direction: above the plane (z-axis, away from all atoms)
+    bumpDirs:[[0,0,1]] },
+
+  { id:'SO4', name:'硫酸根', formula:'SO₄²⁻', charge:-2, cls:'polyatomic',
+    bumps:2, bumpType:'out',
+    desc:'正四面体\n得2个电子→2个凸起',
+    detail:'电荷: -2 | 结构: 正四面体\n硫原子与四个等价氧原子成键\n强酸硫酸对应的酸根',
+    atoms:[{r:0.38,el:'S'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'}],
+    bonds:[[0,1],[0,2],[0,3],[0,4]],
+    pos:[[0,0,0],[0,0.95,0],[-0.9,-0.32,0],[0.45,-0.32,0.78],[0.45,-0.32,-0.78]],
+    // Two gaps between tetrahedral bonds
+    bumpDirs:[[0,-1,0],[-0.7,0.5,-0.5]] },
+
+  { id:'CO3', name:'碳酸根', formula:'CO₃²⁻', charge:-2, cls:'polyatomic',
+    bumps:2, bumpType:'out',
+    desc:'平面三角形\n得2个电子→2个凸起',
+    detail:'电荷: -2 | 结构: 平面三角形\n存在于石灰石、大理石等碳酸盐中',
+    atoms:[{r:0.32,el:'C'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'}],
+    bonds:[[0,1],[0,2],[0,3]],
+    pos:[[0,0,0],[0,0.85,0],[-0.74,-0.42,0],[0.74,-0.42,0]],
+    // Above and below the plane
+    bumpDirs:[[0,0,1],[0,0,-1]] },
+
+  { id:'NH4', name:'铵根', formula:'NH₄⁺', charge:+1, cls:'positive',
+    bumps:1, bumpType:'in',
+    desc:'正四面体\n失1个电子→1个凹陷',
+    detail:'电荷: +1 | 结构: 正四面体\n氮原子与四个氢原子成键\n碱性铵盐的核心离子',
+    atoms:[{r:0.35,el:'N'},{r:0.18,el:'H'},{r:0.18,el:'H'},{r:0.18,el:'H'},{r:0.18,el:'H'}],
+    bonds:[[0,1],[0,2],[0,3],[0,4]],
+    pos:[[0,0,0],[0,0.82,0],[-0.78,-0.28,0],[0.39,-0.28,0.67],[0.39,-0.28,-0.67]],
+    // Gap between tetrahedral H's
+    bumpDirs:[[0,-1,0]] },
+
+  { id:'PO4', name:'磷酸根', formula:'PO₄³⁻', charge:-3, cls:'polyatomic',
+    bumps:3, bumpType:'out',
+    desc:'正四面体\n得3个电子→3个凸起',
+    detail:'电荷: -3 | 结构: 正四面体\n生物能量代谢关键离子',
+    atoms:[{r:0.40,el:'P'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'},{r:0.28,el:'O'}],
+    bonds:[[0,1],[0,2],[0,3],[0,4]],
+    pos:[[0,0,0],[0,0.95,0],[-0.9,-0.32,0],[0.45,-0.32,0.78],[0.45,-0.32,-0.78]],
+    // Three gaps between tetrahedral bonds
+    bumpDirs:[[0,-1,0],[-0.5,0.5,0.7],[0.7,0.5,-0.4]] },
+
+  { id:'Cl', name:'氯离子', formula:'Cl⁻', charge:-1, cls:'negative',
+    bumps:1, bumpType:'out',
+    desc:'单原子\n得1个电子→1个凸起',
+    detail:'电荷: -1 | 单原子阴离子\n氯原子得1个电子，外层8电子\n常见于氯化物盐类',
+    atoms:[{r:0.60,el:'Cl'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0]] },
+
+  { id:'H', name:'氢离子', formula:'H⁺', charge:+1, cls:'positive',
+    bumps:1, bumpType:'in',
+    desc:'质子，单原子正离子\n失去1个电子→1个凹陷',
+    detail:'电荷: +1 | 质子\n氢原子失去唯一的电子\n水溶液中形成水合氢离子',
+    atoms:[{r:0.26,el:'H'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0]] },
+
+  { id:'K', name:'钾离子', formula:'K⁺', charge:+1, cls:'positive',
+    bumps:1, bumpType:'in',
+    desc:'单原子\n失1个电子→1个凹陷',
+    detail:'电荷: +1 | 碱金属离子\n钾原子失去最外层1个电子\n细胞内液的主要阳离子',
+    atoms:[{r:0.62,el:'K'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0]] },
+
+  { id:'Na', name:'钠离子', formula:'Na⁺', charge:+1, cls:'positive',
+    bumps:1, bumpType:'in',
+    desc:'单原子\n失1个电子→1个凹陷',
+    detail:'电荷: +1 | 碱金属离子\n钠原子失去最外层1个电子\n细胞外液的主要阳离子',
+    atoms:[{r:0.55,el:'Na'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0]] },
+
+  { id:'Al', name:'铝离子', formula:'Al³⁺', charge:+3, cls:'positive',
+    bumps:3, bumpType:'in',
+    desc:'单原子\n失3个电子→3个凹陷',
+    detail:'电荷: +3 | 金属阳离子\n铝原子失去最外层3个电子\n铝盐溶液会发生水解',
+    atoms:[{r:0.50,el:'Al'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0],[-0.87,-0.5,0],[0.87,-0.5,0]] },
+
+  { id:'Ca', name:'钙离子', formula:'Ca²⁺', charge:+2, cls:'positive',
+    bumps:2, bumpType:'in',
+    desc:'单原子\n失2个电子→2个凹陷',
+    detail:'电荷: +2 | 碱土金属离子\n钙原子失去最外层2个电子',
+    atoms:[{r:0.58,el:'Ca'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0],[0,-1,0]] },
+
+  { id:'Mg', name:'镁离子', formula:'Mg²⁺', charge:+2, cls:'positive',
+    bumps:2, bumpType:'in',
+    desc:'单原子\n失2个电子→2个凹陷',
+    detail:'电荷: +2 | 碱土金属离子\n镁原子失去最外层2个电子',
+    atoms:[{r:0.48,el:'Mg'}], bonds:[], pos:[[0,0,0]],
+    bumpDirs:[[0,1,0],[0,-1,0]] },
+
+  { id:'OH', name:'氢氧根', formula:'OH⁻', charge:-1, cls:'negative',
+    bumps:1, bumpType:'out',
+    desc:'双原子\n得1个电子→1个凸起',
+    detail:'电荷: -1 | 线型双原子\n碱溶液中的特征离子',
+    atoms:[{r:0.30,el:'O'},{r:0.18,el:'H'}],
+    bonds:[[0,1]], pos:[[0,0,0],[0,0.70,0]],
+    // Free direction: away from H, on side
+    bumpDirs:[[1,0,0]] },
+];
+
+// ═══════════════════════════════════════════════════════════
+// COMPOUND DATABASE + 3D structures
+// ═══════════════════════════════════════════════════════════
+// Each compound has: formula, name, cname, type, extra, atoms3d, bonds3d
+// atoms3d: [{el, pos:[x,y,z]}, ...]  (positions in Å-like units)
+const COMPOUNDS = {
+  'Na+Cl':  mkIonic('NaCl','氯化钠','食盐','离子晶体','典型离子化合物，面心立方晶格',
+    [{el:'Na',p:[0,0,0]},{el:'Cl',p:[1.5,0,0]}],[]),
+  'K+Cl':   mkIonic('KCl','氯化钾','KCl','离子晶体','常用于肥料和医药',
+    [{el:'K',p:[0,0,0]},{el:'Cl',p:[1.6,0,0]}],[]),
+  'Ca+Cl':  mkIonic('CaCl₂','氯化钙','CaCl₂','离子晶体','干燥剂，吸水性极强',
+    [{el:'Ca',p:[0,0,0]},{el:'Cl',p:[-1.4,0,0]},{el:'Cl',p:[1.4,0,0]}],[]),
+  'Mg+Cl':  mkIonic('MgCl₂','氯化镁','MgCl₂','离子晶体','海水提镁的原料',
+    [{el:'Mg',p:[0,0,0]},{el:'Cl',p:[-1.35,0,0]},{el:'Cl',p:[1.35,0,0]}],[]),
+  'Al+Cl':  mkIonic('AlCl₃','氯化铝','AlCl₃','离子/共价混合','水解显酸性，净水剂',
+    [{el:'Al',p:[0,0,0]},{el:'Cl',p:[1.3,0,0]},{el:'Cl',p:[-0.65,1.12,0]},{el:'Cl',p:[-0.65,-1.12,0]}],[]),
+  'Na+OH':  mkIonic('NaOH','氢氧化钠','烧碱','离子晶体','强碱，实验室常用试剂',
+    [{el:'Na',p:[-1.2,0,0]},{el:'O',p:[0,0,0]},{el:'H',p:[0.96,0,0]}],[[1,2]]),
+  'K+OH':   mkIonic('KOH','氢氧化钾','KOH','离子晶体','强碱，制皂业原料',
+    [{el:'K',p:[-1.3,0,0]},{el:'O',p:[0,0,0]},{el:'H',p:[0.96,0,0]}],[[1,2]]),
+  'Ca+OH':  mkIonic('Ca(OH)₂','氢氧化钙','熟石灰','离子晶体','建筑材料，微溶于水',
+    [{el:'Ca',p:[0,0,0]},{el:'O',p:[-1.2,0.8,0]},{el:'H',p:[-1.9,1.4,0]},{el:'O',p:[1.2,0.8,0]},{el:'H',p:[1.9,1.4,0]}],[[1,2],[3,4]]),
+  'Mg+OH':  mkIonic('Mg(OH)₂','氢氧化镁','Mg(OH)₂','离子晶体','难溶，胃药成分',
+    [{el:'Mg',p:[0,0,0]},{el:'O',p:[-1.1,0.75,0]},{el:'H',p:[-1.8,1.35,0]},{el:'O',p:[1.1,0.75,0]},{el:'H',p:[1.8,1.35,0]}],[[1,2],[3,4]]),
+  'Al+OH':  mkIonic('Al(OH)₃','氢氧化铝','Al(OH)₃','离子晶体','两性氢氧化物，净水剂',
+    [{el:'Al',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'H',p:[0,2.1,0]},{el:'O',p:[-1.1,-0.65,0]},{el:'H',p:[-1.8,-1.1,0]},{el:'O',p:[1.1,-0.65,0]},{el:'H',p:[1.8,-1.1,0]}],[[1,2],[3,4],[5,6]]),
+  'Na+NO3': mkIonic('NaNO₃','硝酸钠','智利硝石','离子晶体','肥料和炸药原料',
+    [{el:'Na',p:[-2,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.1,0]},{el:'O',p:[-1,-0.55,0]},{el:'O',p:[1,-0.55,0]}],[[1,2],[1,3],[1,4]]),
+  'K+NO3':  mkIonic('KNO₃','硝酸钾','KNO₃','离子晶体','火药成分之一',
+    [{el:'K',p:[-2.1,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.1,0]},{el:'O',p:[-1,-0.55,0]},{el:'O',p:[1,-0.55,0]}],[[1,2],[1,3],[1,4]]),
+  'Ca+NO3': mkIonic('Ca(NO₃)₂','硝酸钙','Ca(NO₃)₂','离子晶体','农业钙肥',
+    [{el:'Ca',p:[0,0,0]},{el:'N',p:[2,0,0.5]},{el:'O',p:[2,1.1,0.5]},{el:'O',p:[1,-0.55,0.5]},{el:'O',p:[3,-0.55,0.5]},{el:'N',p:[-2,0,0.5]},{el:'O',p:[-2,1.1,0.5]},{el:'O',p:[-3,-0.55,0.5]},{el:'O',p:[-1,-0.55,0.5]}],[[1,2],[1,3],[1,4],[5,6],[5,7],[5,8]]),
+  'Na+SO4': mkIonic('Na₂SO₄','硫酸钠','芒硝','离子晶体','玻璃、造纸工业原料',
+    [{el:'Na',p:[-2.2,0.8,0]},{el:'Na',p:[-2.2,-0.8,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]}],[[2,3],[2,4],[2,5],[2,6]]),
+  'K+SO4':  mkIonic('K₂SO₄','硫酸钾','K₂SO₄','离子晶体','优质钾肥',
+    [{el:'K',p:[-2.3,0.9,0]},{el:'K',p:[-2.3,-0.9,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]}],[[2,3],[2,4],[2,5],[2,6]]),
+  'Ca+SO4': mkIonic('CaSO₄','硫酸钙','石膏','离子晶体','建筑材料，医疗石膏',
+    [{el:'Ca',p:[-2.2,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]}],[[1,2],[1,3],[1,4],[1,5]]),
+  'Mg+SO4': mkIonic('MgSO₄','硫酸镁','泻盐','离子晶体','医用泻剂，农用肥料',
+    [{el:'Mg',p:[-2.1,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]}],[[1,2],[1,3],[1,4],[1,5]]),
+  'Al+SO4': mkIonic('Al₂(SO₄)₃','硫酸铝','Al₂(SO₄)₃','离子晶体','净水剂，明矾原料',
+    [{el:'Al',p:[-2.5,0,0]},{el:'Al',p:[2.5,0,0]},{el:'S',p:[0,1.5,0]},{el:'O',p:[0,2.8,0]},{el:'O',p:[-1.3,1.5,0]},{el:'O',p:[1.3,1.5,0]},{el:'O',p:[0,0.2,0]}],[[2,3],[2,4],[2,5],[2,6]]),
+  'Na+CO3': mkIonic('Na₂CO₃','碳酸钠','纯碱','离子晶体','玻璃、造纸重要原料',
+    [{el:'Na',p:[-2.2,0.8,0]},{el:'Na',p:[-2.2,-0.8,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]}],[[2,3],[2,4],[2,5]]),
+  'K+CO3':  mkIonic('K₂CO₃','碳酸钾','K₂CO₃','离子晶体','玻璃工业和肥皂制造',
+    [{el:'K',p:[-2.3,0.9,0]},{el:'K',p:[-2.3,-0.9,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]}],[[2,3],[2,4],[2,5]]),
+  'Ca+CO3': mkIonic('CaCO₃','碳酸钙','石灰石','离子晶体','自然界最常见的碳酸盐',
+    [{el:'Ca',p:[-2.2,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]}],[[1,2],[1,3],[1,4]]),
+  'Mg+CO3': mkIonic('MgCO₃','碳酸镁','MgCO₃','离子晶体','菱镁矿，耐火材料',
+    [{el:'Mg',p:[-2.1,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]}],[[1,2],[1,3],[1,4]]),
+  'Na+PO4': mkIonic('Na₃PO₄','磷酸钠','Na₃PO₄','离子晶体','洗涤剂和水处理剂',
+    [{el:'Na',p:[-2.2,1,0]},{el:'Na',p:[-2.2,-1,0]},{el:'Na',p:[-3,0,0]},{el:'P',p:[0,0,0]},{el:'O',p:[0,1.4,0]},{el:'O',p:[0,-1.4,0]},{el:'O',p:[1.4,0,0]},{el:'O',p:[-1.4,0,0]}],[[3,4],[3,5],[3,6],[3,7]]),
+  'Ca+PO4': mkIonic('Ca₃(PO₄)₂','磷酸钙','Ca₃(PO₄)₂','离子晶体','骨骼和牙齿的主要成分',
+    [{el:'Ca',p:[-2.2,1.2,0]},{el:'Ca',p:[-2.2,-1.2,0]},{el:'Ca',p:[2.8,0,0]},{el:'P',p:[-0.8,0,0.8]},{el:'O',p:[-0.8,1.3,0.8]},{el:'O',p:[-0.8,-1.3,0.8]},{el:'O',p:[-2,0.0,0.8]},{el:'O',p:[0.4,0,0.8]},{el:'P',p:[-0.8,0,-0.8]},{el:'O',p:[-0.8,1.3,-0.8]},{el:'O',p:[-0.8,-1.3,-0.8]},{el:'O',p:[-2,0,-0.8]},{el:'O',p:[0.4,0,-0.8]}],[[3,4],[3,5],[3,6],[3,7],[8,9],[8,10],[8,11],[8,12]]),
+  'NH4+Cl': mkIonic('NH₄Cl','氯化铵','铵盐','离子晶体','氮肥，水溶液显弱酸性',
+    [{el:'N',p:[0,0,0]},{el:'H',p:[0,0.82,0]},{el:'H',p:[-0.78,-0.28,0]},{el:'H',p:[0.39,-0.28,0.67]},{el:'H',p:[0.39,-0.28,-0.67]},{el:'Cl',p:[0,0,2.5]}],[[0,1],[0,2],[0,3],[0,4]]),
+  'NH4+SO4':mkIonic('(NH₄)₂SO₄','硫酸铵','硫酸铵','离子晶体','常用氮肥',
+    [{el:'N',p:[-2.5,0.8,0]},{el:'H',p:[-2.5,1.6,0]},{el:'H',p:[-3.3,0.5,0]},{el:'H',p:[-2.2,0.5,0.7]},{el:'H',p:[-2.2,0.5,-0.7]},{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]}],[[0,1],[0,2],[0,3],[0,4],[5,6],[5,7],[5,8],[5,9]]),
+  'NH4+NO3':mkIonic('NH₄NO₃','硝酸铵','NH₄NO₃','离子晶体','氮肥，需谨慎储存',
+    [{el:'N',p:[-2.2,0,0]},{el:'H',p:[-2.2,0.82,0]},{el:'H',p:[-3,-0.28,0]},{el:'H',p:[-1.82,-0.28,0.67]},{el:'H',p:[-1.82,-0.28,-0.67]},{el:'N',p:[0.8,0,0]},{el:'O',p:[0.8,1.1,0]},{el:'O',p:[-0.2,-0.55,0]},{el:'O',p:[1.8,-0.55,0]}],[[0,1],[0,2],[0,3],[0,4],[5,6],[5,7],[5,8]]),
+  'NH4+CO3':mkIonic('(NH₄)₂CO₃','碳酸铵','碳酸铵','离子晶体','发酵粉成分，不稳定',
+    [{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]},{el:'N',p:[0,0,2.5]},{el:'H',p:[0,0.82,2.5]},{el:'H',p:[-0.78,-0.28,2.5]},{el:'H',p:[0.39,-0.28,3.17]},{el:'H',p:[0.39,-0.28,1.83]}],[[0,1],[0,2],[0,3],[4,5],[4,6],[4,7],[4,8]]),
+  'H+Cl':   mkIonic('HCl','氯化氢','盐酸','共价化合物','溶于水生成盐酸，强酸',
+    [{el:'H',p:[-0.63,0,0]},{el:'Cl',p:[0.63,0,0]}],[[0,1]]),
+  'H+OH':   mkIonic('H₂O','水','H₂O','共价化合物','酸碱中和生成水，生命之源',
+    [{el:'O',p:[0,0,0]},{el:'H',p:[0.78,0.63,0]},{el:'H',p:[-0.78,0.63,0]}],[[0,1],[0,2]]),
+  'H+NO3':  mkIonic('HNO₃','硝酸','HNO₃','共价化合物','强酸，强氧化性酸',
+    [{el:'H',p:[1.95,0.95,0]},{el:'O',p:[1.1,0.55,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.1,0]},{el:'O',p:[-1.05,-0.55,0]}],[[0,1],[1,2],[2,3],[2,4]]),
+  'H+SO4':  mkIonic('H₂SO₄','硫酸','H₂SO₄','共价化合物','强酸，最重要的工业酸',
+    [{el:'S',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[0,-1.3,0]},{el:'O',p:[1.3,0,0]},{el:'O',p:[-1.3,0,0]},{el:'H',p:[2.25,0,0]},{el:'H',p:[-2.25,0,0]}],[[0,1],[0,2],[0,3],[0,4],[3,5],[4,6]]),
+  'H+CO3':  mkIonic('H₂CO₃','碳酸','H₂CO₃','共价化合物','弱酸，不稳定',
+    [{el:'C',p:[0,0,0]},{el:'O',p:[0,1.2,0]},{el:'O',p:[-1.05,-0.6,0]},{el:'O',p:[1.05,-0.6,0]},{el:'H',p:[-1.75,-1.1,0]},{el:'H',p:[1.75,-1.1,0]}],[[0,1],[0,2],[0,3],[2,4],[3,5]]),
+  'H+PO4':  mkIonic('H₃PO₄','磷酸','H₃PO₄','共价化合物','中强酸，广泛用于化工',
+    [{el:'P',p:[0,0,0]},{el:'O',p:[0,1.4,0]},{el:'O',p:[0,-1.4,0]},{el:'O',p:[1.4,0,0]},{el:'O',p:[-1.4,0,0]},{el:'H',p:[0,-2.35,0]},{el:'H',p:[2.35,0,0]},{el:'H',p:[-2.35,0,0]}],[[0,1],[0,2],[0,3],[0,4],[2,5],[3,6],[4,7]]),
+};
+
+function mkIonic(formula,name,cname,type,extra,atoms3d,bonds3d){
+  return {formula,name,cname,type,extra,atoms3d,bonds3d};
+}
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS — only 2 WebGL contexts
+// ═══════════════════════════════════════════════════════════
+const sharedCanvas = document.getElementById('sharedCanvas');
+const sharedRenderer = new THREE.WebGLRenderer({canvas:sharedCanvas,antialias:true,preserveDrawingBuffer:true});
+sharedRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+const modalCanvas = document.getElementById('modalCanvas');
+const modalRenderer = new THREE.WebGLRenderer({canvas:modalCanvas,antialias:true});
+modalRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+modalRenderer.setSize(260,260,false);
+
+// Compound viewer renderer (created lazily, reuses same canvas)
+let compoundCanvas = null, compoundRenderer = null;
+
+function getElementColor(el) {
+  return CPK[el] !== undefined ? CPK[el] : 0x888888;
+}
+function getElementRadius(el) {
+  const R = {H:0.22,C:0.34,N:0.32,O:0.30,S:0.42,P:0.40,Cl:0.50,Na:0.52,K:0.58,Ca:0.55,Mg:0.46,Al:0.46};
+  return R[el] || 0.35;
+}
+
+function addLights(scene) {
+  scene.add(new THREE.AmbientLight(0x334455,1.3));
+  const d1=new THREE.DirectionalLight(0xcce4ff,2.5); d1.position.set(3,4,5); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xff9955,1.0); d2.position.set(-3,-2,2); scene.add(d2);
+  const pt=new THREE.PointLight(0x88ddff,1.2,20); pt.position.set(0,0,4); scene.add(pt);
+}
+
+// ── Bump sphere with explicit bump directions (no overlap) ──
+function bumpedSphere(radius, bumpDirs, bumpType) {
+  const segs = 56;
+  const g = new THREE.SphereGeometry(radius, segs, segs);
+  const BUMP_R = 0.52;
+  const depth  = bumpType==='in' ? -0.32*radius : 0.32*radius;
+  const pos = g.attributes.position;
+  const nrm = g.attributes.normal;
+  const colors = new Float32Array(pos.count*3);
+  // highlight colours
+  const hlCol = bumpType==='in'
+    ? new THREE.Color(1.0, 0.28, 0.0)   // orange-red  (凹陷)
+    : new THREE.Color(0.0, 0.72, 1.0);  // cyan-blue   (凸起)
+  const baseCol = new THREE.Color(1,1,1);
+  const v = new THREE.Vector3();
+  // normalise bumpDirs
+  const dirs = bumpDirs.map(d=>{const v=new THREE.Vector3(...d);v.normalize();return v;});
+
+  for(let i=0;i<pos.count;i++){
+    v.set(pos.getX(i),pos.getY(i),pos.getZ(i));
+    const dir=v.clone().normalize();
+    let maxT=0;
+    for(const c of dirs){
+      const ang=Math.acos(Math.min(1,dir.dot(c)));
+      if(ang<BUMP_R){const t=1-ang/BUMP_R;const s=t*t*(3-2*t);if(s>maxT)maxT=s;}
+    }
+    if(maxT>0){
+      const d=depth*maxT;
+      pos.setXYZ(i,pos.getX(i)+nrm.getX(i)*d,pos.getY(i)+nrm.getY(i)*d,pos.getZ(i)+nrm.getZ(i)*d);
+    }
+    const fc=baseCol.clone().lerp(hlCol,maxT*0.92);
+    colors[i*3]=fc.r;colors[i*3+1]=fc.g;colors[i*3+2]=fc.b;
+  }
+  pos.needsUpdate=true;
+  g.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  g.computeVertexNormals();
+  return g;
+}
+
+// Build ion group (for gallery/modal)
+function buildIonGroup(ion, sc) {
+  const group=new THREE.Group();
+  // Compute atom positions in world (for bump direction calculation relative to neighbours)
+  const worldPos = ion.pos.map(p=>new THREE.Vector3(p[0]*sc,p[1]*sc,p[2]*sc));
+
+  ion.atoms.forEach((a,i)=>{
+    const isMain = i===0 || ion.atoms.length===1;
+    const r = a.r*1.28*sc;
+    let geom;
+    if(isMain && ion.bumpDirs && ion.bumpDirs.length>0){
+      geom = bumpedSphere(r, ion.bumpDirs, ion.bumpType);
+    } else {
+      geom = new THREE.SphereGeometry(r,48,48);
+    }
+    const col = getElementColor(a.el);
+    const mat = new THREE.MeshPhongMaterial({
+      color:col, shininess:120, specular:0x444444,
+      vertexColors: (isMain && ion.bumpDirs && ion.bumpDirs.length>0)
+    });
+    const m=new THREE.Mesh(geom,mat);
+    m.position.copy(worldPos[i]);
+    group.add(m);
+  });
+  ion.bonds.forEach(([a,b])=>{
+    const p1=worldPos[a], p2=worldPos[b];
+    const len=p1.distanceTo(p2);
+    const mid=p1.clone().add(p2).multiplyScalar(0.5);
+    const bg=new THREE.CylinderGeometry(0.05*sc,0.05*sc,len,10);
+    const bm=new THREE.Mesh(bg,new THREE.MeshPhongMaterial({color:0xbbccdd,shininess:60}));
+    bm.position.copy(mid);
+    bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p2.clone().sub(p1).normalize());
+    group.add(bm);
+  });
+  return group;
+}
+
+// Build compound group (for synthesis result viewer)
+function buildCompoundGroup(cmpd, sc) {
+  const group=new THREE.Group();
+  // Centre atoms
+  const positions = cmpd.atoms3d.map(a=>new THREE.Vector3(...a.p).multiplyScalar(sc));
+  const centre=new THREE.Vector3();
+  positions.forEach(p=>centre.add(p));
+  centre.divideScalar(positions.length);
+  positions.forEach(p=>p.sub(centre));
+
+  cmpd.atoms3d.forEach((a,i)=>{
+    const r=getElementRadius(a.el)*sc*1.6;
+    const geom=new THREE.SphereGeometry(r,40,40);
+    const mat=new THREE.MeshPhongMaterial({color:getElementColor(a.el),shininess:110,specular:0x333333});
+    const m=new THREE.Mesh(geom,mat);
+    m.position.copy(positions[i]);
+    group.add(m);
+  });
+  // Draw bonds as rounded cylinders
+  (cmpd.bonds3d||[]).forEach(([a,b])=>{
+    const p1=positions[a],p2=positions[b];
+    const len=p1.distanceTo(p2);
+    const mid=p1.clone().add(p2).multiplyScalar(0.5);
+    const bg=new THREE.CylinderGeometry(0.055*sc,0.055*sc,len,10);
+    const bm=new THREE.Mesh(bg,new THREE.MeshPhongMaterial({color:0xddddee,shininess:50}));
+    bm.position.copy(mid);
+    bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p2.clone().sub(p1).normalize());
+    group.add(bm);
+  });
+  return group;
+}
+
+function makeScene(bg) {
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(bg||0x060e1a);
+  addLights(scene);
+  const cam=new THREE.PerspectiveCamera(45,1,0.1,100);
+  cam.position.set(0,0,6);
+  return {scene,cam};
+}
+
+// ── Gallery cards ──────────────────────────────────────────
+const cardScenes=[];
+function initCards(){
+  const grid=document.getElementById('ionGrid');
+  sharedRenderer.setSize(140,140,false);
+  IONS.forEach((ion,idx)=>{
+    const {scene,cam}=makeScene();
+    const sc=ion.atoms.length>1 ? 0.70 : 0.82;
+    const group=buildIonGroup(ion,sc);
+    scene.add(group);
+    group.rotation.y=idx*0.57; group.rotation.x=0.18;
+    sharedRenderer.render(scene,cam);
+    const src=sharedCanvas.toDataURL('image/jpeg',0.88);
+    const card=document.createElement('div');
+    card.className=`ion-card ${ion.cls}`;
+    card.innerHTML=`
+      <img class="ion-preview" src="${src}" width="140" height="140">
+      <div class="ion-name">${ion.name}</div>
+      <div class="ion-formula">${ion.formula}</div>
+      <div class="ion-tag ${ion.charge>0?'tag-pos':'tag-neg'}">${ion.charge>0?'正离子':'负离子'} | ${ion.bumpType==='in'?'⬇ 凹陷':'⬆ 凸起'} ×${ion.bumps}</div>
+      <div class="ion-desc">${ion.desc}</div>`;
+    grid.appendChild(card);
+    card.addEventListener('click',()=>openModal(ion));
+    cardScenes.push({scene,cam,group,imgEl:card.querySelector('.ion-preview'),rotY:idx*0.57});
+  });
+}
+let cardFrame=0;
+function animateCards(){
+  requestAnimationFrame(animateCards);
+  cardFrame++;
+  const idx=cardFrame%IONS.length;
+  const s=cardScenes[idx];
+  if(!s)return;
+  s.rotY+=0.020; s.group.rotation.y=s.rotY;
+  sharedRenderer.setSize(140,140,false);
+  sharedRenderer.render(s.scene,s.cam);
+  s.imgEl.src=sharedCanvas.toDataURL('image/jpeg',0.82);
+}
+
+// ── Modal ──────────────────────────────────────────────────
+const overlay=document.getElementById('modalOverlay');
+let mAnimId=null,mGroup=null,mScene=null,mCam=null;
+let mdrag={on:false,px:0,py:0,vx:0,vy:0};
+function openModal(ion){
+  document.getElementById('mTitle').textContent=ion.name;
+  document.getElementById('mFormula').textContent=ion.formula;
+  document.getElementById('mInfo').innerHTML=ion.detail.replace(/\n/g,'<br>');
+  if(mAnimId)cancelAnimationFrame(mAnimId);
+  mdrag={on:false,px:0,py:0,vx:0,vy:0};
+  const {scene,cam}=makeScene();
+  const sc=ion.atoms.length>1 ? 0.82 : 1.0;
+  mGroup=buildIonGroup(ion,sc);
+  scene.add(mGroup); mScene=scene; mCam=cam;
+  mGroup.rotation.y=0.3;
+  function loop(){mAnimId=requestAnimationFrame(loop);if(!mdrag.on){if(Math.abs(mdrag.vx)>0.0004||Math.abs(mdrag.vy)>0.0004){mGroup.rotation.y+=mdrag.vx;mGroup.rotation.x+=mdrag.vy;mdrag.vx*=0.92;mdrag.vy*=0.92;}else{mGroup.rotation.y+=0.008;}}modalRenderer.render(mScene,mCam);}
+  loop();
+  overlay.classList.add('open');
+}
+modalCanvas.addEventListener('pointerdown',e=>{mdrag.on=true;mdrag.px=e.clientX;mdrag.py=e.clientY;mdrag.vx=0;mdrag.vy=0;modalCanvas.setPointerCapture(e.pointerId);});
+modalCanvas.addEventListener('pointerup',()=>{mdrag.on=false;});
+modalCanvas.addEventListener('pointermove',e=>{if(!mdrag.on)return;mdrag.vx=(e.clientX-mdrag.px)*0.013;mdrag.vy=(e.clientY-mdrag.py)*0.013;mGroup.rotation.y+=mdrag.vx;mGroup.rotation.x+=mdrag.vy;mdrag.px=e.clientX;mdrag.py=e.clientY;});
+modalCanvas.addEventListener('wheel',e=>{mCam.position.z=Math.max(2,Math.min(12,mCam.position.z+e.deltaY*0.013));e.preventDefault();},{passive:false});
+function closeModal(){overlay.classList.remove('open');if(mAnimId){cancelAnimationFrame(mAnimId);mAnimId=null;}}
+document.getElementById('modalClose').addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+
+// ═══════════════════════════════════════════════════════════
+// TAB
+// ═══════════════════════════════════════════════════════════
+function switchTab(t,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(t+'Panel').classList.add('active');
+  btn.classList.add('active');
+  if(t==='lab')initLab();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAB
+// ═══════════════════════════════════════════════════════════
+let labInited=false;
+const labChipScenes={};
+const labChipOrder=[];
+let labFrame=0;
+
+function initLab(){
+  if(labInited)return; labInited=true;
+  const posPicker=document.getElementById('posPicker');
+  const negPicker=document.getElementById('negPicker');
+  IONS.forEach(ion=>{
+    const isPos=ion.charge>0;
+    const btn=document.createElement('button');
+    btn.className=`pick-btn ${isPos?'pos-btn':'neg-btn'}`;
+    btn.textContent=ion.formula; btn.title=ion.name; btn.dataset.id=ion.id;
+    btn.addEventListener('click',()=>addToReaction(ion));
+    (isPos?posPicker:negPicker).appendChild(btn);
+  });
+  animateLabChips();
+}
+
+function getLabChip(ion){
+  if(!labChipScenes[ion.id]){
+    const cv=document.createElement('canvas'); cv.width=76;cv.height=76;
+    const {scene,cam}=makeScene();
+    const sc=ion.atoms.length>1 ? 0.58 : 0.72;
+    const group=buildIonGroup(ion,sc);
+    scene.add(group);
+    group.rotation.y=Math.random()*Math.PI;
+    labChipScenes[ion.id]={scene,cam,group,canvas:cv,rotY:group.rotation.y};
+    labChipOrder.push(ion.id);
+    sharedRenderer.setSize(76,76,false);
+    sharedRenderer.render(scene,cam);
+    cv.getContext('2d').drawImage(sharedCanvas,0,0,76,76);
+  }
+  return labChipScenes[ion.id];
+}
+
+function animateLabChips(){
+  requestAnimationFrame(animateLabChips);
+  if(!labChipOrder.length)return;
+  labFrame++;
+  const id=labChipOrder[labFrame%labChipOrder.length];
+  const s=labChipScenes[id];
+  if(!s)return;
+  s.rotY+=0.025; s.group.rotation.y=s.rotY;
+  sharedRenderer.setSize(76,76,false);
+  sharedRenderer.render(s.scene,s.cam);
+  s.canvas.getContext('2d').drawImage(sharedCanvas,0,0,76,76);
+}
+
+const reaction={pos:null,neg:null};
+function addToReaction(ion){
+  if(ion.charge>0)reaction.pos=ion;else reaction.neg=ion;
+  updateReactionUI();
+}
+function clearReaction(){
+  reaction.pos=null;reaction.neg=null;
+  updateReactionUI();
+  document.getElementById('resultArea').innerHTML='';
+  if(compoundAnimId){cancelAnimationFrame(compoundAnimId);compoundAnimId=null;}
+}
+function removeFromReaction(type){
+  if(type==='pos')reaction.pos=null;else reaction.neg=null;
+  updateReactionUI();
+}
+
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+
+function updateReactionUI(){
+  const zone=document.getElementById('reactionZone');
+  const content=document.getElementById('reactionContent');
+  const balInfo=document.getElementById('balanceInfo');
+  const fill=document.getElementById('chargeFill');
+  const btn=document.getElementById('synthBtn');
+  if(!reaction.pos&&!reaction.neg){
+    content.innerHTML='<div style="color:var(--sub);font-size:0.8rem;">← 从左侧选择离子加入反应区</div>';
+    balInfo.textContent='尚未选择离子';balInfo.style.color='var(--sub)';
+    fill.style.width='50%';fill.style.background='#334';
+    btn.disabled=true;zone.className='reaction-zone';return;
+  }
+  let posCount=1,negCount=1,balanced=false,totalPos=0,totalNeg=0;
+  if(reaction.pos&&reaction.neg){
+    const pC=Math.abs(reaction.pos.charge),nC=Math.abs(reaction.neg.charge),g=gcd(pC,nC);
+    posCount=nC/g;negCount=pC/g;
+    totalPos=reaction.pos.charge*posCount;totalNeg=reaction.neg.charge*negCount;
+    balanced=(totalPos+totalNeg)===0;
+  }
+  let html='<div class="reaction-ions">';
+  if(reaction.pos){
+    const chip=getLabChip(reaction.pos);
+    html+=`<div class="react-ion-chip">
+      <img src="${chip.canvas.toDataURL()}" width="76" height="76" style="border-radius:8px;" id="chip_${reaction.pos.id}">
+      <div class="chip-label" style="color:#ff8050">${reaction.pos.formula}</div>
+      ${posCount>1?`<div class="chip-count">×${posCount}</div>`:''}
+      <button class="chip-remove" onclick="removeFromReaction('pos')">✕</button>
+    </div>`;
+  }
+  if(reaction.pos&&reaction.neg)html+='<div class="plus-sign">+</div>';
+  if(reaction.neg){
+    const chip=getLabChip(reaction.neg);
+    html+=`<div class="react-ion-chip">
+      <img src="${chip.canvas.toDataURL()}" width="76" height="76" style="border-radius:8px;" id="chip_${reaction.neg.id}">
+      <div class="chip-label" style="color:#50b0ff">${reaction.neg.formula}</div>
+      ${negCount>1?`<div class="chip-count">×${negCount}</div>`:''}
+      <button class="chip-remove" onclick="removeFromReaction('neg')">✕</button>
+    </div>`;
+  }
+  html+='</div>';
+  content.innerHTML=html;
+  if(reaction.pos&&reaction.neg){
+    if(balanced){
+      balInfo.textContent='⚡ 电荷平衡！可以合成';balInfo.style.color='#44ee88';
+      fill.style.width='100%';fill.style.background='linear-gradient(90deg,#1a8a4a,#22cc66)';
+      zone.className='reaction-zone ready';btn.disabled=false;
+    }else{
+      balInfo.textContent=`电荷不平衡：+${totalPos} / ${totalNeg}`;balInfo.style.color='#ff6040';
+      fill.style.width='55%';fill.style.background='linear-gradient(90deg,#ff4400,#ff9900)';
+      zone.className='reaction-zone error';btn.disabled=true;
+    }
+  }else{
+    balInfo.textContent='请同时选择正负离子';balInfo.style.color='var(--sub)';
+    fill.style.width='50%';fill.style.background='#334';btn.disabled=true;zone.className='reaction-zone';
+  }
+}
+
+// Refresh chip images
+setInterval(()=>{
+  ['pos','neg'].forEach(t=>{
+    const ion=reaction[t]; if(!ion)return;
+    const s=labChipScenes[ion.id];
+    const el=document.getElementById('chip_'+ion.id);
+    if(s&&el)el.src=s.canvas.toDataURL();
+  });
+},80);
+
+function buildFormula(posIon,negIon){
+  const pC=Math.abs(posIon.charge),nC=Math.abs(negIon.charge),g=gcd(pC,nC);
+  const pN=nC/g,nN=pC/g;
+  const sub=n=>n===1?'':String(n).replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[+d]);
+  const clean=f=>f.replace(/[⁺⁻¹²³]/g,'').replace(/[+-]/g,'').trim();
+  const pSym=clean(posIon.formula),nSym=clean(negIon.formula);
+  const pStr=posIon.atoms.length>1&&pN>1?`(${pSym})${sub(pN)}`:`${pSym}${sub(pN)}`;
+  const nStr=negIon.atoms.length>1&&nN>1?`(${nSym})${sub(nN)}`:`${nSym}${sub(nN)}`;
+  return pStr+nStr;
+}
+function buildEquation(posIon,negIon,formula){
+  const pC=Math.abs(posIon.charge),nC=Math.abs(negIon.charge),g=gcd(pC,nC);
+  const pN=nC/g,nN=pC/g;
+  return `${pN>1?pN+'×':''}${posIon.formula} + ${nN>1?nN+'×':''}${negIon.formula} → ${formula}`;
+}
+
+// Compound 3D viewer
+let compoundAnimId=null;
+let cGroup=null,cScene=null,cCam=null;
+let cdrag={on:false,px:0,py:0,vx:0,vy:0};
+
+function launchCompoundViewer(cmpd){
+  // Get or create compound canvas
+  let cv=document.getElementById('compoundCanvas');
+  if(!cv){
+    cv=document.createElement('canvas');
+    cv.id='compoundCanvas';
+    cv.width=360;cv.height=260;
+  }
+
+  // Stop old animation
+  if(compoundAnimId){cancelAnimationFrame(compoundAnimId);compoundAnimId=null;}
+
+  // Dispose old renderer if exists
+  if(compoundRenderer){compoundRenderer.dispose();compoundRenderer=null;}
+
+  compoundRenderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  compoundRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  compoundRenderer.setSize(360,260,false);
+
+  const {scene,cam}=makeScene(0x050d1c);
+  cam.position.set(0,0,7);
+  const sc=0.85;
+  cGroup=buildCompoundGroup(cmpd,sc);
+  scene.add(cGroup); cScene=scene; cCam=cam;
+  cGroup.rotation.y=0.4; cGroup.rotation.x=0.2;
+  cdrag={on:false,px:0,py:0,vx:0,vy:0};
+
+  // Bind drag
+  cv.onpointerdown=e=>{cdrag.on=true;cdrag.px=e.clientX;cdrag.py=e.clientY;cdrag.vx=0;cdrag.vy=0;cv.setPointerCapture(e.pointerId);};
+  cv.onpointerup=()=>{cdrag.on=false;};
+  cv.onpointermove=e=>{if(!cdrag.on)return;cdrag.vx=(e.clientX-cdrag.px)*0.014;cdrag.vy=(e.clientY-cdrag.py)*0.014;cGroup.rotation.y+=cdrag.vx;cGroup.rotation.x+=cdrag.vy;cdrag.px=e.clientX;cdrag.py=e.clientY;};
+  cv.onwheel=e=>{cCam.position.z=Math.max(2,Math.min(14,cCam.position.z+e.deltaY*0.014));e.preventDefault();};
+  cv.style.cssText='display:block;cursor:grab;touch-action:none;border-radius:0 0 12px 12px;width:100%;max-width:360px;height:260px;';
+
+  function loop(){
+    compoundAnimId=requestAnimationFrame(loop);
+    if(!cdrag.on){
+      if(Math.abs(cdrag.vx)>0.0003||Math.abs(cdrag.vy)>0.0003){cGroup.rotation.y+=cdrag.vx;cGroup.rotation.x+=cdrag.vy;cdrag.vx*=0.92;cdrag.vy*=0.92;}
+      else{cGroup.rotation.y+=0.007;}
+    }
+    compoundRenderer.render(cScene,cCam);
+  }
+  loop();
+  return cv;
+}
+
+function burst(){
+  const zone=document.getElementById('reactionZone');
+  const cx=zone.offsetWidth/2,cy=zone.offsetHeight/2;
+  const cols=['#ffd060','#44ff88','#40c8ff','#ff6030','#cc88ff'];
+  for(let i=0;i<24;i++){
+    const p=document.createElement('div');p.className='particle';
+    const a=i/24*Math.PI*2,d=50+Math.random()*65;
+    p.style.cssText=`width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;background:${cols[i%5]};left:${cx}px;top:${cy}px;--tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;animation-duration:${0.7+Math.random()*0.5}s;box-shadow:0 0 6px ${cols[i%5]};`;
+    zone.appendChild(p);
+    setTimeout(()=>p.remove(),1300);
+  }
+}
+
+function synthesize(){
+  if(!reaction.pos||!reaction.neg)return;
+  const formula=buildFormula(reaction.pos,reaction.neg);
+  const equation=buildEquation(reaction.pos,reaction.neg,formula);
+  const key1=reaction.pos.id+'+'+reaction.neg.id;
+  const key2=reaction.neg.id+'+'+reaction.pos.id;
+  const info=COMPOUNDS[key1]||COMPOUNDS[key2]||null;
+  burst();
+
+  const resultArea=document.getElementById('resultArea');
+  const dispFormula = info?info.formula:formula;
+  const dispName    = info?info.name:'化合物';
+  const dispCname   = info?info.cname:'';
+  const dispType    = info?info.type:'离子化合物';
+  const dispExtra   = info?info.extra:'';
+
+  resultArea.innerHTML=`
+    <div class="result-panel">
+      <div class="result-formula">${dispFormula}</div>
+      <div class="result-name">${dispName}${dispCname?` (${dispCname})`:''}</div>
+      <div class="result-type">${dispType}</div>
+      <div class="result-equation">${equation}</div>
+      ${dispExtra?`<div style="font-size:0.71rem;color:var(--sub);margin-top:4px;">${dispExtra}</div>`:''}
+    </div>
+    ${info?`<div class="compound-viewer">
+      <div class="compound-viewer-header">
+        <span class="compound-viewer-title">⬡ ${dispFormula} 三维结构</span>
+        <span class="compound-hint">拖动旋转 · 滚轮缩放</span>
+      </div>
+      <div id="compoundCanvasSlot" style="display:flex;justify-content:center;background:#050d1c;border-radius:0 0 12px 12px;"></div>
+    </div>`:''}
+  `;
+
+  if(info){
+    const slot=document.getElementById('compoundCanvasSlot');
+    const cv=launchCompoundViewer(info);
+    slot.appendChild(cv);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+initCards();
+animateCards();
+</script>
+</body>
+</html>
