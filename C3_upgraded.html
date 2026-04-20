@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>人体保卫战：神经与激素的觉醒</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0fdf4; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%,90%{transform:translate3d(-1px,0,0)}
+            20%,80%{transform:translate3d(2px,0,0)}
+            30%,50%,70%{transform:translate3d(-4px,0,0)}
+            40%,60%{transform:translate3d(4px,0,0)}
+        }
+        .heart{transition:all 0.3s}
+        .lost-heart{filter:grayscale(100%);opacity:0.3}
+        #canvas-container{display:flex;justify-content:center;overflow-x:auto;padding:10px}
+        canvas{max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
+        /* 配对题 */
+        .match-item{cursor:pointer;transition:all 0.2s;user-select:none;-webkit-user-select:none}
+        .match-item.selected{border-color:#3b82f6!important;background-color:#eff6ff!important;transform:scale(1.02)}
+        .match-item.matched-correct{border-color:#22c55e!important;background-color:#dcfce7!important;cursor:default;opacity:0.8}
+        .match-item.matched-wrong{border-color:#ef4444!important;background-color:#fee2e2!important}
+        /* 归类题 */
+        .classify-item{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform 0.15s,box-shadow 0.15s}
+        .classify-item.dragging{opacity:0.5;transform:scale(0.95)}
+        .drop-zone{transition:background-color 0.2s,border-color 0.2s;min-height:70px}
+        .drop-zone.drag-over{background-color:#dbeafe;border-color:#3b82f6}
+        /* 排顺序 */
+        .order-item{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform 0.15s,box-shadow 0.15s}
+        .order-item.dragging{opacity:0.4}
+        .order-item.drag-over-top{border-top:3px solid #3b82f6}
+        /* 填图 */
+        .hotspot{cursor:pointer;transition:fill 0.2s}
+        .label-option{cursor:pointer;transition:all 0.2s}
+        .label-option.used{opacity:0.4;cursor:default;pointer-events:none}
+        .label-option.selected{border-color:#3b82f6;background:#eff6ff;transform:scale(1.05)}
+        /* touch ghost */
+        #touch-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:0.9;transform:scale(1.05)}
+        .q-type-badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:8px}
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex items-center justify-center p-4">
+
+<div id="touch-ghost" class="hidden bg-white border-2 border-blue-400 rounded-xl px-4 py-2 shadow-xl text-sm font-bold text-slate-700"></div>
+
+<div id="app" class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden relative">
+
+    <!-- 开始界面 -->
+    <div id="start-screen" class="p-8 text-center fade-in">
+        <div class="text-6xl mb-4">🛡️</div>
+        <h1 class="text-3xl font-bold text-green-600 mb-2">人体保卫战</h1>
+        <h2 class="text-xl font-semibold text-slate-600 mb-4">神经与激素的觉醒</h2>
+        <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left text-sm text-slate-600 space-y-1 border border-slate-200">
+            <p class="font-bold text-slate-700 mb-2">🎮 本关卡题型包括：</p>
+            <p>🔵 <span class="font-semibold">选择题</span> — 快速判断，抢时间得分</p>
+            <p>🟣 <span class="font-semibold">配对题</span> — 将激素/结构与功能正确连线</p>
+            <p>🟠 <span class="font-semibold">归类题</span> — 拖拽事件到正确系统</p>
+            <p>🟡 <span class="font-semibold">排顺序</span> — 拖拽排出正确流程</p>
+            <p>🟢 <span class="font-semibold">填图题</span> — 点击标注脑部/反射弧结构</p>
+            <p class="text-xs text-slate-400 mt-2">共16题 · 错3次游戏结束 · 答得越快分越高</p>
+        </div>
+        <button onclick="startGame()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform transition active:scale-95">
+            🚀 开始紧急调度
+        </button>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="game-screen" class="hidden fade-in flex flex-col">
+        <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+            <div class="flex space-x-1" id="hearts">
+                <span class="text-2xl heart">❤️</span>
+                <span class="text-2xl heart">❤️</span>
+                <span class="text-2xl heart">❤️</span>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-slate-400">SCORE</div>
+                <div id="score" class="text-2xl font-bold text-yellow-400">0</div>
+            </div>
+        </div>
+        <div class="px-6 py-2 flex justify-between text-sm font-bold text-slate-500 bg-slate-100">
+            <span id="level-display">Level 1</span>
+            <span id="combo-display" class="text-orange-500 hidden">🔥 Combo x1</span>
+            <span id="question-counter">1/16</span>
+        </div>
+        <div class="w-full bg-gray-200 h-2">
+            <div id="time-bar" class="bg-green-500 h-2 transition-all duration-100 ease-linear" style="width:100%"></div>
+        </div>
+        <div class="p-5 overflow-y-auto" style="max-height:68vh">
+            <div id="q-type-badge-container"></div>
+            <p id="question-text" class="text-lg font-bold mb-4 text-slate-700 leading-relaxed"></p>
+            <div id="options-container"></div>
+        </div>
+    </div>
+
+    <!-- 解释弹窗 -->
+    <div id="explanation-modal" class="hidden absolute inset-0 bg-white z-10 flex flex-col items-center justify-center p-6 fade-in text-center" style="background:rgba(255,255,255,0.97);backdrop-filter:blur(4px)">
+        <div id="feedback-icon" class="text-6xl mb-4">✅</div>
+        <h2 id="feedback-title" class="text-2xl font-bold mb-2"></h2>
+        <p id="explanation-text" class="text-slate-600 mb-6 bg-slate-100 p-4 rounded-lg text-left text-sm leading-relaxed w-full"></p>
+        <button id="next-btn" onclick="nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition active:scale-95">
+            继续挑战 ➡️
+        </button>
+    </div>
+
+    <!-- 结算界面 -->
+    <div id="end-screen" class="hidden p-8 text-center fade-in">
+        <div id="end-icon" class="text-6xl mb-4">🏆</div>
+        <h1 id="end-title" class="text-3xl font-bold text-green-600 mb-2">调度完成！</h1>
+        <div class="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-200">
+            <p class="text-slate-500 text-sm">最终得分</p>
+            <p id="final-score" class="text-4xl font-bold text-yellow-500">0</p>
+            <p id="time-taken" class="text-slate-400 text-xs mt-2">耗时: 0秒</p>
+        </div>
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">请输入你的名字以领取证书：</label>
+            <input type="text" id="player-name" placeholder="例如：李小明" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none text-center">
+        </div>
+        <button onclick="generateAndShowCertificate()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg mb-3">🎓 生成荣誉证书</button>
+        <button onclick="location.reload()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl">🔁 重新挑战</button>
+    </div>
+
+    <!-- 证书界面 -->
+    <div id="certificate-screen" class="hidden p-4 text-center fade-in">
+        <h2 class="text-2xl font-bold text-slate-700 mb-4">恭喜你！</h2>
+        <div id="canvas-container" class="mb-4"><canvas id="certCanvas"></canvas></div>
+        <p class="text-sm text-slate-500 mb-4">↑ 长按图片保存，或点击下方按钮下载 ↑</p>
+        <a id="downloadCertBtn" class="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg mb-3">⬇️ 下载证书</a>
+        <button onclick="location.reload()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl">返回首页</button>
+    </div>
+
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// 题目数据库 16题，5种题型
+// ============================================================
+const questions = [
+    // ── 选择题 ──
+    {
+        type:'mc', level:"Level 1 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【危急】你的手不小心摸到了滚烫的火炉！这该走哪条路线自救？",
+        options:["感受器 → 大脑思考 → 肌肉","皮肤 → 肌肉 → 骨骼","感受器 → 传入神经 → 脊髓 → 传出神经 → 效应器","感受器 → 传出神经 → 脊髓 → 传入神经 → 效应器"],
+        correctIndex:2,
+        explanation:"缩手反射！神经冲动走最快的「捷径」通过低级中枢【脊髓】，直接让肌肉收缩，不需要等大脑思考。正确顺序：感受器→传入神经→脊髓→传出神经→效应器。"
+    },
+    {
+        type:'mc', level:"Level 1 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【夜间警报】睡觉时你失去了意识，但心跳和呼吸还在继续。这是谁在替你加班？",
+        options:["大脑","小脑","脑干","脊髓"],
+        correctIndex:2,
+        explanation:"【脑干】被称为人体的「生命中枢」，日夜不停地管控着心跳、呼吸、血压这些最基础的保命工作。"
+    },
+    {
+        type:'mc', level:"Level 2 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【危险预警】路边突然冲出一条恶犬！你需要立刻逃跑，快召唤哪种激素让你爆发超强力量？",
+        options:["胰岛素","生长激素","肾上腺素","甲状腺素"],
+        correctIndex:2,
+        explanation:"【肾上腺素】大量分泌！它能让心跳加快、血压升高、血糖增加，瞬间进入「战斗或逃跑」模式。"
+    },
+    {
+        type:'mc', level:"Level 1 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【体检】医生用橡皮锤敲击你膝盖下方，小腿不由自主地踢出。关于膝跳反射说法正确的是？",
+        options:["受大脑直接控制","属于非条件反射（生来就有）","属于条件反射（后天学习）","必须闭上眼睛才会发生"],
+        correctIndex:1,
+        explanation:"膝跳反射是天生自带的防御机制，属于【非条件反射】。神经中枢在脊髓，不由大脑主动控制。"
+    },
+    {
+        type:'mc', level:"Level 2 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【糖分超标】你刚吃掉了一整个超级大蛋糕，血液里全是糖分！快派谁去把血糖降下来？",
+        options:["升糖素","肾上腺素","胰岛素","褪黑激素"],
+        correctIndex:2,
+        explanation:"【胰岛素】是体内唯一能降低血糖的激素！它把血液里的葡萄糖搬进细胞里使用或储存。"
+    },
+    {
+        type:'mc', level:"Level 3 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【神经故障】大叔喝醉酒，走路摇摇晃晃，连直线都走不了。说明酒精严重麻痹了哪个部位？",
+        options:["大脑","小脑","脑干","脊髓"],
+        correctIndex:1,
+        explanation:"【小脑】专职「维持身体平衡和动作的准确协调」。喝醉走不稳，就是因为小脑暂时罢工了。"
+    },
+    {
+        type:'mc', level:"Level 3 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【系统大比拼】关于神经调节与激素调节，下面哪句话是正确的？",
+        options:["激素调节速度极快，神经调节速度较慢","神经系统作用范围遍及全身，激素只作用于局部","神经反应极快但短暂，激素反应较慢但影响持久","它们俩各自独立工作，互相绝对不沟通"],
+        correctIndex:2,
+        explanation:"神经系统就像【闪电】，瞬间传递精准定位但效果短暂；激素像【快递】，通过血液流遍全身，作用稍慢但效果持久。两者密切合作！"
+    },
+
+    {
+        type:'mc', level:"Level 3 · 选择题",
+        badgeColor:"bg-blue-100 text-blue-700", badgeLabel:"🔵 选择题",
+        text:"【水盐失衡】炎热夏天跑完800米后大量出汗，为维持内环境恒定，身体会发生什么？",
+        options:["口渴感增强，同时尿量减少","口渴感消失，尿量增加","口渴感增强，尿量增加","心跳减慢，毛孔关闭"],
+        correctIndex:0,
+        explanation:"出汗→水分流失→血液变浓→神经系统让你感到【口渴】去喝水；同时内分泌系统让肾脏【减少排尿】把水留住，两者协同维持水盐平衡。"
+    },
+    // ── 配对题 ──
+    {
+        type:'match', level:"Level 2 · 配对题",
+        badgeColor:"bg-purple-100 text-purple-700", badgeLabel:"🟣 配对题",
+        text:"将左侧的激素与右侧对应的主要功能配对（点击左边，再点击右边）：",
+        pairs:[
+            {left:"胰岛素",   right:"降低血糖"},
+            {left:"肾上腺素", right:"紧急应激，心跳加速"},
+            {left:"生长激素", right:"促进生长发育"},
+            {left:"褪黑激素", right:"调节睡眠节律"},
+        ],
+        explanation:"四种激素各有职责：胰岛素→降血糖；肾上腺素→紧急应激；生长激素→促进生长；褪黑激素→调节睡眠节律。"
+    },
+    {
+        type:'match', level:"Level 2 · 配对题",
+        badgeColor:"bg-purple-100 text-purple-700", badgeLabel:"🟣 配对题",
+        text:"将左侧的脑部结构与右侧对应的功能配对（点击左边，再点击右边）：",
+        pairs:[
+            {left:"大脑",   right:"思维、记忆、语言"},
+            {left:"小脑",   right:"维持身体平衡"},
+            {left:"脑干",   right:"控制心跳与呼吸"},
+            {left:"脊髓",   right:"传导冲动与低级反射"},
+        ],
+        explanation:"大脑主管高级功能；小脑负责平衡协调；脑干维持基本生命活动（生命中枢）；脊髓是神经干道，也是简单反射的中枢。"
+    },
+
+    // ── 归类题 ──
+    {
+        type:'classify', level:"Level 2 · 归类题",
+        badgeColor:"bg-orange-100 text-orange-700", badgeLabel:"🟠 归类题",
+        text:"将下列调节事件拖放到正确的系统类别（拖拽或点击后选择）：",
+        categories:[
+            {label:"⚡ 神经调节", color:"border-blue-400 bg-blue-50",   correctItems:["缩手反射","膝跳反射","看到食物分泌唾液"]},
+            {label:"💉 激素调节", color:"border-pink-400 bg-pink-50",   correctItems:["胰岛素降血糖","青春期发育","肾上腺素应激分泌"]},
+        ],
+        allItems:["缩手反射","膝跳反射","看到食物分泌唾液","胰岛素降血糖","青春期发育","肾上腺素应激分泌"],
+        explanation:"神经调节：快速、精准、短暂（通过反射弧）。激素调节：通过血液传输，作用较慢但持久，影响范围广。"
+    },
+    {
+        type:'classify', level:"Level 3 · 归类题",
+        badgeColor:"bg-orange-100 text-orange-700", badgeLabel:"🟠 归类题",
+        text:"根据激素分泌过多或过少，将疾病拖放到正确的类别：",
+        categories:[
+            {label:"📈 激素过多", color:"border-red-400 bg-red-50",    correctItems:["巨人症（幼年）","甲亢","肢端肥大症（成年）"]},
+            {label:"📉 激素过少", color:"border-slate-400 bg-slate-50", correctItems:["侏儒症","1型糖尿病","地方性甲状腺肿"]},
+        ],
+        allItems:["巨人症（幼年）","甲亢","肢端肥大症（成年）","侏儒症","1型糖尿病","地方性甲状腺肿"],
+        explanation:"幼年生长激素过多→巨人症；成年过多→肢端肥大症；幼年过少→侏儒症。甲状腺素过多→甲亢；碘缺乏甲状腺素不足→地方性甲状腺肿。"
+    },
+
+    // ── 排顺序题 ──
+    {
+        type:'order', level:"Level 1 · 排顺序",
+        badgeColor:"bg-yellow-100 text-yellow-700", badgeLabel:"🟡 排顺序",
+        text:"将下列反射弧各环节拖拽排列成正确的顺序（从上到下）：",
+        items:["效应器","传入神经","脊髓（神经中枢）","感受器","传出神经"],
+        correctOrder:["感受器","传入神经","脊髓（神经中枢）","传出神经","效应器"],
+        explanation:"反射弧标准顺序：感受器（接收刺激）→传入神经→脊髓（神经中枢）→传出神经→效应器（做出反应）。任何一环受损，反射就无法完成。"
+    },
+    {
+        type:'order', level:"Level 3 · 排顺序",
+        badgeColor:"bg-yellow-100 text-yellow-700", badgeLabel:"🟡 排顺序",
+        text:"血糖升高后，机体的调节过程正确顺序是？（从上到下排列）：",
+        items:["血糖恢复正常","胰岛B细胞分泌胰岛素","血糖升高","细胞加速摄取葡萄糖","胰岛素进入血液"],
+        correctOrder:["血糖升高","胰岛B细胞分泌胰岛素","胰岛素进入血液","细胞加速摄取葡萄糖","血糖恢复正常"],
+        explanation:"血糖调节（负反馈）：血糖升高→胰岛B细胞感应→分泌胰岛素→经血液运输→促进细胞摄取葡萄糖→血糖降低恢复正常水平。"
+    },
+
+    // ── 填图题 ──
+    {
+        type:'diagram', level:"Level 2 · 填图题",
+        badgeColor:"bg-green-100 text-green-700", badgeLabel:"🟢 填图题",
+        text:"先点击右侧标签，再点击图中对应的脑部区域，完成标注（共4处）：",
+        diagramType:'brain',
+        labels:["大脑","小脑","脑干","脊髓"],
+        hotspotMap:{"hs-cerebrum":"大脑","hs-cerebellum":"小脑","hs-brainstem":"脑干","hs-spinal":"脊髓"},
+        explanation:"大脑（最大，主思维记忆）→小脑（位于大脑下后方，主平衡协调）→脑干（连接大脑与脊髓，主生命中枢）→脊髓（脑干向下延伸，传导冲动与低级反射中枢）。"
+    },
+    {
+        type:'diagram', level:"Level 3 · 填图题",
+        badgeColor:"bg-green-100 text-green-700", badgeLabel:"🟢 填图题",
+        text:"先点击右侧标签，再点击图中对应的反射弧部位，完成标注（共5处）：",
+        diagramType:'reflex',
+        labels:["感受器","传入神经","神经中枢","传出神经","效应器"],
+        hotspotMap:{"rf-receptor":"感受器","rf-afferent":"传入神经","rf-center":"神经中枢","rf-efferent":"传出神经","rf-effector":"效应器"},
+        explanation:"反射弧五要素：感受器接收刺激→传入神经上行→神经中枢整合→传出神经下行→效应器做出应答。任何一环受损，反射无法完成。"
+    },
+];
+
+// ============================================================
+// 游戏状态
+// ============================================================
+let currentQuestionIndex=0, hp=3, score=0, combo=0;
+let startTime=0, gameStartTime=0, timeInterval;
+const TIME_LIMIT=22;
+let timeLeft=TIME_LIMIT;
+
+let matchState={}, classifyState={}, orderState={}, diagramState={};
+
+const app=document.getElementById('app');
+const startScreen=document.getElementById('start-screen');
+const gameScreen=document.getElementById('game-screen');
+const endScreen=document.getElementById('end-screen');
+const certScreen=document.getElementById('certificate-screen');
+const qText=document.getElementById('question-text');
+const optionsContainer=document.getElementById('options-container');
+const scoreDisplay=document.getElementById('score');
+const timeBar=document.getElementById('time-bar');
+const levelDisplay=document.getElementById('level-display');
+const comboDisplay=document.getElementById('combo-display');
+const qCounter=document.getElementById('question-counter');
+const hearts=document.querySelectorAll('.heart');
+const explModal=document.getElementById('explanation-modal');
+const feedbackIcon=document.getElementById('feedback-icon');
+const feedbackTitle=document.getElementById('feedback-title');
+const explanationText=document.getElementById('explanation-text');
+const nextBtn=document.getElementById('next-btn');
+const badgeCon=document.getElementById('q-type-badge-container');
+
+// ============================================================
+// 游戏流程
+// ============================================================
+function startGame(){
+    startScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    gameStartTime=Date.now();
+    loadQuestion();
+}
+
+function loadQuestion(){
+    clearInterval(timeInterval);
+    timeLeft=TIME_LIMIT;
+    updateTimeBar();
+    const q=questions[currentQuestionIndex];
+    levelDisplay.textContent=q.level;
+    qCounter.textContent=`${currentQuestionIndex+1}/${questions.length}`;
+    qText.textContent=q.text;
+    badgeCon.innerHTML=`<span class="q-type-badge ${q.badgeColor}">${q.badgeLabel}</span>`;
+    optionsContainer.innerHTML='';
+
+    if(q.type==='mc')        renderMC(q);
+    else if(q.type==='match')    renderMatch(q);
+    else if(q.type==='classify') renderClassify(q);
+    else if(q.type==='order')    renderOrder(q);
+    else if(q.type==='diagram')  renderDiagram(q);
+
+    startTime=Date.now();
+    timeInterval=setInterval(()=>{
+        timeLeft-=0.1;
+        updateTimeBar();
+        if(timeLeft<=0){clearInterval(timeInterval);handleTimeOut();}
+    },100);
+}
+
+function updateTimeBar(){
+    const pct=(timeLeft/TIME_LIMIT)*100;
+    timeBar.style.width=pct+'%';
+    if(pct<30) timeBar.className="h-2 transition-all duration-100 ease-linear bg-red-500";
+    else if(pct<60) timeBar.className="h-2 transition-all duration-100 ease-linear bg-yellow-500";
+    else timeBar.className="h-2 transition-all duration-100 ease-linear bg-green-500";
+}
+
+function handleTimeOut(){
+    combo=0; comboDisplay.classList.add('hidden');
+    const q=questions[currentQuestionIndex];
+    if(q.type==='mc'){
+        const btns=optionsContainer.querySelectorAll('button');
+        if(btns[q.correctIndex]) btns[q.correctIndex].classList.add('bg-green-200','border-green-400');
+    }
+    loseHeart();
+    showFeedback(false,"⏰ 超时啦！反应太慢，危机加重！\n\n"+q.explanation,0);
+}
+
+function loseHeart(){
+    hp--;
+    if(hp>=0){
+        hearts[2-hp].classList.add('lost-heart');
+        app.classList.add('shake');
+        setTimeout(()=>app.classList.remove('shake'),400);
+    }
+}
+
+function givePoints(isCorrect){
+    if(!isCorrect) return 0;
+    combo++;
+    let timeBonus=Math.max(0,Math.floor(timeLeft*80));
+    let comboBonus=combo>1?combo*50:0;
+    let pts=800+timeBonus+comboBonus;
+    score+=pts;
+    scoreDisplay.textContent=score;
+    if(combo>1){
+        comboDisplay.textContent=`🔥 Combo x${combo}`;
+        comboDisplay.classList.remove('hidden');
+        comboDisplay.classList.add('shake');
+        setTimeout(()=>comboDisplay.classList.remove('shake'),400);
+    }
+    return pts;
+}
+
+function showFeedback(isCorrect,explanation,points){
+    clearInterval(timeInterval);
+    setTimeout(()=>{
+        explModal.classList.remove('hidden');
+        if(isCorrect){
+            feedbackIcon.textContent="✅";
+            feedbackTitle.textContent="干得漂亮！";
+            feedbackTitle.className="text-2xl font-bold mb-2 text-green-600";
+            explanationText.innerHTML=`得分: <span class="font-bold text-yellow-500">+${points}</span><br><br>${explanation.replace(/\n/g,'<br>')}`;
+        } else {
+            feedbackIcon.textContent="❌";
+            feedbackTitle.textContent="调度失误！";
+            feedbackTitle.className="text-2xl font-bold mb-2 text-red-600";
+            explanationText.innerHTML=explanation.replace(/\n/g,'<br>');
+        }
+        if(hp<=0){
+            nextBtn.textContent="查看结算";
+            nextBtn.className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg";
+        } else if(currentQuestionIndex>=questions.length-1){
+            nextBtn.textContent="完成所有任务！查看结算";
+            nextBtn.className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg";
+        } else {
+            nextBtn.textContent="继续挑战 ➡️";
+            nextBtn.className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition active:scale-95";
+        }
+    },500);
+}
+
+function nextQuestion(){
+    explModal.classList.add('hidden');
+    if(hp<=0||currentQuestionIndex>=questions.length-1){endGame();}
+    else{currentQuestionIndex++;loadQuestion();}
+}
+
+function endGame(){
+    gameScreen.classList.add('hidden');
+    endScreen.classList.remove('hidden');
+    let totalSecs=Math.floor((Date.now()-gameStartTime)/1000);
+    document.getElementById('final-score').textContent=score;
+    document.getElementById('time-taken').textContent=`总耗时: ${totalSecs} 秒`;
+    const endTitle=document.getElementById('end-title');
+    const endIcon=document.getElementById('end-icon');
+    if(hp<=0){
+        endTitle.textContent="急救失败！";
+        endTitle.className="text-3xl font-bold text-red-600 mb-2";
+        endIcon.textContent="🚑";
+    } else {
+        endTitle.textContent="完美通关！";
+        endIcon.textContent="👑";
+    }
+}
+
+// ============================================================
+// 选择题
+// ============================================================
+function renderMC(q){
+    q.options.forEach((opt,i)=>{
+        const btn=document.createElement('button');
+        btn.className="w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-green-400 hover:bg-green-50 transition font-medium text-slate-700 active:scale-95 mb-3";
+        btn.textContent=opt;
+        btn.onclick=()=>{
+            Array.from(optionsContainer.children).forEach(b=>b.disabled=true);
+            const ok=i===q.correctIndex;
+            if(ok){
+                btn.classList.add('bg-green-500','text-white','border-green-500');
+                const pts=givePoints(true);
+                showFeedback(true,q.explanation,pts);
+            } else {
+                btn.classList.add('bg-red-500','text-white','border-red-500','shake');
+                optionsContainer.children[q.correctIndex].classList.add('bg-green-200','border-green-400');
+                combo=0; comboDisplay.classList.add('hidden');
+                loseHeart();
+                showFeedback(false,q.explanation,0);
+            }
+        };
+        optionsContainer.appendChild(btn);
+    });
+}
+
+// ============================================================
+// 配对题
+// ============================================================
+function renderMatch(q){
+    matchState={selected:null,side:null,value:null,matched:{},total:q.pairs.length,done:0,wrongCount:0};
+    const container=document.createElement('div');
+    container.className="flex gap-3";
+    const leftCol=document.createElement('div'); leftCol.className="flex-1 space-y-2";
+    const rightCol=document.createElement('div'); rightCol.className="flex-1 space-y-2";
+
+    const rightShuffled=[...q.pairs.map(p=>p.right)].sort(()=>Math.random()-0.5);
+
+    q.pairs.forEach(pair=>{
+        const el=document.createElement('div');
+        el.className="match-item p-3 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 text-center";
+        el.dataset.value=pair.left; el.dataset.side="left";
+        el.textContent=pair.left;
+        el.onclick=()=>handleMatchClick(el,'left',pair.left,q);
+        leftCol.appendChild(el);
+    });
+    rightShuffled.forEach(val=>{
+        const el=document.createElement('div');
+        el.className="match-item p-3 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 text-center";
+        el.dataset.value=val; el.dataset.side="right";
+        el.textContent=val;
+        el.onclick=()=>handleMatchClick(el,'right',val,q);
+        rightCol.appendChild(el);
+    });
+    container.appendChild(leftCol);
+    container.appendChild(rightCol);
+    optionsContainer.appendChild(container);
+    const hint=document.createElement('p');
+    hint.className="text-xs text-slate-400 text-center mt-3";
+    hint.textContent="点击左侧一项，再点击右侧对应项进行配对";
+    optionsContainer.appendChild(hint);
+}
+
+function handleMatchClick(el,side,value,q){
+    if(el.classList.contains('matched-correct')) return;
+
+    if(!matchState.selected){
+        matchState.selected=el; matchState.side=side; matchState.value=value;
+        el.classList.add('selected');
+    } else {
+        if(matchState.side===side){
+            matchState.selected.classList.remove('selected');
+            matchState.selected=el; matchState.side=side; matchState.value=value;
+            el.classList.add('selected');
+            return;
+        }
+        const leftVal=side==='right'?matchState.value:value;
+        const rightVal=side==='right'?value:matchState.value;
+        const leftEl=side==='right'?matchState.selected:el;
+        const rightEl=side==='right'?el:matchState.selected;
+
+        const correct=q.pairs.some(p=>p.left===leftVal&&p.right===rightVal);
+        matchState.selected.classList.remove('selected');
+        el.classList.remove('selected');
+        matchState.selected=null; matchState.side=null; matchState.value=null;
+
+        if(correct){
+            leftEl.classList.add('matched-correct'); rightEl.classList.add('matched-correct');
+            leftEl.style.pointerEvents='none'; rightEl.style.pointerEvents='none';
+            matchState.done++;
+            if(matchState.done===matchState.total){
+                const pts=givePoints(true);
+                showFeedback(true,q.explanation,pts);
+            }
+        } else {
+            leftEl.classList.add('matched-wrong'); rightEl.classList.add('matched-wrong');
+            setTimeout(()=>{leftEl.classList.remove('matched-wrong');rightEl.classList.remove('matched-wrong');},700);
+            matchState.wrongCount=(matchState.wrongCount||0)+1;
+            combo=0; comboDisplay.classList.add('hidden');
+            loseHeart();
+            if(hp<=0) showFeedback(false,q.explanation,0);
+        }
+    }
+}
+
+// ============================================================
+// 归类题（拖拽 + 触摸 + 点击放置）
+// ============================================================
+function renderClassify(q){
+    classifyState={placements:{},total:q.allItems.length,submitted:false};
+
+    const bank=document.createElement('div');
+    bank.className="flex flex-wrap gap-2 mb-4 p-3 bg-slate-100 rounded-xl min-h-12";
+    bank.id="classify-bank";
+
+    [...q.allItems].sort(()=>Math.random()-0.5).forEach(item=>{
+        bank.appendChild(createClassifyChip(item,q,'bank'));
+    });
+    optionsContainer.appendChild(bank);
+
+    const zonesRow=document.createElement('div');
+    zonesRow.className="flex gap-3";
+    q.categories.forEach((cat,ci)=>{
+        const zone=document.createElement('div');
+        zone.className=`drop-zone flex-1 border-2 ${cat.color} rounded-xl p-2`;
+        zone.dataset.catIdx=ci;
+        zone.id=`classify-zone-${ci}`;
+        zone.innerHTML=`<div class="text-xs font-bold text-center mb-2 text-slate-600">${cat.label}</div>`;
+        zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+        zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+        zone.addEventListener('drop',e=>{
+            e.preventDefault(); zone.classList.remove('drag-over');
+            const item=e.dataTransfer.getData('text/plain');
+            if(item) placeClassifyItem(item,ci,q);
+        });
+        zonesRow.appendChild(zone);
+    });
+    optionsContainer.appendChild(zonesRow);
+
+    const submitBtn=document.createElement('button');
+    submitBtn.className="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 rounded-xl";
+    submitBtn.textContent="✅ 确认提交";
+    submitBtn.id="classify-submit";
+    submitBtn.onclick=()=>submitClassify(q);
+    optionsContainer.appendChild(submitBtn);
+}
+
+function createClassifyChip(item,q,location){
+    const el=document.createElement('div');
+    el.className="classify-item px-3 py-1.5 bg-white border-2 border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-sm select-none";
+    el.textContent=item;
+    el.draggable=true;
+    el.dataset.item=item;
+    el.id=`ci-${item.replace(/[\s（）()]/g,'_')}`;
+    el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',item);el.classList.add('dragging');});
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    // tap to pick, then tap zone to place
+    el.addEventListener('click',()=>handleClassifyTap(item,q));
+    setupTouchDrag(el,item,q,'classify');
+    return el;
+}
+
+let classifyTapSelected=null;
+function handleClassifyTap(item,q){
+    // highlight selected chip
+    document.querySelectorAll('.classify-item').forEach(e=>{
+        e.classList.toggle('selected', e.dataset.item===item && classifyTapSelected!==item);
+    });
+    classifyTapSelected=(classifyTapSelected===item)?null:item;
+    // if a zone is tapped while a chip is selected, handled in zone click below
+}
+
+function addZoneTapListeners(q){
+    q.categories.forEach((cat,ci)=>{
+        const zone=document.getElementById(`classify-zone-${ci}`);
+        if(!zone) return;
+        zone.addEventListener('click',e=>{
+            if(classifyTapSelected && e.target===zone || e.target.classList.contains('drop-zone')){
+                placeClassifyItem(classifyTapSelected,ci,q);
+                classifyTapSelected=null;
+            }
+        });
+    });
+}
+
+function placeClassifyItem(item,catIdx,q){
+    const safeId=item.replace(/[\s（）()]/g,'_');
+    const existing=document.getElementById(`ci-${safeId}`);
+    if(existing) existing.remove();
+    // remove from placement tracking if was already placed
+    delete classifyState.placements[item];
+    classifyState.placements[item]=catIdx;
+    const zone=document.getElementById(`classify-zone-${catIdx}`);
+    if(!zone) return;
+    const chip=createClassifyChip(item,q,'zone');
+    zone.appendChild(chip);
+    document.querySelectorAll('.classify-item').forEach(e=>e.classList.remove('selected'));
+    classifyTapSelected=null;
+}
+
+function submitClassify(q){
+    if(classifyState.submitted) return;
+    const placed=Object.keys(classifyState.placements).length;
+    if(placed<q.allItems.length){alert('请先把所有项目都放进类别框里！');return;}
+    classifyState.submitted=true;
+    document.getElementById('classify-submit').disabled=true;
+
+    let allCorrect=true;
+    q.allItems.forEach(item=>{
+        const placedCat=classifyState.placements[item];
+        const correctCat=q.categories.findIndex(cat=>cat.correctItems.includes(item));
+        const chip=document.getElementById(`ci-${item.replace(/[\s（）()]/g,'_')}`);
+        if(placedCat===correctCat){
+            if(chip){chip.classList.remove('border-slate-300');chip.classList.add('border-green-400','bg-green-50');}
+        } else {
+            allCorrect=false;
+            if(chip){chip.classList.remove('border-slate-300');chip.classList.add('border-red-400','bg-red-50');}
+        }
+    });
+
+    if(allCorrect){
+        const pts=givePoints(true);
+        showFeedback(true,q.explanation,pts);
+    } else {
+        combo=0; comboDisplay.classList.add('hidden');
+        loseHeart();
+        showFeedback(false,q.explanation,0);
+    }
+}
+
+// ============================================================
+// 排顺序题
+// ============================================================
+function renderOrder(q){
+    const shuffled=[...q.items].sort(()=>Math.random()-0.5);
+    orderState={dragSrc:null};
+
+    const list=document.createElement('div');
+    list.className="space-y-2"; list.id="order-list";
+    shuffled.forEach(item=>list.appendChild(createOrderChip(item,q)));
+    optionsContainer.appendChild(list);
+
+    const submitBtn=document.createElement('button');
+    submitBtn.className="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 rounded-xl";
+    submitBtn.textContent="✅ 确认提交";
+    submitBtn.onclick=()=>submitOrder(q);
+    optionsContainer.appendChild(submitBtn);
+}
+
+function createOrderChip(item,q){
+    const el=document.createElement('div');
+    el.className="order-item flex items-center gap-3 p-3 bg-white border-2 border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700";
+    el.draggable=true;
+    el.dataset.item=item;
+    el.innerHTML=`<span class="text-slate-400 font-bold text-lg leading-none">⠿</span><span>${item}</span>`;
+
+    el.addEventListener('dragstart',e=>{
+        orderState.dragSrc=item;
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed='move';
+    });
+    el.addEventListener('dragend',()=>{
+        el.classList.remove('dragging');
+        document.querySelectorAll('.order-item').forEach(o=>o.classList.remove('drag-over-top'));
+    });
+    el.addEventListener('dragover',e=>{
+        e.preventDefault();
+        document.querySelectorAll('.order-item').forEach(o=>o.classList.remove('drag-over-top'));
+        el.classList.add('drag-over-top');
+    });
+    el.addEventListener('dragleave',()=>el.classList.remove('drag-over-top'));
+    el.addEventListener('drop',e=>{
+        e.preventDefault();
+        el.classList.remove('drag-over-top');
+        if(orderState.dragSrc && orderState.dragSrc!==item){
+            const list=document.getElementById('order-list');
+            const items=Array.from(list.querySelectorAll('.order-item'));
+            const srcEl=items.find(e=>e.dataset.item===orderState.dragSrc);
+            const dstEl=el;
+            if(srcEl&&dstEl){
+                const si=items.indexOf(srcEl), di=items.indexOf(dstEl);
+                if(si<di) list.insertBefore(srcEl,dstEl.nextSibling);
+                else list.insertBefore(srcEl,dstEl);
+            }
+        }
+    });
+    setupTouchDrag(el,item,q,'order');
+    return el;
+}
+
+function submitOrder(q){
+    const list=document.getElementById('order-list');
+    const currentItems=Array.from(list.querySelectorAll('.order-item')).map(e=>e.dataset.item);
+    const isCorrect=currentItems.every((item,i)=>item===q.correctOrder[i]);
+
+    Array.from(list.querySelectorAll('.order-item')).forEach((el,i)=>{
+        el.classList.remove('border-slate-200');
+        if(currentItems[i]===q.correctOrder[i]) el.classList.add('border-green-400','bg-green-50');
+        else el.classList.add('border-red-400','bg-red-50');
+    });
+
+    if(isCorrect){
+        const pts=givePoints(true);
+        showFeedback(true,q.explanation,pts);
+    } else {
+        combo=0; comboDisplay.classList.add('hidden');
+        loseHeart();
+        const correctStr=q.correctOrder.join(' → ');
+        showFeedback(false,`正确顺序：${correctStr}\n\n${q.explanation}`,0);
+    }
+}
+
+// ============================================================
+// 填图题
+// ============================================================
+function renderDiagram(q){
+    diagramState={selectedLabel:null,filled:{},total:Object.keys(q.hotspotMap).length,done:0};
+
+    const wrapper=document.createElement('div');
+    wrapper.className="flex flex-col gap-3";
+
+    // label row
+    const labelRow=document.createElement('div');
+    labelRow.className="flex flex-wrap gap-2 justify-center mb-1";
+    labelRow.id="diagram-labels";
+    q.labels.forEach(lbl=>{
+        const btn=document.createElement('div');
+        btn.className="label-option px-3 py-1.5 bg-white border-2 border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-sm cursor-pointer select-none";
+        btn.textContent=lbl;
+        btn.dataset.label=lbl;
+        btn.onclick=()=>selectDiagramLabel(btn,lbl);
+        labelRow.appendChild(btn);
+    });
+    wrapper.appendChild(labelRow);
+
+    const hint=document.createElement('p');
+    hint.className="text-xs text-center text-slate-400";
+    hint.textContent="① 先点击上方标签 → ② 再点击图中对应区域";
+    wrapper.appendChild(hint);
+
+    const svgWrap=document.createElement('div');
+    svgWrap.className="flex justify-center";
+    svgWrap.innerHTML=q.diagramType==='brain'?buildBrainSVG():buildReflexSVG();
+    wrapper.appendChild(svgWrap);
+
+    optionsContainer.appendChild(wrapper);
+
+    setTimeout(()=>{
+        Object.keys(q.hotspotMap).forEach(hsId=>{
+            const el=document.getElementById(hsId);
+            if(el) el.addEventListener('click',()=>handleHotspotClick(hsId,q));
+        });
+    },50);
+}
+
+function buildBrainSVG(){
+    return `<svg viewBox="0 0 320 290" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width:310px">
+      <defs><filter id="shadow"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.15"/></filter></defs>
+      <!-- 大脑 -->
+      <ellipse id="hs-cerebrum" cx="155" cy="100" rx="118" ry="72"
+        fill="#fef3c7" stroke="#d97706" stroke-width="2.5" class="hotspot" filter="url(#shadow)"/>
+      <!-- 大脑皮层纹理 -->
+      <path d="M80 80 Q100 60 130 75 Q155 55 180 72 Q205 58 220 78" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" pointer-events="none"/>
+      <text x="155" y="90" text-anchor="middle" font-size="13" fill="#92400e" font-weight="bold" pointer-events="none">①</text>
+      <text x="155" y="108" text-anchor="middle" font-size="11" fill="#92400e" pointer-events="none">(思维/记忆)</text>
+      <!-- 小脑 -->
+      <ellipse id="hs-cerebellum" cx="218" cy="185" rx="52" ry="36"
+        fill="#d1fae5" stroke="#059669" stroke-width="2.5" class="hotspot" filter="url(#shadow)"/>
+      <path d="M175 185 Q195 175 215 185 Q205 195 185 185" fill="none" stroke="#6ee7b7" stroke-width="1.5" pointer-events="none"/>
+      <text x="218" y="183" text-anchor="middle" font-size="13" fill="#065f46" font-weight="bold" pointer-events="none">②</text>
+      <text x="218" y="198" text-anchor="middle" font-size="10" fill="#065f46" pointer-events="none">(平衡/协调)</text>
+      <!-- 脑干 -->
+      <rect id="hs-brainstem" x="124" y="163" width="62" height="50" rx="12"
+        fill="#dbeafe" stroke="#2563eb" stroke-width="2.5" class="hotspot" filter="url(#shadow)"/>
+      <text x="155" y="185" text-anchor="middle" font-size="13" fill="#1e3a8a" font-weight="bold" pointer-events="none">③</text>
+      <text x="155" y="200" text-anchor="middle" font-size="10" fill="#1e3a8a" pointer-events="none">(生命中枢)</text>
+      <!-- 脊髓 -->
+      <rect id="hs-spinal" x="141" y="215" width="28" height="55" rx="8"
+        fill="#fce7f3" stroke="#db2777" stroke-width="2.5" class="hotspot" filter="url(#shadow)"/>
+      <text x="155" y="238" text-anchor="middle" font-size="12" fill="#9d174d" font-weight="bold" pointer-events="none">④</text>
+      <!-- 连接线 -->
+      <line x1="155" y1="172" x2="155" y2="215" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,2" pointer-events="none"/>
+      <!-- 标注文字（答对后显示） -->
+      <text id="lb-hs-cerebrum"   x="30"  y="55"  font-size="12" fill="#059669" font-weight="bold" visibility="hidden">大脑 ✓</text>
+      <text id="lb-hs-cerebellum" x="252" y="155" font-size="12" fill="#059669" font-weight="bold" visibility="hidden">小脑 ✓</text>
+      <text id="lb-hs-brainstem"  x="68"  y="188" font-size="12" fill="#059669" font-weight="bold" visibility="hidden">脑干 ✓</text>
+      <text id="lb-hs-spinal"     x="172" y="248" font-size="12" fill="#059669" font-weight="bold" visibility="hidden">脊髓 ✓</text>
+      <text x="155" y="282" text-anchor="middle" font-size="9" fill="#94a3b8">选好标签后点击对应区域</text>
+    </svg>`;
+}
+
+function buildReflexSVG(){
+    return `<svg viewBox="0 0 300 270" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width:290px">
+      <defs><filter id="sh2"><feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.12"/></filter></defs>
+      <!-- 连接轴线 -->
+      <line x1="150" y1="28" x2="150" y2="248" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="6,4" pointer-events="none"/>
+      <!-- 感受器 -->
+      <ellipse id="rf-receptor" cx="150" cy="28" rx="58" ry="22"
+        fill="#fef3c7" stroke="#d97706" stroke-width="2.5" class="hotspot" filter="url(#sh2)"/>
+      <text x="150" y="33" text-anchor="middle" font-size="11" fill="#92400e" font-weight="bold" pointer-events="none">① 区域</text>
+      <!-- 箭头1 -->
+      <polygon points="145,54 155,54 150,64" fill="#94a3b8" pointer-events="none"/>
+      <!-- 传入神经 -->
+      <rect id="rf-afferent" x="100" y="68" width="100" height="32" rx="9"
+        fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5" class="hotspot" filter="url(#sh2)"/>
+      <text x="150" y="89" text-anchor="middle" font-size="11" fill="#4c1d95" font-weight="bold" pointer-events="none">② 区域</text>
+      <!-- 箭头2 -->
+      <polygon points="145,104 155,104 150,114" fill="#94a3b8" pointer-events="none"/>
+      <!-- 神经中枢 -->
+      <rect id="rf-center" x="88" y="118" width="124" height="32" rx="9"
+        fill="#dcfce7" stroke="#16a34a" stroke-width="2.5" class="hotspot" filter="url(#sh2)"/>
+      <text x="150" y="139" text-anchor="middle" font-size="11" fill="#166534" font-weight="bold" pointer-events="none">③ 区域</text>
+      <!-- 箭头3 -->
+      <polygon points="145,154 155,154 150,164" fill="#94a3b8" pointer-events="none"/>
+      <!-- 传出神经 -->
+      <rect id="rf-efferent" x="100" y="168" width="100" height="32" rx="9"
+        fill="#dbeafe" stroke="#2563eb" stroke-width="2.5" class="hotspot" filter="url(#sh2)"/>
+      <text x="150" y="189" text-anchor="middle" font-size="11" fill="#1e3a8a" font-weight="bold" pointer-events="none">④ 区域</text>
+      <!-- 箭头4 -->
+      <polygon points="145,204 155,204 150,214" fill="#94a3b8" pointer-events="none"/>
+      <!-- 效应器 -->
+      <ellipse id="rf-effector" cx="150" cy="236" rx="58" ry="22"
+        fill="#ffe4e6" stroke="#e11d48" stroke-width="2.5" class="hotspot" filter="url(#sh2)"/>
+      <text x="150" y="241" text-anchor="middle" font-size="11" fill="#9f1239" font-weight="bold" pointer-events="none">⑤ 区域</text>
+      <text x="150" y="263" text-anchor="middle" font-size="9" fill="#94a3b8">选好标签后点击对应区域</text>
+    </svg>`;
+}
+
+function selectDiagramLabel(btn,lbl){
+    document.querySelectorAll('.label-option').forEach(b=>b.classList.remove('selected'));
+    if(diagramState.selectedLabel===lbl){diagramState.selectedLabel=null;return;}
+    diagramState.selectedLabel=lbl;
+    btn.classList.add('selected');
+}
+
+function handleHotspotClick(hsId,q){
+    if(!diagramState.selectedLabel){
+        // flash hint
+        const hint=optionsContainer.querySelector('p.text-xs');
+        if(hint){hint.classList.add('text-red-500');setTimeout(()=>hint.classList.remove('text-red-500'),800);}
+        return;
+    }
+    if(diagramState.filled[hsId]) return;
+
+    const correct=q.hotspotMap[hsId]===diagramState.selectedLabel;
+    const el=document.getElementById(hsId);
+
+    if(correct){
+        const origFill=el.getAttribute('fill');
+        el.style.fill='#bbf7d0';
+        el.style.stroke='#16a34a';
+        el.style.pointerEvents='none';
+
+        // show label text
+        const lbEl=document.getElementById(`lb-${hsId}`);
+        if(lbEl) lbEl.setAttribute('visibility','visible');
+
+        // replace numbered text
+        const texts=el.parentElement?el.parentElement.querySelectorAll('text'):[];
+
+        // mark label used
+        const lblBtn=document.querySelector(`[data-label="${diagramState.selectedLabel}"]`);
+        if(lblBtn){lblBtn.classList.add('used');lblBtn.classList.remove('selected');}
+
+        diagramState.filled[hsId]=diagramState.selectedLabel;
+        diagramState.selectedLabel=null;
+        diagramState.done++;
+
+        if(diagramState.done===diagramState.total){
+            const pts=givePoints(true);
+            showFeedback(true,q.explanation,pts);
+        }
+    } else {
+        const origFill=el.style.fill;
+        el.style.fill='#fca5a5';
+        setTimeout(()=>{el.style.fill='';},700);
+        combo=0; comboDisplay.classList.add('hidden');
+        loseHeart();
+        if(hp<=0) showFeedback(false,q.explanation,0);
+    }
+}
+
+// ============================================================
+// 触摸拖拽支持
+// ============================================================
+const ghost=document.getElementById('touch-ghost');
+let touchItem=null,touchType=null,touchQ=null;
+
+function setupTouchDrag(el,item,q,type){
+    el.addEventListener('touchstart',e=>{
+        touchItem=item; touchType=type; touchQ=q;
+        ghost.textContent=item;
+        ghost.classList.remove('hidden');
+        const t=e.touches[0];
+        ghost.style.left=(t.clientX-60)+'px';
+        ghost.style.top=(t.clientY-20)+'px';
+        el.classList.add('dragging');
+    },{passive:true});
+
+    el.addEventListener('touchmove',e=>{
+        e.preventDefault();
+        const t=e.touches[0];
+        ghost.style.left=(t.clientX-60)+'px';
+        ghost.style.top=(t.clientY-20)+'px';
+        if(touchType==='order'){
+            document.querySelectorAll('.order-item').forEach(o=>{
+                o.classList.remove('drag-over-top');
+                const r=o.getBoundingClientRect();
+                if(t.clientY>r.top&&t.clientY<r.bottom&&o.dataset.item!==touchItem)
+                    o.classList.add('drag-over-top');
+            });
+        } else if(touchType==='classify'){
+            document.querySelectorAll('.drop-zone').forEach(z=>{
+                z.classList.remove('drag-over');
+                const r=z.getBoundingClientRect();
+                if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom)
+                    z.classList.add('drag-over');
+            });
+        }
+    },{passive:false});
+
+    el.addEventListener('touchend',e=>{
+        ghost.classList.add('hidden');
+        el.classList.remove('dragging');
+        document.querySelectorAll('.drag-over-top,.drag-over').forEach(o=>o.classList.remove('drag-over-top','drag-over'));
+        if(!touchItem) return;
+        const t=e.changedTouches[0];
+
+        if(touchType==='classify'){
+            document.querySelectorAll('.drop-zone').forEach(zone=>{
+                const r=zone.getBoundingClientRect();
+                if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom){
+                    placeClassifyItem(touchItem,parseInt(zone.dataset.catIdx),touchQ);
+                }
+            });
+        } else if(touchType==='order'){
+            const list=document.getElementById('order-list');
+            if(!list) return;
+            const items=Array.from(list.querySelectorAll('.order-item'));
+            items.forEach(oel=>{
+                const r=oel.getBoundingClientRect();
+                if(t.clientY>r.top&&t.clientY<r.bottom&&oel.dataset.item!==touchItem){
+                    const srcEl=items.find(e=>e.dataset.item===touchItem);
+                    const dstEl=oel;
+                    if(srcEl&&dstEl){
+                        const si=items.indexOf(srcEl),di=items.indexOf(dstEl);
+                        if(si<di) list.insertBefore(srcEl,dstEl.nextSibling);
+                        else list.insertBefore(srcEl,dstEl);
+                    }
+                }
+            });
+        }
+        touchItem=null; touchType=null; touchQ=null;
+    },{passive:true});
+}
+
+// ============================================================
+// 证书生成
+// ============================================================
+function generateAndShowCertificate(){
+    const playerName=document.getElementById('player-name').value.trim()||"神秘英雄";
+    const totalTime=document.getElementById('time-taken').textContent;
+    endScreen.classList.add('hidden');
+    certScreen.classList.remove('hidden');
+    const canvas=document.getElementById('certCanvas');
+    const ctx=canvas.getContext('2d');
+    const scale=2;
+    canvas.width=800*scale; canvas.height=600*scale;
+    canvas.style.width='100%';
+    ctx.scale(scale,scale);
+
+    const grad=ctx.createLinearGradient(0,0,800,600);
+    grad.addColorStop(0,'#f0f9ff'); grad.addColorStop(1,'#e0f2fe');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,800,600);
+
+    ctx.strokeStyle='#0284c7'; ctx.lineWidth=12; ctx.strokeRect(20,20,760,560);
+    ctx.strokeStyle='#bae6fd'; ctx.lineWidth=4; ctx.strokeRect(30,30,740,540);
+
+    ctx.fillStyle='#0f172a'; ctx.textAlign='center';
+    ctx.font='bold 42px "Microsoft YaHei",sans-serif';
+    ctx.fillText('🏅 杰出人体保卫者证书 🏅',400,105);
+
+    ctx.font='30px "Microsoft YaHei",sans-serif';
+    ctx.fillText('授予指挥官：'+playerName,400,190);
+
+    ctx.font='20px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#334155';
+    ctx.fillText('在【人体协调保卫战】特别行动中，',400,260);
+    ctx.fillText('成功挑战选择、配对、归类、排顺序、填图五大题型，',400,298);
+    ctx.fillText('展现了对神经与内分泌系统的卓越理解！',400,336);
+
+    ctx.font='bold 34px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#d97706';
+    ctx.fillText('最终战力得分：'+score,400,405);
+
+    ctx.font='20px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#64748b';
+    ctx.fillText(totalTime,400,448);
+
+    ctx.font='italic 21px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#16a34a';
+    ctx.fillText('"你比神经冲动还敏捷，比肾上腺素还要燃！"',400,515);
+
+    const today=new Date();
+    const dateStr=today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日';
+    ctx.font='16px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText('颁发日期：'+dateStr,650,562);
+
+    const dataUrl=canvas.toDataURL('image/png');
+    const dlBtn=document.getElementById('downloadCertBtn');
+    dlBtn.href=dataUrl;
+    dlBtn.download=playerName+'_人体保卫战证书.png';
+}
+</script>
+</body>
+</html>
