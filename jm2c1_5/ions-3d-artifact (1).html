@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>离子实验室</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&family=Share+Tech+Mono&display=swap');
+:root{--bg:#04080f;--panel:rgba(8,18,35,0.88);--border:rgba(50,110,180,0.25);--pos:#ff6020;--neg:#20b8ff;--gold:#ffd060;--text:#d8eeff;--sub:#6890aa;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(20,60,120,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(20,60,120,.06) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+.tab-bar{position:relative;z-index:20;display:flex;background:rgba(4,10,22,.95);border-bottom:1px solid var(--border);padding:0 20px;}
+.tab-btn{padding:13px 22px;background:none;border:none;color:var(--sub);font-family:inherit;font-size:.88rem;cursor:pointer;letter-spacing:.06em;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--neg);}
+.tab-btn:hover:not(.active){color:#a0c8e0;}
+.tab-panel{display:none;position:relative;z-index:10;}
+.tab-panel.active{display:block;}
+.page-header{text-align:center;padding:20px 20px 8px;}
+.page-header h1{font-family:'Share Tech Mono',monospace;font-size:clamp(.95rem,3vw,1.7rem);letter-spacing:.14em;background:linear-gradient(120deg,#40c8ff 0%,#a0ffe0 50%,#ffd060 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.page-header p{font-size:.78rem;color:var(--sub);margin-top:5px;letter-spacing:.04em;}
+.legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;padding:5px 16px 2px;font-size:.75rem;}
+.legend-item{display:flex;align-items:center;gap:6px;color:#90b8cc;}
+.ldot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.ldot.pos{background:radial-gradient(circle at 35% 35%,#ff9060,#cc3300);box-shadow:0 0 5px #ff5500;}
+.ldot.neg{background:radial-gradient(circle at 35% 35%,#60c8ff,#0044cc);box-shadow:0 0 5px #0088ff;}
+.bump-legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:.72rem;padding:3px 16px 6px;}
+.bump-legend-item{display:flex;align-items:center;gap:5px;color:#7090a8;}
+.bump-swatch{width:26px;height:9px;border-radius:4px;}
+.swatch-in{background:linear-gradient(90deg,#ff3300,#ff9900);box-shadow:0 0 5px #ff6600aa;}
+.swatch-out{background:linear-gradient(90deg,#0088ff,#00eeff);box-shadow:0 0 5px #00ccffaa;}
+.ion-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:13px;padding:12px 18px 34px;max-width:1280px;margin:0 auto;}
+.ion-card{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;backdrop-filter:blur(6px);transition:transform .25s,border-color .3s,box-shadow .3s;}
+.ion-card:hover{transform:translateY(-3px) scale(1.02);}
+.ion-card.positive{border-color:rgba(255,90,20,.4);}.ion-card.positive:hover{border-color:rgba(255,120,40,.9);box-shadow:0 6px 22px rgba(255,90,20,.26);}
+.ion-card.negative{border-color:rgba(20,140,255,.4);}.ion-card.negative:hover{border-color:rgba(40,160,255,.9);box-shadow:0 6px 22px rgba(20,140,255,.26);}
+.ion-card.polyatomic{border-color:rgba(20,200,140,.4);}.ion-card.polyatomic:hover{border-color:rgba(40,230,160,.9);box-shadow:0 6px 22px rgba(20,200,140,.26);}
+.ion-preview{width:140px;height:140px;border-radius:10px;display:block;background:#060e1a;}
+.ion-name{font-size:.92rem;font-weight:700;color:#eaf4ff;}
+.ion-formula{font-family:'Share Tech Mono',monospace;font-size:.86rem;color:#70c0ff;}
+.ion-tag{font-size:.7rem;padding:2px 8px;border-radius:16px;font-weight:700;}
+.tag-pos{background:rgba(255,70,10,.14);color:#ff7040;border:1px solid rgba(255,70,10,.38);}
+.tag-neg{background:rgba(10,120,255,.14);color:#50b0ff;border:1px solid rgba(10,120,255,.38);}
+.ion-desc{font-size:.68rem;color:var(--sub);text-align:center;line-height:1.5;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;backdrop-filter:blur(6px);justify-content:center;align-items:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:rgba(5,14,28,.97);border:1px solid rgba(60,150,220,.5);border-radius:17px;padding:20px;width:min(92vw,410px);position:relative;animation:mIn .25s ease;display:flex;flex-direction:column;align-items:center;gap:8px;}
+@keyframes mIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--sub);font-size:1.3rem;cursor:pointer;}
+.modal-close:hover{color:#fff;}
+#modalCanvas{width:260px;height:260px;border-radius:12px;display:block;cursor:grab;touch-action:none;}
+#modalCanvas:active{cursor:grabbing;}
+.modal-title{font-size:1.25rem;font-weight:700;color:#eaf8ff;}
+.modal-formula{font-family:'Share Tech Mono',monospace;font-size:.96rem;color:#40b8ff;}
+.modal-info{font-size:.76rem;color:#7aaccc;text-align:center;line-height:1.8;border-top:1px solid rgba(60,120,180,.2);padding-top:8px;width:100%;}
+.modal-hint{font-size:.66rem;color:#344e62;}
+#labPanel{padding:8px 18px 36px;max-width:1100px;margin:0 auto;}
+.lab-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:620px){.lab-layout{grid-template-columns:1fr;}}
+.lab-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.lab-section h2{font-family:'Share Tech Mono',monospace;font-size:.86rem;letter-spacing:.1em;color:#60a8cc;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:7px;}
+.ion-picker-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.pick-btn{padding:4px 10px;border-radius:18px;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:.78rem;cursor:pointer;transition:all .2s;background:none;color:inherit;}
+.pick-btn.pos-btn{border-color:rgba(255,90,20,.5);color:#ff8050;}.pick-btn.pos-btn:hover{background:rgba(255,90,20,.2);border-color:#ff6030;box-shadow:0 0 7px #ff602055;}
+.pick-btn.neg-btn{border-color:rgba(20,140,255,.5);color:#50b0ff;}.pick-btn.neg-btn:hover{background:rgba(20,140,255,.2);border-color:#20a0ff;box-shadow:0 0 7px #20a0ff55;}
+.reaction-zone{min-height:200px;border-radius:13px;border:2px dashed rgba(60,120,180,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;position:relative;overflow:hidden;transition:border-color .3s;}
+.reaction-zone.ready{border-color:rgba(80,220,80,.6);box-shadow:inset 0 0 28px rgba(80,220,80,.05);}
+.reaction-zone.error{border-color:rgba(255,80,20,.5);}
+.reaction-ions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;}
+.react-ion-chip{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;}
+.react-ion-chip .chip-label{font-family:'Share Tech Mono',monospace;font-size:.72rem;}
+.react-ion-chip .chip-count{font-size:.7rem;color:var(--gold);background:rgba(0,0,0,.5);border-radius:9px;padding:1px 5px;}
+.react-ion-chip .chip-remove{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:rgba(255,60,40,.85);border:none;color:#fff;font-size:.7rem;line-height:17px;text-align:center;cursor:pointer;display:none;}
+.react-ion-chip:hover .chip-remove{display:block;}
+.plus-sign{font-size:1.5rem;color:var(--sub);}
+.charge-bar{width:100%;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;height:7px;margin:3px 0;}
+.charge-fill{height:100%;border-radius:7px;transition:width .4s,background .4s;}
+.balance-info{font-size:.75rem;text-align:center;font-family:'Share Tech Mono',monospace;letter-spacing:.04em;}
+.synth-btn{padding:8px 24px;border-radius:22px;background:linear-gradient(135deg,#1a8a4a,#22cc66);border:none;color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .2s;letter-spacing:.05em;}
+.synth-btn:disabled{opacity:.28;cursor:not-allowed;transform:none!important;}
+.synth-btn:not(:disabled):hover{transform:scale(1.05);}
+.clear-btn{padding:8px 18px;border-radius:22px;background:rgba(80,80,100,.4);border:1px solid rgba(120,120,160,.3);color:#a0b0c0;font-family:inherit;font-size:.85rem;cursor:pointer;transition:background .2s;}
+.clear-btn:hover{background:rgba(100,100,130,.5);}
+.result-panel{background:rgba(10,30,15,.65);border:1px solid rgba(60,200,80,.3);border-radius:13px;padding:12px;animation:gIn .5s ease;}
+@keyframes gIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+.result-formula{font-family:'Share Tech Mono',monospace;font-size:1.5rem;color:var(--gold);text-shadow:0 0 16px #ffd06055;letter-spacing:.1em;}
+.result-name{font-size:.82rem;color:#80e8a0;margin-top:3px;}
+.result-type{font-size:.72rem;color:var(--sub);margin-top:1px;}
+.result-equation{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:#a0c8e0;margin-top:7px;background:rgba(255,255,255,.04);border-radius:7px;padding:5px 9px;}
+.compound-viewer{margin-top:10px;background:rgba(4,14,28,.9);border:1px solid rgba(60,140,200,.3);border-radius:13px;overflow:hidden;}
+.compound-viewer-header{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(60,120,180,.2);}
+.compound-viewer-title{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:#60a8cc;letter-spacing:.06em;}
+.compound-hint{font-size:.66rem;color:#344e62;}
+.particle{position:absolute;border-radius:50%;animation:fly .9s ease-out forwards;}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}
+#sharedCanvas{position:fixed;top:-9999px;left:-9999px;}
+.panel-credit{text-align:center;font-size:.68rem;color:#2a4055;letter-spacing:.08em;padding:18px 0 8px;border-top:1px solid rgba(40,80,130,.15);margin-top:16px;}
+/* Cover */
+#coverOverlay{position:fixed;inset:0;z-index:9000;background:linear-gradient(160deg,#020810 0%,#04111f 40%,#071a2e 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
+#coverOverlay.hiding{animation:coverFade .7s ease forwards;}
+@keyframes coverFade{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.03);pointer-events:none;}}
+.cover-glow{position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(20,80,160,.28) 0%,transparent 70%);pointer-events:none;}
+.cover-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(30,80,160,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(30,80,160,.07) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;}
+.cover-atom{font-size:clamp(3rem,12vw,6rem);filter:drop-shadow(0 0 32px rgba(40,160,255,.5));margin-bottom:8px;animation:atomPulse 3s ease-in-out infinite;}
+@keyframes atomPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 24px rgba(40,160,255,.4));}50%{transform:scale(1.06);filter:drop-shadow(0 0 48px rgba(40,200,255,.7));}}
+.cover-title{font-family:'Share Tech Mono',monospace;font-size:clamp(1.3rem,5vw,2.4rem);letter-spacing:.16em;background:linear-gradient(120deg,#40c8ff 0%,#a8f0e0 45%,#ffd060 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:6px;}
+.cover-disclaimer{max-width:520px;background:rgba(10,25,50,.7);border:1px solid rgba(50,110,180,.35);border-left:3px solid rgba(255,180,40,.6);border-radius:10px;padding:14px 18px;font-size:clamp(.72rem,2.2vw,.85rem);line-height:1.85;color:#8ab0cc;text-align:center;margin-bottom:28px;letter-spacing:.02em;}
+.cover-disclaimer strong{color:#ffd060;font-weight:700;}
+.cover-enter-btn{padding:12px 40px;border-radius:30px;background:linear-gradient(135deg,#1060c0,#1890ff);border:1px solid rgba(80,160,255,.5);color:#fff;font-family:'Noto Sans SC',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.1em;cursor:pointer;box-shadow:0 0 24px rgba(20,120,255,.35);transition:transform .2s,box-shadow .2s;}
+.cover-enter-btn:hover{transform:scale(1.06);box-shadow:0 0 40px rgba(20,160,255,.55);}
+.cover-credit{margin-top:18px;font-size:.72rem;color:#334e66;letter-spacing:.06em;}
+</style>
+</head>
+<body>
+<canvas id="sharedCanvas" width="160" height="160"></canvas>
+
+<div id="coverOverlay">
+  <div class="cover-glow"></div>
+  <div class="cover-grid"></div>
+  <div class="cover-atom">⚛</div>
+  <div class="cover-title">离子三维图鉴</div>
+  <div class="cover-disclaimer">
+    <strong>⚠ 免责声明</strong><br>
+    本页面演示只为让初中生能较快速了解离子与其化合物的构造，<br>
+    并非专业模型，也未必适用于更高阶的课程中。<br>
+    若有任何质疑，请以 <strong>IUPAC</strong> 的答案为准。
+  </div>
+  <button class="cover-enter-btn" onclick="enterApp()">进入演示 →</button>
+  <div class="cover-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('ions',this)">⚛ 离子图鉴</button>
+  <button class="tab-btn" onclick="switchTab('lab',this)">⚗ 合成实验室</button>
+</div>
+
+<div id="ionsPanel" class="tab-panel active">
+  <div class="page-header"><h1>离子三维图鉴</h1><p>凹陷区域（橙红高亮）= 缺电子 · 凸起区域（蓝青高亮）= 多电子</p></div>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot pos"></div>正离子（凹陷）</div>
+    <div class="legend-item"><div class="ldot neg"></div>负离子（凸起）</div>
+  </div>
+  <div class="bump-legend">
+    <div class="bump-legend-item"><div class="bump-swatch swatch-in"></div>凹陷高亮（失电子区）</div>
+    <div class="bump-legend-item"><div class="bump-swatch swatch-out"></div>凸起高亮（得电子区）</div>
+  </div>
+  <div class="ion-grid" id="ionGrid"></div>
+  <div class="panel-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+</div>
+
+<div id="labPanel" class="tab-panel">
+  <div class="page-header"><h1>⚗ 离子合成实验室</h1><p>选择正离子和负离子，电荷平衡后合成化合物</p></div>
+  <div class="lab-layout">
+    <div>
+      <div class="lab-section" style="margin-bottom:12px">
+        <h2>▲ 正离子</h2><div class="ion-picker-grid" id="posPicker"></div>
+      </div>
+      <div class="lab-section">
+        <h2>▼ 负离子</h2><div class="ion-picker-grid" id="negPicker"></div>
+      </div>
+    </div>
+    <div class="lab-section">
+      <h2>⚗ 反应区</h2>
+      <div class="reaction-zone" id="reactionZone">
+        <div id="reactionContent" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:9px;">
+          <div style="color:var(--sub);font-size:.8rem;">← 从左侧选择离子加入反应区</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="balance-info" id="balanceInfo" style="color:var(--sub)">尚未选择离子</div>
+        <div class="charge-bar" style="margin-top:5px"><div class="charge-fill" id="chargeFill" style="width:50%;background:#334"></div></div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:10px;gap:9px;">
+        <button class="synth-btn" id="synthBtn" disabled onclick="synthesize()">⚗ 合成</button>
+        <button class="clear-btn" onclick="clearReaction()">✕ 清空</button>
+      </div>
+      <div id="resultArea" style="margin-top:10px;"></div>
+    </div>
+  </div>
+  <div class="panel-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-title" id="mTitle"></div>
+    <div class="modal-formula" id="mFormula"></div>
+    <canvas id="modalCanvas" width="260" height="260"></canvas>
+    <div class="modal-info" id="mInfo"></div>
+    <div class="modal-hint">拖动旋转 · 滚轮缩放</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const CPK={H:0xffffff,C:0x555555,N:0x4466ff,O:0xff3322,S:0xffcc00,P:0xff8800,Cl:0x22cc44,Na:0xdd9933,K:0xcc6600,Ca:0xaaddbb,Mg:0x44bb88,Al:0xbbbbcc,Fe:0xcc8800,Cu1:0xcc7722,Cu2:0x2299ff,Ag:0xdddddd,S2:0xffdd00,I:0x8800aa};
+const IONIC_R={H:0.10,Na:1.02,K:1.38,Ca:1.00,Mg:0.72,Al:0.54,Fe:0.65,N:1.48,Cl:1.81,O:1.40,S:1.84,P:2.12,C:0.30,F:1.33,Cu1:0.77,Cu2:0.73,Ag:1.15,S2:1.84,I:2.20};
+
+const IONS=[
+  {id:'NO3',name:'硝酸根',formula:'NO₃⁻',charge:-1,cls:'polyatomic',bumps:1,bumpType:'out',desc:'平面三角形 (D₃ₕ)\nN-O=1.24Å | 得1e⁻→1个凸起',detail:'电荷: -1 | 结构: 平面三角形\nN-O键长1.24Å，键角120°\n三个O原子等价，凸起朝平面外侧',atoms:[{r:0.36,el:'N'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'}],bonds:[[0,1],[0,2],[0,3]],pos:[[0,0,0],[0.0,1.24,0],[-1.0739,-0.62,0],[1.0739,-0.62,0]],bumpDirs:[[0,0,1]]},
+  {id:'SO4',name:'硫酸根',formula:'SO₄²⁻',charge:-2,cls:'polyatomic',bumps:2,bumpType:'out',desc:'正四面体 (Tᵈ)\nS-O=1.49Å | 得2e⁻→2个凸起',detail:'电荷: -2 | 结构: 正四面体\nS-O键长1.49Å，键角109.47°\n凸起位于键隙方向',atoms:[{r:0.40,el:'S'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'}],bonds:[[0,1],[0,2],[0,3],[0,4]],pos:[[0,0,0],[0.8603,0.8603,0.8603],[0.8603,-0.8603,-0.8603],[-0.8603,0.8603,-0.8603],[-0.8603,-0.8603,0.8603]],bumpDirs:[[-0.5774,-0.5774,-0.5774],[0.5774,0.5774,-0.5774]]},
+  {id:'CO3',name:'碳酸根',formula:'CO₃²⁻',charge:-2,cls:'polyatomic',bumps:2,bumpType:'out',desc:'平面三角形 (D₃ₕ)\nC-O=1.30Å | 得2e⁻→2个凸起',detail:'电荷: -2 | 结构: 平面三角形\nC-O键长1.30Å，键角120°\n凸起位于平面上下方',atoms:[{r:0.33,el:'C'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'}],bonds:[[0,1],[0,2],[0,3]],pos:[[0,0,0],[0.0,1.3,0],[-1.1258,-0.65,0],[1.1258,-0.65,0]],bumpDirs:[[0,0,1],[0,0,-1]]},
+  {id:'NH4',name:'铵根',formula:'NH₄⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'正四面体 (Tᵈ)\nN-H=1.01Å | 失1e⁻→1个凹陷',detail:'电荷: +1 | 结构: 正四面体\nN-H键长1.01Å，键角109.47°\n凹陷位于四个H键的空隙方向',atoms:[{r:0.36,el:'N'},{r:0.22,el:'H'},{r:0.22,el:'H'},{r:0.22,el:'H'},{r:0.22,el:'H'}],bonds:[[0,1],[0,2],[0,3],[0,4]],pos:[[0,0,0],[0.5831,0.5831,0.5831],[0.5831,-0.5831,-0.5831],[-0.5831,0.5831,-0.5831],[-0.5831,-0.5831,0.5831]],bumpDirs:[[-0.5774,-0.5774,-0.5774]]},
+  {id:'PO4',name:'磷酸根',formula:'PO₄³⁻',charge:-3,cls:'polyatomic',bumps:3,bumpType:'out',desc:'正四面体 (Tᵈ)\nP-O=1.53Å | 得3e⁻→3个凸起',detail:'电荷: -3 | 结构: 正四面体\nP-O键长1.53Å，键角109.47°\n生物能量代谢（ATP）关键离子',atoms:[{r:0.42,el:'P'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'},{r:0.30,el:'O'}],bonds:[[0,1],[0,2],[0,3],[0,4]],pos:[[0,0,0],[0.8833,0.8833,0.8833],[0.8833,-0.8833,-0.8833],[-0.8833,0.8833,-0.8833],[-0.8833,-0.8833,0.8833]],bumpDirs:[[-0.5774,-0.5774,-0.5774],[-0.5774,0.5774,0.5774],[0.5774,-0.5774,0.5774]]},
+  {id:'OH',name:'氢氧根',formula:'OH⁻',charge:-1,cls:'negative',bumps:1,bumpType:'out',desc:'线型双原子\nO-H=0.96Å | 得1e⁻→1个凸起',detail:'电荷: -1 | 线型双原子\nO-H键长0.96Å\n碱溶液中的特征阴离子',atoms:[{r:0.30,el:'O'},{r:0.22,el:'H'}],bonds:[[0,1]],pos:[[0,0,0],[0,0.96,0]],bumpDirs:[[0,-1,0]]},
+  {id:'Cl',name:'氯离子',formula:'Cl⁻',charge:-1,cls:'negative',bumps:1,bumpType:'out',desc:'单原子阴离子\nCl⁻半径1.81Å\n得1e⁻→1个凸起',detail:'电荷: -1 | 离子半径1.81Å\n原子半径0.99Å → 得1e⁻后显著膨胀\n常见于氯化物盐类',atoms:[{r:0.55,el:'Cl'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'H',name:'氢离子',formula:'H⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'质子（无电子）\n半径≈0，失1e⁻→1个凹陷',detail:'电荷: +1 | 实为裸质子，半径≈0\n水溶液中以水合氢离子H₃O⁺形式存在\n凹陷代表完全失去电子的极端状态',atoms:[{r:0.26,el:'H'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'Na',name:'钠离子',formula:'Na⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'单原子阳离子\nNa⁺半径1.02Å\n失1e⁻→1个凹陷',detail:'电荷: +1 | 离子半径1.02Å\n对比Cl⁻(1.81Å)，阳离子远小于阴离子\n细胞外液的主要阳离子',atoms:[{r:0.44,el:'Na'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'K',name:'钾离子',formula:'K⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'单原子阳离子\nK⁺半径1.38Å\n失1e⁻→1个凹陷',detail:'电荷: +1 | 离子半径1.38Å\n比Na⁺大，比Cl⁻小\n细胞内液的主要阳离子',atoms:[{r:0.52,el:'K'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'Ca',name:'钙离子',formula:'Ca²⁺',charge:+2,cls:'positive',bumps:2,bumpType:'in',desc:'单原子阳离子\nCa²⁺半径1.00Å\n失2e⁻→2个凹陷',detail:'电荷: +2 | 离子半径1.00Å\n碱土金属，失去最外层2个电子\n骨骼和牙齿的重要组成',atoms:[{r:0.48,el:'Ca'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[0,-1,0]]},
+  {id:'Mg',name:'镁离子',formula:'Mg²⁺',charge:+2,cls:'positive',bumps:2,bumpType:'in',desc:'单原子阳离子\nMg²⁺半径0.72Å（很小）\n失2e⁻→2个凹陷',detail:'电荷: +2 | 离子半径0.72Å\n半径较小，电荷密度高\n叶绿素的核心金属离子',atoms:[{r:0.40,el:'Mg'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[0,-1,0]]},
+  {id:'Al',name:'铝离子',formula:'Al³⁺',charge:+3,cls:'positive',bumps:3,bumpType:'in',desc:'单原子阳离子\nAl³⁺半径0.54Å（极小）\n失3e⁻→3个凹陷',detail:'电荷: +3 | 离子半径0.54Å\n电荷密度极高，极化力强\n铝盐溶液水解显酸性',atoms:[{r:0.36,el:'Al'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[-0.866,-0.5,0],[0.866,-0.5,0]]},
+  {id:'Fe3',name:'铁离子',formula:'Fe³⁺',charge:+3,cls:'positive',bumps:3,bumpType:'in',desc:'单原子阳离子\nFe³⁺半径0.65Å\n失3e⁻→3个凹陷',detail:'电荷: +3 | 离子半径0.65Å\n3d轨道半满，溶液呈棕黄色\n生物体内重要的氧化还原活性金属',atoms:[{r:0.38,el:'Fe'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[-0.866,-0.5,0],[0.866,-0.5,0]]},
+  {id:'Fe2',name:'亚铁离子',formula:'Fe²⁺',charge:+2,cls:'positive',bumps:2,bumpType:'in',desc:'单原子阳离子\nFe²⁺半径0.78Å\n失2e⁻→2个凹陷',detail:'电荷: +2 | 离子半径0.78Å\n溶液呈浅绿色\n血红蛋白携氧的核心金属离子',atoms:[{r:0.42,el:'Fe'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[0,-1,0]]},
+  {id:'Cu1',name:'亚铜离子',formula:'Cu⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'单原子阳离子\nCu⁺半径0.77Å\n失1e⁻→1个凹陷',detail:'电荷: +1 | 离子半径0.77Å\n铜失去最外层1个电子\n存在于CuCl、Cu₂O等亚铜化合物中',atoms:[{r:0.40,el:'Cu1'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'Cu2',name:'铜离子',formula:'Cu²⁺',charge:+2,cls:'positive',bumps:2,bumpType:'in',desc:'单原子阳离子\nCu²⁺半径0.73Å\n失2e⁻→2个凹陷',detail:'电荷: +2 | 离子半径0.73Å\n溶液呈蓝色，是Cu²⁺的特征颜色\n存在于CuSO₄、Cu(OH)₂等铜盐中',atoms:[{r:0.38,el:'Cu2'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[0,-1,0]]},
+  {id:'Ag',name:'银离子',formula:'Ag⁺',charge:+1,cls:'positive',bumps:1,bumpType:'in',desc:'单原子阳离子\nAg⁺半径1.15Å\n失1e⁻→1个凹陷',detail:'电荷: +1 | 离子半径1.15Å\n大多数银盐难溶于水\nAgNO₃溶液是常用鉴定Cl⁻的试剂',atoms:[{r:0.46,el:'Ag'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+  {id:'S2',name:'硫离子',formula:'S²⁻',charge:-2,cls:'negative',bumps:2,bumpType:'out',desc:'单原子阴离子\nS²⁻半径1.84Å（很大）\n得2e⁻→2个凸起',detail:'电荷: -2 | 离子半径1.84Å\n得到2个电子，外层达到18电子构型\n存在于硫化物中，具有还原性',atoms:[{r:0.58,el:'S2'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0],[0,-1,0]]},
+  {id:'I',name:'碘离子',formula:'I⁻',charge:-1,cls:'negative',bumps:1,bumpType:'out',desc:'单原子阴离子\nI⁻半径2.20Å（最大卤素）\n得1e⁻→1个凸起',detail:'电荷: -1 | 离子半径2.20Å\n是最大的常见卤素离子\nAgI难溶（黄色沉淀），KI溶液可检验淀粉',atoms:[{r:0.62,el:'I'}],bonds:[],pos:[[0,0,0]],bumpDirs:[[0,1,0]]},
+];
+
+function rs(ah,pe,ne){const atoms=[],bonds=[],idx={};for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++){idx[[i,j,k]]=atoms.length;atoms.push({el:(i+j+k)%2===0?pe:ne,p:[+(i*ah-ah).toFixed(3),+(j*ah-ah).toFixed(3),+(k*ah-ah).toFixed(3)]});}for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++)for(const[di,dj,dk]of[[1,0,0],[0,1,0],[0,0,1]]){const[ni,nj,nk]=[i+di,j+dj,k+dk];if(ni<3&&nj<3&&nk<3)bonds.push([idx[[i,j,k]],idx[[ni,nj,nk]]]);}return{atoms3d:atoms,bonds3d:bonds};}
+
+const COMPOUNDS={
+  'Na+Cl':{formula:'NaCl',name:'氯化钠',cname:'食盐',type:'离子晶体',extra:'溶解性：易溶 | 岩盐型晶体，阴离子远大于阳离子',...rs(2.82,'Na','Cl'),lattice:true,fitHint:''},
+  'K+Cl':{formula:'KCl',name:'氯化钾',cname:'KCl',type:'离子晶体',extra:'溶解性：易溶 | 常用肥料和医药',...rs(3.15,'K','Cl'),lattice:true,fitHint:''},
+  'Ca+Cl':{formula:'CaCl₂',name:'氯化钙',cname:'CaCl₂',type:'离子晶体',extra:'溶解性：易溶 | 干燥剂，吸水性极强',...rs(2.75,'Ca','Cl'),lattice:true,fitHint:''},
+  'Mg+Cl':{formula:'MgCl₂',name:'氯化镁',cname:'MgCl₂',type:'离子晶体',extra:'溶解性：易溶 | 海水提镁的原料',...rs(2.55,'Mg','Cl'),lattice:true,fitHint:''},
+  'Al+Cl':{formula:'AlCl₃',name:'氯化铝',cname:'AlCl₃',type:'离子/共价混合',extra:'溶解性：易溶 | 水解显酸性，净水剂',atoms3d:[{el:'Al',p:[0,0,0]},{el:'Cl',p:[0,2.06,0]},{el:'Cl',p:[-1.784,-1.03,0]},{el:'Cl',p:[1.784,-1.03,0]}],bonds3d:[[0,1],[0,2],[0,3]],lattice:false,fitHint:''},
+  'Na+OH':{formula:'NaOH',name:'氢氧化钠',cname:'烧碱',type:'离子晶体',extra:'溶解性：易溶 | 强碱，实验室常用试剂',atoms3d:[{el:'Na',p:[0,0,0]},{el:'O',p:[1.95,0,0]},{el:'H',p:[2.91,0,0]}],bonds3d:[[0,1],[1,2]],lattice:false,fitHint:''},
+  'K+OH':{formula:'KOH',name:'氢氧化钾',cname:'KOH',type:'离子晶体',extra:'溶解性：易溶 | 强碱，制皂业原料',atoms3d:[{el:'K',p:[0,0,0]},{el:'O',p:[1.95,0,0]},{el:'H',p:[2.91,0,0]}],bonds3d:[[0,1],[1,2]],lattice:false,fitHint:''},
+  'Ca+OH':{formula:'Ca(OH)₂',name:'氢氧化钙',cname:'熟石灰',type:'离子晶体',extra:'溶解性：微溶（石灰水）| 建筑材料',atoms3d:[{el:'Ca',p:[0,0,0]},{el:'O',p:[1.578,0,1.146]},{el:'H',p:[2.355,0,1.71]},{el:'O',p:[-1.578,0,1.146]},{el:'H',p:[-2.355,0,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4]],lattice:false,fitHint:''},
+  'Mg+OH':{formula:'Mg(OH)₂',name:'氢氧化镁',cname:'Mg(OH)₂',type:'离子晶体',extra:'溶解性：难溶（白色）| 胃药成分',atoms3d:[{el:'Mg',p:[0,0,0]},{el:'O',p:[1.578,0,1.146]},{el:'H',p:[2.355,0,1.71]},{el:'O',p:[-1.578,0,1.146]},{el:'H',p:[-2.355,0,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4]],lattice:false,fitHint:''},
+  'Al+OH':{formula:'Al(OH)₃',name:'氢氧化铝',cname:'Al(OH)₃',type:'离子晶体',extra:'溶解性：难溶（白色）| 两性氢氧化物，净水剂',atoms3d:[{el:'Al',p:[0,0,0]},{el:'O',p:[1.578,0,1.146]},{el:'H',p:[2.355,0,1.71]},{el:'O',p:[-0.789,1.366,1.146]},{el:'H',p:[-1.177,2.039,1.71]},{el:'O',p:[-0.789,-1.366,1.146]},{el:'H',p:[-1.177,-2.039,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4],[0,5],[5,6]],lattice:false,fitHint:''},
+  'Na+NO3':{formula:'NaNO₃',name:'硝酸钠',cname:'智利硝石',type:'离子晶体',extra:'溶解性：易溶 | 肥料和炸药原料',atoms3d:[{el:'Na',p:[-3.2,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.24,0]},{el:'O',p:[-1.074,-0.62,0]},{el:'O',p:[1.074,-0.62,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'K+NO3':{formula:'KNO₃',name:'硝酸钾',cname:'KNO₃',type:'离子晶体',extra:'溶解性：易溶 | 火药成分之一',atoms3d:[{el:'K',p:[-3.5,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.24,0]},{el:'O',p:[-1.074,-0.62,0]},{el:'O',p:[1.074,-0.62,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Ca+NO3':{formula:'Ca(NO₃)₂',name:'硝酸钙',cname:'Ca(NO₃)₂',type:'离子晶体',extra:'溶解性：易溶 | 农业钙肥',atoms3d:[{el:'Ca',p:[0,0,0]},{el:'N',p:[2.5,0,0]},{el:'O',p:[2.5,1.24,0]},{el:'O',p:[1.426,-0.62,0]},{el:'O',p:[3.574,-0.62,0]},{el:'N',p:[-2.5,0,0]},{el:'O',p:[-2.5,1.24,0]},{el:'O',p:[-3.574,-0.62,0]},{el:'O',p:[-1.426,-0.62,0]}],bonds3d:[[0,1],[0,5],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'Na+SO4':{formula:'Na₂SO₄',name:'硫酸钠',cname:'芒硝',type:'离子晶体',extra:'溶解性：易溶 | 玻璃造纸工业原料',atoms3d:[{el:'Na',p:[-2.9,1,0]},{el:'Na',p:[-2.9,-1,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'K+SO4':{formula:'K₂SO₄',name:'硫酸钾',cname:'K₂SO₄',type:'离子晶体',extra:'溶解性：易溶 | 优质钾肥',atoms3d:[{el:'K',p:[-3.2,1,0]},{el:'K',p:[-3.2,-1,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'Ca+SO4':{formula:'CaSO₄',name:'硫酸钙',cname:'石膏',type:'离子晶体',extra:'溶解性：微溶（Ksp=4.9×10⁻⁵）| 建筑材料',atoms3d:[{el:'Ca',p:[-2.9,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Mg+SO4':{formula:'MgSO₄',name:'硫酸镁',cname:'泻盐',type:'离子晶体',extra:'溶解性：易溶 | 医用泻剂Epsom盐',atoms3d:[{el:'Mg',p:[-2.9,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Al+SO4':{formula:'Al₂(SO₄)₃',name:'硫酸铝',cname:'Al₂(SO₄)₃',type:'离子晶体',extra:'溶解性：易溶 | 净水剂，明矾原料',atoms3d:[{el:'Al',p:[-3.8,1,0]},{el:'Al',p:[-3.8,-1,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'Na+CO3':{formula:'Na₂CO₃',name:'碳酸钠',cname:'纯碱/苏打',type:'离子晶体',extra:'溶解性：易溶 | 玻璃造纸重要原料',atoms3d:[{el:'Na',p:[-2.7,1,0]},{el:'Na',p:[-2.7,-1,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5]],lattice:false,fitHint:''},
+  'K+CO3':{formula:'K₂CO₃',name:'碳酸钾',cname:'K₂CO₃',type:'离子晶体',extra:'溶解性：易溶 | 玻璃工业和肥皂制造',atoms3d:[{el:'K',p:[-3,1,0]},{el:'K',p:[-3,-1,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5]],lattice:false,fitHint:''},
+  'Ca+CO3':{formula:'CaCO₃',name:'碳酸钙',cname:'石灰石',type:'离子晶体',extra:'溶解性：难溶（Ksp=3.4×10⁻⁹）| 自然界最常见的碳酸盐',atoms3d:[{el:'Ca',p:[-2.7,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Mg+CO3':{formula:'MgCO₃',name:'碳酸镁',cname:'MgCO₃',type:'离子晶体',extra:'溶解性：难溶（Ksp=6.8×10⁻⁶）| 菱镁矿，耐火材料',atoms3d:[{el:'Mg',p:[-2.7,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Na+PO4':{formula:'Na₃PO₄',name:'磷酸钠',cname:'Na₃PO₄',type:'离子晶体',extra:'溶解性：易溶 | 洗涤剂和水处理剂',atoms3d:[{el:'Na',p:[-3,1.2,0]},{el:'Na',p:[-3,-1.2,0]},{el:'Na',p:[-3.8,0,1.2]},{el:'P',p:[0,0,0]},{el:'O',p:[0.883,0.883,0.883]},{el:'O',p:[0.883,-0.883,-0.883]},{el:'O',p:[-0.883,0.883,-0.883]},{el:'O',p:[-0.883,-0.883,0.883]}],bonds3d:[[0,3],[1,3],[2,3],[3,4],[3,5],[3,6],[3,7]],lattice:false,fitHint:''},
+  'Ca+PO4':{formula:'Ca₃(PO₄)₂',name:'磷酸钙',cname:'Ca₃(PO₄)₂',type:'离子晶体',extra:'溶解性：难溶（Ksp=2.1×10⁻³³）| 骨骼和牙齿的主要成分',atoms3d:[{el:'Ca',p:[-2.8,1,0]},{el:'Ca',p:[-2.8,-1,0]},{el:'Ca',p:[2.8,0,0]},{el:'P',p:[0,0,0.9]},{el:'O',p:[0.883,0.883,1.783]},{el:'O',p:[0.883,-0.883,0.017]},{el:'O',p:[-0.883,0.883,0.017]},{el:'O',p:[-0.883,-0.883,1.783]},{el:'P',p:[0,0,-0.9]},{el:'O',p:[0.883,0.883,-0.017]},{el:'O',p:[0.883,-0.883,-1.783]},{el:'O',p:[-0.883,0.883,-1.783]},{el:'O',p:[-0.883,-0.883,-0.017]}],bonds3d:[[0,3],[1,3],[2,8],[3,4],[3,5],[3,6],[3,7],[8,9],[8,10],[8,11],[8,12]],lattice:false,fitHint:''},
+  'Al+PO4':{formula:'AlPO₄',name:'磷酸铝',cname:'AlPO₄',type:'离子晶体',extra:'溶解性：难溶 | Al³⁺(3凹) + PO₄³⁻(3凸)完美匹配！',atoms3d:[{el:'Al',p:[-1.5,0,0]},{el:'P',p:[1.5,0,0]},{el:'O',p:[2.383,0.883,0.883]},{el:'O',p:[2.383,-0.883,-0.883]},{el:'O',p:[0.617,0.883,-0.883]},{el:'O',p:[0.617,-0.883,0.883]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:'Al³⁺的3个凹陷与PO₄³⁻的3个凸起完全互补！'},
+  'NH4+Cl':{formula:'NH₄Cl',name:'氯化铵',cname:'铵盐',type:'离子晶体',extra:'溶解性：易溶 | 氮肥，水溶液显弱酸性',atoms3d:[{el:'N',p:[0,0,0]},{el:'H',p:[0.583,0.583,0.583]},{el:'H',p:[0.583,-0.583,-0.583]},{el:'H',p:[-0.583,0.583,-0.583]},{el:'H',p:[-0.583,-0.583,0.583]},{el:'Cl',p:[0,0,2.5]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5]],lattice:false,fitHint:''},
+  'NH4+SO4':{formula:'(NH₄)₂SO₄',name:'硫酸铵',cname:'硫酸铵',type:'离子晶体',extra:'溶解性：易溶 | 常用氮肥',atoms3d:[{el:'N',p:[-3.6,0,0]},{el:'H',p:[-3.017,0.583,0.583]},{el:'H',p:[-3.017,-0.583,-0.583]},{el:'H',p:[-4.183,0.583,-0.583]},{el:'H',p:[-4.183,-0.583,0.583]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5],[5,6],[5,7],[5,8],[5,9]],lattice:false,fitHint:''},
+  'NH4+NO3':{formula:'NH₄NO₃',name:'硝酸铵',cname:'NH₄NO₃',type:'离子晶体',extra:'溶解性：易溶 | ⚠️ 氮肥，需谨慎储存',atoms3d:[{el:'N',p:[-2.6,0,0]},{el:'H',p:[-2.017,0.583,0.583]},{el:'H',p:[-2.017,-0.583,-0.583]},{el:'H',p:[-3.183,0.583,-0.583]},{el:'H',p:[-3.183,-0.583,0.583]},{el:'N',p:[0.5,0,0]},{el:'O',p:[0.5,1.24,0]},{el:'O',p:[-0.574,-0.62,0]},{el:'O',p:[1.574,-0.62,0]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'NH4+CO3':{formula:'(NH₄)₂CO₃',name:'碳酸铵',cname:'碳酸铵',type:'离子晶体',extra:'溶解性：易溶 | 发酵粉成分，受热分解',atoms3d:[{el:'N',p:[-2.6,0,0]},{el:'H',p:[-2.017,0.583,0.583]},{el:'H',p:[-2.017,-0.583,-0.583]},{el:'H',p:[-3.183,0.583,-0.583]},{el:'H',p:[-3.183,-0.583,0.583]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'H+Cl':{formula:'HCl',name:'氯化氢',cname:'盐酸',type:'共价化合物',extra:'溶解性：气体，极易溶于水 | 溶于水生成盐酸',atoms3d:[{el:'H',p:[-0.63,0,0]},{el:'Cl',p:[0.63,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'H+OH':{formula:'H₂O',name:'水',cname:'H₂O',type:'共价化合物',extra:'溶解性：互溶（液体）| H-O-H键角104.5°',atoms3d:[{el:'O',p:[0,0,0]},{el:'H',p:[0.759,0.588,0]},{el:'H',p:[-0.759,0.588,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'H+NO3':{formula:'HNO₃',name:'硝酸',cname:'HNO₃',type:'共价化合物',extra:'溶解性：与水任意混溶 | 强酸，强氧化性',atoms3d:[{el:'H',p:[2.37,0.5,0]},{el:'O',p:[1.41,0.5,0]},{el:'N',p:[0,0,0]},{el:'O',p:[-0.771,0.919,0]},{el:'O',p:[1.182,-0.208,0]}],bonds3d:[[0,1],[1,2],[2,3],[2,4]],lattice:false,fitHint:''},
+  'H+SO4':{formula:'H₂SO₄',name:'硫酸',cname:'H₂SO₄',type:'共价化合物',extra:'溶解性：与水任意混溶（放大量热）| 最重要的工业酸',atoms3d:[{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]},{el:'H',p:[1.414,1.414,1.414]},{el:'H',p:[1.414,-1.414,-1.414]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[1,5],[2,6]],lattice:false,fitHint:''},
+  'H+CO3':{formula:'H₂CO₃',name:'碳酸',cname:'H₂CO₃',type:'共价化合物',extra:'溶解性：不稳定，存在于水溶液中 | 弱酸，H₂CO₃⇌H₂O+CO₂',atoms3d:[{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]},{el:'H',p:[-1.957,-1.13,0]},{el:'H',p:[1.957,-1.13,0]}],bonds3d:[[0,1],[0,2],[0,3],[2,4],[3,5]],lattice:false,fitHint:''},
+  'H+PO4':{formula:'H₃PO₄',name:'磷酸',cname:'H₃PO₄',type:'共价化合物',extra:'溶解性：与水混溶 | 中强酸，四面体P，3个P-OH',atoms3d:[{el:'P',p:[0,0,0]},{el:'O',p:[0.883,0.883,0.883]},{el:'O',p:[0.883,-0.883,-0.883]},{el:'O',p:[-0.883,0.883,-0.883]},{el:'O',p:[-0.883,-0.883,0.883]},{el:'H',p:[1.437,-1.437,-1.437]},{el:'H',p:[-1.437,1.437,-1.437]},{el:'H',p:[-1.437,-1.437,1.437]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[2,5],[3,6],[4,7]],lattice:false,fitHint:''},
+  'Fe3+Cl':{formula:'FeCl₃',name:'氯化铁',cname:'FeCl₃',type:'离子晶体',extra:'溶解性：易溶（棕黄色）| 净水剂',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'Cl',p:[0,2.06,0]},{el:'Cl',p:[-1.784,-1.03,0]},{el:'Cl',p:[1.784,-1.03,0]}],bonds3d:[[0,1],[0,2],[0,3]],lattice:false,fitHint:''},
+  'Fe2+Cl':{formula:'FeCl₂',name:'氯化亚铁',cname:'FeCl₂',type:'离子晶体',extra:'溶解性：易溶（浅绿色）| 可被氧化为Fe³⁺',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'Cl',p:[-2.06,0,0]},{el:'Cl',p:[2.06,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Fe3+OH':{formula:'Fe(OH)₃',name:'氢氧化铁',cname:'Fe(OH)₃',type:'离子晶体',extra:'溶解性：难溶（Ksp=2.8×10⁻³⁹，红棕色）| 胶体净水',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'O',p:[1.578,0,1.146]},{el:'H',p:[2.355,0,1.71]},{el:'O',p:[-0.789,1.366,1.146]},{el:'H',p:[-1.177,2.039,1.71]},{el:'O',p:[-0.789,-1.366,1.146]},{el:'H',p:[-1.177,-2.039,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4],[0,5],[5,6]],lattice:false,fitHint:''},
+  'Fe2+SO4':{formula:'FeSO₄',name:'硫酸亚铁',cname:'FeSO₄',type:'离子晶体',extra:'溶解性：易溶（浅绿色）| 补铁药物，七水合物绿矾',atoms3d:[{el:'Fe',p:[-2.8,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Cu1+Cl':{formula:'CuCl',name:'氯化亚铜',cname:'CuCl',type:'离子晶体',extra:'溶解性：难溶（白色）| Cu⁺ d¹⁰构型',atoms3d:[{el:'Cu1',p:[0,0,0]},{el:'Cl',p:[2.34,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Cu1+S2':{formula:'Cu₂S',name:'硫化亚铜',cname:'Cu₂S',type:'离子晶体',extra:'溶解性：难溶（黑色）| 辉铜矿主要成分',atoms3d:[{el:'Cu1',p:[-1.8,0,0]},{el:'Cu1',p:[1.8,0,0]},{el:'S2',p:[0,0,0]}],bonds3d:[[0,2],[1,2]],lattice:false,fitHint:''},
+  'Cu2+Cl':{formula:'CuCl₂',name:'氯化铜',cname:'CuCl₂',type:'离子晶体',extra:'溶解性：易溶（蓝绿色）| Cu²⁺使溶液呈蓝色',atoms3d:[{el:'Cu2',p:[0,0,0]},{el:'Cl',p:[-2.24,0,0]},{el:'Cl',p:[2.24,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Cu2+OH':{formula:'Cu(OH)₂',name:'氢氧化铜',cname:'Cu(OH)₂',type:'离子晶体',extra:'溶解性：难溶（蓝色絮状）| 加热分解为CuO（黑色）',atoms3d:[{el:'Cu2',p:[0,0,0]},{el:'O',p:[1.578,0,1.146]},{el:'H',p:[2.355,0,1.71]},{el:'O',p:[-1.578,0,1.146]},{el:'H',p:[-2.355,0,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4]],lattice:false,fitHint:''},
+  'Cu2+SO4':{formula:'CuSO₄',name:'硫酸铜',cname:'蓝矾',type:'离子晶体',extra:'溶解性：易溶（蓝色，五水合物为胆矾）| 农业杀菌剂，波尔多液原料',atoms3d:[{el:'Cu2',p:[-2.9,0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Cu2+NO3':{formula:'Cu(NO₃)₂',name:'硝酸铜',cname:'Cu(NO₃)₂',type:'离子晶体',extra:'溶解性：易溶（蓝色）| 加热分解放出NO₂和O₂',atoms3d:[{el:'Cu2',p:[0,0,0]},{el:'N',p:[2.4,0,0]},{el:'O',p:[2.4,1.24,0]},{el:'O',p:[1.326,-0.62,0]},{el:'O',p:[3.474,-0.62,0]},{el:'N',p:[-2.4,0,0]},{el:'O',p:[-2.4,1.24,0]},{el:'O',p:[-3.474,-0.62,0]},{el:'O',p:[-1.326,-0.62,0]}],bonds3d:[[0,1],[0,5],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'Cu2+CO3':{formula:'CuCO₃',name:'碳酸铜',cname:'CuCO₃',type:'离子晶体',extra:'溶解性：难溶（绿色）| 天然产物为孔雀石，是铜锈的主要成分',atoms3d:[{el:'Cu2',p:[-2.7,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Cu2+S2':{formula:'CuS',name:'硫化铜',cname:'CuS',type:'离子晶体',extra:'溶解性：难溶（黑色，Ksp=6.3×10⁻³⁶）| 极难溶',atoms3d:[{el:'Cu2',p:[0,0,0]},{el:'S2',p:[2.19,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Ag+Cl':{formula:'AgCl',name:'氯化银',cname:'AgCl',type:'离子晶体',extra:'溶解性：难溶（白色）⚠️ | Ksp=1.8×10⁻¹⁰，见光分解，鉴定Cl⁻',atoms3d:[{el:'Ag',p:[0,0,0]},{el:'Cl',p:[2.77,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Ag+NO3':{formula:'AgNO₃',name:'硝酸银',cname:'AgNO₃',type:'离子晶体',extra:'溶解性：易溶（无色）| 鉴定Cl⁻、Br⁻、I⁻，见光分解',atoms3d:[{el:'Ag',p:[-3.2,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0,1.24,0]},{el:'O',p:[-1.074,-0.62,0]},{el:'O',p:[1.074,-0.62,0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Ag+SO4':{formula:'Ag₂SO₄',name:'硫酸银',cname:'Ag₂SO₄',type:'离子晶体',extra:'溶解性：微溶（白色，Ksp=1.2×10⁻⁵）| 消除废水中的氯离子',atoms3d:[{el:'Ag',p:[-3.2,1.2,0]},{el:'Ag',p:[-3.2,-1.2,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'Ag+CO3':{formula:'Ag₂CO₃',name:'碳酸银',cname:'Ag₂CO₃',type:'离子晶体',extra:'溶解性：难溶（淡黄色，Ksp=8.5×10⁻¹²）| 受热或见光分解',atoms3d:[{el:'Ag',p:[-2.8,1,0]},{el:'Ag',p:[-2.8,-1,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0,1.3,0]},{el:'O',p:[-1.126,-0.65,0]},{el:'O',p:[1.126,-0.65,0]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5]],lattice:false,fitHint:''},
+  'Ag+I':{formula:'AgI',name:'碘化银',cname:'AgI',type:'离子晶体',extra:'溶解性：难溶（黄色）⚠️ | Ksp=8.5×10⁻¹⁷，人工降雨材料',atoms3d:[{el:'Ag',p:[0,0,0]},{el:'I',p:[2.81,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Na+S2':{formula:'Na₂S',name:'硫化钠',cname:'Na₂S',type:'离子晶体',extra:'溶解性：易溶（无色，溶液显强碱性）| S²⁻水解生成OH⁻',atoms3d:[{el:'Na',p:[-2.8,1,0]},{el:'Na',p:[-2.8,-1,0]},{el:'S2',p:[0,0,0]}],bonds3d:[[0,2],[1,2]],lattice:false,fitHint:''},
+  'Fe2+S2':{formula:'FeS',name:'硫化亚铁',cname:'FeS',type:'离子晶体',extra:'溶解性：难溶（黑色）| 与稀盐酸反应生成H₂S，实验室制备H₂S',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'S2',p:[2.6,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'K+I':{formula:'KI',name:'碘化钾',cname:'KI',type:'离子晶体',extra:'溶解性：易溶（无色）| KI溶液遇淀粉变蓝，重要检验试剂',atoms3d:[{el:'K',p:[0,0,0]},{el:'I',p:[3.53,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Na+I':{formula:'NaI',name:'碘化钠',cname:'NaI',type:'离子晶体',extra:'溶解性：易溶（无色）| 医药用途，补碘来源',atoms3d:[{el:'Na',p:[0,0,0]},{el:'I',p:[3.23,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+
+  'NH4+PO4':{formula:'(NH₄)₃PO₄',name:'磷酸铵',cname:'(NH₄)₃PO₄',type:'离子晶体',extra:'溶解性：易溶 | 农业磷钾肥',atoms3d:[{el:'N',p:[-3.5,0,0]},{el:'H',p:[-2.917,0.583,0.583]},{el:'H',p:[-2.917,-0.583,-0.583]},{el:'H',p:[-4.083,0.583,-0.583]},{el:'H',p:[-4.083,-0.583,0.583]},{el:'P',p:[0,0,0]},{el:'O',p:[0.883,0.883,0.883]},{el:'O',p:[0.883,-0.883,-0.883]},{el:'O',p:[-0.883,0.883,-0.883]},{el:'O',p:[-0.883,-0.883,0.883]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5],[5,6],[5,7],[5,8],[5,9]],lattice:false,fitHint:''},
+  'NH4+OH':{formula:'NH₃·H₂O',name:'一水合氨',cname:'NH₃·H₂O',type:'弱碱',extra:'溶解性：易溶 | 弱碱，NH₃溶于水生成NH₃·H₂O，部分电离',atoms3d:[{el:'N',p:[0,0,0]},{el:'H',p:[0.583,0.583,0.583]},{el:'H',p:[0.583,-0.583,-0.583]},{el:'H',p:[-0.583,0.583,-0.583]},{el:'O',p:[0,0,2.8]},{el:'H',p:[0.757,0,3.388]},{el:'H',p:[-0.757,0,3.388]}],bonds3d:[[0,1],[0,2],[0,3],[4,5],[4,6]],lattice:false,fitHint:''},
+  'NH4+S2':{formula:'(NH₄)₂S',name:'硫化铵',cname:'(NH₄)₂S',type:'离子晶体',extra:'溶解性：易溶 | 有臭鸡蛋气味，水解显碱性',atoms3d:[{el:'N',p:[-2.8,0,0]},{el:'H',p:[-2.217,0.583,0.583]},{el:'H',p:[-2.217,-0.583,-0.583]},{el:'H',p:[-3.383,0.583,-0.583]},{el:'H',p:[-3.383,-0.583,0.583]},{el:'S2',p:[0,0,0]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5]],lattice:false,fitHint:''},
+  'NH4+I':{formula:'NH₄I',name:'碘化铵',cname:'NH₄I',type:'离子晶体',extra:'溶解性：易溶 | 白色固体，受热分解',atoms3d:[{el:'N',p:[0,0,0]},{el:'H',p:[0.583,0.583,0.583]},{el:'H',p:[0.583,-0.583,-0.583]},{el:'H',p:[-0.583,0.583,-0.583]},{el:'H',p:[-0.583,-0.583,0.583]},{el:'I',p:[0,0,2.8]}],bonds3d:[[0,1],[0,2],[0,3],[0,4],[0,5]],lattice:false,fitHint:''},
+  'H+S2':{formula:'H₂S',name:'硫化氢',cname:'H₂S',type:'共价化合物',extra:'溶解性：易溶（臭鸡蛋气味）| 弱酸，有毒，还原性强',atoms3d:[{el:'S2',p:[0,0,0]},{el:'H',p:[0.97,0,0]},{el:'H',p:[-0.97,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'H+I':{formula:'HI',name:'碘化氢',cname:'HI',type:'共价化合物',extra:'溶解性：极易溶于水 | 强酸，还原性强，HI水溶液为氢碘酸',atoms3d:[{el:'H',p:[-0.79,0,0]},{el:'I',p:[0.79,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'K+PO4':{formula:'K₃PO₄',name:'磷酸钾',cname:'K₃PO₄',type:'离子晶体',extra:'溶解性：易溶 | 农业肥料，水解显强碱性',atoms3d:[{el:'K',p:[-3.2,1.2,0]},{el:'K',p:[-3.2,-1.2,0]},{el:'K',p:[-4.0,0,1.2]},{el:'P',p:[0,0,0]},{el:'O',p:[0.883,0.883,0.883]},{el:'O',p:[0.883,-0.883,-0.883]},{el:'O',p:[-0.883,0.883,-0.883]},{el:'O',p:[-0.883,-0.883,0.883]}],bonds3d:[[0,3],[1,3],[2,3],[3,4],[3,5],[3,6],[3,7]],lattice:false,fitHint:''},
+  'K+S2':{formula:'K₂S',name:'硫化钾',cname:'K₂S',type:'离子晶体',extra:'溶解性：易溶 | 有臭味，强还原性',atoms3d:[{el:'K',p:[-2.9,1.0,0]},{el:'K',p:[-2.9,-1.0,0]},{el:'S2',p:[0,0,0]}],bonds3d:[[0,2],[1,2]],lattice:false,fitHint:''},
+  'Ca+S2':{formula:'CaS',name:'硫化钙',cname:'CaS',type:'离子晶体',extra:'溶解性：难溶 | 发光材料原料，遇水缓慢水解',atoms3d:[{el:'Ca',p:[0,0,0]},{el:'S2',p:[2.84,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Ca+I':{formula:'CaI₂',name:'碘化钙',cname:'CaI₂',type:'离子晶体',extra:'溶解性：易溶 | 营养补充剂，用于医药领域',atoms3d:[{el:'Ca',p:[0,0,0]},{el:'I',p:[-3.1,0,0]},{el:'I',p:[3.1,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Mg+NO3':{formula:'Mg(NO₃)₂',name:'硝酸镁',cname:'Mg(NO₃)₂',type:'离子晶体',extra:'溶解性：易溶 | 农业肥料，氧化剂',atoms3d:[{el:'Mg',p:[0,0,0]},{el:'N',p:[2.5,0,0]},{el:'O',p:[2.5,1.24,0.0]},{el:'O',p:[1.426,-0.62,0.0]},{el:'O',p:[3.574,-0.62,0.0]},{el:'N',p:[-2.5,0,0]},{el:'O',p:[-2.5,1.24,0.0]},{el:'O',p:[-3.574,-0.62,0.0]},{el:'O',p:[-1.426,-0.62,0.0]}],bonds3d:[[0,1],[0,5],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'Mg+PO4':{formula:'Mg₃(PO₄)₂',name:'磷酸镁',cname:'Mg₃(PO₄)₂',type:'离子晶体',extra:'溶解性：难溶 | 矿物质补充剂',atoms3d:[{el:'Mg',p:[-2.6,1.0,0]},{el:'Mg',p:[-2.6,-1.0,0]},{el:'Mg',p:[2.6,0,0]},{el:'P',p:[0,0,0.8]},{el:'O',p:[0.883,0.883,1.683]},{el:'O',p:[0.883,-0.883,-0.083]},{el:'O',p:[-0.883,0.883,-0.083]},{el:'O',p:[-0.883,-0.883,1.683]},{el:'P',p:[0,0,-0.8]},{el:'O',p:[0.883,0.883,0.083]},{el:'O',p:[0.883,-0.883,-1.683]},{el:'O',p:[-0.883,0.883,-1.683]},{el:'O',p:[-0.883,-0.883,0.083]}],bonds3d:[[0,3],[1,3],[2,8],[3,4],[3,5],[3,6],[3,7],[8,9],[8,10],[8,11],[8,12]],lattice:false,fitHint:''},
+  'Mg+S2':{formula:'MgS',name:'硫化镁',cname:'MgS',type:'离子晶体',extra:'溶解性：难溶（遇水水解）| 遇水生成Mg(OH)₂和H₂S',atoms3d:[{el:'Mg',p:[0,0,0]},{el:'S2',p:[2.6,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Mg+I':{formula:'MgI₂',name:'碘化镁',cname:'MgI₂',type:'离子晶体',extra:'溶解性：易溶 | 医药和有机合成',atoms3d:[{el:'Mg',p:[0,0,0]},{el:'I',p:[-2.9,0,0]},{el:'I',p:[2.9,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Al+NO3':{formula:'Al(NO₃)₃',name:'硝酸铝',cname:'Al(NO₃)₃',type:'离子晶体',extra:'溶解性：易溶 | 水解显酸性，氧化剂',atoms3d:[{el:'Al',p:[0,0,0]},{el:'N',p:[2.6,0,0]},{el:'O',p:[2.6,1.24,0.0]},{el:'O',p:[1.526,-0.62,0.0]},{el:'O',p:[3.674,-0.62,0.0]},{el:'N',p:[-1.3,2.25,0]},{el:'O',p:[-1.3,3.49,0.0]},{el:'O',p:[-2.374,1.63,0.0]},{el:'O',p:[-0.226,1.63,0.0]},{el:'N',p:[-1.3,-2.25,0]},{el:'O',p:[-1.3,-1.01,0.0]},{el:'O',p:[-2.374,-2.87,0.0]},{el:'O',p:[-0.226,-2.87,0.0]}],bonds3d:[[0,1],[0,5],[0,9],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8],[9,10],[9,11],[9,12]],lattice:false,fitHint:''},
+  'Al+CO3':{formula:'Al₂(CO₃)₃',name:'碳酸铝',cname:'Al₂(CO₃)₃',type:'离子晶体',extra:'溶解性：难溶，遇水水解 | Al³⁺水解能力强，Al₂(CO₃)₃遇水完全水解为Al(OH)₃和CO₂',atoms3d:[{el:'Al',p:[-2.5,1,0]},{el:'Al',p:[-2.5,-1,0]},{el:'C',p:[0,0,0.7]},{el:'O',p:[0.0,1.3,0.7]},{el:'O',p:[-1.126,-0.65,0.7]},{el:'O',p:[1.126,-0.65,0.7]},{el:'C',p:[0,0,-0.7]},{el:'O',p:[0.0,1.3,-0.7]},{el:'O',p:[-1.126,-0.65,-0.7]},{el:'O',p:[1.126,-0.65,-0.7]}],bonds3d:[[0,2],[1,2],[0,6],[1,6],[2,3],[2,4],[2,5],[6,7],[6,8],[6,9]],lattice:false,fitHint:''},
+  'Al+S2':{formula:'Al₂S₃',name:'硫化铝',cname:'Al₂S₃',type:'离子晶体',extra:'溶解性：难溶，遇水剧烈水解 | Al₂S₃+6H₂O→2Al(OH)₃+3H₂S↑',atoms3d:[{el:'Al',p:[-2.2,0,0]},{el:'Al',p:[2.2,0,0]},{el:'S2',p:[0,2.4,0]},{el:'S2',p:[-2.1,-1.2,0]},{el:'S2',p:[2.1,-1.2,0]}],bonds3d:[[0,2],[0,3],[1,2],[1,4]],lattice:false,fitHint:''},
+  'Al+I':{formula:'AlI₃',name:'碘化铝',cname:'AlI₃',type:'离子晶体',extra:'溶解性：易溶 | 有机合成催化剂，路易斯酸',atoms3d:[{el:'Al',p:[0,0,0]},{el:'I',p:[0,2.44,0]},{el:'I',p:[-2.11,-1.22,0]},{el:'I',p:[2.11,-1.22,0]}],bonds3d:[[0,1],[0,2],[0,3]],lattice:false,fitHint:''},
+  'Fe3+NO3':{formula:'Fe(NO₃)₃',name:'硝酸铁',cname:'Fe(NO₃)₃',type:'离子晶体',extra:'溶解性：易溶（棕黄色）| 强氧化性，水解显酸性',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'N',p:[2.6,0,0]},{el:'O',p:[2.6,1.24,0.0]},{el:'O',p:[1.526,-0.62,0.0]},{el:'O',p:[3.674,-0.62,0.0]},{el:'N',p:[-1.3,2.25,0]},{el:'O',p:[-1.3,3.49,0.0]},{el:'O',p:[-2.374,1.63,0.0]},{el:'O',p:[-0.226,1.63,0.0]},{el:'N',p:[-1.3,-2.25,0]},{el:'O',p:[-1.3,-1.01,0.0]},{el:'O',p:[-2.374,-2.87,0.0]},{el:'O',p:[-0.226,-2.87,0.0]}],bonds3d:[[0,1],[0,5],[0,9],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8],[9,10],[9,11],[9,12]],lattice:false,fitHint:''},
+  'Fe3+SO4':{formula:'Fe₂(SO₄)₃',name:'硫酸铁',cname:'Fe₂(SO₄)₃',type:'离子晶体',extra:'溶解性：易溶（棕黄色）| 强氧化性，可氧化Fe和Cu',atoms3d:[{el:'Fe',p:[-4.0,1.0,0]},{el:'Fe',p:[-4.0,-1.0,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'Fe3+CO3':{formula:'Fe₂(CO₃)₃',name:'碳酸铁',cname:'Fe₂(CO₃)₃',type:'离子晶体',extra:'溶解性：不稳定（分解）| Fe³⁺水解能力强，碳酸铁不能稳定存在',atoms3d:[{el:'Fe',p:[-3.0,1,0]},{el:'Fe',p:[-3.0,-1,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0.0,1.3,0.0]},{el:'O',p:[-1.126,-0.65,0.0]},{el:'O',p:[1.126,-0.65,0.0]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5]],lattice:false,fitHint:''},
+  'Fe3+PO4':{formula:'FePO₄',name:'磷酸铁',cname:'FePO₄',type:'离子晶体',extra:'溶解性：难溶（淡黄色）| 磷铁矿物，锂电池正极材料前体',atoms3d:[{el:'Fe',p:[-1.5,0,0]},{el:'P',p:[1.5,0,0]},{el:'O',p:[2.383,0.883,0.883]},{el:'O',p:[2.383,-0.883,-0.883]},{el:'O',p:[0.617,0.883,-0.883]},{el:'O',p:[0.617,-0.883,0.883]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Fe3+S2':{formula:'Fe₂S₃',name:'硫化铁',cname:'Fe₂S₃',type:'离子晶体',extra:'溶解性：不稳定 | Fe³⁺氧化性强，会将S²⁻氧化为S，实际生成FeS',atoms3d:[{el:'Fe',p:[-2.2,0,0]},{el:'Fe',p:[2.2,0,0]},{el:'S2',p:[0,2.4,0]},{el:'S2',p:[-2.1,-1.2,0]},{el:'S2',p:[2.1,-1.2,0]}],bonds3d:[[0,2],[0,3],[1,2],[1,4]],lattice:false,fitHint:''},
+  'Fe3+I':{formula:'FeI₃',name:'碘化铁',cname:'FeI₃',type:'离子晶体',extra:'溶解性：不稳定 | Fe³⁺会将I⁻氧化为I₂，实际生成FeI₂+I₂（氧化还原反应）',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'I',p:[0,2.6,0]},{el:'I',p:[-2.25,-1.3,0]},{el:'I',p:[2.25,-1.3,0]}],bonds3d:[[0,1],[0,2],[0,3]],lattice:false,fitHint:''},
+  'Fe2+NO3':{formula:'Fe(NO₃)₂',name:'硝酸亚铁',cname:'Fe(NO₃)₂',type:'离子晶体',extra:'溶解性：易溶（浅绿色）| 不稳定，易被空气氧化为Fe(NO₃)₃',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'N',p:[2.5,0,0]},{el:'O',p:[2.5,1.24,0.0]},{el:'O',p:[1.426,-0.62,0.0]},{el:'O',p:[3.574,-0.62,0.0]},{el:'N',p:[-2.5,0,0]},{el:'O',p:[-2.5,1.24,0.0]},{el:'O',p:[-3.574,-0.62,0.0]},{el:'O',p:[-1.426,-0.62,0.0]}],bonds3d:[[0,1],[0,5],[1,2],[1,3],[1,4],[5,6],[5,7],[5,8]],lattice:false,fitHint:''},
+  'Fe2+CO3':{formula:'FeCO₃',name:'碳酸亚铁',cname:'FeCO₃',type:'离子晶体',extra:'溶解性：难溶（白色，Ksp=3.1×10⁻¹¹）| 菱铁矿，炼铁原料之一',atoms3d:[{el:'Fe',p:[-2.7,0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0.0,1.3,0.0]},{el:'O',p:[-1.126,-0.65,0.0]},{el:'O',p:[1.126,-0.65,0.0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Fe2+PO4':{formula:'Fe₃(PO₄)₂',name:'磷酸亚铁',cname:'Fe₃(PO₄)₂',type:'离子晶体',extra:'溶解性：难溶（蓝白色）| 蓝铁矿，天然矿物',atoms3d:[{el:'Fe',p:[-2.8,1.0,0]},{el:'Fe',p:[-2.8,-1.0,0]},{el:'Fe',p:[2.8,0,0]},{el:'P',p:[0,0,0.8]},{el:'O',p:[0.883,0.883,1.683]},{el:'O',p:[0.883,-0.883,-0.083]},{el:'O',p:[-0.883,0.883,-0.083]},{el:'O',p:[-0.883,-0.883,1.683]},{el:'P',p:[0,0,-0.8]},{el:'O',p:[0.883,0.883,0.083]},{el:'O',p:[0.883,-0.883,-1.683]},{el:'O',p:[-0.883,0.883,-1.683]},{el:'O',p:[-0.883,-0.883,0.083]}],bonds3d:[[0,3],[1,3],[2,8],[3,4],[3,5],[3,6],[3,7],[8,9],[8,10],[8,11],[8,12]],lattice:false,fitHint:''},
+  'Fe2+OH':{formula:'Fe(OH)₂',name:'氢氧化亚铁',cname:'Fe(OH)₂',type:'离子晶体',extra:'溶解性：难溶（Ksp=4.9×10⁻¹⁷，白色沉淀）| 在空气中迅速被氧化为红棕色Fe(OH)₃',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'O',p:[1.578,0.0,1.146]},{el:'H',p:[2.355,0.0,1.71]},{el:'O',p:[-1.578,0.0,1.146]},{el:'H',p:[-2.355,0.0,1.71]}],bonds3d:[[0,1],[1,2],[0,3],[3,4]],lattice:false,fitHint:''},
+  'Fe2+I':{formula:'FeI₂',name:'碘化亚铁',cname:'FeI₂',type:'离子晶体',extra:'溶解性：易溶（浅绿色）| 稳定，Fe²⁺不能氧化I⁻',atoms3d:[{el:'Fe',p:[0,0,0]},{el:'I',p:[-2.56,0,0]},{el:'I',p:[2.56,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Cu1+NO3':{formula:'CuNO₃',name:'硝酸亚铜',cname:'CuNO₃',type:'离子晶体',extra:'溶解性：不稳定 | Cu⁺在溶液中易歧化为Cu和Cu²⁺，很难稳定存在',atoms3d:[{el:'Cu1',p:[0,0,0]},{el:'N',p:[0,0,0]},{el:'O',p:[0.0,1.24,0.0]},{el:'O',p:[-1.074,-0.62,0.0]},{el:'O',p:[1.074,-0.62,0.0]}],bonds3d:[[0,1],[1,2],[1,3],[1,4]],lattice:false,fitHint:''},
+  'Cu1+SO4':{formula:'Cu₂SO₄',name:'硫酸亚铜',cname:'Cu₂SO₄',type:'离子晶体',extra:'溶解性：微溶 | Cu⁺在溶液中不稳定，易歧化为Cu和Cu²⁺',atoms3d:[{el:'Cu1',p:[-3.0,1.2,0]},{el:'Cu1',p:[-3.0,-1.2,0]},{el:'S',p:[0,0,0]},{el:'O',p:[0.86,0.86,0.86]},{el:'O',p:[0.86,-0.86,-0.86]},{el:'O',p:[-0.86,0.86,-0.86]},{el:'O',p:[-0.86,-0.86,0.86]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5],[2,6]],lattice:false,fitHint:''},
+  'Cu1+CO3':{formula:'Cu₂CO₃',name:'碳酸亚铜',cname:'Cu₂CO₃',type:'离子晶体',extra:'溶解性：难溶（绿色）| 孔雀石的组成成分之一',atoms3d:[{el:'Cu1',p:[-2.8,1.0,0]},{el:'Cu1',p:[-2.8,-1.0,0]},{el:'C',p:[0,0,0]},{el:'O',p:[0.0,1.3,0.0]},{el:'O',p:[-1.126,-0.65,0.0]},{el:'O',p:[1.126,-0.65,0.0]}],bonds3d:[[0,2],[1,2],[2,3],[2,4],[2,5]],lattice:false,fitHint:''},
+  'Cu1+PO4':{formula:'Cu₃PO₄',name:'磷酸亚铜',cname:'Cu₃PO₄',type:'离子晶体',extra:'溶解性：难溶 | 亚铜磷酸盐，不常见',atoms3d:[{el:'Cu1',p:[-1.5,0,0]},{el:'P',p:[1.5,0,0]},{el:'O',p:[2.383,0.883,0.883]},{el:'O',p:[2.383,-0.883,-0.883]},{el:'O',p:[0.617,0.883,-0.883]},{el:'O',p:[0.617,-0.883,0.883]}],bonds3d:[[0,1],[1,2],[1,3],[1,4],[1,5]],lattice:false,fitHint:''},
+  'Cu1+OH':{formula:'CuOH',name:'氢氧化亚铜',cname:'CuOH',type:'离子晶体',extra:'溶解性：难溶（黄色）| 极不稳定，迅速分解为Cu₂O（红色）和H₂O',atoms3d:[{el:'Cu1',p:[0,0,0]},{el:'O',p:[1.95,0,0]},{el:'H',p:[2.91,0,0]}],bonds3d:[[0,1],[1,2]],lattice:false,fitHint:''},
+  'Cu1+I':{formula:'CuI',name:'碘化亚铜',cname:'CuI',type:'离子晶体',extra:'溶解性：难溶（白色，Ksp=1.1×10⁻¹²）| Cu²⁺与I⁻反应生成CuI沉淀（重要反应）',atoms3d:[{el:'Cu1',p:[0,0,0]},{el:'I',p:[2.62,0,0]}],bonds3d:[[0,1]],lattice:false,fitHint:''},
+  'Cu2+PO4':{formula:'Cu₃(PO₄)₂',name:'磷酸铜',cname:'Cu₃(PO₄)₂',type:'离子晶体',extra:'溶解性：难溶（蓝色）| 天然磷铜矿，陶瓷颜料',atoms3d:[{el:'Cu2',p:[-2.8,1.0,0]},{el:'Cu2',p:[-2.8,-1.0,0]},{el:'Cu2',p:[2.8,0,0]},{el:'P',p:[0,0,0.8]},{el:'O',p:[0.883,0.883,1.683]},{el:'O',p:[0.883,-0.883,-0.083]},{el:'O',p:[-0.883,0.883,-0.083]},{el:'O',p:[-0.883,-0.883,1.683]},{el:'P',p:[0,0,-0.8]},{el:'O',p:[0.883,0.883,0.083]},{el:'O',p:[0.883,-0.883,-1.683]},{el:'O',p:[-0.883,0.883,-1.683]},{el:'O',p:[-0.883,-0.883,0.083]}],bonds3d:[[0,3],[1,3],[2,8],[3,4],[3,5],[3,6],[3,7],[8,9],[8,10],[8,11],[8,12]],lattice:false,fitHint:''},
+  'Cu2+I':{formula:'CuI₂→CuI+½I₂',name:'（CuI₂不存在）',cname:'CuI₂',type:'氧化还原反应',extra:'溶解性：不存在 | Cu²⁺将I⁻氧化为I₂，自身被还原为Cu⁺，生成CuI白色沉淀（重要鉴别反应）',atoms3d:[{el:'Cu2',p:[0,0,0]},{el:'I',p:[-2.6,0,0]},{el:'I',p:[2.6,0,0]}],bonds3d:[[0,1],[0,2]],lattice:false,fitHint:''},
+  'Ag+PO4':{formula:'Ag₃PO₄',name:'磷酸银',cname:'Ag₃PO₄',type:'离子晶体',extra:'溶解性：难溶（黄色，Ksp=8.9×10⁻¹⁷）| 光催化材料，见光分解',atoms3d:[{el:'Ag',p:[-3.2,1.2,0]},{el:'Ag',p:[-3.2,-1.2,0]},{el:'Ag',p:[-4.0,0,1.2]},{el:'P',p:[0,0,0]},{el:'O',p:[0.883,0.883,0.883]},{el:'O',p:[0.883,-0.883,-0.883]},{el:'O',p:[-0.883,0.883,-0.883]},{el:'O',p:[-0.883,-0.883,0.883]}],bonds3d:[[0,3],[1,3],[2,3],[3,4],[3,5],[3,6],[3,7]],lattice:false,fitHint:''},
+  'Ag+OH':{formula:'AgOH',name:'氢氧化银',cname:'AgOH',type:'离子晶体',extra:'溶解性：难溶（棕色）| 极不稳定，迅速分解为Ag₂O（黑棕色）和H₂O',atoms3d:[{el:'Ag',p:[0,0,0]},{el:'O',p:[2.05,0,0]},{el:'H',p:[3.01,0,0]}],bonds3d:[[0,1],[1,2]],lattice:false,fitHint:''},
+  'Ag+S2':{formula:'Ag₂S',name:'硫化银',cname:'Ag₂S',type:'离子晶体',extra:'溶解性：极难溶（黑色，Ksp=6.3×10⁻⁵⁰）| 银器变黑的原因，最难溶的银盐之一',atoms3d:[{el:'Ag',p:[-2.0,0,0]},{el:'Ag',p:[2.0,0,0]},{el:'S2',p:[0,0,0]}],bonds3d:[[0,2],[1,2]],lattice:false,fitHint:''},
+};
+
+// THREE.JS
+const sharedCanvas=document.getElementById('sharedCanvas');
+const sharedRenderer=new THREE.WebGLRenderer({canvas:sharedCanvas,antialias:true,preserveDrawingBuffer:true});
+sharedRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const modalCanvas=document.getElementById('modalCanvas');
+const modalRenderer=new THREE.WebGLRenderer({canvas:modalCanvas,antialias:true});
+modalRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+modalRenderer.setSize(260,260,false);
+let compoundRenderer=null;
+
+function getElementColor(el){if(CPK[el]!==undefined)return CPK[el];const b=el.replace(/[0-9]+$/,'');return CPK[b]!==undefined?CPK[b]:0x888888;}
+function getElementRadius(el){let r=IONIC_R[el];if(r===undefined){const b=el.replace(/[0-9]+$/,'');r=IONIC_R[b];}return r!==undefined?Math.max(0.18,r*0.28):0.35;}
+function addLights(s){s.add(new THREE.AmbientLight(0x334455,1.3));const d1=new THREE.DirectionalLight(0xcce4ff,2.5);d1.position.set(3,4,5);s.add(d1);const d2=new THREE.DirectionalLight(0xff9955,1.0);d2.position.set(-3,-2,2);s.add(d2);const pt=new THREE.PointLight(0x88ddff,1.2,20);pt.position.set(0,0,4);s.add(pt);}
+
+function bumpedSphere(radius,bumpDirs,bumpType){
+  const g=new THREE.SphereGeometry(radius,56,56);
+  const BUMP_R=0.52,depth=bumpType==='in'?-0.32*radius:0.32*radius;
+  const pos=g.attributes.position,nrm=g.attributes.normal;
+  const colors=new Float32Array(pos.count*3);
+  const hlCol=bumpType==='in'?new THREE.Color(1.0,0.28,0.0):new THREE.Color(0.0,0.72,1.0);
+  const baseCol=new THREE.Color(1,1,1),v=new THREE.Vector3();
+  const dirs=bumpDirs.map(d=>{const v=new THREE.Vector3(...d);v.normalize();return v;});
+  for(let i=0;i<pos.count;i++){
+    v.set(pos.getX(i),pos.getY(i),pos.getZ(i));
+    const dir=v.clone().normalize();let maxT=0;
+    for(const c of dirs){const ang=Math.acos(Math.min(1,dir.dot(c)));if(ang<BUMP_R){const t=1-ang/BUMP_R;const s=t*t*(3-2*t);if(s>maxT)maxT=s;}}
+    if(maxT>0){const d=depth*maxT;pos.setXYZ(i,pos.getX(i)+nrm.getX(i)*d,pos.getY(i)+nrm.getY(i)*d,pos.getZ(i)+nrm.getZ(i)*d);}
+    const fc=baseCol.clone().lerp(hlCol,maxT*0.92);colors[i*3]=fc.r;colors[i*3+1]=fc.g;colors[i*3+2]=fc.b;
+  }
+  pos.needsUpdate=true;g.setAttribute('color',new THREE.BufferAttribute(colors,3));g.computeVertexNormals();return g;
+}
+
+function buildIonGroup(ion,sc){
+  const group=new THREE.Group(),worldPos=ion.pos.map(p=>new THREE.Vector3(p[0]*sc,p[1]*sc,p[2]*sc));
+  ion.atoms.forEach((a,i)=>{
+    const isMain=i===0||ion.atoms.length===1,r=a.r*1.28*sc;
+    const geom=isMain&&ion.bumpDirs&&ion.bumpDirs.length>0?bumpedSphere(r,ion.bumpDirs,ion.bumpType):new THREE.SphereGeometry(r,48,48);
+    const mat=new THREE.MeshPhongMaterial({color:getElementColor(a.el),shininess:120,specular:0x444444,vertexColors:isMain&&ion.bumpDirs&&ion.bumpDirs.length>0});
+    const m=new THREE.Mesh(geom,mat);m.position.copy(worldPos[i]);group.add(m);
+  });
+  ion.bonds.forEach(([a,b])=>{
+    const p1=worldPos[a],p2=worldPos[b],len=p1.distanceTo(p2),mid=p1.clone().add(p2).multiplyScalar(0.5);
+    const bm=new THREE.Mesh(new THREE.CylinderGeometry(0.05*sc,0.05*sc,len,10),new THREE.MeshPhongMaterial({color:0xbbccdd,shininess:60}));
+    bm.position.copy(mid);bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p2.clone().sub(p1).normalize());group.add(bm);
+  });
+  return group;
+}
+
+function buildCompoundGroup(cmpd,sc){
+  const group=new THREE.Group(),positions=cmpd.atoms3d.map(a=>new THREE.Vector3(...a.p).multiplyScalar(sc));
+  const centre=new THREE.Vector3();positions.forEach(p=>centre.add(p));centre.divideScalar(positions.length);positions.forEach(p=>p.sub(centre));
+  cmpd.atoms3d.forEach((a,i)=>{
+    const r=getElementRadius(a.el)*sc*1.6;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(r,40,40),new THREE.MeshPhongMaterial({color:getElementColor(a.el),shininess:110,specular:0x333333}));
+    m.position.copy(positions[i]);group.add(m);
+  });
+  (cmpd.bonds3d||[]).forEach(([a,b])=>{
+    const p1=positions[a],p2=positions[b],len=p1.distanceTo(p2),mid=p1.clone().add(p2).multiplyScalar(0.5);
+    const bm=new THREE.Mesh(new THREE.CylinderGeometry(0.055*sc,0.055*sc,len,10),new THREE.MeshPhongMaterial({color:0xddddee,shininess:50}));
+    bm.position.copy(mid);bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p2.clone().sub(p1).normalize());group.add(bm);
+  });
+  return group;
+}
+
+function makeScene(bg){const scene=new THREE.Scene();scene.background=new THREE.Color(bg||0x060e1a);addLights(scene);const cam=new THREE.PerspectiveCamera(45,1,0.1,100);cam.position.set(0,0,6);return{scene,cam};}
+
+// Gallery
+const cardScenes=[];
+function initCards(){
+  const grid=document.getElementById('ionGrid');
+  sharedRenderer.setSize(140,140,false);
+  IONS.forEach((ion,idx)=>{
+    const{scene,cam}=makeScene(),sc=ion.atoms.length>1?0.70:0.82,group=buildIonGroup(ion,sc);
+    scene.add(group);group.rotation.y=idx*0.57;group.rotation.x=0.18;
+    sharedRenderer.render(scene,cam);
+    const src=sharedCanvas.toDataURL('image/jpeg',0.88);
+    const card=document.createElement('div');card.className=`ion-card ${ion.cls}`;
+    card.innerHTML=`<img class="ion-preview" src="${src}" width="140" height="140"><div class="ion-name">${ion.name}</div><div class="ion-formula">${ion.formula}</div><div class="ion-tag ${ion.charge>0?'tag-pos':'tag-neg'}">${ion.charge>0?'正离子':'负离子'} | ${ion.bumpType==='in'?'⬇ 凹陷':'⬆ 凸起'} ×${ion.bumps}</div><div class="ion-desc">${ion.desc}</div>`;
+    grid.appendChild(card);card.addEventListener('click',()=>openModal(ion));
+    cardScenes.push({scene,cam,group,imgEl:card.querySelector('.ion-preview'),rotY:idx*0.57});
+  });
+}
+let cardFrame=0;
+function animateCards(){requestAnimationFrame(animateCards);cardFrame++;const idx=cardFrame%IONS.length;const s=cardScenes[idx];if(!s)return;s.rotY+=0.020;s.group.rotation.y=s.rotY;sharedRenderer.setSize(140,140,false);sharedRenderer.render(s.scene,s.cam);s.imgEl.src=sharedCanvas.toDataURL('image/jpeg',0.82);}
+
+// Modal
+const overlay=document.getElementById('modalOverlay');
+let mAnimId=null,mGroup=null,mScene=null,mCam=null,mdrag={on:false,px:0,py:0,vx:0,vy:0};
+function openModal(ion){
+  document.getElementById('mTitle').textContent=ion.name;
+  document.getElementById('mFormula').textContent=ion.formula;
+  const ionicR=IONIC_R[ion.atoms[0].el];
+  document.getElementById('mInfo').innerHTML=ion.detail.replace(/\n/g,'<br>')+(ionicR?`<br><span style="color:#ffd060;">⚛ 离子半径: ${ionicR.toFixed(2)} Å</span>`:'');
+  if(mAnimId)cancelAnimationFrame(mAnimId);
+  mdrag={on:false,px:0,py:0,vx:0,vy:0};
+  const{scene,cam}=makeScene();const sc=ion.atoms.length>1?0.82:1.0;
+  mGroup=buildIonGroup(ion,sc);scene.add(mGroup);mScene=scene;mCam=cam;mGroup.rotation.y=0.3;
+  function loop(){mAnimId=requestAnimationFrame(loop);if(!mdrag.on){if(Math.abs(mdrag.vx)>0.0004||Math.abs(mdrag.vy)>0.0004){mGroup.rotation.y+=mdrag.vx;mGroup.rotation.x+=mdrag.vy;mdrag.vx*=0.92;mdrag.vy*=0.92;}else{mGroup.rotation.y+=0.008;}}modalRenderer.render(mScene,mCam);}
+  loop();overlay.classList.add('open');
+}
+modalCanvas.addEventListener('pointerdown',e=>{mdrag.on=true;mdrag.px=e.clientX;mdrag.py=e.clientY;mdrag.vx=0;mdrag.vy=0;modalCanvas.setPointerCapture(e.pointerId);});
+modalCanvas.addEventListener('pointerup',()=>{mdrag.on=false;});
+modalCanvas.addEventListener('pointermove',e=>{if(!mdrag.on)return;mdrag.vx=(e.clientX-mdrag.px)*0.013;mdrag.vy=(e.clientY-mdrag.py)*0.013;mGroup.rotation.y+=mdrag.vx;mGroup.rotation.x+=mdrag.vy;mdrag.px=e.clientX;mdrag.py=e.clientY;});
+modalCanvas.addEventListener('wheel',e=>{mCam.position.z=Math.max(2,Math.min(12,mCam.position.z+e.deltaY*0.013));e.preventDefault();},{passive:false});
+function closeModal(){overlay.classList.remove('open');if(mAnimId){cancelAnimationFrame(mAnimId);mAnimId=null;}}
+document.getElementById('modalClose').addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+
+function switchTab(t,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(t+'Panel').classList.add('active');btn.classList.add('active');if(t==='lab')initLab();}
+
+// Lab
+let labInited=false;const labChipScenes={},labChipOrder=[];let labFrame=0;
+function initLab(){
+  if(labInited)return;labInited=true;
+  const pos=document.getElementById('posPicker'),neg=document.getElementById('negPicker');
+  IONS.forEach(ion=>{const isPos=ion.charge>0;const btn=document.createElement('button');btn.className=`pick-btn ${isPos?'pos-btn':'neg-btn'}`;btn.textContent=ion.formula;btn.title=ion.name;btn.addEventListener('click',()=>addToReaction(ion));(isPos?pos:neg).appendChild(btn);});
+  animateLabChips();
+}
+function getLabChip(ion){
+  if(!labChipScenes[ion.id]){const cv=document.createElement('canvas');cv.width=76;cv.height=76;const{scene,cam}=makeScene();const sc=ion.atoms.length>1?0.58:0.72;const group=buildIonGroup(ion,sc);scene.add(group);group.rotation.y=Math.random()*Math.PI;labChipScenes[ion.id]={scene,cam,group,canvas:cv,rotY:group.rotation.y};labChipOrder.push(ion.id);sharedRenderer.setSize(76,76,false);sharedRenderer.render(scene,cam);cv.getContext('2d').drawImage(sharedCanvas,0,0,76,76);}return labChipScenes[ion.id];
+}
+function animateLabChips(){requestAnimationFrame(animateLabChips);if(!labChipOrder.length)return;labFrame++;const id=labChipOrder[labFrame%labChipOrder.length];const s=labChipScenes[id];if(!s)return;s.rotY+=0.025;s.group.rotation.y=s.rotY;sharedRenderer.setSize(76,76,false);sharedRenderer.render(s.scene,s.cam);s.canvas.getContext('2d').drawImage(sharedCanvas,0,0,76,76);}
+
+const reaction={pos:null,neg:null};
+function addToReaction(ion){if(ion.charge>0)reaction.pos=ion;else reaction.neg=ion;updateReactionUI();}
+function clearReaction(){reaction.pos=null;reaction.neg=null;updateReactionUI();document.getElementById('resultArea').innerHTML='';if(compoundAnimId){cancelAnimationFrame(compoundAnimId);compoundAnimId=null;}}
+function removeFromReaction(type){if(type==='pos')reaction.pos=null;else reaction.neg=null;updateReactionUI();}
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+
+function updateReactionUI(){
+  const zone=document.getElementById('reactionZone'),content=document.getElementById('reactionContent'),balInfo=document.getElementById('balanceInfo'),fill=document.getElementById('chargeFill'),btn=document.getElementById('synthBtn');
+  if(!reaction.pos&&!reaction.neg){content.innerHTML='<div style="color:var(--sub);font-size:.8rem;">← 从左侧选择离子加入反应区</div>';balInfo.textContent='尚未选择离子';balInfo.style.color='var(--sub)';fill.style.width='50%';fill.style.background='#334';btn.disabled=true;zone.className='reaction-zone';return;}
+  let posCount=1,negCount=1,balanced=false,totalPos=0,totalNeg=0;
+  if(reaction.pos&&reaction.neg){const pC=Math.abs(reaction.pos.charge),nC=Math.abs(reaction.neg.charge),g=gcd(pC,nC);posCount=nC/g;negCount=pC/g;totalPos=reaction.pos.charge*posCount;totalNeg=reaction.neg.charge*negCount;balanced=(totalPos+totalNeg)===0;}
+  let html='<div class="reaction-ions">';
+  if(reaction.pos){const chip=getLabChip(reaction.pos);html+=`<div class="react-ion-chip"><img src="${chip.canvas.toDataURL()}" width="76" height="76" style="border-radius:8px;" id="chip_${reaction.pos.id}"><div class="chip-label" style="color:#ff8050">${reaction.pos.formula}</div>${posCount>1?`<div class="chip-count">×${posCount}</div>`:''}<button class="chip-remove" onclick="removeFromReaction('pos')">✕</button></div>`;}
+  if(reaction.pos&&reaction.neg)html+='<div class="plus-sign">+</div>';
+  if(reaction.neg){const chip=getLabChip(reaction.neg);html+=`<div class="react-ion-chip"><img src="${chip.canvas.toDataURL()}" width="76" height="76" style="border-radius:8px;" id="chip_${reaction.neg.id}"><div class="chip-label" style="color:#50b0ff">${reaction.neg.formula}</div>${negCount>1?`<div class="chip-count">×${negCount}</div>`:''}<button class="chip-remove" onclick="removeFromReaction('neg')">✕</button></div>`;}
+  html+='</div>';content.innerHTML=html;
+  if(reaction.pos&&reaction.neg){if(balanced){balInfo.textContent='⚡ 电荷平衡！可以合成';balInfo.style.color='#44ee88';fill.style.width='100%';fill.style.background='linear-gradient(90deg,#1a8a4a,#22cc66)';zone.className='reaction-zone ready';btn.disabled=false;}else{balInfo.textContent=`电荷不平衡：+${totalPos} / ${totalNeg}`;balInfo.style.color='#ff6040';fill.style.width='55%';fill.style.background='linear-gradient(90deg,#ff4400,#ff9900)';zone.className='reaction-zone error';btn.disabled=true;}}
+  else{balInfo.textContent='请同时选择正负离子';balInfo.style.color='var(--sub)';fill.style.width='50%';fill.style.background='#334';btn.disabled=true;zone.className='reaction-zone';}
+}
+
+setInterval(()=>{['pos','neg'].forEach(t=>{const ion=reaction[t];if(!ion)return;const s=labChipScenes[ion.id];const el=document.getElementById('chip_'+ion.id);if(s&&el)el.src=s.canvas.toDataURL();});},80);
+
+function buildFormula(p,n){const pC=Math.abs(p.charge),nC=Math.abs(n.charge),g=gcd(pC,nC),pN=nC/g,nN=pC/g;const sub=x=>x===1?'':String(x).replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[+d]);const clean=f=>f.replace(/[⁺⁻¹²³⁴⁵⁶⁷⁸⁹⁰]/g,'').replace(/[+\-]/g,'').trim();const pSym=clean(p.formula),nSym=clean(n.formula);const pStr=p.atoms.length>1&&pN>1?`(${pSym})${sub(pN)}`:`${pSym}${sub(pN)}`;const nStr=n.atoms.length>1&&nN>1?`(${nSym})${sub(nN)}`:`${nSym}${sub(nN)}`;return pStr+nStr;}
+function buildEquation(p,n,f){const pC=Math.abs(p.charge),nC=Math.abs(n.charge),g=gcd(pC,nC),pN=nC/g,nN=pC/g;return `${pN>1?pN+'×':''}${p.formula} + ${nN>1?nN+'×':''}${n.formula} → ${f}`;}
+
+let compoundAnimId=null,cGroup=null,cScene=null,cCam=null,cdrag={on:false,px:0,py:0,vx:0,vy:0};
+
+function launchCompoundViewer(cmpd){
+  let cv=document.getElementById('compoundCanvas');
+  if(!cv){cv=document.createElement('canvas');cv.id='compoundCanvas';cv.width=360;cv.height=260;}
+  if(compoundAnimId){cancelAnimationFrame(compoundAnimId);compoundAnimId=null;}
+  if(compoundRenderer){compoundRenderer.dispose();compoundRenderer=null;}
+  compoundRenderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  compoundRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  compoundRenderer.setSize(360,260,false);
+  const{scene,cam}=makeScene(0x050d1c);
+  const spread=Math.max(...cmpd.atoms3d.map(a=>Math.sqrt(a.p[0]*a.p[0]+a.p[1]*a.p[1]+a.p[2]*a.p[2])));
+  cam.position.set(0,0,Math.max(7,spread*0.8+5));
+  const sc=cmpd.lattice?0.55:0.85;
+  cGroup=buildCompoundGroup(cmpd,sc);scene.add(cGroup);cScene=scene;cCam=cam;
+  cGroup.rotation.y=0.4;cGroup.rotation.x=0.2;cdrag={on:false,px:0,py:0,vx:0,vy:0};
+  cv.onpointerdown=e=>{cdrag.on=true;cdrag.px=e.clientX;cdrag.py=e.clientY;cdrag.vx=0;cdrag.vy=0;cv.setPointerCapture(e.pointerId);};
+  cv.onpointerup=()=>{cdrag.on=false;};
+  cv.onpointermove=e=>{if(!cdrag.on)return;cdrag.vx=(e.clientX-cdrag.px)*0.014;cdrag.vy=(e.clientY-cdrag.py)*0.014;cGroup.rotation.y+=cdrag.vx;cGroup.rotation.x+=cdrag.vy;cdrag.px=e.clientX;cdrag.py=e.clientY;};
+  cv.onwheel=e=>{cCam.position.z=Math.max(2,Math.min(22,cCam.position.z+e.deltaY*0.016));e.preventDefault();};
+  cv.style.cssText='display:block;cursor:grab;touch-action:none;border-radius:0 0 12px 12px;width:100%;max-width:360px;height:260px;';
+  function loop(){compoundAnimId=requestAnimationFrame(loop);if(!cdrag.on){if(Math.abs(cdrag.vx)>0.0003||Math.abs(cdrag.vy)>0.0003){cGroup.rotation.y+=cdrag.vx;cGroup.rotation.x+=cdrag.vy;cdrag.vx*=0.92;cdrag.vy*=0.92;}else{cGroup.rotation.y+=0.007;}}compoundRenderer.render(cScene,cCam);}
+  loop();return cv;
+}
+
+function burst(){
+  const zone=document.getElementById('reactionZone'),cx=zone.offsetWidth/2,cy=zone.offsetHeight/2;
+  const cols=['#ffd060','#44ff88','#40c8ff','#ff6030','#cc88ff'];
+  for(let i=0;i<28;i++){const p=document.createElement('div');p.className='particle';const a=i/28*Math.PI*2,d=55+Math.random()*70;p.style.cssText=`width:${4+Math.random()*7}px;height:${4+Math.random()*7}px;background:${cols[i%5]};left:${cx}px;top:${cy}px;--tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;animation-duration:${0.7+Math.random()*0.5}s;box-shadow:0 0 8px ${cols[i%5]};`;zone.appendChild(p);setTimeout(()=>p.remove(),1400);}
+}
+function approachAndBurst(){
+  const chips=document.querySelectorAll('.react-ion-chip img');
+  if(chips.length>=2){const c0=chips[0],c1=chips[chips.length-1];c0.style.transition='transform 0.35s ease-in';c1.style.transition='transform 0.35s ease-in';c0.style.transform='translateX(40px) scale(0.85)';c1.style.transform='translateX(-40px) scale(0.85)';setTimeout(()=>{c0.style.transition='';c1.style.transition='';c0.style.transform='';c1.style.transform='';burst();},360);}else{burst();}
+}
+
+function synthesize(){
+  if(!reaction.pos||!reaction.neg)return;
+  const formula=buildFormula(reaction.pos,reaction.neg),equation=buildEquation(reaction.pos,reaction.neg,formula);
+  const key1=reaction.pos.id+'+'+reaction.neg.id,key2=reaction.neg.id+'+'+reaction.pos.id;
+  const info=COMPOUNDS[key1]||COMPOUNDS[key2]||null;
+  approachAndBurst();
+  const resultArea=document.getElementById('resultArea');
+  const dispFormula=info?info.formula:formula,dispName=info?info.name:'化合物',dispCname=info?info.cname:'',dispType=info?info.type:'离子化合物',dispExtra=info?info.extra:'';
+  // Solubility badge
+  let solBadge='';
+  if(info&&info.extra){const m=info.extra.match(/^溶解性：(易溶|微溶|难溶|气体|互溶|与水[^|]+|不稳定[^|]*)/);if(m){const w=m[1];const col=w.startsWith('易溶')||w.startsWith('互溶')||w.startsWith('与水')?'#44dd88':w.startsWith('微溶')?'#ffcc44':'#ff6644';const bg=w.startsWith('易溶')||w.startsWith('互溶')||w.startsWith('与水')?'rgba(40,180,80,.12)':w.startsWith('微溶')?'rgba(200,150,20,.15)':'rgba(200,60,20,.15)';const ksp=info.extra.match(/Ksp=[^）)，,]+/);solBadge=`<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${col}44;border-radius:10px;padding:3px 10px;margin-top:4px;font-size:0.72rem;color:${col};font-weight:700;">💧 ${w}${ksp?' · '+ksp[0]:''}</div>`;}}
+  const crystalBadge=info&&info.lattice?`<div style="display:inline-block;background:rgba(255,180,40,.15);border:1px solid rgba(255,180,40,.4);border-radius:10px;padding:2px 8px;font-size:0.68rem;color:#ffd060;margin-top:3px;">⬡ 离子晶体（3×3×3晶胞）· 非独立分子</div>`:'';
+  const fitBanner=info&&info.fitHint?`<div style="background:rgba(80,255,140,.1);border:1px solid rgba(80,255,140,.3);border-radius:8px;padding:5px 10px;margin-top:6px;font-size:0.75rem;color:#80ffaa;">🔑 ${info.fitHint}</div>`:'';
+  resultArea.innerHTML=`<div class="result-panel"><div class="result-formula">${dispFormula}</div><div class="result-name">${dispName}${dispCname?` (${dispCname})`:''}</div><div class="result-type">${dispType}</div>${crystalBadge}${solBadge}${fitBanner}<div class="result-equation">${equation}</div>${dispExtra?`<div style="font-size:0.71rem;color:var(--sub);margin-top:4px;">${dispExtra.replace(/^溶解性：[^|]+\| /,'')}</div>`:''}</div>${info?`<div class="compound-viewer"><div class="compound-viewer-header"><span class="compound-viewer-title">⬡ ${dispFormula} 三维结构${info.lattice?' (晶胞片段)':''}</span><span class="compound-hint">拖动旋转 · 滚轮缩放</span></div><div id="compoundCanvasSlot" style="display:flex;justify-content:center;background:#050d1c;border-radius:0 0 12px 12px;"></div></div>`:''}`;
+  if(info){const slot=document.getElementById('compoundCanvasSlot');slot.appendChild(launchCompoundViewer(info));}
+}
+
+initCards();
+animateCards();
+
+function enterApp(){var cover=document.getElementById('coverOverlay');cover.classList.add('hiding');setTimeout(function(){cover.style.display='none';},720);}
+</script>
+</body>
+</html>
