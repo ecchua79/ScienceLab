@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>氧气分子的奇幻旅程</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+:root{--sky:#87CEEB;--deep:#1a1a2e;--lung:#ffb3c1;--blood:#e63946;--cell:#a8dadc;--mito:#f4a261;--co2:#a8c5da;--gold:#ffd166;--green:#06d6a0;--purple:#9b5de5;--white:#ffffff;--text-dark:#1a1a2e}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Nunito','Microsoft YaHei',sans-serif;background:var(--deep);display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;user-select:none}
+#game-wrapper{width:100vw;height:100vh;max-width:480px;max-height:900px;position:relative;background:#fff;overflow:hidden}
+@media(min-aspect-ratio:1/1){#game-wrapper{max-width:none;max-height:none;width:100vw;height:100vh}}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.screen.active{display:flex}
+#screen-start{background:linear-gradient(160deg,#0077b6 0%,#00b4d8 50%,#90e0ef 100%)}
+.start-bubbles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.bubble{position:absolute;border-radius:50%;background:rgba(255,255,255,0.15);animation:rise linear infinite}
+@keyframes rise{0%{transform:translateY(110vh) scale(1);opacity:.8}100%{transform:translateY(-20vh) scale(1.3);opacity:0}}
+.start-content{position:relative;z-index:2;text-align:center;padding:30px 25px}
+.start-emoji{font-size:clamp(60px,15vw,90px);animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.start-title{font-size:clamp(22px,6vw,32px);font-weight:900;color:#fff;margin:10px 0 5px;text-shadow:0 2px 8px rgba(0,0,0,.2)}
+.start-sub{font-size:clamp(13px,3.5vw,16px);color:rgba(255,255,255,.9);margin-bottom:20px}
+.start-info{background:rgba(255,255,255,.2);border-radius:16px;padding:15px 20px;color:#fff;font-size:clamp(12px,3vw,14px);line-height:1.8;text-align:left;margin-bottom:25px;backdrop-filter:blur(5px)}
+.btn-start{background:#fff;color:#0077b6;border:none;padding:16px 40px;border-radius:50px;font-size:clamp(16px,4vw,20px);font-weight:900;cursor:pointer;box-shadow:0 8px 25px rgba(0,0,0,.2);transition:transform .2s;font-family:inherit}
+.btn-start:active{transform:scale(.96)}
+#screen-game{background:#f0f8ff;flex-direction:column}
+.hud{width:100%;background:linear-gradient(90deg,#0077b6,#00b4d8);padding:10px 15px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.hud-chapter{color:#fff;font-weight:900;font-size:clamp(12px,3.5vw,15px)}
+.hud-stage-dots{display:flex;gap:5px}
+.stage-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .3s}
+.stage-dot.done{background:#fff}
+.stage-dot.current{background:var(--gold)}
+.hud-timer{color:var(--gold);font-weight:900;font-size:clamp(13px,3.5vw,16px)}
+.scene-area{flex:1;width:100%;position:relative;overflow:hidden}
+#game-canvas{position:absolute;inset:0;width:100%;height:100%}
+.narration-box{position:absolute;bottom:0;left:0;right:0;background:rgba(26,26,46,.92);color:#fff;padding:16px 18px 18px;border-radius:20px 20px 0 0;z-index:20;backdrop-filter:blur(8px);font-family:'Nunito','Microsoft YaHei','PingFang SC','Noto Sans SC',Arial,sans-serif}
+.narrator-icon{font-size:22px;margin-right:8px}
+.narration-text{font-size:clamp(13px,4vw,16px);line-height:1.6;display:inline;font-family:inherit}
+.narration-action{margin-top:8px;font-size:clamp(12px,3.5vw,14px);color:var(--gold);font-weight:700;animation:pulse 1.2s ease-in-out infinite;font-family:inherit}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.interaction-layer{position:absolute;inset:0;z-index:15;pointer-events:none}
+.interaction-layer.active{pointer-events:all}
+.choice-container{position:absolute;display:flex;flex-direction:column;gap:10px;padding:10px;z-index:25;width:100%}
+.choice-btn{background:#fff;border:2.5px solid #e0e0e0;border-radius:14px;padding:12px 15px;font-size:clamp(13px,3.5vw,15px);font-family:inherit;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;color:var(--text-dark);box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.choice-btn.correct{border-color:var(--green);background:#e8fff6;color:#059669}
+.choice-btn.wrong{border-color:var(--blood);background:#fff0f0;color:var(--blood);animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.breathe-controls{position:absolute;bottom:120px;left:0;right:0;display:flex;justify-content:space-around;padding:0 20px;z-index:25}
+.breathe-btn{background:linear-gradient(135deg,#0077b6,#00b4d8);color:#fff;border:none;border-radius:20px;padding:14px 18px;font-size:clamp(12px,3vw,14px);font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 5px 15px rgba(0,119,182,.4);transition:all .2s;flex:1;margin:0 5px;line-height:1.4}
+.breathe-btn:active{transform:translateY(3px);box-shadow:none}
+.breathe-btn.done{background:linear-gradient(135deg,var(--green),#059669);box-shadow:0 5px 15px rgba(6,214,160,.4)}
+.knowledge-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:20px;padding:20px;width:88%;max-width:380px;box-shadow:0 15px 40px rgba(0,0,0,.25);z-index:30;text-align:center;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes popIn{from{transform:translate(-50%,-50%) scale(.7);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.knowledge-card h3{font-size:clamp(15px,4vw,18px);color:var(--text-dark);margin-bottom:10px}
+.knowledge-card p{font-size:clamp(12px,3.2vw,14px);color:#555;line-height:1.7;margin-bottom:15px}
+.knowledge-highlight{background:linear-gradient(135deg,#e0f7fa,#b2ebf2);border-radius:12px;padding:10px;font-size:clamp(12px,3.2vw,14px);color:#006064;font-weight:700;margin-bottom:15px}
+.btn-continue{background:linear-gradient(135deg,#0077b6,#00b4d8);color:#fff;border:none;border-radius:50px;padding:12px 30px;font-size:clamp(14px,3.5vw,16px);font-weight:700;font-family:inherit;cursor:pointer}
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:particleFly 1s forwards}
+@keyframes particleFly{0%{transform:scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}}
+.dim-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:28;backdrop-filter:blur(2px)}
+#screen-end{background:linear-gradient(160deg,#0077b6 0%,#023e8a 100%);padding:20px;overflow-y:auto;justify-content:flex-start;padding-top:30px}
+.end-stars{font-size:40px;letter-spacing:5px;margin-bottom:10px}
+.end-title{font-size:clamp(22px,6vw,30px);font-weight:900;color:#fff;margin-bottom:5px}
+.end-sub{color:rgba(255,255,255,.8);font-size:clamp(13px,3.5vw,15px);margin-bottom:20px}
+.cert-wrapper{width:100%;max-width:420px}
+#name-section{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.cert-input{padding:14px 20px;border-radius:50px;border:none;font-size:clamp(14px,3.5vw,16px);font-family:inherit;width:100%;max-width:300px;text-align:center;outline:none;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+.btn-cert{background:var(--gold);color:#1a1a2e;border:none;border-radius:50px;padding:14px 30px;font-size:clamp(15px,4vw,17px);font-weight:900;font-family:inherit;cursor:pointer}
+.certificate{background:#fffcf2;border:6px double #c9a84c;border-radius:16px;padding:20px;width:100%;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none}
+.cert-header{text-align:center;font-size:28px;margin-bottom:5px}
+.cert-title-text{text-align:center;font-size:clamp(16px,4vw,20px);font-weight:900;color:#9b4400;margin-bottom:15px}
+.cert-body{font-size:clamp(13px,3.3vw,15px);line-height:2;color:#333}
+.cert-name{font-size:clamp(18px,5vw,24px);font-weight:900;color:#0077b6}
+.cert-seal{position:absolute;bottom:15px;right:15px;width:65px;height:65px;border:2.5px solid #c0392b;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c0392b;font-size:9px;font-weight:900;transform:rotate(-15deg);line-height:1.4;text-align:center}
+.cert-stamp-bar{width:60%;height:2px;background:#c0392b;margin:2px 0}
+.cert-journey{margin-top:12px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:10px;padding:10px;font-size:clamp(11px,2.8vw,13px);color:#1565c0;text-align:center;font-weight:700}
+.cert-actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;justify-content:center}
+.btn-print{background:var(--green);color:#fff;border:none;border-radius:50px;padding:12px 22px;font-size:clamp(13px,3.5vw,15px);font-weight:700;font-family:inherit;cursor:pointer;flex:1;min-width:120px}
+.btn-replay{background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.4);border-radius:50px;padding:12px 22px;font-size:clamp(13px,3.5vw,15px);font-weight:700;font-family:inherit;cursor:pointer;flex:1;min-width:120px}
+@media print{body{background:#fff}#screen-end{background:#fff;padding:10px}.certificate{box-shadow:none;border-color:#9b4400}.cert-actions,#name-section,.end-stars,.end-title,.end-sub{display:none!important}.certificate{display:block!important}}
+.toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(26,26,46,.92);color:#fff;padding:10px 20px;border-radius:30px;font-size:clamp(13px,3.5vw,15px);font-weight:700;z-index:50;white-space:nowrap;animation:toastAnim 2s forwards}
+@keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}75%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+.scene-transition{position:absolute;inset:0;background:#1a1a2e;z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;animation:transitionAnim 1.8s forwards}
+@keyframes transitionAnim{0%{opacity:1}60%{opacity:1}100%{opacity:0;pointer-events:none}}
+.transition-emoji{font-size:50px;animation:float 1s ease-in-out infinite}
+.transition-text{color:#fff;font-size:clamp(16px,4.5vw,20px);font-weight:900;margin-top:15px}
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div class="screen active" id="screen-start">
+    <div class="start-bubbles" id="bubbles-container"></div>
+    <div class="start-content">
+      <div class="start-emoji">🔵</div>
+      <div class="start-title">氧气分子的<br>奇幻旅程</div>
+      <div class="start-sub">初中科学 · 呼吸系统大冒险</div>
+      <div class="start-info">
+        🎮 <strong>你就是一颗氧气分子！</strong><br>
+        完成 10 大关卡，从吸气出发，<br>
+        穿越肺泡 → 进入血液 → 抵达细胞，<br>
+        帮助线粒体产生能量，再变身 CO₂ 呼出！<br><br>
+        ⏱️ 计时挑战，通关即可获得专属证书
+      </div>
+      <button class="btn-start" onclick="Game.start()">🚀 开始冒险！</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-game">
+    <div class="hud">
+      <div class="hud-chapter" id="hud-chapter">关卡 1/10</div>
+      <div class="hud-stage-dots" id="stage-dots"></div>
+      <div class="hud-timer" id="hud-timer">⏱ 00:00</div>
+    </div>
+    <div class="scene-area" id="scene-area">
+      <canvas id="game-canvas"></canvas>
+      <div class="interaction-layer" id="interaction-layer"></div>
+      <div class="narration-box" id="narration-box">
+        <span class="narrator-icon">🔵</span>
+        <span class="narration-text" id="narration-text"></span>
+        <div class="narration-action" id="narration-action"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-end">
+    <div class="cert-wrapper" style="display:flex;flex-direction:column;align-items:center;gap:15px;width:100%">
+      <div class="end-stars">⭐⭐⭐</div>
+      <div class="end-title">🎉 旅程完成！</div>
+      <div class="end-sub">你已完全掌握呼吸系统的奥秘！</div>
+      <div id="name-section">
+        <input class="cert-input" type="text" id="player-name" placeholder="✏️ 输入你的大名" maxlength="12">
+        <button class="btn-cert" onclick="Game.generateCert()">🏆 领取荣誉证书</button>
+      </div>
+      <div class="certificate" id="certificate">
+        <div class="cert-header">🫁</div>
+        <div class="cert-title-text">呼吸系统探险家证书</div>
+        <div class="cert-body">
+          授予英雄：<span class="cert-name" id="cert-name">—</span><br>
+          成功完成氧气分子的奇幻旅程，<br>深入掌握人体呼吸系统全过程！<br>
+          <strong>最终得分：</strong><span id="cert-score">—</span> 分<br>
+          <strong>通关耗时：</strong><span id="cert-time">—</span><br>
+          <strong>挑战日期：</strong><span id="cert-date">—</span>
+          <div class="cert-journey" id="cert-journey"></div>
+        </div>
+        <div class="cert-seal">初二<div class="cert-stamp-bar"></div>科学<div class="cert-stamp-bar"></div>认证</div>
+      </div>
+      <div class="cert-actions" id="cert-actions" style="display:none">
+        <button class="btn-print" onclick="window.print()">🖨️ 打印/保存</button>
+        <button class="btn-replay" onclick="location.reload()">🔄 再玩一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const Game = (() => {
+  let currentStage=0,score=0,startTime=0,timerInterval=null,canvas,ctx,W,H,animFrameId=null,stageState={};
+  const TOTAL_STAGES=10;
+  const stages=[
+    {id:0,name:'吸气动作',emoji:'💨',color:'#b3e5fc'},
+    {id:1,name:'呼吸道通道',emoji:'👃',color:'#90caf9'},
+    {id:2,name:'抵达肺泡',emoji:'🫁',color:'#f8bbd0'},
+    {id:3,name:'扩散入血液',emoji:'🔵',color:'#e3f2fd'},
+    {id:4,name:'血红蛋白列车',emoji:'🚂',color:'#ffcdd2'},
+    {id:5,name:'进入组织细胞',emoji:'⚡',color:'#e8f5e9'},
+    {id:6,name:'CO₂扩散回血',emoji:'🔴',color:'#fce4ec'},
+    {id:7,name:'CO₂随血回肺',emoji:'🌊',color:'#ede7f6'},
+    {id:8,name:'呼气动作',emoji:'🌬️',color:'#e0f2f1'},
+    {id:9,name:'CO₂出体外',emoji:'🌿',color:'#f3e5f5'},
+  ];
+
+  function init(){canvas=document.getElementById('game-canvas');ctx=canvas.getContext('2d');resize();window.addEventListener('resize',resize)}
+  function resize(){const a=document.getElementById('scene-area');W=canvas.width=a.offsetWidth;H=canvas.height=a.offsetHeight;if(stageState.onResize)stageState.onResize()}
+  function switchScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+  function narrate(t,a=''){document.getElementById('narration-text').textContent=t;document.getElementById('narration-action').textContent=a}
+  function showToast(text,color='#06d6a0'){const t=document.createElement('div');t.className='toast';t.textContent=text;t.style.borderLeft=`4px solid ${color}`;document.getElementById('scene-area').appendChild(t);setTimeout(()=>t.remove(),2200)}
+  function spawnParticles(x,y,color,count=8){const area=document.getElementById('scene-area');for(let i=0;i<count;i++){const p=document.createElement('div');p.className='particle';const a=(i/count)*360,d=30+Math.random()*30;p.style.cssText=`width:8px;height:8px;background:${color};left:${x}px;top:${y}px;--tx:${Math.cos(a*Math.PI/180)*d}px;--ty:${Math.sin(a*Math.PI/180)*d}px;`;area.appendChild(p);setTimeout(()=>p.remove(),1000)}}
+  function getLayer(){return document.getElementById('interaction-layer')}
+  function clearLayer(){const l=getLayer();l.innerHTML='';l.className='interaction-layer'}
+  function activateLayer(){getLayer().className='interaction-layer active'}
+
+  function showKnowledge(emoji,title,body,highlight,onContinue){
+    activateLayer();const l=getLayer();
+    const dim=document.createElement('div');dim.className='dim-overlay';
+    const card=document.createElement('div');card.className='knowledge-card';
+    card.innerHTML=`<div style="font-size:36px;margin-bottom:8px">${emoji}</div><h3>${title}</h3><p>${body}</p>${highlight?`<div class="knowledge-highlight">${highlight}</div>`:''}<button class="btn-continue" id="kc-btn">继续旅程 →</button>`;
+    l.appendChild(dim);l.appendChild(card);
+    document.getElementById('kc-btn').onclick=()=>{dim.remove();card.remove();clearLayer();onContinue()};
+  }
+
+  function showChoices(options,correctIdx,onCorrect){
+    activateLayer();const l=getLayer();
+    const box=document.createElement('div');box.className='choice-container';box.style.bottom='160px';
+    options.forEach((opt,i)=>{
+      const btn=document.createElement('button');btn.className='choice-btn';btn.textContent=opt;
+      btn.onclick=()=>{
+        if(btn.dataset.locked)return;
+        box.querySelectorAll('.choice-btn').forEach(b=>b.dataset.locked='1');
+        if(i===correctIdx){btn.classList.add('correct');score+=50;showToast('✅ 答对了！+50分','#06d6a0');spawnParticles(W/2,H/2,'#06d6a0');setTimeout(()=>{box.remove();clearLayer();onCorrect()},1200)}
+        else{btn.classList.add('wrong');showToast('❌ 再想想哦～','#e63946');setTimeout(()=>{btn.classList.remove('wrong');box.querySelectorAll('.choice-btn').forEach(b=>delete b.dataset.locked)},900)}
+      };
+      box.appendChild(btn);
+    });
+    l.appendChild(box);
+  }
+
+  function animMolecule(state,kx,ky,tx,ty,dur,cb){
+    const sx=state[kx],sy=state[ky],t0=Date.now();
+    function step(){const p=Math.min(1,(Date.now()-t0)/dur),e=1-Math.pow(1-p,3);state[kx]=sx+(tx-sx)*e;state[ky]=sy+(ty-sy)*e;if(p<1)requestAnimationFrame(step);else cb()}
+    requestAnimationFrame(step);
+  }
+
+  function drawO2(x,y,r,label='O₂',cTop='#90caf9',cBot='#0055aa'){
+    ctx.beginPath();ctx.arc(x,y,r*1.3,0,Math.PI*2);ctx.fillStyle='rgba(0,100,200,0.15)';ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);g.addColorStop(0,cTop);g.addColorStop(1,cBot);
+    ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font=`bold ${r*.72}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y);
+  }
+  function drawCO2(x,y,r){drawO2(x,y,r,'CO₂','#b0bec5','#546e7a')}
+
+  function drawChest(expansion,ribsDone,diagDone,isExhale=false){
+    const cx=W*.5,top=H*.06,baseCW=W*.38,baseCH=H*.44;
+    const cw=baseCW+expansion*40,ch=baseCH+expansion*28;
+    ctx.beginPath();ctx.ellipse(cx,top+ch*.5,cw*.5,ch*.5,0,0,Math.PI*2);ctx.fillStyle='rgba(225,245,254,0.75)';ctx.fill();ctx.strokeStyle='#90caf9';ctx.lineWidth=2.5;ctx.stroke();
+    // ribs animate with expansion
+    const ribShift=isExhale?(1-expansion)*28:-expansion*28;
+    const ribCol=ribsDone?(isExhale?'#e53935':'#0077b6'):'#90a4ae';
+    for(let i=0;i<5;i++){const ry=top+ch*.14+i*ch*.145+ribShift,rw=(cw*(0.38-i*.022))*.48;ctx.strokeStyle=ribCol;ctx.lineWidth=ribsDone?3.5:2;ctx.beginPath();ctx.ellipse(cx,ry,rw,ch*.036,0,0,Math.PI);ctx.stroke()}
+    // rib arrows
+    if(ribsDone){const aDir=isExhale?1:-1;[cx-cw*.28,cx+cw*.28].forEach(ax=>{const ay1=top+ch*.18+ribShift,ay2=ay1+aDir*26;ctx.strokeStyle=ribCol;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(ax,ay1);ctx.lineTo(ax,ay2);ctx.stroke();ctx.fillStyle=ribCol;ctx.beginPath();ctx.moveTo(ax,ay2);ctx.lineTo(ax-7,ay2-aDir*12);ctx.lineTo(ax+7,ay2-aDir*12);ctx.closePath();ctx.fill()})}
+    // lungs
+    const lr=cw*.155+expansion*7,ly=top+ch*.44;
+    [cx-cw*.15,cx+cw*.15].forEach(lx=>{const g=ctx.createRadialGradient(lx,ly-lr*.2,lr*.1,lx,ly,lr);g.addColorStop(0,'#ffcdd2');g.addColorStop(1,'#ef9a9a');ctx.beginPath();ctx.ellipse(lx,ly,lr*.55,lr,0,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#e91e63';ctx.lineWidth=2;ctx.stroke()});
+    // diaphragm
+    const diagBase=top+ch,diagShift=isExhale?-(1-expansion)*32:expansion*32,dy=diagBase+diagShift;
+    const diagCol=diagDone?(isExhale?'#e53935':'#0077b6'):'#78909c';
+    ctx.strokeStyle=diagCol;ctx.lineWidth=diagDone?4:3;ctx.beginPath();ctx.moveTo(cx-cw*.44,dy);ctx.quadraticCurveTo(cx,dy+(diagDone?(isExhale?-18:18):8),cx+cw*.44,dy);ctx.stroke();
+    if(diagDone){const daDir=isExhale?-1:1,ay1=diagBase,ay2=diagBase+daDir*28;ctx.strokeStyle=diagCol;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,ay1);ctx.lineTo(cx,ay2);ctx.stroke();ctx.fillStyle=diagCol;ctx.beginPath();ctx.moveTo(cx,ay2);ctx.lineTo(cx-7,ay2-daDir*12);ctx.lineTo(cx+7,ay2-daDir*12);ctx.closePath();ctx.fill()}
+    ctx.fillStyle=diagCol;ctx.font=`bold ${Math.min(W*.03,13)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('横膈膜'+(diagDone?(isExhale?' ↑上升':' ↓下降'):''),cx,dy+5);
+    ctx.fillStyle=ribCol;ctx.fillText(ribsDone?(isExhale?'肋骨↓向下向内':'肋骨↑向上向外'):'肋间肌',cx,top+2);
+  }
+
+  function drawAirwayNodes(structures,step,nodesFn,isReverse=false){
+    const nodes=nodesFn(),R=Math.min(W*.065,26);
+    ctx.strokeStyle='#b0bec5';ctx.lineWidth=R*1.3;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();nodes.forEach((n,i)=>i===0?ctx.moveTo(n.x,n.y):ctx.lineTo(n.x,n.y));ctx.stroke();
+    ctx.strokeStyle='#eceff1';ctx.lineWidth=R*.9;ctx.beginPath();nodes.forEach((n,i)=>i===0?ctx.moveTo(n.x,n.y):ctx.lineTo(n.x,n.y));ctx.stroke();
+    nodes.forEach((n,i)=>{
+      if(i>=structures.length)return;
+      const done=i<step,current=i===step;
+      ctx.beginPath();ctx.arc(n.x,n.y,R,0,Math.PI*2);ctx.fillStyle=done?'#06d6a0':current?structures[i].color:'#cfd8dc';ctx.fill();ctx.strokeStyle=done?'#059669':current?'#0077b6':'#b0bec5';ctx.lineWidth=current?3:1.5;ctx.stroke();
+      ctx.font=`${R*.9}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(done?(isReverse?'💨':'✅'):structures[i].emoji,n.x,n.y);
+      const lx=n.x+R+10;ctx.font=`bold ${Math.min(W*.036,14)}px Nunito,sans-serif`;ctx.fillStyle=done?'#059669':current?'#0077b6':'#546e7a';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(structures[i].name,lx,n.y-7);
+      if(done||current){ctx.font=`${Math.min(W*.027,11)}px Nunito,sans-serif`;ctx.fillStyle=done?'#26a67a':'#0099cc';ctx.fillText(structures[i].desc,lx,n.y+9)}
+    });
+    if(step<nodes.length){
+      const n=nodes[step],t=Date.now()/500,bounce=Math.sin(t)*5,mr=Math.min(W*.055,22);
+      const ox=Math.max(mr+4,n.x-R*2.8),oy=n.y+bounce;
+      if(isReverse)drawCO2(ox,oy,mr);else drawO2(ox,oy,mr);
+      ctx.fillStyle=isReverse?'#607d8b':'#0077b6';ctx.font=`${mr*1.1}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',ox+mr*1.5,n.y);
+      ctx.font=`${mr*.9}px serif`;ctx.fillText('👆',ox,oy-mr*1.9);
+    }
+  }
+
+  function airwayTapHandler(structures,nodesFn,isReverse,onDone){
+    activateLayer();
+    getLayer().onclick=(e)=>{
+      if(stageState.step>=structures.length)return;
+      const rect=canvas.getBoundingClientRect(),cx=e.clientX-rect.left,cy=e.clientY-rect.top;
+      const nodes=nodesFn(),n=nodes[stageState.step];
+      if(!n)return;
+      const R=Math.min(W*.065,26),mr=Math.min(W*.055,22),ox=Math.max(mr+4,n.x-R*2.8);
+      if(Math.hypot(cx-ox,cy-n.y)<mr*2.5||Math.hypot(cx-n.x,cy-n.y)<R*2){
+        const s=stageState.step;spawnParticles(n.x,n.y,isReverse?'#90a4ae':'#90caf9');
+        showToast(`✅ ${structures[s].name}：${structures[s].desc}`,isReverse?'#607d8b':'#0077b6');
+        score+=20;stageState.step++;
+        if(stageState.step>=structures.length){clearLayer();cancelAnimationFrame(animFrameId);setTimeout(onDone,600)}
+        else narrate(`到达${structures[s].name}！${structures[s].desc}。继续！`,`👆 点击${isReverse?'CO₂':'O₂'}继续前进`);
+      }
+    };
+  }
+
+  function start(){currentStage=0;score=0;startTime=Date.now();switchScreen('screen-game');init();buildHUDDots();startTimerClock();loadStage(0)}
+  function loadStage(idx){
+    currentStage=idx;stageState={};updateHUD();cancelAnimationFrame(animFrameId);clearLayer();
+    [s0_Inhale,s1_Airway,s2_Alveoli,s3_Diffuse,s4_Blood,s5_Cell,s6_CO2toBlood,s7_CO2toLung,s8_Exhale,s9_AirwayOut][idx]?.();
+  }
+  function nextStage(){
+    score+=80;if(currentStage>=TOTAL_STAGES-1){endGame();return}
+    const n=currentStage+1,el=document.createElement('div');el.className='scene-transition';
+    el.innerHTML=`<div class="transition-emoji">${stages[n].emoji}</div><div class="transition-text">关卡 ${n+1}：${stages[n].name}</div>`;
+    document.getElementById('scene-area').appendChild(el);setTimeout(()=>{el.remove();loadStage(n)},1800);
+  }
+  function buildHUDDots(){const c=document.getElementById('stage-dots');c.innerHTML='';for(let i=0;i<TOTAL_STAGES;i++){const d=document.createElement('div');d.className='stage-dot';d.id=`dot-${i}`;c.appendChild(d)}}
+  function updateHUD(){
+    document.getElementById('hud-chapter').textContent=`${stages[currentStage].emoji} 关卡 ${currentStage+1}/${TOTAL_STAGES}`;
+    for(let i=0;i<TOTAL_STAGES;i++){const d=document.getElementById(`dot-${i}`);d.className='stage-dot'+(i<currentStage?' done':i===currentStage?' current':'')}
+  }
+  function startTimerClock(){clearInterval(timerInterval);timerInterval=setInterval(()=>{const s=Math.floor((Date.now()-startTime)/1000);document.getElementById('hud-timer').textContent=`⏱ ${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`},500)}
+
+  function makeBreathBtn(text,onClick){const b=document.createElement('button');b.className='breathe-btn';b.innerHTML=text.split('\n').join('<br>');b.onclick=onClick;return b}
+
+  // ── S0: 吸气 ──────────────────────────────────────────────────────────
+  function s0_Inhale(){
+    narrate('出发前先要"吸一口气"！完成两个动作把我（O₂）吸进来！','👆 按下两个按钮，完成吸气！');
+    stageState={diagDone:false,ribsDone:false,expansion:0};
+    let t=0;
+    function draw(){
+      ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#e3f2fd');bg.addColorStop(1,'#b3e5fc');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      t+=0.02;if(stageState.diagDone&&stageState.ribsDone&&stageState.expansion<1)stageState.expansion=Math.min(1,stageState.expansion+0.025);
+      drawChest(stageState.expansion,stageState.ribsDone,stageState.diagDone,false);
+      if(!stageState.done){const ox=W*.09,oy=H*.3+Math.sin(t)*7;drawO2(ox,oy,Math.min(W*.048,20));ctx.fillStyle='#0077b6';ctx.font=`${Math.min(W*.05,18)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',ox+Math.min(W*.07,28),oy)}
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    const bc=document.createElement('div');bc.className='breathe-controls';
+    const db=makeBreathBtn('⬇️ 横膈膜\n向下拉！',()=>{if(stageState.diagDone)return;stageState.diagDone=true;db.classList.add('done');db.textContent='✅ 横膈膜下降';showToast('✅ 横膈膜下降！胸腔变高！','#0077b6');check()});
+    const rb=makeBreathBtn('⬆️ 肋间肌\n向上向外！',()=>{if(stageState.ribsDone)return;stageState.ribsDone=true;rb.classList.add('done');rb.textContent='✅ 肋骨上升';showToast('✅ 肋骨上升！胸腔变宽！','#0077b6');check()});
+    bc.appendChild(db);bc.appendChild(rb);getLayer().appendChild(bc);
+    function check(){if(!stageState.diagDone||!stageState.ribsDone)return;stageState.done=true;bc.remove();clearLayer();narrate('胸腔增大→肺内气压↓→外界气压大→空气涌入！','');cancelAnimationFrame(animFrameId);setTimeout(()=>showKnowledge('💨','吸气原理','①肋间肌收缩→肋骨上升→胸腔变宽；②膈肌收缩→横膈膜下降→胸腔变高。胸腔体积增大，肺内气压降低，外界空气被"压"进来！','📌 胸腔体积↑ → 气压↓ → 气体从外界涌入',()=>nextStage()),1200)}
+  }
+
+  // ── S1: 呼吸道 ────────────────────────────────────────────────────────
+  function s1_Airway(){
+    const st=[{name:'鼻腔',desc:'过滤、加湿、加温空气',emoji:'👃',color:'#90caf9'},{name:'咽',desc:'空气和食物共用的"十字路口"',emoji:'🔀',color:'#ce93d8'},{name:'喉',desc:'有声带，负责发声',emoji:'🎤',color:'#f48fb1'},{name:'气管',desc:'主要通道，内壁有纤毛',emoji:'🛣️',color:'#80cbc4'},{name:'支气管',desc:'分叉进入左右肺',emoji:'🌿',color:'#a5d6a7'}];
+    stageState={step:0};narrate('我（O₂）被吸进来了！走过整个呼吸道，一站站点我前进！','👆 点击蓝色 O₂ 分子前进！');
+    function getNodes(){const nb=90,uh=H-nb,tp=uh*.1,sp=(uh-tp*2)/(st.length-1);return st.map((_,i)=>({x:W*.22,y:tp+i*sp}))}
+    function draw(){ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#e3f2fd');bg.addColorStop(1,'#bbdefb');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);drawAirwayNodes(st,stageState.step,getNodes,false);animFrameId=requestAnimationFrame(draw)}
+    draw();airwayTapHandler(st,getNodes,false,()=>{narrate('顺利通过整个呼吸道！向肺泡冲！','');showKnowledge('🛣️','呼吸道的完整路径','空气沿呼吸道一路向下：','鼻腔 → 咽 → 喉 → 气管 → 支气管 → 肺泡',()=>nextStage())});
+  }
+
+  // ── S2: 肺泡 ──────────────────────────────────────────────────────────
+  function s2_Alveoli(){
+    narrate('我到肺泡了！肺泡是气体交换的超级工厂！','');let t=0;
+    function draw(){
+      ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#fce4ec');bg.addColorStop(1,'#f8bbd0');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      t+=0.02;const cx=W*.5,cy=H*.38,R=W*.22+Math.sin(t)*4;
+      for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2;ctx.strokeStyle='#ef9a9a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx+(R+5)*Math.cos(a),cy+(R+5)*Math.sin(a));ctx.lineTo(cx+(R+22)*Math.cos(a+.4),cy+(R+22)*Math.sin(a+.4));ctx.stroke()}
+      const g=ctx.createRadialGradient(cx-R*.3,cy-R*.3,R*.1,cx,cy,R);g.addColorStop(0,'rgba(255,220,230,.95)');g.addColorStop(1,'rgba(255,100,150,.5)');
+      ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#e91e63';ctx.lineWidth=3;ctx.stroke();
+      // wall label above alveolus (clamped so it doesn't go off top)
+const wallLabelY=Math.max(18,cy-R-4);ctx.fillStyle='#880e4f';ctx.font=`bold ${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('← 肺泡壁（单层上皮细胞）→',cx,wallLabelY);
+      ctx.fillStyle='#ad1457';ctx.font=`bold ${Math.min(W*.034,15)}px Nunito,sans-serif`;ctx.textBaseline='middle';ctx.fillText('肺泡内腔（充满空气）',cx,cy);
+      for(let i=0;i<4;i++){const a=t+(i/4)*Math.PI*2;drawO2(cx+R*.5*Math.cos(a),cy+R*.5*Math.sin(a),Math.min(W*.028,11))}
+      ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.028,12)}px Nunito,sans-serif`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('毛细血管',cx+R+8,cy);
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();
+    setTimeout(()=>{narrate('肺泡壁只有一层上皮细胞！越薄扩散越快！','');setTimeout(()=>{cancelAnimationFrame(animFrameId);showKnowledge('🔍','肺泡的秘密','肺泡壁只有一层上皮细胞那么薄，外面紧贴毛细血管（也是一层细胞厚）。气体可以快速扩散穿越！','💡 壁越薄 = 扩散越快！共2层细胞',()=>{showChoices(['A. 两层细胞厚','B. 单层上皮细胞（最薄）','C. 三层细胞厚','D. 没有细胞'],1,()=>nextStage());narrate('考考你：肺泡壁由几层细胞组成？','👆 选择正确答案')})},3000)},2500);
+  }
+
+  // ── S3: 扩散入血 ──────────────────────────────────────────────────────
+  function s3_Diffuse(){
+    narrate('靠"扩散作用"穿越肺泡壁和毛细血管壁进入血液！','👆 点击蓝色 O₂ 球推过去！');
+    stageState={mx:W*.1,my:H*.38,phase:0,crossing:false};
+    const w1=W*.38,w2=W*.58;let t=0;
+    function draw(){
+      ctx.clearRect(0,0,W,H);ctx.fillStyle='#e3f2fd';ctx.fillRect(0,0,W,H);t+=0.02;
+      ctx.fillStyle='rgba(252,231,243,.8)';ctx.fillRect(0,H*.04,w1,H*.65);
+      ctx.fillStyle='rgba(229,57,53,.12)';ctx.fillRect(w2+W*.09,H*.04,W-(w2+W*.09),H*.65);
+      ctx.fillStyle='#f48fb1';ctx.fillRect(w1,H*.04,W*.09,H*.65);
+      ctx.fillStyle='#ef9a9a';ctx.fillRect(w2,H*.04,W*.09,H*.65);
+      [['肺泡壁（1层）','#880e4f',w1],[' 毛细血管壁（1层）','#b71c1c',w2]].forEach(([txt,col,wx])=>{ctx.save();ctx.translate(wx+W*.045,H*.38);ctx.rotate(-Math.PI/2);ctx.fillStyle=col;ctx.font=`bold ${Math.min(W*.025,10)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,0,0);ctx.restore()});
+      ctx.font=`bold ${Math.min(W*.03,13)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';
+      ctx.fillStyle='#880e4f';ctx.fillText('肺泡内腔',w1*.45,H*.06);ctx.fillStyle='#b71c1c';ctx.fillText('血液',(w2+W*.09+W)*.5,H*.06);
+      ctx.font=`${Math.min(W*.027,11)}px Nunito,sans-serif`;ctx.fillStyle='#1565c0';ctx.fillText('O₂浓度高',w1*.45,H*.2);ctx.fillStyle='#b71c1c';ctx.fillText('O₂浓度低',(w2+W*.09+W)*.5,H*.2);
+      ctx.strokeStyle='#0077b6';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(w1-5,H*.57);ctx.lineTo(W-25,H*.57);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#0077b6';ctx.beginPath();ctx.moveTo(W-20,H*.57);ctx.lineTo(W-35,H*.57-7);ctx.lineTo(W-35,H*.57+7);ctx.fill();
+      ctx.font=`${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.fillText('扩散方向',W*.72,H*.62);
+      // bg O2 molecules (high concentration left side)
+      if(stageState.phase<2){[{x:w1*.2,y:H*.2},{x:w1*.55,y:H*.32},{x:w1*.3,y:H*.48},{x:w1*.65,y:H*.55},{x:w1*.15,y:H*.65}].forEach((m,i)=>{drawO2(m.x+Math.sin(t*.8+i)*5,m.y+Math.cos(t*.6+i)*5,Math.min(W*.028,11))})}
+      const bounce=stageState.crossing?0:Math.sin(t)*3,mc=stageState.phase>=4?'#ef5350':'#0055aa';
+      drawO2(stageState.mx,stageState.my+bounce,Math.min(W*.042,18),'O₂','#90caf9',mc);
+      if(stageState.phase<4&&!stageState.crossing){ctx.font=`${Math.min(W*.05,20)}px serif`;ctx.textAlign='center';ctx.fillText('👆',stageState.mx,stageState.my+bounce-Math.min(W*.09,36))}
+      if(stageState.phase>=4){ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.034,14)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('进入血液！✅',stageState.mx,stageState.my+Math.min(W*.065,26))}
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    getLayer().onclick=(e)=>{
+      if(stageState.crossing)return;
+      const rect=canvas.getBoundingClientRect(),tx=e.clientX-rect.left,ty=e.clientY-rect.top,mr=Math.min(W*.042,18);
+      if(Math.hypot(tx-stageState.mx,ty-stageState.my)>mr*3)return;
+      if(stageState.phase===0){stageState.crossing=true;showToast('扩散！穿越肺泡壁→','#0077b6');narrate('穿越肺泡壁中……','');animMolecule(stageState,'mx','my',(w1+W*.09+w2)*.5,H*.38,700,()=>{stageState.phase=1;stageState.crossing=false;narrate('穿过肺泡壁！再穿毛细血管壁！','👆 继续点击！')})}
+      else if(stageState.phase===1){stageState.crossing=true;showToast('扩散！穿越毛细血管壁→','#e63946');animMolecule(stageState,'mx','my',w2+W*.09+W*.08,H*.38,700,()=>{stageState.phase=4;stageState.crossing=false;clearLayer();cancelAnimationFrame(animFrameId);narrate('成功进入血液！找血红蛋白！','');setTimeout(()=>showKnowledge('🔬','扩散作用','氧气在肺泡浓度高，血液浓度低，气体分子自动从高→低浓度移动。这叫"扩散作用"，不需要消耗能量！','💡 共穿越 2 层细胞（肺泡壁 + 毛细血管壁）',()=>nextStage()),800)})}
+    };
+  }
+
+  // ── S4: 血红蛋白 ──────────────────────────────────────────────────────
+  function s4_Blood(){
+    narrate('血液里有很多红细胞！找到含"血红蛋白"的红细胞，坐上去！','👆 点击含"血红蛋白"的红细胞！');
+    const cellDefs=[{label:'白细胞',ok:false},{label:'血红蛋白✓',ok:true},{label:'血小板',ok:false},{label:'血浆',ok:false},{label:'血红蛋白✓',ok:true}];
+    const rows=[H*.28,H*.50,H*.72];
+    stageState={cells:cellDefs.map((d,i)=>({...d,x:W*(.15+(i%3)*0.32),y:rows[i<3?i:i-2],vx:(i%2===0?-0.8:0.8),clicked:false,id:i})),done:false,t:0};
+    function draw(){
+      if(stageState.done)return;ctx.clearRect(0,0,W,H);stageState.t+=0.02;
+      ctx.fillStyle='#ffcdd2';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(229,57,53,.2)';ctx.lineWidth=1;
+      for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(0,H*.1+i*H*.2);ctx.lineTo(W,H*.1+i*H*.2);ctx.stroke()}
+      ctx.fillStyle='#ef9a9a';ctx.fillRect(0,0,W,H*.05);ctx.fillRect(0,H*.95,W,H*.05);
+      ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.028,12)}px Nunito,sans-serif`;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('血管壁',6,4);
+      const rw=W*.13,rh=W*.068;
+      stageState.cells.forEach(c=>{
+        if(!c.clicked){c.x+=c.vx;if(c.x<W*.08||c.x>W*.92)c.vx*=-1}
+        const by=c.y+Math.sin(stageState.t*1.2+c.id)*6;
+        ctx.beginPath();ctx.ellipse(c.x,by,rw,rh,0,0,Math.PI*2);ctx.fillStyle=c.clicked&&c.ok?'#a5d6a7':c.clicked?'#ef9a9a':'#ef5350';ctx.fill();ctx.strokeStyle=c.clicked?(c.ok?'#2e7d32':'#b71c1c'):'#c62828';ctx.lineWidth=2.5;ctx.stroke();
+        ctx.beginPath();ctx.ellipse(c.x,by,rw*.45,rh*.45,0,0,Math.PI*2);ctx.fillStyle='rgba(150,0,0,.18)';ctx.fill();
+        ctx.fillStyle='#fff';ctx.font=`bold ${Math.min(W*.025,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(c.clicked&&c.ok?'✅已结合':c.label,c.x,by);
+      });
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    getLayer().onclick=(e)=>{
+      if(stageState.done)return;const rect=canvas.getBoundingClientRect(),tx=e.clientX-rect.left,ty=e.clientY-rect.top;
+      for(const c of stageState.cells){if(c.clicked)continue;const rw=W*.13,rh=W*.068,dx=(tx-c.x)/rw,dy=(ty-c.y)/rh;if(dx*dx+dy*dy<=1.5){c.clicked=true;if(c.ok){score+=100;showToast('✅ 找到血红蛋白！O₂结合成功！','#06d6a0');spawnParticles(c.x,c.y,'#ef5350',10);narrate('我和血红蛋白结合→氧合血红蛋白！血液变鲜红色！','');stageState.done=true;clearLayer();cancelAnimationFrame(animFrameId);setTimeout(()=>showKnowledge('🚂','血红蛋白的作用','红细胞里含大量血红蛋白（含铁蛋白质）。O₂与血红蛋白结合→氧合血红蛋白（鲜红色）。血液靠它运输氧气！','💡 O₂ + 血红蛋白 = 氧合血红蛋白（鲜红色）',()=>nextStage()),1200)}else{showToast('❌ 这不是血红蛋白，再找找！','#e63946')}break}}
+    };
+  }
+
+  // ── S5: 组织细胞 ──────────────────────────────────────────────────────
+  function s5_Cell(){
+    narrate('血液把我送到组织细胞旁边！扩散穿越细胞膜进入细胞！','👆 点击细胞膜进去！');
+    stageState={phase:0,mx:W*.1,my:H*.4,mitoFound:0,t:0,mitoPos:[{x:W*.52,y:H*.28},{x:W*.7,y:H*.42},{x:W*.57,y:H*.56}].map(m=>({...m,found:false}))};
+    const cx=W*.62,cy=H*.4,cr=W*.34;
+    function draw(){
+      ctx.clearRect(0,0,W,H);ctx.fillStyle='#e8f5e9';ctx.fillRect(0,0,W,H);stageState.t+=0.02;
+      if(stageState.phase>=1){
+        ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);ctx.fillStyle='rgba(200,230,200,.6)';ctx.fill();ctx.strokeStyle='#388e3c';ctx.lineWidth=6;ctx.stroke();
+        ctx.beginPath();ctx.arc(cx+W*.05,cy-H*.04,W*.1,0,Math.PI*2);ctx.fillStyle='rgba(144,164,174,.5)';ctx.fill();ctx.strokeStyle='#546e7a';ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle='#546e7a';ctx.font=`bold ${Math.min(W*.025,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('细胞核',cx+W*.05,cy-H*.04);
+        stageState.mitoPos.forEach((m,i)=>{
+          const pulse=Math.sin(stageState.t*2+i)*2;
+          ctx.beginPath();ctx.ellipse(m.x,m.y,W*.072+pulse,W*.038+pulse*.5,.3,0,Math.PI*2);ctx.fillStyle=m.found?'#a5d6a7':'#f4a261';ctx.fill();ctx.strokeStyle=m.found?'#2e7d32':'#e07020';ctx.lineWidth=2.5;ctx.stroke();
+          if(!m.found){ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.5;for(let j=1;j<=2;j++){ctx.beginPath();ctx.ellipse(m.x,m.y,W*.072*(j/3),W*.022,.3,0,Math.PI*2);ctx.stroke()}}
+          ctx.fillStyle='#fff';ctx.font=`bold ${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(m.found?'⚡完成':'线粒体',m.x,m.y);
+          if(!m.found){ctx.font=`${Math.min(W*.038,16)}px serif`;ctx.fillText('👆',m.x,m.y-W*.072-8)}
+        });
+        drawO2(stageState.mx+Math.sin(stageState.t)*4,stageState.my+Math.cos(stageState.t*.8)*4,Math.min(W*.035,15));
+      }else{
+        ctx.fillStyle='#ffcdd2';ctx.fillRect(0,H*.1,W*.22,H*.6);ctx.strokeStyle='#ef9a9a';ctx.lineWidth=3;ctx.strokeRect(0,H*.1,W*.22,H*.6);ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('毛细血管',W*.11,H*.13);
+        ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);ctx.fillStyle='rgba(200,230,200,.5)';ctx.fill();ctx.strokeStyle='#388e3c';ctx.lineWidth=6;ctx.stroke();
+        ctx.fillStyle='#388e3c';ctx.font=`bold ${Math.min(W*.032,14)}px Nunito,sans-serif`;ctx.textBaseline='middle';ctx.fillText('组织细胞',cx,cy-H*.05);ctx.font=`${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.fillText('（点击细胞膜进入）',cx,cy+H*.03);
+        drawO2(W*.11+Math.sin(stageState.t)*4,H*.4,Math.min(W*.04,17));ctx.fillStyle='#0077b6';ctx.font=`${Math.min(W*.05,20)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',W*.22+20,H*.4);
+      }
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    getLayer().onclick=(e)=>{
+      const rect=canvas.getBoundingClientRect(),tx=e.clientX-rect.left,ty=e.clientY-rect.top;
+      if(stageState.phase===0){if(Math.abs(Math.hypot(tx-cx,ty-cy)-cr)<50){stageState.phase=1;stageState.mx=cx-W*.18;stageState.my=cy;showToast('✅ 扩散进入细胞！找线粒体！','#06d6a0');narrate('进入细胞！找到所有线粒体（橙色椭圆）！','👆 点击每一个线粒体！')}}
+      else if(stageState.phase===1){stageState.mitoPos.forEach((m)=>{if(m.found)return;if(Math.hypot(tx-m.x,ty-m.y)<W*.1){m.found=true;stageState.mitoFound++;score+=30;spawnParticles(m.x,m.y,'#f4a261');showToast(`⚡ 线粒体 ${stageState.mitoFound}/3！`,'#f4a261');if(stageState.mitoFound>=3){stageState.phase=2;narrate('所有线粒体激活！细胞呼吸：葡萄糖＋O₂→CO₂＋水＋能量！','');setTimeout(()=>{cancelAnimationFrame(animFrameId);clearLayer();showKnowledge('⚡','细胞呼吸（呼吸作用）','在线粒体里：葡萄糖 + 氧气 → 二氧化碳 + 水 + 能量（ATP）。氧气在这里被用掉，产生大量CO₂！','葡萄糖 + O₂ → CO₂ + H₂O + 能量⚡',()=>nextStage())},800)}}})}
+    };
+  }
+
+  // ── S6: CO₂扩散回血 ───────────────────────────────────────────────────
+  function s6_CO2toBlood(){
+    narrate('我变成CO₂！细胞里浓度高，扩散出去！','👆 点击CO₂球，推出细胞！');
+    stageState={mx:W*.75,my:H*.38,phase:0,crossing:false};
+    const w2=W*.55,w1=W*.35;let t=0;
+    function draw(){
+      ctx.clearRect(0,0,W,H);ctx.fillStyle='#fce4ec';ctx.fillRect(0,0,W,H);t+=0.02;
+      ctx.fillStyle='rgba(200,230,200,.7)';ctx.fillRect(w2+W*.09,H*.04,W-(w2+W*.09),H*.65);ctx.fillStyle='rgba(229,57,53,.12)';ctx.fillRect(0,H*.04,w1,H*.65);
+      ctx.fillStyle='#a5d6a7';ctx.fillRect(w2,H*.04,W*.09,H*.65);ctx.fillStyle='#ef9a9a';ctx.fillRect(w1,H*.04,W*.09,H*.65);
+      [[' 细胞膜（1层）','#2e7d32',w2],['毛细血管壁（1层）','#b71c1c',w1]].forEach(([txt,col,wx])=>{ctx.save();ctx.translate(wx+W*.045,H*.38);ctx.rotate(-Math.PI/2);ctx.fillStyle=col;ctx.font=`bold ${Math.min(W*.025,10)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,0,0);ctx.restore()});
+      ctx.font=`bold ${Math.min(W*.03,13)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#1b5e20';ctx.fillText('组织细胞',(w2+W*.09+W)*.5,H*.06);ctx.fillStyle='#b71c1c';ctx.fillText('毛细血管',w1*.5,H*.06);
+      ctx.font=`${Math.min(W*.027,11)}px Nunito,sans-serif`;ctx.fillStyle='#1b5e20';ctx.fillText('CO₂浓度高',(w2+W*.09+W)*.5,H*.2);ctx.fillStyle='#1565c0';ctx.fillText('CO₂浓度低',w1*.5,H*.2);
+      ctx.strokeStyle='#607d8b';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(w2+5,H*.57);ctx.lineTo(25,H*.57);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#607d8b';ctx.beginPath();ctx.moveTo(20,H*.57);ctx.lineTo(35,H*.57-7);ctx.lineTo(35,H*.57+7);ctx.fill();ctx.font=`${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.fillText('扩散方向←',W*.25,H*.62);
+      if(stageState.phase<2){[{x:w2+W*.12,y:H*.2},{x:w2+W*.22,y:H*.35},{x:w2+W*.12,y:H*.5},{x:w2+W*.25,y:H*.62},{x:w2+W*.18,y:H*.72}].forEach((m,i)=>{drawCO2(m.x+Math.sin(t*.8+i)*5,m.y+Math.cos(t*.6+i)*5,Math.min(W*.028,11))})}
+      const bounce=stageState.crossing?0:Math.sin(t)*3;drawCO2(stageState.mx,stageState.my+bounce,Math.min(W*.042,18));
+      if(stageState.phase<4&&!stageState.crossing){ctx.font=`${Math.min(W*.05,20)}px serif`;ctx.textAlign='center';ctx.fillText('👆',stageState.mx,stageState.my+bounce-Math.min(W*.09,36))}
+      if(stageState.phase>=4){ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.034,14)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('进入血液！✅',stageState.mx,stageState.my+Math.min(W*.065,26))}
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    getLayer().onclick=(e)=>{
+      if(stageState.crossing)return;const rect=canvas.getBoundingClientRect(),tx=e.clientX-rect.left,ty=e.clientY-rect.top;
+      if(Math.hypot(tx-stageState.mx,ty-stageState.my)>Math.min(W*.042,18)*3)return;
+      if(stageState.phase===0){stageState.crossing=true;showToast('扩散！穿越细胞膜→','#607d8b');narrate('CO₂浓度高→低，扩散穿出细胞膜！','');animMolecule(stageState,'mx','my',(w1+W*.09+w2)*.5,H*.38,700,()=>{stageState.phase=1;stageState.crossing=false;narrate('穿过细胞膜！再穿毛细血管壁！','👆 继续点击！')})}
+      else if(stageState.phase===1){stageState.crossing=true;showToast('穿越毛细血管壁→进入血液！','#e63946');animMolecule(stageState,'mx','my',w1*.35,H*.38,700,()=>{stageState.phase=4;stageState.crossing=false;clearLayer();cancelAnimationFrame(animFrameId);narrate('CO₂进入血液！血液带CO₂回到肺部！','');setTimeout(()=>showKnowledge('🔴','CO₂的扩散','组织细胞里CO₂浓度高，毛细血管浓度低，CO₂自动扩散出来进入血液被运回肺部。','💡 CO₂：细胞→毛细血管（同样穿2层细胞）',()=>nextStage()),800)})}
+    };
+  }
+
+  // ── S7: CO₂随血回肺 ───────────────────────────────────────────────────
+  function s7_CO2toLung(){
+    narrate('血液带CO₂流回肺部！到肺泡再扩散进去！','');
+    stageState={t:0,mx:(W*.12+W*.28)*.5,my:H*.08,phase:0};
+    function draw(){
+      ctx.clearRect(0,0,W,H);stageState.t+=0.02;const t=stageState.t;
+      ctx.fillStyle='#ffcdd2';ctx.fillRect(0,0,W,H*.5);
+      const ac=W*.68,ay=H*.65,ar=W*.2;
+      ctx.beginPath();ctx.arc(ac,ay,ar,0,Math.PI*2);ctx.fillStyle='rgba(252,231,243,.9)';ctx.fill();ctx.strokeStyle='#e91e63';ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle='#880e4f';ctx.font=`bold ${Math.min(W*.028,12)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('肺泡内腔',ac,ay);
+      // vertical blood vessel on the LEFT (full height, top to bottom)
+      const vL=W*.12,vR=W*.28;
+      ctx.fillStyle='rgba(239,154,154,0.35)';ctx.fillRect(vL,0,vR-vL,H*.75);
+      ctx.strokeStyle='#ef9a9a';ctx.lineWidth=3;ctx.lineCap='butt';
+      ctx.beginPath();ctx.moveTo(vL,0);ctx.lineTo(vL,H*.75);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(vR,0);ctx.lineTo(vR,H*.75);ctx.stroke();
+      // flow arrows downward inside vessel
+      for(let i=0;i<4;i++){const afx=(vL+vR)*.5,afy=H*(.12+i*.16);ctx.fillStyle='rgba(229,57,53,.5)';ctx.beginPath();ctx.moveTo(afx,afy+8);ctx.lineTo(afx-6,afy-4);ctx.lineTo(afx+6,afy-4);ctx.closePath();ctx.fill()}
+      // vessel label
+      ctx.save();ctx.translate((vL+vR)*.5,H*.35);ctx.rotate(-Math.PI/2);ctx.fillStyle='#b71c1c';ctx.font=`bold ${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('毛细血管（携带CO₂）',0,0);ctx.restore();
+      // CO2 molecules drifting in vessel
+      [{ox:(vL+vR)*.5,oy:H*.1},{ox:(vL+vR)*.5,oy:H*.35},{ox:(vL+vR)*.5,oy:H*.58}].forEach((m,i)=>{drawCO2(m.ox+Math.sin(t*.7+i*2)*4,m.oy+Math.sin(t+i)*5,Math.min(W*.025,10))});
+      // capillary wall (right side of vessel, where diffusion happens)
+      ctx.strokeStyle='#ef9a9a';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(vR,H*.5);ctx.lineTo(vR,H*.75);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#b71c1c';ctx.font=`${Math.min(W*.024,10)}px Nunito,sans-serif`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('毛细血管壁（1层）',vR+3,H*.65);
+      // arrow: vessel → alveolus (horizontal, right)
+      ctx.strokeStyle='#607d8b';ctx.lineWidth=2;ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(vR+4,H*.65);ctx.lineTo(ac-ar-4,H*.65);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#607d8b';ctx.beginPath();ctx.moveTo(ac-ar,H*.65);ctx.lineTo(ac-ar-14,H*.65-7);ctx.lineTo(ac-ar-14,H*.65+7);ctx.fill();
+      ctx.font=`${Math.min(W*.026,11)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('扩散进肺泡',W*.5,H*.68);
+      drawCO2(stageState.mx,stageState.my+Math.sin(t)*4*(stageState.phase===0?1:0),Math.min(W*.04,17));
+      if(stageState.phase>=2){ctx.fillStyle='#880e4f';ctx.font=`bold ${Math.min(W*.032,13)}px Nunito,sans-serif`;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('CO₂进入肺泡！✅',ac,ay)}
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();
+    setTimeout(()=>{narrate('CO₂随血液流向肺部……','');animMolecule(stageState,'mx','my',(W*.12+W*.28)*.5,H*.6,1400,()=>{narrate('到肺泡旁毛细血管！CO₂浓度高，扩散进肺泡！','');animMolecule(stageState,'mx','my',W*.68,H*.65,900,()=>{stageState.phase=2;cancelAnimationFrame(animFrameId);draw();setTimeout(()=>showKnowledge('🌊','CO₂的运输路径','携带CO₂的静脉血从全身流回心脏，再泵到肺部。在肺泡旁毛细血管处，CO₂浓度高于肺泡，扩散进入肺泡等待被呼出！','💡 肺泡CO₂浓度低 < 血液CO₂浓度高 → 扩散进肺泡',()=>nextStage()),800)})})},1500);
+  }
+
+  // ── S8: 呼气 ──────────────────────────────────────────────────────────
+  function s8_Exhale(){
+    narrate('CO₂在肺泡里！现在要"呼气"把它推出去！和吸气相反！','👆 按下两个按钮，完成呼气！');
+    stageState={diagDone:false,ribsDone:false,expansion:1,done:false};let t=0;
+    function draw(){
+      ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#e0f2f1');bg.addColorStop(1,'#b2dfdb');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      t+=0.02;if(stageState.diagDone&&stageState.ribsDone&&stageState.expansion>0)stageState.expansion=Math.max(0,stageState.expansion-0.025);
+      drawChest(stageState.expansion,stageState.ribsDone,stageState.diagDone,true);
+      if(!stageState.done){const ox=W*.91+Math.sin(t)*5,oy=H*.35;drawCO2(ox,oy,Math.min(W*.045,19));ctx.fillStyle='#607d8b';ctx.font=`${Math.min(W*.05,20)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',ox+Math.min(W*.07,28),oy)}
+      animFrameId=requestAnimationFrame(draw);
+    }
+    draw();activateLayer();
+    const bc=document.createElement('div');bc.className='breathe-controls';
+    const db=makeBreathBtn('⬆️ 横膈膜\n向上复位！',()=>{if(stageState.diagDone)return;stageState.diagDone=true;db.classList.add('done');db.textContent='✅ 横膈膜上升';showToast('✅ 膈肌舒张，横膈膜上升！','#00897b');check()});
+    const rb=makeBreathBtn('⬇️ 肋间肌\n向下向内！',()=>{if(stageState.ribsDone)return;stageState.ribsDone=true;rb.classList.add('done');rb.textContent='✅ 肋骨下降';showToast('✅ 肋间肌舒张，肋骨下降！','#00897b');check()});
+    bc.appendChild(db);bc.appendChild(rb);getLayer().appendChild(bc);
+    function check(){if(!stageState.diagDone||!stageState.ribsDone)return;stageState.done=true;bc.remove();clearLayer();narrate('胸腔缩小→肺内气压↑→高于外界→CO₂被压出体外！','');cancelAnimationFrame(animFrameId);setTimeout(()=>showKnowledge('🌬️','呼气原理','①肋间肌舒张→肋骨下降→胸腔变窄；②膈肌舒张→横膈膜上升→胸腔变矮。胸腔体积缩小，肺内气压升高，高于外界，气体被压出！','📌 胸腔体积↓ → 气压↑ → 气体被推出体外',()=>nextStage()),1200)}
+  }
+
+  // ── S9: CO₂出体外 ─────────────────────────────────────────────────────
+  function s9_AirwayOut(){
+    const st=[{name:'支气管',desc:'从肺部开始往上走',emoji:'🌿',color:'#a5d6a7'},{name:'气管',desc:'主干道，向上运送',emoji:'🛣️',color:'#80cbc4'},{name:'喉',desc:'经过声带区域',emoji:'🎤',color:'#f48fb1'},{name:'咽',desc:'经过"十字路口"',emoji:'🔀',color:'#ce93d8'},{name:'鼻腔',desc:'体外！CO₂被呼出！',emoji:'👃',color:'#90caf9'}];
+    stageState={step:0};narrate('CO₂从肺泡出发，原路返回，被呼出体外！一站站点我！','👆 点击红色CO₂分子前进！');
+    function getNodes(){const nb=90,uh=H-nb,tp=uh*.1,sp=(uh-tp*2)/(st.length-1),n=st.length;return st.map((_,i)=>({x:W*.22,y:tp+(n-1-i)*sp}))}
+    function draw(){ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#f3e5f5');bg.addColorStop(1,'#e1bee7');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);drawAirwayNodes(st,stageState.step,getNodes,true);animFrameId=requestAnimationFrame(draw)}
+    draw();
+    airwayTapHandler(st,getNodes,true,()=>{narrate('🎉 CO₂成功呼出体外！旅程全部完成！','');cancelAnimationFrame(animFrameId);setTimeout(()=>showKnowledge('🌿','完整旅程回顾','吸气→鼻腔→咽→喉→气管→支气管→肺泡→扩散入血→血红蛋白→组织细胞→线粒体（呼吸作用）→CO₂→扩散入血→运回肺泡→呼气→支气管→气管→喉→咽→鼻腔→体外！','🎊 你已完全掌握呼吸系统的全过程！',()=>endGame()),800)});
+  }
+
+  // ── End ───────────────────────────────────────────────────────────────
+  function endGame(){
+    clearInterval(timerInterval);cancelAnimationFrame(animFrameId);
+    const elapsed=Math.floor((Date.now()-startTime)/1000),m=Math.floor(elapsed/60),s=elapsed%60;
+    Game._finalTime=m>0?`${m}分${s}秒`:`${s}秒`;if(elapsed<150)score+=200;else if(elapsed<240)score+=100;
+    Game._finalScore=score;switchScreen('screen-end');
+  }
+  function generateCert(){
+    const name=document.getElementById('player-name').value.trim()||'神秘科学家';
+    document.getElementById('cert-name').textContent=name;document.getElementById('cert-score').textContent=Game._finalScore;document.getElementById('cert-time').textContent=Game._finalTime;
+    const now=new Date();document.getElementById('cert-date').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+    document.getElementById('cert-journey').textContent='完整旅程：吸气→鼻腔→咽→喉→气管→支气管→肺泡→扩散入血→血红蛋白→组织细胞→线粒体⚡→CO₂产生→扩散回血→运回肺→呼气→支气管→鼻腔→体外 🎉';
+    document.getElementById('name-section').style.display='none';document.getElementById('certificate').style.display='block';document.getElementById('cert-actions').style.display='flex';
+  }
+  return{start,generateCert,_finalScore:0,_finalTime:''};
+})();
+
+window.addEventListener('load',()=>{
+  const c=document.getElementById('bubbles-container');
+  for(let i=0;i<18;i++){const b=document.createElement('div');b.className='bubble';const sz=20+Math.random()*60;b.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;bottom:${-sz}px;animation-duration:${4+Math.random()*8}s;animation-delay:${Math.random()*5}s;`;c.appendChild(b)}
+});
+</script>
+</body>
+</html>
