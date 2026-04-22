@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>化学元素连连看</title><!-- v202604161501 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{min-height:100%;background:#0a0e1a}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#e2e8f0}
+button,input{font-family:inherit}
+#cv{position:fixed;top:0;left:0;pointer-events:none;z-index:999}
+@keyframes tileOut{0%{transform:scale(1);opacity:1}50%{transform:scale(1.3);filter:brightness(3)}100%{transform:scale(0);opacity:0}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px #00f5ff55}50%{box-shadow:0 0 20px #00f5ffaa,0 0 40px #00f5ff44}}
+@keyframes glowY{0%,100%{box-shadow:0 0 4px #fbbf24aa}50%{box-shadow:0 0 12px #fbbf24ff}}
+@keyframes glowP{0%,100%{box-shadow:0 0 8px #a855f755}50%{box-shadow:0 0 20px #a855f7cc}}
+@keyframes pop{0%{transform:translate(-50%,-14px);opacity:0}100%{transform:translate(-50%,0);opacity:1}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes starIn{from{opacity:0;transform:scale(0) rotate(-30deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes bar{0%{background-position:0%}100%{background-position:200%}}
+.td{animation:tileOut .25s ease-in forwards!important}
+.ts{animation:glow 1s ease-in-out infinite!important}
+.th{animation:glowY .8s ease-in-out infinite!important}
+.tw{animation:glowP .8s ease-in-out infinite!important}
+.btn{transition:transform .12s;cursor:pointer}
+.btn:not(:disabled):hover{transform:scale(1.06)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<canvas id="cv"></canvas>
+<script type="text/babel">
+// 峇株吧辖华仁中学蔡逸众制作
+
+// ─── FIREBASE via REST API (no external SDK needed) ───────────────────────────
+// Made by ecchua79
+var FB_PROJECT = "elements-game-42bb4";
+var FB_API_KEY = "AIzaSyDhID9xaqeje5Ki9yacQVPR-wuOwUNX0LE";
+var FB_BASE = "https://firestore.googleapis.com/v1/projects/" + FB_PROJECT + "/databases/(default)/documents";
+
+function fbPost(path, body) {
+  return fetch(FB_BASE + path + "?key=" + FB_API_KEY, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+}
+
+function fbQuery(body) {
+  return fetch(FB_BASE + ":runQuery?key=" + FB_API_KEY, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  }).then(function(r){ return r.json(); }).catch(function(){ return []; });
+}
+
+function toFsValue(val) {
+  if (typeof val === "number") return { integerValue: String(Math.round(val)) };
+  if (typeof val === "string") return { stringValue: val };
+  return { stringValue: String(val) };
+}
+
+function fromFsDoc(doc) {
+  if (!doc || !doc.fields) return null;
+  var out = {};
+  Object.keys(doc.fields).forEach(function(k) {
+    var v = doc.fields[k];
+    if (v.integerValue !== undefined) out[k] = parseInt(v.integerValue, 10);
+    else if (v.doubleValue !== undefined) out[k] = parseFloat(v.doubleValue);
+    else if (v.stringValue !== undefined) out[k] = v.stringValue;
+    else if (v.booleanValue !== undefined) out[k] = v.booleanValue;
+    else out[k] = null;
+  });
+  return out;
+}
+
+window.fbSubmitScore = function(name, score, grade, levelCount, totalTime, skills) {
+  var fields = {
+    name:       toFsValue(name),
+    score:      toFsValue(score),
+    grade:      toFsValue(grade),
+    levelCount: toFsValue(levelCount),
+    totalTime:  toFsValue(totalTime),
+    hint:       toFsValue(skills.hint),
+    shuf:       toFsValue(skills.shuf),
+    swap:       toFsValue(skills.swap)
+  };
+  return fbPost("/scores", {fields: fields});
+};
+
+function runScoreQuery(limitN) {
+  var body = {
+    structuredQuery: {
+      from: [{collectionId: "scores"}],
+      orderBy: [{field:{fieldPath:"score"}, direction:"DESCENDING"}]
+    }
+  };
+  if (limitN) body.structuredQuery.limit = limitN;
+  return fbQuery(body).then(function(results) {
+    var rows = [];
+    if (!Array.isArray(results)) return rows;
+    results.forEach(function(r) {
+      var doc = fromFsDoc(r.document);
+      if (doc) rows.push(doc);
+    });
+    return rows;
+  });
+}
+
+window.fbGetScores    = function() { return runScoreQuery(20); };
+window.fbGetAllScores = function() { return runScoreQuery(null); };
+// ─────────────────────────────────────────────────────────────────────────────
+var h = React.createElement;
+var useState = React.useState;
+var useEffect = React.useEffect;
+var useCallback = React.useCallback;
+var useRef = React.useRef;
+
+// ─── Elements ────────────────────────────────────────────────────────────────
+var EL = [
+  {id:1, name:'氢',sym:'H', cat:'nonmetal'}, {id:2, name:'氦',sym:'He',cat:'noble'},
+  {id:3, name:'锂',sym:'Li',cat:'alkali'},   {id:4, name:'铍',sym:'Be',cat:'alkaline'},
+  {id:5, name:'硼',sym:'B', cat:'metalloid'},{id:6, name:'碳',sym:'C', cat:'nonmetal'},
+  {id:7, name:'氮',sym:'N', cat:'nonmetal'}, {id:8, name:'氧',sym:'O', cat:'nonmetal'},
+  {id:9, name:'氟',sym:'F', cat:'halogen'},  {id:10,name:'氖',sym:'Ne',cat:'noble'},
+  {id:11,name:'钠',sym:'Na',cat:'alkali'},   {id:12,name:'镁',sym:'Mg',cat:'alkaline'},
+  {id:13,name:'铝',sym:'Al',cat:'metal'},    {id:14,name:'硅',sym:'Si',cat:'metalloid'},
+  {id:15,name:'磷',sym:'P', cat:'nonmetal'}, {id:16,name:'硫',sym:'S', cat:'nonmetal'},
+  {id:17,name:'氯',sym:'Cl',cat:'halogen'},  {id:18,name:'氩',sym:'Ar',cat:'noble'},
+  {id:19,name:'钾',sym:'K', cat:'alkali'},   {id:20,name:'钙',sym:'Ca',cat:'alkaline'},
+  {id:25,name:'锰',sym:'Mn',cat:'transition'},{id:26,name:'铁',sym:'Fe',cat:'transition'},
+  {id:29,name:'铜',sym:'Cu',cat:'transition'},{id:30,name:'锌',sym:'Zn',cat:'transition'},
+  {id:47,name:'银',sym:'Ag',cat:'transition'},{id:50,name:'锡',sym:'Sn',cat:'metal'},
+  {id:53,name:'碘',sym:'I', cat:'halogen'},  {id:56,name:'钡',sym:'Ba',cat:'alkaline'},
+  {id:78,name:'铂',sym:'Pt',cat:'transition'},{id:79,name:'金',sym:'Au',cat:'transition'},
+  {id:80,name:'汞',sym:'Hg',cat:'transition'},{id:82,name:'铅',sym:'Pb',cat:'metal'}
+];
+
+// 峇株吧辖蔡逸众制作
+var CAT = {
+  alkali:'#f97316',alkaline:'#eab308',transition:'#06b6d4',metal:'#8b5cf6',
+  metalloid:'#10b981',nonmetal:'#3b82f6',halogen:'#ec4899',noble:'#a78bfa'
+};
+
+// Level 1: 4x4 (8 pairs), Level 2: 6x6 (18 pairs), Level 3: 7x7 hollow centre (20 pairs)
+// Level 4: 8x8 cross hollow (26 pairs) - BONUS, Level 5: 8x8 full (32 pairs) - BONUS
+var LEVELS = [
+  {n:1,bs:4,pairs:8, hint:2,shuf:2,swap:0,bonus:false,label:'初级实验室',emoji:'🧪',col:'#10b981'},
+  {n:2,bs:6,pairs:18,hint:3,shuf:3,swap:0,bonus:false,label:'进阶实验室',emoji:'⚗',col:'#00f5ff'},
+  {n:3,bs:7,pairs:20,hint:5,shuf:5,swap:3,bonus:false,label:'终极实验室',emoji:'🔬',col:'#7c3aed'},
+  {n:4,bs:8,pairs:26,hint:5,shuf:5,swap:3,bonus:true, label:'星际迷阵',  emoji:'⭐',col:'#06b6d4'},
+  {n:5,bs:8,pairs:32,hint:5,shuf:5,swap:3,bonus:true, label:'传奇挑战',  emoji:'💎',col:'#f59e0b'}
+];
+
+// 华仁中学蔡逸众制作
+function hollow(li, r, c) {
+  if (li === 2) return r >= 3 && r <= 5 && c >= 3 && c <= 5; // 3x3 centre
+  if (li === 3) { // cross shape: rows 4-5 cols 3-6 + cols 4-5 rows 3-6
+    if (r >= 4 && r <= 5 && c >= 3 && c <= 6) return true;
+    if (c >= 4 && c <= 5 && r >= 3 && r <= 6) return true;
+  }
+  return false;
+}
+
+// ─── Pure helpers ─────────────────────────────────────────────────────────────
+// Made by ecchua79
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function fmtTime(s) { return pad2(Math.floor(s / 60)) + ':' + pad2(s % 60); }
+function fmtDate(d) {
+  return d.getFullYear() + '年' + pad2(d.getMonth()+1) + '月' + pad2(d.getDate()) + '日 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+// 峇株吧辖华仁中学蔡逸众制作
+function straight(p1, p2, board) {
+  if (p1.r === p2.r) {
+    var lo = Math.min(p1.c, p2.c), hi = Math.max(p1.c, p2.c);
+    for (var c = lo + 1; c < hi; c++) if (board[p1.r][c]) return false;
+    return true;
+  }
+  if (p1.c === p2.c) {
+    var lo2 = Math.min(p1.r, p2.r), hi2 = Math.max(p1.r, p2.r);
+    for (var r = lo2 + 1; r < hi2; r++) if (board[r][p1.c]) return false;
+    return true;
+  }
+  return false;
+}
+
+function findPath(p1, p2, board, N) {
+  if ((p1.r === p2.r || p1.c === p2.c) && straight(p1, p2, board)) return [p1, p2];
+  var corners = [{r:p1.r,c:p2.c},{r:p2.r,c:p1.c}];
+  for (var k = 0; k < corners.length; k++) {
+    var cn = corners[k];
+    if (!board[cn.r][cn.c] && straight(p1,cn,board) && straight(cn,p2,board)) return [p1,cn,p2];
+  }
+  for (var c2 = 0; c2 < N; c2++) {
+    if (c2 === p1.c) continue;
+    var a = {r:p1.r,c:c2};
+    if (board[a.r][a.c]) continue;
+    if (straight(p1,a,board)) {
+      var b = {r:p2.r,c:c2};
+      if (!board[b.r][b.c] && straight(a,b,board) && straight(b,p2,board)) return [p1,a,b,p2];
+    }
+  }
+  for (var r2 = 0; r2 < N; r2++) {
+    if (r2 === p1.r) continue;
+    var a2 = {r:r2,c:p1.c};
+    if (board[a2.r][a2.c]) continue;
+    if (straight(p1,a2,board)) {
+      var b2 = {r:r2,c:p2.c};
+      if (!board[b2.r][b2.c] && straight(a2,b2,board) && straight(b2,p2,board)) return [p1,a2,b2,p2];
+    }
+  }
+  return null;
+}
+
+// 华仁中学蔡逸众制作
+function findHint(board, bs, N, li) {
+  var tiles = [];
+  for (var r = 1; r <= bs; r++) for (var c = 1; c <= bs; c++)
+    if (board[r][c] && !hollow(li,r,c)) tiles.push({r:r,c:c,t:board[r][c]});
+  for (var i = 0; i < tiles.length; i++) for (var j = i+1; j < tiles.length; j++) {
+    var a = tiles[i], b = tiles[j];
+    if (a.t.id === b.t.id && a.t.type !== b.t.type)
+      if (findPath({r:a.r,c:a.c},{r:b.r,c:b.c},board,N)) return [{r:a.r,c:a.c},{r:b.r,c:b.c}];
+  }
+  return null;
+}
+
+function hasMoves(board, bs, N, li) { return !!findHint(board,bs,N,li); }
+
+// 峇株吧辖蔡逸众制作
+function reShuffle(board, bs, N, li) {
+  var b = board.map(function(row){ return row.slice(); });
+  for (var attempt = 0; attempt < 20; attempt++) {
+    var tiles = [], pos = [];
+    for (var r = 1; r <= bs; r++) for (var c = 1; c <= bs; c++)
+      if (b[r][c] && !hollow(li,r,c)) { tiles.push(b[r][c]); pos.push({r:r,c:c}); }
+    var sh = shuffle(tiles);
+    for (var i = 0; i < pos.length; i++) b[pos[i].r][pos[i].c] = sh[i];
+    if (hasMoves(b,bs,N,li)) break;
+  }
+  return b;
+}
+
+function makeBoard(cfg, li) {
+  var bs = cfg.bs, N = bs + 2;
+  var src = EL.slice(0, cfg.pairs);
+  var tiles = [];
+  for (var i = 0; i < src.length; i++) {
+    tiles.push({id:src[i].id,type:'name',  val:src[i].name, cat:src[i].cat});
+    tiles.push({id:src[i].id,type:'symbol',val:src[i].sym,  cat:src[i].cat});
+  }
+  tiles = shuffle(tiles);
+  var board = [];
+  for (var r = 0; r < N; r++) { board.push([]); for (var c = 0; c < N; c++) board[r].push(null); }
+  var idx = 0;
+  for (var r2 = 1; r2 <= bs; r2++) for (var c2 = 1; c2 <= bs; c2++) {
+    if (!hollow(li,r2,c2)) board[r2][c2] = tiles[idx++];
+  }
+  if (!hasMoves(board,bs,N,li)) board = reShuffle(board,bs,N,li);
+  return board;
+}
+
+// ─── Canvas line drawing (fixed overlay outside board) ────────────────────────
+// Made by ecchua79
+function drawLine(pts, boardEl, bs) {
+  var cv = document.getElementById('cv');
+  if (!cv || !boardEl || pts.length < 2) return;
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  var ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  var rect = boardEl.getBoundingClientRect();
+  var pad = 5;
+  var cw = (rect.width - pad*2) / bs;
+  var ch = (rect.height - pad*2) / bs;
+  var coords = pts.map(function(p){ return {x: rect.left+pad+(p.c-1)*cw+cw/2, y: rect.top+pad+(p.r-1)*ch+ch/2}; });
+  function stroke(color, lw, blur, alpha) {
+    ctx.beginPath();
+    ctx.moveTo(coords[0].x, coords[0].y);
+    for (var i = 1; i < coords.length; i++) ctx.lineTo(coords[i].x, coords[i].y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#00f5ff';
+    ctx.shadowBlur = blur;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+  stroke('rgba(0,245,255,1)', 28, 40, 0.10);
+  stroke('rgba(0,245,255,1)', 14, 16, 0.35);
+  stroke('rgba(0,245,255,1)',  6,  6, 0.80);
+  stroke('#ffffff', 2, 0, 1.0);
+  for (var i = 0; i < coords.length; i++) {
+    var p = coords[i], big = (i === 0 || i === coords.length-1);
+    ctx.beginPath(); ctx.arc(p.x,p.y,big?10:5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,245,255,0.25)'; ctx.shadowColor='#00f5ff'; ctx.shadowBlur=14; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x,p.y,big?5:3,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.shadowBlur=0; ctx.fill();
+  }
+}
+function clearLine() {
+  var cv = document.getElementById('cv');
+  if (cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+}
+
+// ─── SCORING ─────────────────────────────────────────────────────────────────
+// 华仁中学蔡逸众制作
+function calcScore(levelCount, totalTime, skills) {
+  var base = levelCount >= 5 ? 4600 : levelCount >= 4 ? 3400 : 2400;
+  var timePenalty = totalTime;
+  var skillPenalty = skills.hint * 30 + skills.shuf * 50 + skills.swap * 80;
+  var noSkill = (skills.hint + skills.shuf + skills.swap) === 0;
+  var speedBonus = 0;
+  if (levelCount <= 3 && totalTime <= 210) speedBonus = 150;
+  if (levelCount >= 5 && totalTime <= 600) speedBonus = 250;
+  var noSkillBonus = noSkill ? 200 : 0;
+  var comboBonus = (noSkill && speedBonus > 0) ? 100 : 0;
+  var score = base - timePenalty - skillPenalty + noSkillBonus + speedBonus + comboBonus;
+  return score;
+}
+
+function calcGrade(score, levelCount) {
+  var thresholds;
+  if (levelCount >= 5) {
+    thresholds = {sp:4635, s:4120, a:3605, b:3090};
+  } else if (levelCount >= 4) {
+    thresholds = {sp:3510, s:3120, a:2730, b:2340};
+  } else {
+    thresholds = {sp:2565, s:2280, a:1995, b:1710};
+  }
+  if (score >= thresholds.sp) return 'S+';
+  if (score >= thresholds.s)  return 'S';
+  if (score >= thresholds.a)  return 'A';
+  if (score >= thresholds.b)  return 'B';
+  return 'C';
+}
+
+var GRADE_INFO = {
+  'S+': {color:'#f59e0b', bg:'rgba(245,158,11,.15)', border:'rgba(245,158,11,.4)', stars:5, label:'大神级'},
+  'S':  {color:'#00f5ff', bg:'rgba(0,245,255,.12)',  border:'rgba(0,245,255,.35)', stars:4, label:'超凡级'},
+  'A':  {color:'#10b981', bg:'rgba(16,185,129,.12)', border:'rgba(16,185,129,.35)',stars:3, label:'优秀级'},
+  'B':  {color:'#a78bfa', bg:'rgba(167,139,250,.12)',border:'rgba(167,139,250,.35)',stars:2, label:'良好级'},
+  'C':  {color:'#94a3b8', bg:'rgba(148,163,184,.08)',border:'rgba(148,163,184,.2)', stars:1, label:'继续加油'}
+};
+
+// ─── Tiny style helper ────────────────────────────────────────────────────────
+// 峇株吧辖蔡逸众制作
+function s(obj) { return obj; } // just pass through
+
+// ─── WELCOME SCREEN ───────────────────────────────────────────────────────────
+function Welcome(props) {
+  var levelNames = ['一','二','三','四','五'];
+  var _taps = useState(0); var taps = _taps[0]; var setTaps = _taps[1];
+  var tapTimer = useRef(null);
+
+  function handleAtomTap() {
+    var next = taps + 1;
+    setTaps(next);
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    if (next >= 5) {
+      setTaps(0);
+      props.onAdminTap();
+    } else {
+      tapTimer.current = setTimeout(function(){ setTaps(0); }, 2000);
+    }
+  }
+
+  return (
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0a0e1a,#0d1530)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'24px',overflowY:'auto'}}>
+      <div style={{textAlign:'center',marginBottom:'28px',animation:'fadeUp .7s ease-out'}}>
+        <div onClick={handleAtomTap} style={{fontSize:'68px',marginBottom:'10px',animation:'floatY 3s ease-in-out infinite',cursor:'default',userSelect:'none'}}>⚛️</div>
+        <div style={{fontSize:'11px',letterSpacing:'5px',color:'rgba(0,245,255,.6)',fontWeight:700,marginBottom:'6px'}}>峇株吧辖华仁中学</div>
+        <div style={{fontSize:'clamp(24px,6vw,40px)',fontWeight:900,color:'#e2e8f0',marginBottom:'4px'}}>化学元素连连看</div>
+        <div style={{fontSize:'13px',color:'rgba(148,163,184,.6)'}}>Chemistry Element Matching Game</div>
+      </div>
+
+      <div style={{display:'flex',gap:'8px',marginBottom:'24px',flexWrap:'wrap',justifyContent:'center',animation:'fadeUp .7s .1s ease-out both'}}>
+        {LEVELS.map(function(lv,i){
+          return (
+            <div key={i} style={{padding:'10px 12px',borderRadius:'10px',textAlign:'center',minWidth:'66px',background:lv.bonus?'rgba(255,255,255,.04)':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',position:'relative'}}>
+              {lv.bonus && <div style={{position:'absolute',top:'-8px',left:'50%',transform:'translateX(-50%)',background:lv.col,borderRadius:'99px',padding:'1px 7px',fontSize:'9px',fontWeight:800,color:'#000',whiteSpace:'nowrap'}}>可选</div>}
+              <div style={{fontSize:'20px',marginBottom:'3px'}}>{lv.emoji}</div>
+              <div style={{fontSize:'10px',color:lv.col,fontWeight:700}}>第{levelNames[i]}关</div>
+              <div style={{fontSize:'9px',color:'rgba(148,163,184,.45)',marginTop:'2px'}}>{lv.bs}×{lv.bs}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{width:'100%',maxWidth:'500px',marginBottom:'22px',animation:'fadeUp .7s .2s ease-out both'}}>
+        <div style={{fontSize:'11px',color:'rgba(148,163,184,.45)',letterSpacing:'3px',textAlign:'center',marginBottom:'12px'}}>游 戏 规 则</div>
+        {[
+          {icon:'👆',title:'点击配对',desc:'先点元素名称卡，再点对应的化学符号卡（或反之）即可消除'},
+          {icon:'〰️',title:'连线规则',desc:'两张牌之间连线最多弯折两次，路径不可被其他牌阻挡'},
+          {icon:'🏆',title:'通关目标',desc:'前三关为必修，第四、五关为可选挑战，通关后可领专属证书'}
+        ].map(function(rule,i){
+          return (
+            <div key={i} style={{display:'flex',gap:'12px',padding:'12px 14px',marginBottom:'7px',background:'rgba(255,255,255,.04)',borderRadius:'10px',border:'1px solid rgba(255,255,255,.07)'}}>
+              <div style={{fontSize:'24px',flexShrink:0}}>{rule.icon}</div>
+              <div>
+                <div style={{fontWeight:700,color:'#e2e8f0',marginBottom:'3px',fontSize:'13px'}}>{rule.title}</div>
+                <div style={{color:'rgba(148,163,184,.7)',fontSize:'12px',lineHeight:1.6}}>{rule.desc}</div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div style={{padding:'14px',background:'rgba(0,245,255,.04)',borderRadius:'10px',border:'1px solid rgba(0,245,255,.14)',marginBottom:'7px'}}>
+          <div style={{fontSize:'10px',color:'rgba(0,245,255,.6)',letterSpacing:'2px',textAlign:'center',marginBottom:'12px'}}>— 连线示意图 —</div>
+          <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>
+            <div style={{textAlign:'center'}}>
+              <svg width="110" height="72" style={{display:'block',marginBottom:'4px'}}>
+                <rect x="4" y="22" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="18" y="41" textAnchor="middle" fill="#00f5ff" fontSize="11" fontWeight="bold" fontFamily="monospace">H</text>
+                <rect x="78" y="22" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="92" y="41" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="bold">氢</text>
+                <line x1="32" y1="36" x2="78" y2="36" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round"/>
+                <circle cx="32" cy="36" r="3.5" fill="#10b981"/>
+                <circle cx="78" cy="36" r="3.5" fill="#10b981"/>
+              </svg>
+              <div style={{fontSize:'10px',color:'#10b981',fontWeight:700}}>直线</div>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <svg width="110" height="72" style={{display:'block',marginBottom:'4px'}}>
+                <rect x="4" y="4" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="18" y="23" textAnchor="middle" fill="#00f5ff" fontSize="11" fontWeight="bold" fontFamily="monospace">H</text>
+                <rect x="78" y="40" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="92" y="59" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="bold">氢</text>
+                <polyline points="18,18 92,18 92,54" fill="none" stroke="#00f5ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="18" cy="18" r="3.5" fill="#00f5ff"/>
+                <circle cx="92" cy="54" r="3.5" fill="#00f5ff"/>
+              </svg>
+              <div style={{fontSize:'10px',color:'#00f5ff',fontWeight:700}}>一折</div>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <svg width="110" height="72" style={{display:'block',marginBottom:'4px'}}>
+                <rect x="4" y="4" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="18" y="23" textAnchor="middle" fill="#00f5ff" fontSize="11" fontWeight="bold" fontFamily="monospace">H</text>
+                <rect x="78" y="40" width="28" height="28" rx="4" fill="rgba(15,23,42,.95)" stroke="rgba(0,245,255,.5)" strokeWidth="1.5"/>
+                <text x="92" y="59" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="bold">氢</text>
+                <polyline points="18,18 18,36 92,36 92,54" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="18" cy="18" r="3.5" fill="#a78bfa"/>
+                <circle cx="92" cy="54" r="3.5" fill="#a78bfa"/>
+              </svg>
+              <div style={{fontSize:'10px',color:'#a78bfa',fontWeight:700}}>两折</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:'12px 14px',background:'rgba(255,255,255,.03)',borderRadius:'10px',border:'1px solid rgba(255,255,255,.07)'}}>
+          <div style={{fontSize:'10px',color:'rgba(148,163,184,.45)',letterSpacing:'2px',textAlign:'center',marginBottom:'10px'}}>— 技能道具 —</div>
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap',justifyContent:'center'}}>
+            {[{e:'💡',n:'提示',d:'高亮一对可消除的牌',c:'#fbbf24'},{e:'🔀',n:'洗牌',d:'打乱剩余牌位置',c:'#00f5ff'},{e:'↔',n:'换位',d:'(第3-5关)互换两牌',c:'#a855f7'}].map(function(sk){
+              return (
+                <div key={sk.n} style={{display:'flex',alignItems:'center',gap:'8px',padding:'7px 10px',background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:'9px',flex:'1',minWidth:'120px'}}>
+                  <span style={{fontSize:'18px'}}>{sk.e}</span>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:700,color:sk.c}}>{sk.n}</div>
+                    <div style={{fontSize:'10px',color:'rgba(148,163,184,.55)',lineHeight:1.4}}>{sk.d}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div style={{width:'100%',maxWidth:'500px',marginBottom:'18px',padding:'14px 16px',background:'rgba(245,158,11,.07)',border:'1px solid rgba(245,158,11,.25)',borderRadius:'12px',animation:'fadeUp .7s .25s ease-out both'}}>
+        <div style={{fontSize:'10px',color:'rgba(245,158,11,.8)',letterSpacing:'2px',textAlign:'center',marginBottom:'10px',fontWeight:700}}>— 计 分 系 统 —</div>
+        <div style={{fontSize:'12px',color:'rgba(203,213,225,.75)',lineHeight:1.8,textAlign:'center',marginBottom:'10px'}}>
+          用时越短、技能用得越少，分数越高。<br/>
+          全程不使用技能 + 极速通关，可解锁 <span style={{color:'#f59e0b',fontWeight:900}}>S+ 大神评级</span>！
+        </div>
+        <div style={{display:'flex',gap:'6px',justifyContent:'center',flexWrap:'wrap'}}>
+          {[
+            {g:'S+',c:'#f59e0b',d:'超快+零技能'},
+            {g:'S', c:'#00f5ff',d:'快速少技能'},
+            {g:'A', c:'#10b981',d:'正常认真玩'},
+            {g:'B', c:'#a78bfa',d:'略慢有用技能'},
+            {g:'C', c:'#94a3b8',d:'多次用技能'}
+          ].map(function(x){
+            return (
+              <div key={x.g} style={{padding:'4px 10px',borderRadius:'7px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',textAlign:'center',minWidth:'80px'}}>
+                <div style={{fontSize:'14px',fontWeight:900,color:x.c}}>{x.g}</div>
+                <div style={{fontSize:'9px',color:'rgba(148,163,184,.55)',marginTop:'1px'}}>{x.d}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{marginTop:'10px',display:'flex',gap:'10px',flexWrap:'wrap',justifyContent:'center'}}>
+          {[
+            {e:'💡',l:'提示',p:'-30分/次'},
+            {e:'🔀',l:'洗牌',p:'-50分/次'},
+            {e:'↔',l:'换位',p:'-80分/次'},
+            {e:'⏱',l:'用时',p:'-1分/秒'}
+          ].map(function(x){
+            return (
+              <div key={x.l} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',color:'rgba(148,163,184,.6)'}}>
+                <span>{x.e}</span><span>{x.l}</span><span style={{color:'#f87171',fontWeight:700}}>{x.p}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:'10px',flexWrap:'wrap',justifyContent:'center',animation:'fadeUp .7s .3s ease-out both'}}>
+        <button onClick={props.onStart} className="btn" style={{background:'linear-gradient(135deg,#0891b2,#7c3aed)',border:'none',borderRadius:'14px',padding:'15px 44px',color:'#fff',fontWeight:900,fontSize:'17px',boxShadow:'0 0 28px rgba(0,245,255,.3)',letterSpacing:'1px'}}>
+          开始游戏 ▶
+        </button>
+        <button onClick={props.onLeaderboard} className="btn" style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',borderRadius:'14px',padding:'15px 22px',color:'#e2e8f0',fontWeight:700,fontSize:'16px'}}>
+          🏅 排行榜
+        </button>
+      </div>
+      <div style={{marginTop:'10px',fontSize:'10px',color:'rgba(148,163,184,.3)',animation:'fadeUp .7s .4s ease-out both'}}>峇株吧辖华仁中学 · 蔡逸众制作</div>
+    </div>
+  );
+}
+
+// 华仁中学蔡逸众制作
+// ─── BONUS CHOICE SCREEN ─────────────────────────────────────────────────────
+function BonusChoice(props) {
+  // props: completedN (3 or 4), time, onBonus, onCert
+  var names = ['','一','二','三','四','五'];
+  var next = LEVELS[props.completedN]; // e.g. LEVELS[3] for level 4
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(10,14,26,.93)',backdropFilter:'blur(16px)',padding:'20px'}}>
+      <div style={{background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(255,255,255,.15)',borderRadius:'20px',padding:'30px 26px',width:'100%',maxWidth:'360px',textAlign:'center',animation:'zoomIn .4s cubic-bezier(.34,1.3,.64,1)'}}>
+        <div style={{fontSize:'48px',marginBottom:'10px'}}>🏆</div>
+        <div style={{fontSize:'20px',fontWeight:900,color:'#e2e8f0',marginBottom:'5px'}}>{'前' + names[props.completedN] + '关全部通过！'}</div>
+        <div style={{fontSize:'13px',color:'rgba(148,163,184,.6)',marginBottom:'4px'}}>{'累计用时 '}<span style={{color:'#00f5ff',fontWeight:700}}>{props.time}</span></div>
+        <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent)',margin:'16px 0'}}/>
+        <div style={{fontSize:'13px',color:'rgba(203,213,225,.75)',marginBottom:'20px',lineHeight:1.7}}>
+          {'是否继续挑战'}<span style={{color:next.col,fontWeight:700}}>{'第' + names[props.completedN+1] + '关「' + next.label + '」(' + next.bs + '×' + next.bs + ')'}</span>{'？'}
+          <br/><span style={{fontSize:'11px',color:'rgba(148,163,184,.45)'}}>通过后可获得更高阶专属证书</span>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
+          <button onClick={props.onBonus} className="btn" style={{background:'linear-gradient(135deg,'+next.col+'cc,'+next.col+')',border:'none',borderRadius:'11px',padding:'13px',color:'#000',fontWeight:900,fontSize:'14px',boxShadow:'0 0 18px '+next.col+'44'}}>
+            {next.emoji + ' 接受挑战！'}
+          </button>
+          <button onClick={props.onCert} className="btn" style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',borderRadius:'11px',padding:'11px',color:'rgba(203,213,225,.8)',fontWeight:600,fontSize:'13px'}}>
+            {'🎓 领取' + names[props.completedN] + '关证书'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 峇株吧辖华仁中学蔡逸众制作
+// ─── LEVEL COMPLETE OVERLAY ───────────────────────────────────────────────────
+function LevelDone(props) {
+  // props: levelN (1-5), time, onNext
+  var names = ['','一','二','三','四','五'];
+  var lv = LEVELS[props.levelN - 1];
+  var isEarly = props.levelN <= 2; // show "next level" button
+  return (
+    <div style={{position:'absolute',inset:0,zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(10,14,26,.92)',backdropFilter:'blur(14px)',borderRadius:'14px',animation:'zoomIn .4s cubic-bezier(.34,1.3,.64,1)'}}>
+      <div style={{textAlign:'center',padding:'26px 22px',maxWidth:'290px'}}>
+        <div style={{fontSize:'48px',marginBottom:'9px'}}>{lv.emoji}</div>
+        <div style={{fontSize:'21px',fontWeight:900,color:'#e2e8f0',marginBottom:'4px'}}>{'第' + names[props.levelN] + '关通过！'}</div>
+        <div style={{fontSize:'12px',color:'rgba(148,163,184,.6)',marginBottom:'12px'}}>{lv.label}</div>
+        <div style={{fontSize:'28px',fontWeight:800,color:'#00f5ff',fontFamily:'monospace',marginBottom:'16px'}}>{props.time}</div>
+        <div style={{display:'flex',justifyContent:'center',gap:'7px',marginBottom:'20px'}}>
+          <span style={{color:'#f59e0b',fontSize:'24px',animation:'starIn .5s cubic-bezier(.34,1.3,.64,1) both'}}>★</span>
+          <span style={{color:'#f59e0b',fontSize:'24px',animation:'starIn .5s .15s cubic-bezier(.34,1.3,.64,1) both'}}>★</span>
+          <span style={{color:'#f59e0b',fontSize:'24px',animation:'starIn .5s .3s cubic-bezier(.34,1.3,.64,1) both'}}>★</span>
+        </div>
+        <button onClick={props.onNext} className="btn" style={{background:'linear-gradient(135deg,#0891b2,#7c3aed)',border:'none',borderRadius:'11px',padding:'12px 26px',color:'#fff',fontWeight:800,fontSize:'14px',boxShadow:'0 0 22px rgba(0,245,255,.28)'}}>
+          {isEarly ? ('→ 进入第' + names[props.levelN + 1] + '关') : '领取证书 🎓'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── NAME INPUT ───────────────────────────────────────────────────────────────
+// Made by ecchua79
+function NameInput(props) {
+  // props: levelCount, onConfirm
+  var _s = useState('');
+  var name = _s[0], setName = _s[1];
+  var names = ['','一','二','三','四','五'];
+  function submit() { if (name.trim()) props.onConfirm(name.trim()); }
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.78)',backdropFilter:'blur(10px)',padding:'20px'}}>
+      <div style={{background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(0,245,255,.3)',borderRadius:'18px',padding:'34px 26px',width:'100%',maxWidth:'310px',textAlign:'center',animation:'zoomIn .4s cubic-bezier(.34,1.3,.64,1)'}}>
+        <div style={{fontSize:'40px',marginBottom:'9px'}}>{props.levelCount >= 5 ? '💎' : props.levelCount >= 4 ? '⭐' : '🎓'}</div>
+        <div style={{fontSize:'18px',fontWeight:900,color:'#e2e8f0',marginBottom:'5px'}}>{names[props.levelCount] + '关全部通过！'}</div>
+        <div style={{fontSize:'12px',color:'rgba(148,163,184,.6)',marginBottom:'20px',lineHeight:1.6}}>请输入您的姓名<br/>生成专属通关证书</div>
+        <input autoFocus value={name} onChange={function(e){setName(e.target.value);}} onKeyDown={function(e){if(e.key==='Enter')submit();}} placeholder="请输入姓名…" maxLength={10}
+          style={{width:'100%',background:'rgba(255,255,255,.07)',border:'1px solid rgba(0,245,255,.35)',borderRadius:'9px',padding:'11px 12px',color:'#e2e8f0',fontSize:'16px',outline:'none',marginBottom:'12px',textAlign:'center',fontWeight:700,letterSpacing:'3px'}}/>
+        <button onClick={submit} disabled={!name.trim()} className="btn"
+          style={{width:'100%',background:name.trim()?'linear-gradient(135deg,#0891b2,#7c3aed)':'rgba(255,255,255,.06)',border:'none',borderRadius:'11px',padding:'12px',color:name.trim()?'#fff':'rgba(148,163,184,.3)',fontWeight:800,fontSize:'14px'}}>
+          生成证书 ✨
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 峇株吧辖蔡逸众制作
+// ─── CANVAS CERTIFICATE DOWNLOAD ─────────────────────────────────────────────
+function downloadCert(props) {
+  var n = props.levelCount;
+  var names = ['','一','二','三','四','五'];
+  var accent = n >= 5 ? '#f59e0b' : n >= 4 ? '#06b6d4' : '#00f5ff';
+  var certTitle = n >= 5 ? '五关通关证书' : n >= 4 ? '四关通关证书' : '通关证书';
+  var grade = props.grade;
+  var gi = props.gradeInfo;
+  var W = 600, H = 840;
+  var cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+
+  // Background
+  var bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0f172a'); bg.addColorStop(1,'#1e1b4b');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // Border
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 10, 10, W-20, H-20, 20);
+  ctx.stroke();
+
+  // Top accent bar
+  var bar = ctx.createLinearGradient(0,0,W,0);
+  if (n >= 5) { bar.addColorStop(0,'#d97706'); bar.addColorStop(.5,'#f59e0b'); bar.addColorStop(1,'#d97706'); }
+  else if (n >= 4) { bar.addColorStop(0,'#0e7490'); bar.addColorStop(.5,'#06b6d4'); bar.addColorStop(1,'#0e7490'); }
+  else { bar.addColorStop(0,'#7c3aed'); bar.addColorStop(.5,'#00f5ff'); bar.addColorStop(1,'#7c3aed'); }
+  ctx.fillStyle = bar; ctx.fillRect(10, 10, W-20, 6);
+
+  // Medal circle
+  ctx.save();
+  ctx.beginPath(); ctx.arc(W/2, 115, 40, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
+  ctx.strokeStyle = accent; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+  ctx.font = '38px serif'; ctx.textAlign = 'center';
+  ctx.fillText(n >= 5 ? '💎' : n >= 4 ? '⭐' : '⚗', W/2, 128);
+
+  // CHEMISTRY MASTER
+  ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+  ctx.fillStyle = accent; ctx.globalAlpha = 0.75;
+  ctx.fillText('CHEMISTRY  ·  MASTER', W/2, 175);
+  ctx.globalAlpha = 1;
+
+  // Cert title
+  ctx.font = 'bold 26px "Segoe UI", sans-serif';
+  ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+  ctx.fillText(certTitle, W/2, 212);
+
+  // Divider
+  var div = ctx.createLinearGradient(W/2-60,0,W/2+60,0);
+  div.addColorStop(0,'transparent'); div.addColorStop(.5,accent); div.addColorStop(1,'transparent');
+  ctx.strokeStyle = div; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W/2-60,222); ctx.lineTo(W/2+60,222); ctx.stroke();
+
+  // Name box
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  roundRect(ctx, 60, 238, W-120, 68, 10); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+  roundRect(ctx, 60, 238, W-120, 68, 10); ctx.stroke();
+  ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(148,163,184,0.6)'; ctx.textAlign = 'center';
+  ctx.fillText('此证书颁发给', W/2, 258);
+  ctx.font = 'bold 32px "Segoe UI", sans-serif'; ctx.fillStyle = accent;
+  ctx.fillText(props.name, W/2, 293);
+
+  // Achievement text
+  ctx.font = '14px "Segoe UI", sans-serif'; ctx.fillStyle = 'rgba(203,213,225,0.75)'; ctx.textAlign = 'center';
+  var line1 = n >= 5 ? '已成功挑战全部五个关卡，' : '已成功通过前' + names[n] + '关，';
+  ctx.fillText(line1, W/2, 338);
+  ctx.fillText('展现出色的化学元素掌握能力。', W/2, 360);
+
+  // Grade + Score block
+  ctx.fillStyle = gi.color + '18';
+  roundRect(ctx, 60, 375, W-120, 90, 12); ctx.fill();
+  ctx.strokeStyle = gi.color + '55'; ctx.lineWidth = 1.5;
+  roundRect(ctx, 60, 375, W-120, 90, 12); ctx.stroke();
+
+  ctx.font = '11px monospace'; ctx.fillStyle = 'rgba(148,163,184,0.5)'; ctx.textAlign = 'center';
+  ctx.fillText('综合评级', W/2, 395);
+  ctx.font = 'bold 44px "Segoe UI", sans-serif';
+  ctx.fillStyle = gi.color;
+  ctx.shadowColor = gi.color; ctx.shadowBlur = 16;
+  ctx.fillText(grade, W/2 - 60, 445);
+  ctx.shadowBlur = 0;
+  ctx.font = 'bold 16px "Segoe UI", sans-serif'; ctx.fillStyle = gi.color;
+  ctx.textAlign = 'left';
+  ctx.fillText(gi.label, W/2 - 20, 425);
+  ctx.font = '18px sans-serif'; ctx.fillStyle = gi.color;
+  ctx.fillText(props.stars, W/2 - 20, 448);
+  ctx.font = 'bold 28px "Segoe UI", monospace'; ctx.fillStyle = gi.color;
+  ctx.textAlign = 'right';
+  ctx.fillText(props.score + ' 分', W - 70, 440);
+
+  // Stats row
+  var stats = [
+    {label:'总完成时间', val:fmtTime(props.totalTime), col:'#00f5ff'},
+    {label:'完成关卡',   val:names[n]+'关',            col:'#10b981'},
+    {label:'消除元素',   val:props.totalPairs+'对',    col:'#a78bfa'},
+    {label:'技能总次数', val:(props.skills.hint+props.skills.shuf+props.skills.swap)+'次', col:'#f59e0b'}
+  ];
+  var sx = 50, sy = 480, sw = (W-100)/4, sh = 72;
+  stats.forEach(function(st, i) {
+    var bx = sx + i*sw;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    roundRect(ctx, bx+3, sy, sw-6, sh, 8); ctx.fill();
+    ctx.fillStyle = st.col; ctx.font = 'bold 15px "Segoe UI", sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(st.val, bx+sw/2, sy+30);
+    ctx.fillStyle = 'rgba(148,163,184,0.5)'; ctx.font = '10px sans-serif';
+    ctx.fillText(st.label, bx+sw/2, sy+50);
+  });
+
+  // Skill breakdown header
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
+  roundRect(ctx, 60, 575, W-120, 140, 10); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+  roundRect(ctx, 60, 575, W-120, 140, 10); ctx.stroke();
+
+  ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(148,163,184,0.4)'; ctx.textAlign = 'center';
+  ctx.fillText('—  技能使用明细  —', W/2, 593);
+
+  // Skill rows
+  var skills = [
+    {e:'💡', l:'提示',  v:props.skills.hint, c:'#fbbf24'},
+    {e:'🔀', l:'洗牌',  v:props.skills.shuf, c:'#00f5ff'},
+    {e:'↔',  l:'换位',  v:props.skills.swap, c:'#a855f7'}
+  ];
+  skills.forEach(function(sk, i) {
+    var ry = 609 + i*38;
+    // divider line (except last)
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(75, ry-8); ctx.lineTo(W-75, ry-8); ctx.stroke();
+    }
+    ctx.font = '14px serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(sk.e, 80, ry+12);
+    ctx.font = '12px "Segoe UI", sans-serif'; ctx.fillStyle = 'rgba(203,213,225,0.7)';
+    ctx.fillText(sk.l, 102, ry+12);
+    // pill
+    var pill = sk.v > 0 ? sk.c : 'rgba(148,163,184,0.3)';
+    ctx.fillStyle = pill + '20';
+    roundRect(ctx, W-155, ry-2, 80, 22, 6); ctx.fill();
+    ctx.strokeStyle = pill + '50'; ctx.lineWidth = 1;
+    roundRect(ctx, W-155, ry-2, 80, 22, 6); ctx.stroke();
+    ctx.font = 'bold 12px monospace'; ctx.fillStyle = sk.v > 0 ? sk.c : 'rgba(148,163,184,0.35)';
+    ctx.textAlign = 'center';
+    ctx.fillText(sk.v + ' 次', W-115, ry+13);
+  });
+
+  // Date box
+  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  roundRect(ctx, 60, 737, W-120, 44, 8); ctx.fill();
+  ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(148,163,184,0.35)'; ctx.textAlign = 'center';
+  ctx.fillText('颁发时间', W/2, 754);
+  ctx.font = '12px monospace'; ctx.fillStyle = 'rgba(148,163,184,0.65)';
+  ctx.fillText(props.completedAt, W/2, 771);
+
+  // School label
+  ctx.font = '11px "Segoe UI", sans-serif'; ctx.fillStyle = 'rgba(148,163,184,0.3)'; ctx.textAlign = 'center';
+  ctx.fillText('峇株吧辖华仁中学  ·  蔡逸众制作', W/2, 816);
+
+  // Bottom bar
+  ctx.fillStyle = bar; ctx.fillRect(10, H-16, W-20, 6);
+
+  // Download
+  var link = document.createElement('a');
+  link.download = '化学元素连连看通关证书_' + props.name + '.png';
+  link.href = cv.toDataURL('image/png');
+  link.click();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+// ─── CERTIFICATE ─────────────────────────────────────────────────────────────
+function Certificate(props) {
+  // props: name, totalTime, skills {hint,shuf,swap}, completedAt, levelCount, score, onRestart
+  var names = ['','一','二','三','四','五'];
+  var n = props.levelCount;
+  var accent = n >= 5 ? '#f59e0b' : n >= 4 ? '#06b6d4' : '#00f5ff';
+  var medal = n >= 5 ? '💎' : n >= 4 ? '⭐' : '⚛️';
+  var totalPairs = 0;
+  for (var i = 0; i < n; i++) totalPairs += LEVELS[i].pairs;
+  var totalSkillUses = props.skills.hint + props.skills.shuf + props.skills.swap;
+  var certTitle = n >= 5 ? '五关通关证书' : n >= 4 ? '四关通关证书' : '通 关 证 书';
+  var barGrad = n >= 5 ? 'linear-gradient(90deg,#d97706,#f59e0b,#fbbf24,#f59e0b,#d97706)' : n >= 4 ? 'linear-gradient(90deg,#0e7490,#06b6d4,#22d3ee,#06b6d4,#0e7490)' : 'linear-gradient(90deg,#7c3aed,#00f5ff,#10b981,#7c3aed)';
+  var btnGrad = n >= 5 ? 'linear-gradient(135deg,#d97706,#f59e0b)' : n >= 4 ? 'linear-gradient(135deg,#0e7490,#06b6d4)' : 'linear-gradient(135deg,#0891b2,#7c3aed)';
+  var grade = calcGrade(props.score, n);
+  var gi = GRADE_INFO[grade];
+  var stars = '';
+  for (var si = 0; si < gi.stars; si++) stars += '★';
+  for (var si2 = gi.stars; si2 < 5; si2++) stars += '☆';
+  function handleDownload() {
+    downloadCert({
+      name: props.name, totalTime: props.totalTime, skills: props.skills,
+      completedAt: props.completedAt, levelCount: props.levelCount,
+      totalPairs: totalPairs, score: props.score, grade: grade, gradeInfo: gi, stars: stars
+    });
+  }
+  return (
+    <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0a0e1a,#0d1530)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',overflowY:'auto'}}>
+      <div style={{width:'100%',maxWidth:'400px',animation:'zoomIn .6s cubic-bezier(.34,1.2,.64,1)'}}>
+        <div style={{background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(255,255,255,.12)',borderRadius:'20px',overflow:'hidden',position:'relative'}}>
+          <div style={{height:'5px',background:barGrad,backgroundSize:'200%',animation:'bar 4s linear infinite'}}/>
+          <div style={{padding:'28px 24px 22px'}}>
+            <div style={{textAlign:'center',marginBottom:'20px'}}>
+              <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'66px',height:'66px',borderRadius:'50%',background:'rgba(255,255,255,.05)',border:'2px solid rgba(255,255,255,.15)',fontSize:'32px',marginBottom:'12px'}}>{medal}</div>
+              <div style={{fontSize:'9px',letterSpacing:'4px',color:accent,fontWeight:700,marginBottom:'4px',opacity:.8}}>CHEMISTRY · MASTER</div>
+              <div style={{fontSize:'18px',fontWeight:900,color:'#e2e8f0',letterSpacing:'2px',marginBottom:'8px'}}>{certTitle}</div>
+              <div style={{width:'44px',height:'2px',background:'linear-gradient(90deg,transparent,'+accent+',transparent)',margin:'0 auto'}}/>
+            </div>
+            <div style={{textAlign:'center',marginBottom:'18px',padding:'13px',background:'rgba(255,255,255,.04)',borderRadius:'10px',border:'1px solid rgba(255,255,255,.08)'}}>
+              <div style={{fontSize:'10px',color:'rgba(148,163,184,.45)',marginBottom:'4px',letterSpacing:'1px'}}>此证书颁发给</div>
+              <div style={{fontSize:'24px',fontWeight:900,color:accent,letterSpacing:'4px'}}>{props.name}</div>
+            </div>
+            <div style={{textAlign:'center',color:'rgba(203,213,225,.7)',fontSize:'12px',lineHeight:1.75,marginBottom:'18px'}}>
+              {n >= 5 ? '已成功挑战全部五个关卡，' : '已成功通过前' + names[n] + '关，'}
+              <br/>展现出色的化学元素掌握能力。
+            </div>
+            <div style={{marginBottom:'16px',padding:'16px',background:gi.bg,border:'1px solid '+gi.border,borderRadius:'12px',textAlign:'center'}}>
+              <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',letterSpacing:'2px',marginBottom:'8px'}}>综合评级</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'14px',marginBottom:'8px'}}>
+                <div style={{fontSize:'52px',fontWeight:900,color:gi.color,lineHeight:1,textShadow:'0 0 20px '+gi.color+'88'}}>{grade}</div>
+                <div style={{textAlign:'left'}}>
+                  <div style={{fontSize:'16px',color:gi.color,fontWeight:700,marginBottom:'3px'}}>{gi.label}</div>
+                  <div style={{fontSize:'18px',letterSpacing:'2px'}}>{stars}</div>
+                </div>
+              </div>
+              <div style={{fontSize:'28px',fontWeight:900,color:gi.color,fontFamily:'monospace',letterSpacing:'1px'}}>{props.score} <span style={{fontSize:'14px',fontWeight:400,color:'rgba(148,163,184,.6)'}}>分</span></div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'7px',marginBottom:'13px'}}>
+              {[
+                {i:'⏱',l:'总完成时间',v:fmtTime(props.totalTime),c:'#00f5ff'},
+                {i:'🎯',l:'完成关卡',v:names[n]+'关',c:'#10b981'},
+                {i:'⚗',l:'消除元素',v:totalPairs+'对',c:'#a78bfa'},
+                {i:'✨',l:'技能总次数',v:totalSkillUses+'次',c:'#f59e0b'}
+              ].map(function(x){
+                return (
+                  <div key={x.l} style={{background:'rgba(255,255,255,.04)',borderRadius:'9px',padding:'10px 7px',border:'1px solid rgba(255,255,255,.05)',textAlign:'center'}}>
+                    <div style={{fontSize:'16px',marginBottom:'3px'}}>{x.i}</div>
+                    <div style={{fontSize:'13px',fontWeight:800,color:x.c,marginBottom:'2px'}}>{x.v}</div>
+                    <div style={{fontSize:'9px',color:'rgba(148,163,184,.4)'}}>{x.l}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{marginBottom:'13px',background:'rgba(255,255,255,.025)',borderRadius:'9px',border:'1px solid rgba(255,255,255,.05)',overflow:'hidden'}}>
+              <div style={{fontSize:'9px',color:'rgba(148,163,184,.35)',padding:'7px 12px 5px',letterSpacing:'2px',textAlign:'center',borderBottom:'1px solid rgba(255,255,255,.04)'}}>— 技能使用明细 —</div>
+              {[
+                {e:'💡',l:'提示',v:props.skills.hint,c:'#fbbf24'},
+                {e:'🔀',l:'洗牌',v:props.skills.shuf,c:'#00f5ff'},
+                {e:'↔',l:'换位',v:props.skills.swap,c:'#a855f7'}
+              ].map(function(sk,idx){
+                return (
+                  <div key={sk.l} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 13px',borderBottom:idx<2?'1px solid rgba(255,255,255,.04)':'none'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                      <span style={{fontSize:'13px'}}>{sk.e}</span>
+                      <span style={{fontSize:'11px',color:'rgba(203,213,225,.6)'}}>{sk.l}</span>
+                    </div>
+                    <span style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'7px',padding:'2px 9px',fontSize:'11px',fontWeight:800,color:sk.v>0?sk.c:'rgba(148,163,184,.3)',fontFamily:'monospace'}}>{sk.v} 次</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{textAlign:'center',marginBottom:'14px',padding:'8px',background:'rgba(255,255,255,.02)',borderRadius:'7px',border:'1px solid rgba(255,255,255,.04)'}}>
+              <div style={{fontSize:'9px',color:'rgba(148,163,184,.35)',marginBottom:'2px'}}>颁发时间</div>
+              <div style={{fontSize:'11px',color:'rgba(148,163,184,.6)',fontFamily:'monospace'}}>{props.completedAt}</div>
+            </div>
+            <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)',marginBottom:'12px'}}/>
+            <AutoSubmit name={props.name} score={props.score} grade={grade} levelCount={n} totalTime={props.totalTime} skills={props.skills}/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginTop:'9px'}}>
+              <button onClick={handleDownload} className="btn" style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.15)',borderRadius:'11px',padding:'11px',color:'#e2e8f0',fontWeight:700,fontSize:'12px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                ⬇ 下载证书
+              </button>
+              <button onClick={props.onRestart} className="btn" style={{background:btnGrad,border:'none',borderRadius:'11px',padding:'11px',color:n>=5?'#000':'#fff',fontWeight:800,fontSize:'12px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                ↺ 再挑战
+              </button>
+            </div>
+          </div>
+          <div style={{height:'4px',background:barGrad,backgroundSize:'200%',animation:'bar 4s linear infinite reverse'}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SKILL BUTTON ─────────────────────────────────────────────────────────────
+// 华仁中学蔡逸众制作
+function SkBtn(props) {
+  var _h = useState(false);
+  var hv = _h[0], setHv = _h[1];
+  var dis = props.disabled;
+  var col = props.color;
+  return (
+    <button onClick={props.onClick} disabled={dis} className={dis?'':'btn'}
+      onMouseEnter={function(){setHv(true);}} onMouseLeave={function(){setHv(false);}}
+      style={{background:props.active?col+'22':hv&&!dis?col+'14':'rgba(255,255,255,.04)',border:'1px solid '+(props.active?col+'88':dis?'rgba(255,255,255,.05)':hv&&!dis?col+'44':'rgba(255,255,255,.1)'),borderRadius:'9px',padding:'8px 12px',color:dis?'rgba(148,163,184,.3)':'#e2e8f0',fontWeight:600,fontSize:'12px',cursor:dis?'not-allowed':'pointer',display:'flex',alignItems:'center',gap:'5px',transition:'all .13s',boxShadow:props.active?'0 0 12px '+col+'44':'none'}}>
+      <span style={{color:dis?'rgba(148,163,184,.3)':col}}>{props.icon}</span>
+      {props.label}
+      {props.count !== null && props.count !== undefined &&
+        <span style={{background:dis?'rgba(255,255,255,.03)':col+'1a',border:'1px solid '+(dis?'rgba(255,255,255,.05)':col+'33'),borderRadius:'5px',padding:'1px 6px',fontSize:'11px',color:dis?'rgba(148,163,184,.3)':col,fontFamily:'monospace',fontWeight:800}}>{props.count}</span>
+      }
+    </button>
+  );
+}
+
+// ─── PARTICLES ────────────────────────────────────────────────────────────────
+// 峇株吧辖蔡逸众制作
+function Particles(props) {
+  return (
+    <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:50,overflow:'hidden'}}>
+      {props.list.map(function(p){
+        return <div key={p.id} style={{position:'absolute',left:p.x+'%',top:p.y+'%',width:p.sz+'px',height:p.sz+'px',background:p.color,borderRadius:'50%',animation:'tileOut '+p.dur+'ms ease-out forwards',animationDelay:p.delay+'ms','--dx':p.dx+'px','--dy':p.dy+'px'}}/>;
+      })}
+    </div>
+  );
+}
+
+// ─── AUTO SUBMIT (silent, fires on mount) ────────────────────────────────────
+// Made by ecchua79
+function AutoSubmit(props) {
+  // props: name, score, grade, levelCount, totalTime, skills
+  var _status = useState('pending'); var status = _status[0]; var setStatus = _status[1];
+
+  useEffect(function() {
+    var attempts = 0;
+    function trySubmit() {
+      if (window.fbSubmitScore) {
+        window.fbSubmitScore(
+          props.name, props.score, props.grade,
+          props.levelCount, props.totalTime, props.skills
+        ).then(function(ok){ setStatus(ok ? 'done' : 'offline'); });
+      } else if (attempts < 20) {
+        attempts++;
+        setTimeout(trySubmit, 250);
+      } else {
+        setStatus('offline'); // Firebase never loaded
+      }
+    }
+    trySubmit();
+  }, []); // run once on mount
+
+  if (status === 'done') return (
+    <div style={{textAlign:'center',fontSize:'11px',color:'rgba(16,185,129,.8)',marginBottom:'6px',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
+      <span>✅</span><span>分数已自动上传排行榜</span>
+    </div>
+  );
+  if (status === 'pending') return (
+    <div style={{textAlign:'center',fontSize:'11px',color:'rgba(148,163,184,.45)',marginBottom:'6px'}}>
+      正在上传分数…
+    </div>
+  );
+  // offline — silent, show nothing to avoid confusing players
+  return null;
+}
+
+// ─── LEADERBOARD ─────────────────────────────────────────────────────────────
+// 峇株吧辖蔡逸众制作
+function Leaderboard(props) {
+  var _rows = useState([]); var rows = _rows[0]; var setRows = _rows[1];
+  var _loading = useState(true); var loading = _loading[0]; var setLoading = _loading[1];
+
+  useEffect(function() {
+    // Wait up to 5s for Firebase module to load (it's async)
+    var attempts = 0;
+    function tryLoad() {
+      if (window.fbGetScores) {
+        window.fbGetScores().then(function(data){ setRows(data); setLoading(false); });
+      } else if (attempts < 20) {
+        attempts++;
+        setTimeout(tryLoad, 250);
+      } else {
+        setLoading(false); // give up after 5s
+      }
+    }
+    tryLoad();
+  }, []);
+
+  var levelNames = ['','一','二','三','四','五'];
+  var gradeColors = {'S+':'#f59e0b','S':'#00f5ff','A':'#10b981','B':'#a78bfa','C':'#94a3b8'};
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(10,14,26,.95)',backdropFilter:'blur(16px)',padding:'16px'}}>
+      <div style={{width:'100%',maxWidth:'480px',maxHeight:'90vh',display:'flex',flexDirection:'column',background:'linear-gradient(160deg,#0f172a,#1e1b4b)',border:'1px solid rgba(0,245,255,.2)',borderRadius:'18px',overflow:'hidden'}}>
+        <div style={{height:'4px',background:'linear-gradient(90deg,#7c3aed,#00f5ff,#10b981)',backgroundSize:'200%',animation:'bar 3s linear infinite',flexShrink:0}}/>
+        <div style={{padding:'18px 20px 12px',borderBottom:'1px solid rgba(255,255,255,.07)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <div style={{fontSize:'18px',fontWeight:900,color:'#e2e8f0'}}>🏅 排行榜</div>
+            <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',marginTop:'2px'}}>全球 Top 20</div>
+          </div>
+          <button onClick={props.onClose} style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.12)',borderRadius:'8px',padding:'6px 14px',color:'rgba(203,213,225,.8)',cursor:'pointer',fontSize:'13px',fontWeight:600}}>关闭</button>
+        </div>
+        <div style={{overflowY:'auto',padding:'12px 16px',flex:1}}>
+          {loading && (
+            <div style={{textAlign:'center',padding:'40px',color:'rgba(148,163,184,.5)',fontSize:'13px'}}>加载中…</div>
+          )}
+          {!loading && rows.length === 0 && (
+            <div style={{textAlign:'center',padding:'40px',color:'rgba(148,163,184,.5)',fontSize:'13px'}}>暂无记录，快来第一个上榜！</div>
+          )}
+          {!loading && rows.map(function(row, i) {
+            var medalBg = i===0?'linear-gradient(135deg,#d97706,#f59e0b)':i===1?'linear-gradient(135deg,#6b7280,#9ca3af)':i===2?'linear-gradient(135deg,#92400e,#b45309)':'rgba(255,255,255,.06)';
+            var medalColor = i < 3 ? '#000' : 'rgba(148,163,184,.6)';
+            var gradeCol = gradeColors[row.grade] || '#94a3b8';
+            return (
+              <div key={i} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',marginBottom:'6px',background:i===0?'rgba(245,158,11,.08)':'rgba(255,255,255,.03)',borderRadius:'10px',border:'1px solid '+(i===0?'rgba(245,158,11,.25)':'rgba(255,255,255,.06)')}}>
+                <div style={{width:'28px',height:'28px',borderRadius:'8px',background:medalBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:900,color:medalColor,flexShrink:0}}>
+                  {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,color:'#e2e8f0',fontSize:'14px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{row.name}</div>
+                  <div style={{fontSize:'10px',color:'rgba(148,163,184,.5)',marginTop:'1px'}}>
+                    {levelNames[row.levelCount]+'关 · '+fmtTime(row.totalTime)+' · 提示×'+row.hint+' 洗牌×'+row.shuf+' 换位×'+row.swap}
+                  </div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <div style={{fontSize:'11px',fontWeight:900,color:gradeCol,marginBottom:'2px'}}>{row.grade}</div>
+                  <div style={{fontSize:'15px',fontWeight:900,color:gradeCol,fontFamily:'monospace'}}>{row.score}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{padding:'10px 16px',borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0,textAlign:'center',fontSize:'10px',color:'rgba(148,163,184,.3)'}}>
+          峇株吧辖华仁中学 · 化学元素连连看
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+// 华仁中学蔡逸众制作
+var ADMIN_PASS = 'huaren2025';
+
+function AdminPanel(props) {
+  var _rows = useState([]); var rows = _rows[0]; var setRows = _rows[1];
+  var _loading = useState(true); var loading = _loading[0]; var setLoading = _loading[1];
+  var levelNames = ['','一','二','三','四','五'];
+  var gradeColors = {'S+':'#f59e0b','S':'#00f5ff','A':'#10b981','B':'#a78bfa','C':'#94a3b8'};
+
+  useEffect(function() {
+    var attempts = 0;
+    function tryLoad() {
+      if (window.fbGetAllScores) {
+        window.fbGetAllScores().then(function(data){ setRows(data); setLoading(false); });
+      } else if (attempts < 20) {
+        attempts++;
+        setTimeout(tryLoad, 250);
+      } else {
+        setLoading(false);
+      }
+    }
+    tryLoad();
+  }, []);
+
+  function exportCSV() {
+    var header = ['排名','姓名','分数','评级','关卡','用时(秒)','提示次数','洗牌次数','换位次数'];
+    var lines = [header.join(',')];
+    rows.forEach(function(r, i) {
+      lines.push([
+        i+1, r.name, r.score, r.grade,
+        (r.levelCount||'')+'关',
+        r.totalTime||0,
+        r.hint||0, r.shuf||0, r.swap||0
+      ].join(','));
+    });
+    var blob = new Blob(['﻿'+lines.join('
+')], {type:'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = '化学元素连连看_成绩单.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:400,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(10,14,26,.97)',backdropFilter:'blur(16px)',padding:'12px'}}>
+      <div style={{width:'100%',maxWidth:'600px',maxHeight:'94vh',display:'flex',flexDirection:'column',background:'linear-gradient(160deg,#0f172a,#1a1040)',border:'1px solid rgba(245,158,11,.3)',borderRadius:'18px',overflow:'hidden'}}>
+        <div style={{height:'4px',background:'linear-gradient(90deg,#d97706,#f59e0b,#fbbf24)',flexShrink:0}}/>
+        <div style={{padding:'16px 20px 12px',borderBottom:'1px solid rgba(255,255,255,.07)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontSize:'17px',fontWeight:900,color:'#f59e0b'}}>🔑 管理员面板</div>
+            <div style={{fontSize:'11px',color:'rgba(148,163,184,.5)',marginTop:'2px'}}>
+              {loading ? '加载中…' : '共 '+rows.length+' 条记录'}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:'8px'}}>
+            <button onClick={exportCSV} disabled={rows.length===0} className="btn" style={{background:'linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.1))',border:'1px solid rgba(16,185,129,.4)',borderRadius:'9px',padding:'8px 16px',color:'#10b981',fontWeight:700,fontSize:'12px'}}>
+              ⬇ 导出 CSV
+            </button>
+            <button onClick={props.onClose} style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.12)',borderRadius:'9px',padding:'8px 14px',color:'rgba(203,213,225,.8)',cursor:'pointer',fontSize:'13px',fontWeight:600}}>关闭</button>
+          </div>
+        </div>
+        <div style={{overflowY:'auto',flex:1}}>
+          {loading && <div style={{textAlign:'center',padding:'50px',color:'rgba(148,163,184,.5)',fontSize:'13px'}}>正在加载所有记录…</div>}
+          {!loading && rows.length === 0 && <div style={{textAlign:'center',padding:'50px',color:'rgba(148,163,184,.5)',fontSize:'13px'}}>暂无记录</div>}
+          {!loading && rows.length > 0 && (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+              <thead>
+                <tr style={{background:'rgba(255,255,255,.04)',position:'sticky',top:0}}>
+                  {['#','姓名','分数','级','关卡','用时','提示','洗牌','换位'].map(function(h){
+                    return <th key={h} style={{padding:'9px 10px',textAlign:'left',color:'rgba(148,163,184,.6)',fontWeight:700,borderBottom:'1px solid rgba(255,255,255,.06)',whiteSpace:'nowrap'}}>{h}</th>;
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(function(r, i) {
+                  var gc = gradeColors[r.grade] || '#94a3b8';
+                  var isTop3 = i < 3;
+                  return (
+                    <tr key={i} style={{background:i%2===0?'rgba(255,255,255,.02)':'transparent',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                      <td style={{padding:'8px 10px',color:isTop3?'#f59e0b':'rgba(148,163,184,.5)',fontWeight:isTop3?900:400}}>
+                        {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+                      </td>
+                      <td style={{padding:'8px 10px',color:'#e2e8f0',fontWeight:600,maxWidth:'120px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.name}</td>
+                      <td style={{padding:'8px 10px',color:gc,fontWeight:800,fontFamily:'monospace'}}>{r.score}</td>
+                      <td style={{padding:'8px 10px',color:gc,fontWeight:900}}>{r.grade}</td>
+                      <td style={{padding:'8px 10px',color:'rgba(148,163,184,.7)'}}>{levelNames[r.levelCount]||'?'}关</td>
+                      <td style={{padding:'8px 10px',color:'rgba(148,163,184,.7)',fontFamily:'monospace'}}>{fmtTime(r.totalTime||0)}</td>
+                      <td style={{padding:'8px 10px',color:'rgba(251,191,36,.8)',textAlign:'center'}}>{r.hint||0}</td>
+                      <td style={{padding:'8px 10px',color:'rgba(0,245,255,.8)',textAlign:'center'}}>{r.shuf||0}</td>
+                      <td style={{padding:'8px 10px',color:'rgba(168,85,247,.8)',textAlign:'center'}}>{r.swap||0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div style={{padding:'8px 16px',borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0,textAlign:'center',fontSize:'10px',color:'rgba(148,163,184,.3)'}}>
+          峇株吧辖华仁中学 · 管理员专用
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminLogin(props) {
+  var _pw = useState(''); var pw = _pw[0]; var setPw = _pw[1];
+  var _err = useState(false); var err = _err[0]; var setErr = _err[1];
+  function tryLogin() {
+    if (pw === ADMIN_PASS) { props.onSuccess(); }
+    else { setErr(true); setPw(''); setTimeout(function(){ setErr(false); }, 2000); }
+  }
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:400,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(10,14,26,.92)',backdropFilter:'blur(12px)',padding:'20px'}}>
+      <div style={{background:'linear-gradient(160deg,#0f172a,#1a1040)',border:'1px solid rgba(245,158,11,.3)',borderRadius:'16px',padding:'30px 26px',width:'100%',maxWidth:'300px',textAlign:'center',animation:'zoomIn .3s ease-out'}}>
+        <div style={{fontSize:'36px',marginBottom:'10px'}}>🔑</div>
+        <div style={{fontSize:'16px',fontWeight:900,color:'#f59e0b',marginBottom:'16px'}}>管理员入口</div>
+        <input
+          type="password" value={pw} autoFocus
+          onChange={function(e){ setPw(e.target.value); setErr(false); }}
+          onKeyDown={function(e){ if(e.key==='Enter') tryLogin(); }}
+          placeholder="请输入密码"
+          style={{width:'100%',background:'rgba(255,255,255,.07)',border:'1px solid '+(err?'rgba(248,113,113,.6)':'rgba(245,158,11,.35)'),borderRadius:'9px',padding:'11px 12px',color:'#e2e8f0',fontSize:'15px',outline:'none',marginBottom:'6px',textAlign:'center',letterSpacing:'3px'}}
+        />
+        {err && <div style={{fontSize:'11px',color:'#f87171',marginBottom:'8px'}}>密码错误，请重试</div>}
+        {!err && <div style={{height:'19px',marginBottom:'8px'}}/>}
+        <div style={{display:'flex',gap:'8px'}}>
+          <button onClick={props.onClose} style={{flex:1,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',borderRadius:'9px',padding:'10px',color:'rgba(203,213,225,.7)',cursor:'pointer',fontSize:'13px',fontWeight:600}}>取消</button>
+          <button onClick={tryLogin} className="btn" style={{flex:1,background:'linear-gradient(135deg,#d97706,#f59e0b)',border:'none',borderRadius:'9px',padding:'10px',color:'#000',fontWeight:800,fontSize:'13px'}}>进入</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN GAME ────────────────────────────────────────────────────────────────
+// 峇株吧辖华仁中学蔡逸众制作
+function App() {
+  var _scr = useState('welcome'); var screen = _scr[0]; var setScreen = _scr[1];
+  var _li = useState(0);   var li = _li[0];   var setLi = _li[1];
+  var _board = useState(null); var board = _board[0]; var setBoard = _board[1];
+  var _sel = useState(null);   var sel = _sel[0];   var setSel = _sel[1];
+  var _path = useState([]);    var path = _path[0]; var setPath = _path[1];
+  var _mat = useState(0);      var mat = _mat[0];   var setMat = _mat[1];
+  var _busy = useState(false);  var busy = _busy[0];  var setBusy = _busy[1];
+  var _fade = useState([]);    var fade = _fade[0]; var setFade = _fade[1];
+  var _time = useState(0);     var time = _time[0]; var setTime = _time[1];
+  var _hint = useState(0);     var hintN = _hint[0]; var setHint = _hint[1];
+  var _shuf = useState(0);     var shufN = _shuf[0]; var setShuf = _shuf[1];
+  var _swap = useState(0);     var swapN = _swap[0]; var setSwap = _swap[1];
+  var _swMode = useState(false); var swMode = _swMode[0]; var setSwMode = _swMode[1];
+  var _swFirst = useState(null); var swFirst = _swFirst[0]; var setSwFirst = _swFirst[1];
+  var _htiles = useState([]); var htiles = _htiles[0]; var setHtiles = _htiles[1];
+  var _notice = useState(''); var notice = _notice[0]; var setNotice = _notice[1];
+  var _parts = useState([]); var parts = _parts[0]; var setParts = _parts[1];
+  var _phase = useState('playing'); var phase = _phase[0]; var setPhase = _phase[1];
+  var _doneN = useState(0); var doneN = _doneN[0]; var setDoneN = _doneN[1];
+  var _totTime = useState(0); var totTime = _totTime[0]; var setTotTime = _totTime[1];
+  var _totSk = useState({hint:0,shuf:0,swap:0}); var totSk = _totSk[0]; var setTotSk = _totSk[1];
+  var _pname = useState(''); var pname = _pname[0]; var setPname = _pname[1];
+  var _cat = useState(''); var cat = _cat[0]; var setCat = _cat[1];
+  var _score = useState(0); var finalScore = _score[0]; var setFinalScore = _score[1];
+  var _showLB = useState(false); var showLB = _showLB[0]; var setShowLB = _showLB[1];
+  var _showAdminLogin = useState(false); var showAdminLogin = _showAdminLogin[0]; var setShowAdminLogin = _showAdminLogin[1];
+  var _showAdmin = useState(false); var showAdmin = _showAdmin[0]; var setShowAdmin = _showAdmin[1];
+  var boardRef = useRef(null);
+  var pidRef = useRef(0);
+  var skRef = useRef({hint:0,shuf:0,swap:0});
+
+  var cfg = LEVELS[li] || LEVELS[4];
+  var bs = cfg.bs;
+  var N = bs + 2;
+
+  // Draw / clear line whenever path changes
+  useEffect(function(){
+    if (path.length >= 2) drawLine(path, boardRef.current, bs);
+    else clearLine();
+  }, [path, bs]);
+
+  useEffect(function(){ return function(){ clearLine(); }; }, []);
+
+  // Timer
+  useEffect(function(){
+    if (screen !== 'playing' || phase !== 'playing') return;
+    var t = setInterval(function(){ setTime(function(p){ return p+1; }); }, 1000);
+    return function(){ clearInterval(t); };
+  }, [screen, phase]);
+
+  function notify(msg) {
+    setNotice(msg);
+    setTimeout(function(){ setNotice(''); }, 2200);
+  }
+
+  function spawnParticles(r1, c1, r2, c2) {
+    var step = 100 / bs;
+    var colors = ['#00f5ff','#7c3aed','#10b981','#f59e0b','#ec4899'];
+    var np = [];
+    [[r1,c1],[r2,c2]].forEach(function(rc){
+      var x = (rc[1]-1)*step+step/2, y = (rc[0]-1)*step+step/2;
+      for (var i = 0; i < 8; i++) {
+        var a = Math.PI*2*i/8;
+        np.push({id:pidRef.current++,x:x,y:y,dx:Math.cos(a)*(15+Math.random()*25),dy:Math.sin(a)*(15+Math.random()*25),sz:4+Math.random()*4,color:colors[Math.floor(Math.random()*colors.length)],dur:500+Math.random()*300,delay:Math.random()*100});
+      }
+    });
+    setParts(function(p){ return p.concat(np); });
+    setTimeout(function(){
+      var ids = np.map(function(x){ return x.id; });
+      setParts(function(p){ return p.filter(function(x){ return ids.indexOf(x.id)<0; }); });
+    }, 1000);
+  }
+
+  function initLevel(idx, carryTime) {
+    var c = LEVELS[idx];
+    setBoard(makeBoard(c, idx));
+    setSel(null); setPath([]); setMat(0); setTime(carryTime||0);
+    setHint(c.hint); setShuf(c.shuf); setSwap(c.swap);
+    setSwMode(false); setSwFirst(null); setHtiles([]);
+    setNotice(''); setParts([]); setFade([]); setPhase('playing');
+    skRef.current = {hint:0,shuf:0,swap:0};
+    clearLine();
+  }
+
+  function resetAll() {
+    setLi(0); setTotTime(0); setTotSk({hint:0,shuf:0,swap:0}); setDoneN(0);
+    setFinalScore(0); setSubmitted(false); setScreen('welcome'); clearLine();
+  }
+
+  function doShuffle(currentBoard, isAuto) {
+    var nb = reShuffle(currentBoard, bs, N, li);
+    setBoard(nb); setSel(null); setHtiles([]); setSwMode(false); setSwFirst(null); setPath([]);
+    if (isAuto) notify('💥 死锁！已自动洗牌');
+    else { setShuf(function(p){ return p-1; }); skRef.current.shuf++; }
+    return nb;
+  }
+
+  function handleHint() {
+    if (hintN <= 0 || busy || !board) return;
+    var pair = findHint(board, bs, N, li);
+    if (pair) { setHtiles(pair); setHint(function(p){ return p-1; }); skRef.current.hint++; setTimeout(function(){ setHtiles([]); }, 3000); }
+    else notify('⚠️ 暂无可消除的对');
+  }
+
+  function handleSwapToggle() {
+    if (swapN <= 0) return;
+    var e = !swMode; setSwMode(e);
+    if (!e) setSwFirst(null); else notify('🔀 点选两张牌互换位置');
+  }
+
+  function levelDone(newBoard) {
+    var ns = {hint:totSk.hint+skRef.current.hint, shuf:totSk.shuf+skRef.current.shuf, swap:totSk.swap+skRef.current.swap};
+    setTotSk(ns); setTotTime(time);
+    var done = li + 1;
+    setDoneN(done);
+    if (done === 3 || done === 4) setPhase('bonusChoice');
+    else setPhase('levelDone');
+  }
+
+  function handleNext() {
+    // Called from LevelDone for levels 1, 2, 5
+    if (li <= 1) { var nx = li+1; setLi(nx); setPhase('playing'); initLevel(nx, time); }
+    else { setFinalScore(calcScore(doneN, totTime, totSk)); setCat(fmtDate(new Date())); setPhase('nameInput'); }
+  }
+
+  function handleBonusYes() {
+    var nx = doneN; // e.g. 3 → go to level index 3
+    setLi(nx); setPhase('playing'); initLevel(nx, time);
+  }
+
+  function handleBonusNo() {
+    setFinalScore(calcScore(doneN, totTime, totSk));
+    setCat(fmtDate(new Date())); setPhase('nameInput');
+  }
+
+  function handleTile(r, c) {
+    if (busy || !board[r][c]) return;
+    if (swMode) {
+      if (!swFirst) { setSwFirst({r:r,c:c}); return; }
+      if (swFirst.r === r && swFirst.c === c) { setSwFirst(null); return; }
+      var nb2 = board.map(function(row){ return row.slice(); });
+      var tmp = nb2[swFirst.r][swFirst.c]; nb2[swFirst.r][swFirst.c] = nb2[r][c]; nb2[r][c] = tmp;
+      setBoard(nb2); setSwap(function(p){ return p-1; }); skRef.current.swap++;
+      setSwMode(false); setSwFirst(null); notify('✅ 换位成功！'); return;
+    }
+    if (!sel) { setSel({r:r,c:c}); return; }
+    if (sel.r === r && sel.c === c) { setSel(null); return; }
+    var t1 = board[sel.r][sel.c], t2 = board[r][c];
+    if (t1.id === t2.id && t1.type !== t2.type) {
+      var vp = findPath({r:sel.r,c:sel.c},{r:r,c:c},board,N);
+      if (vp) {
+        setPath(vp); setBusy(true); setHtiles([]);
+        var sr = sel.r, sc = sel.c, er = r, ec = c;
+        var savedBoard = board;
+        setTimeout(function(){
+          spawnParticles(sr,sc,er,ec);
+          setFade([sr+'-'+sc, er+'-'+ec]);
+          setTimeout(function(){
+            var nb = savedBoard.map(function(row){ return row.slice(); });
+            nb[sr][sc] = null; nb[er][ec] = null;
+            setBoard(nb); setPath([]); setSel(null); setFade([]);
+            setMat(function(prev){
+              var nm = prev + 1;
+              if (nm === cfg.pairs) setTimeout(function(){ levelDone(nb); }, 300);
+              else if (!hasMoves(nb, bs, N, li)) setTimeout(function(){ doShuffle(nb, true); }, 400);
+              return nm;
+            });
+            setBusy(false);
+          }, 250);
+        }, 500);
+        return;
+      }
+    }
+    setSel({r:r,c:c});
+  }
+
+  // ── Render: non-playing screens ──
+  if (screen === 'welcome') return <Welcome onStart={function(){ setScreen('playing'); initLevel(0,0); }} onLeaderboard={function(){ setShowLB(true); }} onAdminTap={function(){ setShowAdminLogin(true); }}/>;
+  if (screen === 'playing' && phase === 'nameInput')
+    return <NameInput levelCount={doneN} onConfirm={function(n){ setPname(n); setScreen('certificate'); }}/>;
+  if (screen === 'certificate')
+    return <Certificate name={pname} totalTime={totTime} skills={totSk} completedAt={cat} levelCount={doneN} score={finalScore} onRestart={resetAll}/>;
+
+  // ── Board render ──
+  var step = 100 / bs;
+  var prog = mat / cfg.pairs;
+  var lvNames = ['一','二','三','四','五'];
+  var showBonus = phase === 'bonusChoice';
+  var showDone = phase === 'levelDone';
+
+  return (
+    <div style={{background:'linear-gradient(135deg,#0a0e1a,#0d1530)',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',padding:'10px 8px',userSelect:'none'}}>
+
+      <div style={{width:'100%',maxWidth:'640px',marginBottom:'8px'}}>
+        <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(0,245,255,.12)',borderRadius:'12px',padding:'9px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'6px'}}>
+          <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+            {LEVELS.map(function(lv,i){
+              if (lv.bonus && doneN < 3 && i !== li) return null;
+              var active = i === li, done = i < li;
+              return (
+                <div key={i} style={{padding:'4px 8px',borderRadius:'7px',display:'flex',alignItems:'center',gap:'3px',background:active?lv.col+'15':done?'rgba(16,185,129,.1)':'rgba(255,255,255,.04)',border:'1px solid '+(active?lv.col+'44':done?'rgba(16,185,129,.25)':'rgba(255,255,255,.06)')}}>
+                  <span style={{fontSize:'12px'}}>{done?'✅':active?lv.emoji:'○'}</span>
+                  <span style={{fontSize:'10px',fontWeight:700,color:active?lv.col:done?'#10b981':'rgba(148,163,184,.35)'}}>{'第'+lvNames[i]+'关'}{lv.bonus?' 💎':''}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:'9px',color:'rgba(148,163,184,.45)',marginBottom:'1px'}}>进度</div>
+              <div style={{fontSize:'14px',fontWeight:800,color:'#10b981'}}>{mat}<span style={{fontSize:'10px',color:'rgba(148,163,184,.3)'}}>/{cfg.pairs}</span></div>
+            </div>
+            <div style={{width:'1px',height:'22px',background:'rgba(148,163,184,.1)'}}/>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:'9px',color:'rgba(148,163,184,.45)',marginBottom:'1px'}}>耗时</div>
+              <div style={{fontSize:'14px',fontWeight:800,color:'#00f5ff',fontFamily:'monospace'}}>{fmtTime(time)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{height:'3px',background:'rgba(255,255,255,.05)',borderRadius:'99px',marginTop:'4px',overflow:'hidden'}}>
+          <div style={{height:'100%',width:(prog*100)+'%',background:'linear-gradient(90deg,#00f5ff,#7c3aed)',borderRadius:'99px',transition:'width .5s ease'}}/>
+        </div>
+      </div>
+
+      <div style={{width:'100%',maxWidth:'640px',position:'relative'}}>
+        <div ref={boardRef} style={{background:'rgba(255,255,255,.025)',border:'1px solid '+(swMode?'rgba(168,85,247,.4)':'rgba(0,245,255,.09)'),borderRadius:'13px',padding:'5px',position:'relative',aspectRatio:'1',backgroundImage:'linear-gradient(rgba(0,245,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.02) 1px,transparent 1px)',backgroundSize:step+'% '+step+'%'}}>
+          <Particles list={parts}/>
+          {board && (
+            <div style={{display:'grid',width:'100%',height:'100%',position:'relative',zIndex:10,gridTemplateColumns:'0 repeat('+bs+',1fr) 0',gridTemplateRows:'0 repeat('+bs+',1fr) 0'}}>
+              {board.map(function(row,r){
+                return row.map(function(cell,c){
+                  if (r===0||r===N-1||c===0||c===N-1) return <div key={r+'-'+c} style={{width:0,height:0,overflow:'hidden'}}/>;
+                  var isHol = hollow(li,r,c);
+                  var isSel = sel && sel.r===r && sel.c===c;
+                  var isHint = htiles.some(function(p){ return p.r===r&&p.c===c; });
+                  var isDis = fade.indexOf(r+'-'+c) >= 0;
+                  var isSw = swFirst && swFirst.r===r && swFirst.c===c;
+                  var catCol = cell ? (CAT[cell.cat]||'#64748b') : '#64748b';
+                  var symFS = bs===4?'clamp(22px,5.5vw,46px)':bs===6?'clamp(15px,3.6vw,34px)':'clamp(13px,2.8vw,28px)';
+                  var namFS = bs===4?'clamp(19px,4.5vw,38px)':bs===6?'clamp(13px,3vw,28px)':'clamp(11px,2.3vw,23px)';
+                  var numFS = bs<=6?'clamp(9px,1.2vw,13px)':'clamp(8px,1vw,11px)';
+                  if (isHol) return (
+                    <div key={r+'-'+c} style={{padding:'3px'}}>
+                      <div style={{width:'100%',height:'100%',borderRadius:'7px',background:'rgba(0,245,255,.04)',border:'1px dashed rgba(0,245,255,.15)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        <div style={{width:'28%',height:'28%',borderRadius:'50%',background:'rgba(0,245,255,.1)',boxShadow:'0 0 10px 3px rgba(0,245,255,.1)'}}/>
+                      </div>
+                    </div>
+                  );
+                  var cls = 'btn ' + (isDis?'td':isSw&&!isDis?'tw':isSel&&!isDis&&!swMode?'ts':isHint&&!isSel&&!isDis?'th':'');
+                  return (
+                    <div key={r+'-'+c} style={{padding:'3px'}}>
+                      {cell ? (
+                        <button onClick={function(){ handleTile(r,c); }} className={cls}
+                          style={{position:'relative',width:'100%',height:'100%',borderRadius:'7px',display:'flex',alignItems:'center',justifyContent:'center',background:cell.type==='name'?'linear-gradient(135deg,rgba(15,23,42,.97),rgba(30,41,59,.93))':'linear-gradient(135deg,rgba(15,23,42,.97),rgba(30,27,75,.93))',border:isSw?'2px solid #a855f7':isSel?'1.5px solid #00f5ff':isHint?'1.5px solid #fbbf24':'1px solid '+catCol}}>
+                          <div style={{position:'absolute',top:'2px',left:'3px',fontSize:numFS,color:'rgba(148,163,184,.45)',fontFamily:'monospace',fontWeight:700,lineHeight:1}}>{cell.id}</div>
+                          <span style={{fontWeight:800,lineHeight:1,fontSize:cell.type==='symbol'?symFS:namFS,color:cell.type==='symbol'?'#00f5ff':'#e2e8f0',fontFamily:cell.type==='symbol'?'monospace':'inherit',textShadow:cell.type==='symbol'?'0 0 10px #00f5ff88':'none'}}>{cell.val}</span>
+                        </button>
+                      ) : (
+                        <div style={{width:'100%',height:'100%'}}/>
+                      )}
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          )}
+          {notice && <div style={{position:'absolute',top:'10px',left:'50%',zIndex:60,background:'rgba(0,0,0,.88)',border:'1px solid rgba(0,245,255,.28)',borderRadius:'99px',padding:'5px 15px',fontSize:'12px',fontWeight:700,color:'#00f5ff',whiteSpace:'nowrap',animation:'pop .3s ease-out'}}>{notice}</div>}
+          {showDone && <LevelDone levelN={cfg.n} time={fmtTime(time)} onNext={handleNext}/>}
+        </div>
+        {swMode && (
+          <div style={{marginTop:'6px',padding:'7px 12px',background:'rgba(168,85,247,.1)',border:'1px solid rgba(168,85,247,.28)',borderRadius:'9px',fontSize:'12px',color:'#c084fc',fontWeight:600,textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
+            <span>{'🔀 '+(swFirst?'再点第二张牌完成换位':'请点选第一张牌')}</span>
+            <button onClick={function(){setSwMode(false);setSwFirst(null);}} style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'5px',padding:'2px 7px',color:'#c084fc',cursor:'pointer',fontSize:'11px',fontWeight:700}}>取消</button>
+          </div>
+        )}
+      </div>
+
+      <div style={{width:'100%',maxWidth:'640px',marginTop:'8px',display:'flex',justifyContent:'center',flexWrap:'wrap',gap:'6px'}}>
+        <SkBtn icon="💡" label="提示" count={hintN} color="#fbbf24" disabled={busy||hintN<=0||phase!=='playing'} onClick={handleHint}/>
+        <SkBtn icon="🔀" label="洗牌" count={shufN} color="#00f5ff" disabled={busy||shufN<=0||phase!=='playing'} onClick={function(){ doShuffle(board,false); }}/>
+        {cfg.swap > 0 && <SkBtn icon="↔" label="换位" count={swapN} color="#a855f7" active={swMode} disabled={swapN<=0||phase!=='playing'} onClick={handleSwapToggle}/>}
+        <SkBtn icon="↺" label="重新开始" color="#f87171" onClick={function(){ initLevel(li,0); }}/>
+        <SkBtn icon="🏅" label="排行榜" color="#a78bfa" onClick={function(){ setShowLB(true); }}/>
+      </div>
+
+      {showBonus && <BonusChoice completedN={doneN} time={fmtTime(totTime)} onBonus={handleBonusYes} onCert={handleBonusNo}/>}
+      {showLB && <Leaderboard onClose={function(){ setShowLB(false); }}/>}
+      {showAdminLogin && <AdminLogin onSuccess={function(){ setShowAdminLogin(false); setShowAdmin(true); }} onClose={function(){ setShowAdminLogin(false); }}/>}
+      {showAdmin && <AdminPanel onClose={function(){ setShowAdmin(false); }}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
