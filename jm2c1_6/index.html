@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>离子连连看</title>
+<title>离子连连看 · 华仁中学</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
 <!--峇株吧辖华仁中学蔡逸众制作-->
 <style>
@@ -225,10 +225,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .cc{display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:rgba(20,30,46,.7);border:1px solid var(--bdr);border-radius:8px;
   padding:7px 12px;cursor:pointer;transition:all .2s;width:100%;}
-.cc.active{border-color:var(--acc);background:rgba(167,139,250,.1);box-shadow:0 0 8px rgba(167,139,250,.17);}
+.cc.active{border-color:var(--acc);background:rgba(167,139,250,.1);box-shadow:0 0 10px rgba(167,139,250,.25);}
 .cc.ready{border-color:var(--ok);background:rgba(52,211,153,.08);box-shadow:0 0 10px rgba(52,211,153,.2);animation:readyPulse 2s ease-in-out infinite;}
-.cc.active.ready{border-color:var(--ok);background:rgba(52,211,153,.12);box-shadow:0 0 12px rgba(52,211,153,.3);animation:readyPulse 2s ease-in-out infinite;}
+.cc.active.ready{
+  border-color:var(--acc);
+  border-width:2px;
+  background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(52,211,153,.12));
+  box-shadow:0 0 0 2px rgba(52,211,153,.5),0 0 14px rgba(167,139,250,.35);
+  animation:activeReadyPulse 1.5s ease-in-out infinite;
+}
 @keyframes readyPulse{0%,100%{box-shadow:0 0 6px rgba(52,211,153,.15)}50%{box-shadow:0 0 16px rgba(52,211,153,.45);}}
+@keyframes activeReadyPulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(52,211,153,.4),0 0 10px rgba(167,139,250,.25);}
+  50%{box-shadow:0 0 0 3px rgba(52,211,153,.8),0 0 18px rgba(167,139,250,.5);}
+}
 .cc.done{border-color:var(--ok);background:rgba(52,211,153,.07);opacity:.55;cursor:default;animation:none;}
 .cc.done::after{content:'✓';color:var(--ok);font-size:.8rem;margin-left:4px;flex-shrink:0;}
 .cc-ready-tag{font-size:.48rem;color:var(--ok);font-family:'Orbitron',monospace;font-weight:700;
@@ -684,7 +694,8 @@ let compounds=[], grid=[], selected=[], activeIdx=null;
 let lvErrors=0, lvDone=0, lvElapsed=0, lvStartTime=0;
 let skH=3,skS=3,skW=3,skHU=0,skSU=0,skWU=0;
 let swapMode=false, swapFirst=null, animating=false;
-let timerIv=null;
+let timerIv=null, watchdogIv=null;
+let lastReshuffleTime=0; // cooldown to prevent rapid reshuffles
 let COLS=7, ROWS=5;
 
 // ══════════════════════════════════════════════════
@@ -697,7 +708,7 @@ function showPage(id){
 }
 //峇株吧辖蔡逸众制作
 function startGame(){showPage('pgGame');startLevel(0);}
-function restartAll(){document.getElementById('certBg').classList.remove('show');showPage('pgSplash');}
+function restartAll(){if(watchdogIv)clearInterval(watchdogIv);if(timerIv)clearInterval(timerIv);document.getElementById('certBg').classList.remove('show');showPage('pgSplash');}
 function restartCurrentLevel(){
   // Remove the last result entry since we're redoing this level
   if(lvResults.length>0)lvResults.pop();
@@ -715,7 +726,6 @@ function proceedNext(){
 function startLevel(idx){
   if(idx<0||idx>4){console.error("Invalid level:",idx);return;}
   lvIdx=idx;
-  _reshuffleTries=0;
   const cfg=GRIDS[idx];
   COLS=cfg.cols;ROWS=cfg.rows;
   lvErrors=0;lvDone=0;lvElapsed=0;selected=[];activeIdx=null;
@@ -751,8 +761,16 @@ function startLevel(idx){
   document.getElementById('sLv').style.color=LV_COLORS[idx];
 
   if(timerIv)clearInterval(timerIv);
+  if(watchdogIv)clearInterval(watchdogIv);
+  lastReshuffleTime=0;
   lvStartTime=Date.now();
   timerIv=setInterval(tickTimer,500);
+  // Watchdog: check every 1.5s if board is stuck, trigger reshuffle if needed
+  watchdogIv=setInterval(()=>{
+    if(animating||lvDone>=CMP_PER_LV)return;
+    if(Date.now()-lastReshuffleTime<2000)return; // cooldown after reshuffle
+    if(checkDeadlock())doReshuffle(false);
+  },1500);
 
   renderCompounds();rebuildHive();refreshOuter();updateUI();updateSkUI();
   activeIdx=0;highlightActive();
@@ -844,7 +862,6 @@ function refreshOuter(){
 }
 
 // Mark compounds that are fully completable from current outer ring
-let _reshuffling=false; // guard against infinite loop
 function markReadyCompounds(){
   const outer=outerCount();
   let anyReady=false;
@@ -860,20 +877,22 @@ function markReadyCompounds(){
     if(el){
       el.classList.toggle('ready',ready);
       const existing=el.querySelector('.cc-ready-tag');
-      if(ready&&!existing){
-        const tag=document.createElement('span');
-        tag.className='cc-ready-tag';tag.textContent='可配对';
-        el.appendChild(tag);
+      const isActive=(i===activeIdx);
+      if(ready){
+        const tagText=isActive?'✓ 已选中·可配对':'可配对';
+        if(!existing){
+          const tag=document.createElement('span');
+          tag.className='cc-ready-tag';tag.textContent=tagText;
+          el.appendChild(tag);
+        } else {
+          existing.textContent=tagText;
+        }
       } else if(!ready&&existing){
         existing.remove();
       }
     }
   });
-  // Only trigger reshuffle if not already reshuffling (prevents infinite loop)
-  const unfinished=compounds.filter(c=>!c.done);
-  if(unfinished.length>0&&!anyReady&&!_reshuffling&&!animating){
-    setTimeout(()=>{if(!_reshuffling)doReshuffle(false);},500);
-  }
+  // Visual-only function: watchdog handles reshuffling
   return anyReady;
 }
 
@@ -954,14 +973,11 @@ function replenishMissingIons(){
   return true;
 }
 
-let _reshuffleTries=0;
 function doReshuffle(silent=false){
-  if(_reshuffling)return; // prevent re-entry
-  _reshuffling=true;
-  _reshuffleTries++;
+  lastReshuffleTime=Date.now();
   const replenished=replenishMissingIons();
   if(!silent){
-    showToast(replenished?'🔀 卡关！补充离子并洗牌！':'🔀 卡关检测，自动洗牌！','warn');
+    showToast(replenished?'🔀 卡关！补充离子并洗牌！':'🔀 卡关，自动洗牌！','warn');
   }
   let pool=[],pos=[];
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
@@ -970,13 +986,7 @@ function doReshuffle(silent=false){
   pool=shuffle(pool);
   pos.forEach(([c,r],i)=>setCell(c,r,{...pool[i],sel:false}));
   clearSel();rebuildHive();refreshOuter();
-  // Check if still stuck after reshuffle (max 4 tries total)
-  if(_reshuffleTries<4&&checkDeadlock()){
-    setTimeout(()=>{_reshuffling=false;doReshuffle(true);},300);
-  } else {
-    _reshuffleTries=0;
-    _reshuffling=false;
-  }
+  // Watchdog will check again after cooldown expires and retry if still stuck
 }
 
 
@@ -1054,16 +1064,40 @@ function confirmSel(){
         highlightActive();refreshOuter();animating=false;
         if(lvDone===CMP_PER_LV){
           clearInterval(timerIv);
+          clearInterval(watchdogIv);
           lvElapsed=Math.floor((Date.now()-lvStartTime)/1000);
           setTimeout(()=>finishLevel(),600);
-        } // deadlock auto-detected by markReadyCompounds via refreshOuter
+        }
       });
     },460);
     showToast(`✓ ${cmp.f} 配对成功！`);
   } else {
     lvErrors++;
     picked.forEach(cell=>{const el=document.getElementById(`hx-${cell.id}`);el?.classList.add('ferr');setTimeout(()=>el?.classList.remove('ferr'),440);});
-    showToast('✗ 配对错误，请再试！',true);updateUI();
+    // Build detailed error message
+    const reqMap={};
+    cmp.ions.forEach(ion=>{reqMap[ion.s+'|'+ion.q]={s:ion.s,q:ion.q,need:ion.n,have:cnt[ion.s+'|'+ion.q]||0};});
+    // Find extra ions (not in requirement at all, or used too many)
+    const excess=[];
+    Object.entries(cnt).forEach(([k,have])=>{
+      if(!reqMap[k]){
+        const [s,q]=k.split('|');excess.push(`${s}${q}`);}
+      else if(have>reqMap[k].need){
+        excess.push(`${reqMap[k].s}${reqMap[k].q}(多${have-reqMap[k].need}个)`);}
+    });
+    const missing=[];
+    Object.values(reqMap).forEach(({s,q,need,have})=>{
+      if(have<need)missing.push(`${s}${q}(少${need-have}个)`);
+    });
+    let msg;
+    if(excess.length>0){
+      msg=`合成${cmp.n}并不需要 ${excess.slice(0,2).join('、')} 哦！`;
+    } else if(missing.length>0){
+      msg=`要合成${cmp.n}还需要 ${missing.slice(0,2).join('、')} 哦！`;
+    } else {
+      msg=`✗ 配对错误，请再试！`;
+    }
+    showToast(msg,true);updateUI();
   }
 }
 
@@ -1241,7 +1275,17 @@ function renderCompounds(){
     list.appendChild(div);
   });
 }
-function highlightActive(){document.querySelectorAll('.cc').forEach((el,i)=>el.classList.toggle('active',i===activeIdx&&!compounds[i]?.done));}
+function highlightActive(){
+  document.querySelectorAll('.cc').forEach((el,i)=>{
+    const isActive=i===activeIdx&&!compounds[i]?.done;
+    el.classList.toggle('active',isActive);
+    // Update ready tag text to reflect selection state
+    const tag=el.querySelector('.cc-ready-tag');
+    if(tag&&compounds[i]&&!compounds[i].done&&compounds[i].outerReady){
+      tag.textContent=isActive?'✓ 已选中·可配对':'可配对';
+    }
+  });
+}
 function showToast(msg,type=false){
   const t=document.getElementById('toast');t.textContent=msg;
   t.className='toast'+(type===true?' err':type==='warn'?' warn':type==='info'?' info':'')+' show';
@@ -1304,9 +1348,9 @@ function drawCert(name){
   ctx.save();ctx.textAlign='center';
   ctx.fillStyle='rgba(20,30,50,.8)';ctx.strokeStyle=gr.c+'60';ctx.lineWidth=2;
   cRR(ctx,W/2-82,336,164,70,11);ctx.fill();ctx.stroke();
-  ctx.font='bold 42px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.shadowColor=gr.c;ctx.shadowBlur=14;ctx.fillText(gr.g,W/2-30,390);
+  ctx.font='bold 50px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.shadowColor=gr.c;ctx.shadowBlur=14;ctx.fillText(gr.g,W/2-30,390);
   ctx.shadowBlur=0;ctx.font='bold 14px "Noto Sans SC"';ctx.fillStyle=gr.c;ctx.fillText(gr.l,W/2+30,374);
-  ctx.font='10px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.48)';ctx.fillText(`${fin} pts`,W/2+30,392);ctx.restore();
+  ctx.font='15px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.48)';ctx.fillText(`${fin} pts`,W/2+30,392);ctx.restore();
   ctx.save();ctx.textAlign='center';ctx.font='10px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.3)';
   ctx.fillText(`原始总分 ${totalRaw()} × 1.5 = ${fin} 分　（满分5400）`,W/2,424);ctx.restore();
   cLDiv(ctx,W/2,436,120);
@@ -1314,7 +1358,7 @@ function drawCert(name){
   // 5-level table
   const tY=448,rH=56,cW=(W-80)/4,sX=40;
   ['关卡','用时','错误','本关分'].forEach((h,i)=>{
-    ctx.font='bold 8px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.32)';ctx.textAlign='center';
+    ctx.font='bold 12px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.32)';ctx.textAlign='center';
     ctx.fillText(h,sX+i*cW+cW/2,tY);
   });
   lvResults.forEach((res,ri)=>{
@@ -1322,10 +1366,10 @@ function drawCert(name){
     ctx.fillStyle='rgba(18,28,46,.6)';ctx.strokeStyle=LV_COLORS[ri]+'30';ctx.lineWidth=1;
     cRR(ctx,sX,y,W-80,rH-5,7);ctx.fill();ctx.stroke();
     ctx.textAlign='center';
-    ctx.font='bold 11px "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri];ctx.fillText(LV_NAMES[ri],sX+cW/2,y+22);
-    ctx.font='8px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.3)';
+    ctx.font='bold 13px "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri];ctx.fillText(LV_NAMES[ri],sX+cW/2,y+22);
+    ctx.font='12px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.3)';
     ctx.fillText(`💡${res.hU} 🔀${res.sU} 🔃${res.wU}`,sX+cW/2,y+38);
-    ctx.font='bold 12px "Orbitron",monospace';ctx.fillStyle='#e2e8f0';ctx.fillText(fmtT(res.time),sX+cW+cW/2,y+24);
+    ctx.font='bold 16px "Orbitron",monospace';ctx.fillStyle='#e2e8f0';ctx.fillText(fmtT(res.time),sX+cW+cW/2,y+24);
     ctx.fillStyle=res.errors>0?'#f87171':'#34d399';ctx.fillText(String(res.errors),sX+cW*2+cW/2,y+24);
     ctx.fillStyle='#a78bfa';ctx.fillText(String(res.raw),sX+cW*3+cW/2,y+24);
   });
@@ -1342,12 +1386,12 @@ function drawCert(name){
   // compound lists
   lvResults.forEach((res,ri)=>{
     const list=res.cmps.map(c=>c.f).join('  ');
-    ctx.save();ctx.textAlign='center';ctx.font='8.5px "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri]+'88';
+    ctx.save();ctx.textAlign='center';ctx.font='11x "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri]+'88';
     ctx.fillText(`${LV_NAMES[ri]}：${list}`,W/2,afterTable+46+ri*16);ctx.restore();
   });
   // date
   const dateY=afterTable+46+5*16+10;
-  ctx.save();ctx.textAlign='center';ctx.font='10px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.22)';
+  ctx.save();ctx.textAlign='center';ctx.font='12px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.22)';
   ctx.fillText(`完成日期：${new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'})}`,W/2,dateY);ctx.restore();
   // seal
   const sealY=dateY+72;
@@ -1355,7 +1399,7 @@ function drawCert(name){
   // bottom hex
   ctx.save();['#22d3ee','#a78bfa','#f59e0b','#a78bfa','#22d3ee'].forEach((col,i)=>{ctx.globalAlpha=.36;ctx.fillStyle=col;cHexF(ctx,W/2+(i-2)*40,H-38,10);});ctx.restore();
   // watermark text (shown on canvas, removed on download)
-  ctx.save();ctx.textAlign='center';ctx.font='7.5px "Noto Sans SC"';ctx.fillStyle='rgba(74,96,122,.38)';
+  ctx.save();ctx.textAlign='center';ctx.font='9px "Noto Sans SC"';ctx.fillStyle='rgba(74,96,122,.38)';
   ctx.fillText('峇株吧辖华仁中学 · 蔡逸众制作',W/2,H-18);ctx.restore();
 }
 
@@ -1371,7 +1415,7 @@ function cSeal(ctx,cx,cy,gr){
   const sg=ctx.createRadialGradient(cx,cy,10,cx,cy,44);sg.addColorStop(0,gr.c+'38');sg.addColorStop(1,'rgba(10,16,26,.04)');
   ctx.fillStyle=sg;ctx.fill();ctx.strokeStyle=gr.c+'72';ctx.lineWidth=2;ctx.stroke();
   ctx.fillStyle=gr.c+'26';cHexF(ctx,cx,cy,26);ctx.fill();ctx.strokeStyle=gr.c+'82';ctx.lineWidth=1.5;cHexF(ctx,cx,cy,26);ctx.stroke();
-  ctx.font='bold 18px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.textAlign='center';ctx.shadowColor=gr.c;ctx.shadowBlur=9;ctx.fillText(gr.g,cx,cy+6);ctx.shadowBlur=0;
+  ctx.font='bold 22px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.textAlign='center';ctx.shadowColor=gr.c;ctx.shadowBlur=9;ctx.fillText(gr.g,cx,cy+6);ctx.shadowBlur=0;
   for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.strokeStyle=gr.c+'44';ctx.lineWidth=i%3===0?2:1;ctx.beginPath();ctx.moveTo(cx+34*Math.cos(a),cy+34*Math.sin(a));ctx.lineTo(cx+41*Math.cos(a),cy+41*Math.sin(a));ctx.stroke();}
   ctx.restore();
 }
