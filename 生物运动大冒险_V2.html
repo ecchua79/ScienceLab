@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🏃 生物运动大冒险 2.0 | 10种玩法挑战</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg-1: #0f172a;
+    --accent: #10b981;
+    --accent-2: #f59e0b;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --card: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.15);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #065f46 100%);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(16,185,129,0.2), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(139,92,246,0.2), transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+  }
+
+  .screen { display: none; animation: fadeIn 0.5s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ========== 开始界面 ========== */
+  .start-screen { text-align: center; padding: 30px 16px; }
+
+  .title {
+    font-size: clamp(30px, 7.5vw, 48px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #10b981, #f59e0b, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: clamp(13px, 3.5vw, 17px);
+    margin-bottom: 20px;
+  }
+
+  .hero-emoji {
+    font-size: clamp(70px, 18vw, 110px);
+    margin: 15px 0;
+    animation: bounce 2s infinite;
+    display: inline-block;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  .info-card {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    margin: 12px 0;
+    text-align: left;
+  }
+
+  .info-card h3 {
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-size: 17px;
+  }
+
+  .game-types-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .type-chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), #059669);
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(16,185,129,0.4);
+    transition: all 0.3s;
+    margin: 8px 5px;
+    font-family: inherit;
+  }
+
+  .btn:hover, .btn:active {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 15px 35px rgba(16,185,129,0.6);
+  }
+
+  .btn.secondary {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    box-shadow: 0 10px 30px rgba(139,92,246,0.4);
+  }
+
+  /* ========== HUD ========== */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .hud-item .icon { font-size: 18px; }
+  .hud-item.score { color: var(--accent-2); }
+  .hud-item.lives { color: var(--danger); }
+  .hud-item.level { color: var(--purple); }
+  .hud-item.combo { color: var(--accent); }
+
+  .progress-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.3s;
+  }
+
+  .timer-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--danger));
+    transition: width 0.1s linear;
+  }
+
+  .question-card {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-type-tag {
+    display: inline-block;
+    background: rgba(245,158,11,0.2);
+    color: var(--accent-2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .question-text {
+    font-size: clamp(16px, 4.3vw, 21px);
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .question-hint {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  /* ========== 选项（选择题） ========== */
+  .options {
+    display: grid;
+    gap: 10px;
+  }
+
+  .option {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--border);
+    color: var(--text);
+    padding: 14px 18px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(16,185,129,0.1);
+    transform: translateX(4px);
+  }
+
+  .option.correct {
+    background: rgba(16,185,129,0.3);
+    border-color: var(--accent);
+    animation: correctPulse 0.5s;
+  }
+
+  .option.wrong {
+    background: rgba(239,68,68,0.3);
+    border-color: var(--danger);
+    animation: shake 0.5s;
+  }
+
+  @keyframes correctPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+  /* ========== 判断题 ========== */
+  .tf-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .tf-btn {
+    padding: 30px 16px;
+    font-size: 24px;
+    font-weight: 900;
+    border-radius: 16px;
+    border: 3px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: white;
+  }
+
+  .tf-btn.true-btn { background: linear-gradient(135deg, #10b981, #059669); }
+  .tf-btn.false-btn { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .tf-btn:hover:not(:disabled) { transform: scale(1.05); }
+
+  /* ========== 配对题 ========== */
+  .match-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .match-col h4 {
+    color: var(--accent-2);
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .drag-item, .drop-zone {
+    background: rgba(255,255,255,0.08);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .drag-item.matched { opacity: 0.4; cursor: default; }
+  .drop-zone.filled { background: rgba(16,185,129,0.2); border-style: solid; border-color: var(--accent); }
+  .drop-zone.wrong-flash { background: rgba(239,68,68,0.3); border-color: var(--danger); }
+  .drag-item.selected {
+    border-color: var(--accent-2);
+    background: rgba(245,158,11,0.2);
+    transform: scale(1.02);
+  }
+
+  /* ========== 分类题 ========== */
+  .classify-card-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
+    min-height: 60px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+  }
+
+  .classify-card {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 14px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .classify-card.selected { border-color: white; transform: scale(1.1); }
+  .classify-card.placed { display: none; }
+
+  .classify-bins {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .classify-bin {
+    background: rgba(255,255,255,0.05);
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    min-height: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .classify-bin.hover { border-color: var(--accent); background: rgba(16,185,129,0.1); }
+
+  .classify-bin h5 {
+    text-align: center;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .bin-contents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .bin-contents .placed-card {
+    background: rgba(16,185,129,0.3);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+  }
+
+  .bin-contents .placed-card.wrong {
+    background: rgba(239,68,68,0.3);
+  }
+
+  /* ========== 排序题 ========== */
+  .sort-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sort-item {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .sort-item.selected {
+    border-color: var(--accent-2);
+    background: rgba(245,158,11,0.15);
+  }
+
+  .sort-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sort-arrow {
+    background: var(--purple);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .sort-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .sort-number {
+    background: var(--accent);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  .sort-text { flex: 1; }
+
+  /* ========== 填空题 ========== */
+  .fill-blank {
+    font-size: 18px;
+    line-height: 2.2;
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .blank-input {
+    display: inline-block;
+    min-width: 120px;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid var(--accent-2);
+    border-radius: 8px;
+    color: white;
+    font-size: 17px;
+    font-weight: 700;
+    text-align: center;
+    font-family: inherit;
+    margin: 0 4px;
+  }
+
+  .blank-input:focus { outline: none; border-color: var(--accent); }
+  .blank-input.correct { background: rgba(16,185,129,0.3); border-color: var(--accent); }
+  .blank-input.wrong { background: rgba(239,68,68,0.3); border-color: var(--danger); }
+
+  .word-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .word-chip {
+    background: rgba(139,92,246,0.3);
+    border: 1px solid var(--purple);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+  }
+
+  .word-chip:hover { background: rgba(139,92,246,0.5); }
+  .word-chip.used { opacity: 0.3; cursor: not-allowed; }
+
+  /* ========== 反应挑战题 ========== */
+  .reaction-zone {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .reaction-rule {
+    background: rgba(16,185,129,0.15);
+    border: 2px solid var(--accent);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 15px;
+  }
+
+  .reaction-display {
+    font-size: clamp(36px, 10vw, 64px);
+    font-weight: 900;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(139,92,246,0.2));
+    border-radius: 20px;
+    margin-bottom: 16px;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .reaction-display.flash-correct { background: rgba(16,185,129,0.5); }
+  .reaction-display.flash-wrong { background: rgba(239,68,68,0.5); }
+
+  .reaction-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .reaction-btn {
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 900;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    color: white;
+    font-family: inherit;
+  }
+
+  .reaction-btn.tap { background: linear-gradient(135deg, #10b981, #059669); }
+  .reaction-btn.skip { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+  .reaction-progress {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+  }
+
+  .reaction-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .reaction-dot.correct { background: var(--accent); }
+  .reaction-dot.wrong { background: var(--danger); }
+
+  /* ========== 拮抗肌模拟器 ========== */
+  .arm-simulator {
+    text-align: center;
+    padding: 10px;
+  }
+
+  .arm-canvas-wrap {
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    padding: 20px 10px;
+    margin: 16px 0;
+  }
+
+  .arm-svg {
+    width: 100%;
+    max-width: 400px;
+    height: 240px;
+  }
+
+  .arm-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .arm-ctrl-group {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .arm-ctrl-group h5 {
+    color: var(--accent-2);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .arm-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: rgba(139,92,246,0.3);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .arm-btn.active {
+    background: var(--accent);
+    border-color: white;
+  }
+
+  .arm-task {
+    background: rgba(245,158,11,0.15);
+    border: 2px solid var(--accent-2);
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .arm-submit {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+  }
+
+  /* ========== 植物生长题 ========== */
+  .plant-scene {
+    background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 60%, #92400e 60%, #78350f 100%);
+    height: 280px;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .sun {
+    position: absolute;
+    font-size: 40px;
+    transition: all 0.5s;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .plant-pot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 50px;
+  }
+
+  .plant-stem {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    width: 8px;
+    background: linear-gradient(180deg, #22c55e, #16a34a);
+    border-radius: 4px;
+    transform-origin: bottom center;
+    transition: all 0.8s ease;
+  }
+
+  .plant-flower {
+    position: absolute;
+    font-size: 30px;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all 0.5s;
+  }
+
+  .stimulus-picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .stim-btn {
+    padding: 10px 4px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    border-radius: 10px;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .stim-btn.selected { border-color: var(--accent-2); background: rgba(245,158,11,0.2); }
+
+  /* ========== 找茬题 ========== */
+  .spot-statements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .statement-item {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.6;
+    transition: all 0.2s;
+  }
+
+  .statement-item:hover { border-color: var(--accent); background: rgba(16,185,129,0.08); }
+  .statement-item.found { border-color: var(--danger); background: rgba(239,68,68,0.2); }
+  .statement-item.safe { border-color: var(--accent); background: rgba(16,185,129,0.2); }
+
+  /* ========== 解释弹窗 ========== */
+  .explanation {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+    animation: slideUp 0.4s;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .explanation.correct { border-color: var(--accent); }
+  .explanation.wrong { border-color: var(--danger); }
+
+  .explanation-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+
+  .explanation-title.correct { color: var(--accent); }
+  .explanation-title.wrong { color: var(--danger); }
+
+  .explanation p { font-size: 14px; line-height: 1.6; color: #cbd5e1; }
+
+  .next-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent-2), #d97706);
+    border: none;
+    color: white;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+  }
+
+  .check-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), #059669);
+    border: none;
+    color: white;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+  }
+
+  .combo-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 60px;
+    font-weight: 900;
+    color: var(--accent-2);
+    text-shadow: 0 0 20px rgba(245,158,11,0.8);
+    pointer-events: none;
+    z-index: 100;
+    animation: comboPop 1s ease-out forwards;
+  }
+  @keyframes comboPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -150%) scale(0.8); }
+  }
+
+  .level-transition {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 200;
+    animation: fadeIn 0.3s;
+  }
+
+  .level-transition h1 {
+    font-size: clamp(40px, 10vw, 70px);
+    color: var(--accent);
+    margin-bottom: 10px;
+    animation: zoomIn 0.6s;
+  }
+  @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .level-transition p { font-size: 18px; color: var(--muted); }
+
+  /* ========== 结算 & 证书 ========== */
+  .result-screen { text-align: center; padding: 20px 16px; }
+  .result-emoji { font-size: clamp(60px, 16vw, 90px); margin-bottom: 10px; }
+  .result-title {
+    font-size: clamp(24px, 6.5vw, 36px);
+    font-weight: 900;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #f59e0b, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .stat-box {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .stat-label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 900; color: var(--accent); }
+
+  .achievements {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin: 14px 0;
+  }
+
+  .badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    animation: zoomIn 0.5s;
+  }
+
+  .name-input-area { margin: 16px 0; }
+  .name-input-area label { display: block; margin-bottom: 6px; color: var(--muted); }
+
+  .name-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 17px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    text-align: center;
+    font-family: inherit;
+  }
+
+  .name-input:focus { outline: none; border-color: var(--accent); }
+
+  #certificate {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #1e293b;
+    padding: 30px 22px;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+    position: relative;
+    border: 6px double #d97706;
+    font-family: Georgia, serif;
+  }
+
+  #certificate::before {
+    content: '';
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid #d97706;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+
+  .cert-header {
+    font-size: 13px;
+    color: #92400e;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .cert-title {
+    font-size: clamp(22px, 6vw, 30px);
+    font-weight: 900;
+    color: #7c2d12;
+    margin-bottom: 12px;
+  }
+
+  .cert-subtitle { font-size: 12px; color: #78350f; margin-bottom: 16px; }
+  .cert-body { font-size: 13px; color: #1f2937; margin: 12px 0; line-height: 1.7; }
+
+  .cert-name {
+    font-size: clamp(24px, 6.5vw, 32px);
+    font-weight: 900;
+    color: #7c2d12;
+    padding: 8px 18px;
+    border-bottom: 2px solid #d97706;
+    display: inline-block;
+    margin: 8px 0;
+    font-style: italic;
+  }
+
+  .cert-score-row {
+    display: flex;
+    justify-content: space-around;
+    margin: 14px 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .cert-score-item { text-align: center; padding: 4px 10px; }
+  .cert-score-label { font-size: 10px; color: #92400e; letter-spacing: 1px; text-transform: uppercase; }
+  .cert-score-value { font-size: 20px; font-weight: 900; color: #7c2d12; }
+  .cert-praise { font-size: 15px; color: #7c2d12; font-weight: 700; margin: 10px 0; font-style: italic; }
+  .cert-seal { font-size: 36px; margin: 6px 0; }
+
+  .cert-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    font-size: 10px;
+    color: #78350f;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .save-tip {
+    background: rgba(245,158,11,0.15);
+    border: 1px solid var(--accent-2);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #fef3c7;
+    text-align: left;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .hud { font-size: 12px; padding: 8px 10px; }
+    .hud-item .icon { font-size: 16px; }
+    .btn { padding: 14px 28px; font-size: 16px; }
+    .game-types-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 🏁 开始界面 -->
+  <div id="start-screen" class="screen active">
+    <div class="start-screen">
+      <div class="hero-emoji">🦴💪🌱</div>
+      <h1 class="title">生物运动大冒险 2.0</h1>
+      <p class="subtitle">🎮 10 种玩法 · 16 道题 · 3 大关卡</p>
+
+      <div class="info-card">
+        <h3>🎯 游戏目标</h3>
+        <p style="font-size:14px; line-height:1.7;">
+          穿越 3 大关卡，用 <b style="color:#f59e0b">10 种不同玩法</b> 掌握「生物运动」知识！
+          答对得分，连对加成，3 条命都没了就 Game Over～
+        </p>
+      </div>
+
+      <div class="info-card">
+        <h3>🎲 题型大揭秘</h3>
+        <div class="game-types-grid">
+          <div class="type-chip">📝 选择题</div>
+          <div class="type-chip">✅ 判断题</div>
+          <div class="type-chip">🧩 拖拽配对</div>
+          <div class="type-chip">📦 分类投放</div>
+          <div class="type-chip">🔢 顺序排列</div>
+          <div class="type-chip">✏️ 填空题</div>
+          <div class="type-chip">⚡ 反应挑战</div>
+          <div class="type-chip">💪 拮抗肌模拟</div>
+          <div class="type-chip">🌻 植物生长</div>
+          <div class="type-chip">🕵️ 找错题</div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="startGame()">🚀 开始冒险</button>
+    </div>
+  </div>
+
+  <!-- 🎮 游戏界面 -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-item level"><span class="icon">🎖️</span><span id="level-display">LV.1</span></div>
+      <div class="hud-item score"><span class="icon">⭐</span><span id="score-display">0</span></div>
+      <div class="hud-item combo"><span class="icon">🔥</span>×<span id="combo-display">0</span></div>
+      <div class="hud-item lives"><span class="icon">❤️</span><span id="lives-display">3</span></div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+
+    <div class="timer-bar">
+      <div class="timer-fill" id="timer-fill" style="width: 100%"></div>
+    </div>
+
+    <div id="question-container"></div>
+  </div>
+
+  <!-- 🏆 结算界面 -->
+  <div id="result-screen" class="screen">
+    <div class="result-screen">
+      <div class="result-emoji" id="result-emoji">🎉</div>
+      <h1 class="result-title" id="result-title">挑战完成！</h1>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">⭐ 总得分</div>
+          <div class="stat-value" id="final-score">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">✅ 正确率</div>
+          <div class="stat-value" id="final-accuracy">0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">⏱️ 用时</div>
+          <div class="stat-value" id="final-time">0s</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">🔥 最高连击</div>
+          <div class="stat-value" id="final-combo">0</div>
+        </div>
+      </div>
+
+      <div class="achievements" id="achievements"></div>
+
+      <div class="name-input-area">
+        <label>📝 输入你的姓名获取证书：</label>
+        <input type="text" id="name-input" class="name-input" placeholder="你的名字" maxlength="15">
+      </div>
+
+      <div class="btn-group">
+        <button class="btn" onclick="generateCertificate()">🏆 生成证书</button>
+        <button class="btn secondary" onclick="restartGame()">🔁 再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📜 证书界面 -->
+  <div id="certificate-screen" class="screen">
+    <div style="padding: 20px 0;">
+      <div id="certificate">
+        <div class="cert-header">◆ Certificate of Achievement ◆</div>
+        <div class="cert-title">🏆 生物运动大师</div>
+        <div class="cert-subtitle">初一科学 · 第5章 · 生物的运动</div>
+        <div class="cert-body">兹证明</div>
+        <div class="cert-name" id="cert-name">同学</div>
+        <div class="cert-body">
+          成功通过「生物运动大冒险 2.0」10种玩法挑战，<br>
+          展现了对生物运动原理的扎实理解！
+        </div>
+        <div class="cert-score-row">
+          <div class="cert-score-item">
+            <div class="cert-score-label">总分</div>
+            <div class="cert-score-value" id="cert-score">0</div>
+          </div>
+          <div class="cert-score-item">
+            <div class="cert-score-label">正确率</div>
+            <div class="cert-score-value" id="cert-accuracy">0%</div>
+          </div>
+          <div class="cert-score-item">
+            <div class="cert-score-label">用时</div>
+            <div class="cert-score-value" id="cert-time">0s</div>
+          </div>
+        </div>
+        <div class="cert-seal">🎖️</div>
+        <div class="cert-praise" id="cert-praise">Excellent Work!</div>
+        <div class="cert-footer">
+          <div>日期: <span id="cert-date"></span></div>
+          <div>科学老师 Claude 🤖</div>
+        </div>
+      </div>
+
+      <div class="save-tip">
+        💡 <b>保存提示：</b>点击「下载证书」保存为 PNG 图片，或长按证书截图分享！
+      </div>
+
+      <div class="btn-group">
+        <button class="btn" onclick="downloadCertificate()">📥 下载证书</button>
+        <button class="btn secondary" onclick="restartGame()">🔁 再挑战</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+// ============ 题库（10种题型，严格基于课文）============
+const QUESTIONS = [
+  // ===== LEVEL 1 =====
+  {
+    level: 1,
+    type: 'mcq',
+    typeTag: '📝 选择题',
+    question: '🏃 陆地上跑得最快的哺乳动物是谁？',
+    hint: '它的速度能追上高速公路上的汽车！',
+    options: ['老虎', '猎豹', '狮子', '羚羊'],
+    answer: 1,
+    explain: '猎豹在短距离内可达每小时90-110公里！秘诀：细长四肢 + 柔软脊椎（像弹簧）+ 强壮肌肉快速伸缩。'
+  },
+  {
+    level: 1,
+    type: 'tf',
+    typeTag: '✅ 判断题',
+    question: '🦀 螃蟹的骨骼长在身体外面，叫做外骨骼。',
+    hint: '你吃螃蟹时那层硬壳是什么？',
+    answer: true,
+    explain: '完全正确！螃蟹是无脊椎动物，骨骼长在身体外面 = 外骨骼 (exoskeleton)。像铠甲一样保护柔软的身体～'
+  },
+  {
+    level: 1,
+    type: 'classify',
+    typeTag: '📦 分类投放',
+    question: '🧩 把下列动物拖到正确的支撑系统分类里！',
+    hint: '点一下卡片，再点对应的分类框',
+    cards: [
+      { text: '🐟 鱼', category: 0 },
+      { text: '🦐 虾', category: 1 },
+      { text: '🪱 蚯蚓', category: 2 },
+      { text: '👤 人', category: 0 },
+      { text: '🦀 螃蟹', category: 1 },
+      { text: '🪰 蜻蜓', category: 1 }
+    ],
+    bins: ['内骨骼', '外骨骼', '流体骨骼'],
+    explain: '脊椎动物（鱼、人）→ 内骨骼；有硬壳的昆虫和甲壳类（虾、螃蟹、蜻蜓）→ 外骨骼；软体无脊椎动物（蚯蚓）→ 流体骨骼（体内液体压力支撑）。'
+  },
+  {
+    level: 1,
+    type: 'fill',
+    typeTag: '✏️ 填空题',
+    hint: '从下方词库选词填空（两个空顺序可以对调～）',
+    template: '人体的运动系统由 [0] 系统 和 [1] 系统 组成。',
+    blanks: ['骨骼', '肌肉'],
+    orderless: true,
+    wordBank: ['骨骼', '肌肉', '神经', '消化', '皮肤', '关节'],
+    explain: '人体运动系统 = 骨骼系统 + 肌肉系统（顺序可以对调）。骨骼是支架（钢筋），肌肉是发动机（发力），两者缺一不可！'
+  },
+  {
+    level: 1,
+    type: 'mcq',
+    typeTag: '📝 选择题',
+    question: '🦴 软骨的主要特点是？',
+    hint: '钙质含量如何？硬还是软？',
+    options: ['钙多、很硬', '钙少、有弹性', '完全没有钙', '比硬骨还硬'],
+    answer: 1,
+    explain: '软骨钙质少，相对柔软有弹性！常作为关节骨头末端的"软垫"减少摩擦，也维持鼻尖、外耳廓的形状。'
+  },
+
+  // ===== LEVEL 2 =====
+  {
+    level: 2,
+    type: 'reaction',
+    typeTag: '⚡ 反应挑战',
+    question: '⚡ 反应挑战：看到「随意肌相关」才点击！',
+    hint: '规则：你能用意志控制的肌肉才点"是"，否则点"否"',
+    rule: '💡 随意肌 = 你能控制的；不随意肌 = 你控制不了的',
+    targets: [
+      { text: '打字时的手指', isTarget: true },
+      { text: '心脏跳动', isTarget: false },
+      { text: '走路时的腿', isTarget: true },
+      { text: '肠胃蠕动', isTarget: false },
+      { text: '写字时的手', isTarget: true },
+      { text: '血管平滑肌', isTarget: false }
+    ],
+    explain: '随意肌 = 骨骼肌（四肢、躯体，自己控制）；不随意肌 = 心肌（心脏）+ 平滑肌（血管、内脏），不受意志控制！'
+  },
+  {
+    level: 2,
+    type: 'match',
+    typeTag: '🧩 拖拽配对',
+    question: '🧩 把关节类型和例子配对！',
+    hint: '点一下左边的，再点右边对应的',
+    pairs: [
+      { left: '🧠 头颅扁平骨', right: '不动关节' },
+      { left: '🐍 脊椎骨之间', right: '微动关节' },
+      { left: '💪 手臂肩膀', right: '活动关节' }
+    ],
+    explain: '不动关节：被纤维拉紧，完全不动（保护大脑）；微动关节：软骨连接，可以轻微弯曲（脊椎让你能弯腰）；活动关节：可以大幅度活动（四肢才能跑跳）。'
+  },
+  {
+    level: 2,
+    type: 'mcq',
+    typeTag: '📝 选择题',
+    question: '🔗 肌腱和韧带的区别是？',
+    hint: '"腱"和"带"各自连接什么？',
+    options: [
+      '肌腱连骨头和骨头，韧带连肌肉和骨头',
+      '肌腱连肌肉和骨头，韧带连骨头和骨头',
+      '它们是一样的',
+      '肌腱只在关节处，韧带在身上到处都是'
+    ],
+    answer: 1,
+    explain: '记住口诀：肌「腱」连肌肉和骨头 → 传递肌肉拉力；韧「带」绑两块骨头 → 加强关节稳定。搞混的话就想：腱有"月"字旁（肌肉），带是"绳索"（捆骨头）。'
+  },
+  {
+    level: 2,
+    type: 'spot',
+    typeTag: '🕵️ 找错题',
+    question: '🕵️ 下面 3 句话中，有 1 句是错的，找出来！',
+    hint: '仔细读每一句，找出逻辑不对的那个',
+    statements: [
+      { text: '硬骨主要由钙质组成，支撑人体架构', wrong: false },
+      { text: '软骨钙质多，比硬骨还要坚硬', wrong: true },
+      { text: '骨骼通过关节连结起来保持在一起', wrong: false }
+    ],
+    explain: '错的是第 2 句！事实是：软骨钙质少，所以比硬骨柔软且有弹性。软骨的主要作用是减少关节摩擦和维持形状（鼻尖、外耳廓），不是"坚硬"。'
+  },
+  {
+    level: 2,
+    type: 'sort',
+    typeTag: '🔢 顺序排列',
+    question: '🔢 把「人体做动作」的过程按顺序排好！',
+    hint: '用右边的上/下箭头调整顺序',
+    items: [
+      '① 大脑下达指令（神经系统）',
+      '② 骨骼肌收到信号',
+      '③ 骨骼肌收缩（一组）并舒张（另一组）',
+      '④ 肌腱牵引骨骼',
+      '⑤ 关节发生活动，人体产生动作'
+    ],
+    correctOrder: [0, 1, 2, 3, 4],
+    explain: '人体任何一个动作的流程：神经系统发指令 → 肌肉接信号 → 拮抗肌一收一放 → 肌腱拉骨头 → 关节转动 → 动作完成！这一套配合只需要零点几秒！'
+  },
+
+  // ===== LEVEL 3 =====
+  {
+    level: 3,
+    type: 'arm',
+    typeTag: '💪 拮抗肌模拟',
+    question: '💪 让手臂「弯曲」：你要怎么操作肌肉？',
+    hint: '选择肱二头肌和肱三头肌的状态，然后点"执行"',
+    task: '🎯 目标：让手臂从伸直变成弯曲',
+    correctBiceps: 'contract',
+    correctTriceps: 'relax',
+    explain: '弯曲手臂时：肱二头肌收缩（变短、产生拉力）+ 肱三头肌舒张（变长、控制动作）。这就是拮抗肌 (antagonistic muscles) —— 一对做相反动作的搭档，互相配合才能平稳发力！'
+  },
+  {
+    level: 3,
+    type: 'plant',
+    typeTag: '🌻 植物生长',
+    question: '🌻 给植物一个「光刺激」，它会怎么长？',
+    hint: '选择刺激类型，看看植物的反应',
+    correctStimulus: 'light',
+    explain: '这叫做「向光性」—— 屈性运动的一种！植物局部器官会朝着光源方向生长。常见的屈性运动刺激有：光、水、地心引力、化学物质。植物反应比动物慢，但它真的在"动"！'
+  },
+  {
+    level: 3,
+    type: 'tf',
+    typeTag: '✅ 判断题',
+    question: '🏃 猎豹之所以不能长时间奔跑，是因为腿会痛。',
+    hint: '再想想，高速奔跑时身体会发生什么？',
+    answer: false,
+    explain: '错！猎豹跑得太快时，体温会快速升高，所以不能长时间奔跑。抓到猎物后需要喘气半小时才能进食 —— 跑太快的代价！'
+  },
+  {
+    level: 3,
+    type: 'mcq',
+    typeTag: '📝 选择题',
+    question: '📏 为什么青少年时期长得特别快，成年后就不长高了？',
+    hint: '骨头里的"生长工厂"发生了什么？',
+    options: [
+      '青少年饭量大，成年后吃得少',
+      '青少年生长板骨细胞快速分裂，成年后生长板薄到只剩一条线',
+      '青少年运动多，成年后运动少',
+      '骨头会主动停止生长'
+    ],
+    answer: 1,
+    explain: '骨骼里有个叫「生长板 (growth plate)」的地方，青少年时期骨细胞快速分裂让骨骼大幅增长。随年龄增长分裂减慢，当生长板薄到只剩一条线 —— 骨头就不再增长，你就"定型"啦！'
+  },
+  {
+    level: 3,
+    type: 'fill',
+    typeTag: '✏️ 填空题',
+    question: '🌱 植物运动按反应类型可分为 ___ 运动（向性运动）和 ___ 运动。',
+    hint: '课文里提到的植物运动两大类',
+    template: '植物运动分为 [0] 运动 (向性运动) 和 [1] 运动。',
+    blanks: ['屈性', '感性'],
+    wordBank: ['屈性', '感性', '随意', '被动', '主动', '反射'],
+    explain: '屈性运动 (向性运动)：朝着或远离刺激方向生长（如向光性）；感性运动：对刺激的反应，但与刺激方向无关（如含羞草被碰触会合拢叶片）。两者都是植物"动"的方式！'
+  },
+  {
+    level: 3,
+    type: 'spot',
+    typeTag: '🕵️ 找错题',
+    question: '🕵️ 关于拮抗肌，下面哪句话是错的？',
+    hint: '回忆一下手臂弯曲时两块肌肉的动作',
+    statements: [
+      { text: '拮抗肌是一对共同做出相反动作的肌肉', wrong: false },
+      { text: '弯曲手臂时，两组肌肉同时收缩变短', wrong: true },
+      { text: '舒张的肌肉有助于控制由拉力产生的运动', wrong: false }
+    ],
+    explain: '错的是第 2 句！正确情况：弯曲手臂时，一组肌肉收缩（变短），另一组肌肉舒张（变长）—— 这才是拮抗。如果两组同时收缩，你的手臂就会僵住动不了！'
+  }
+];
+
+// ============ 游戏状态 ============
+let state = {};
+
+function resetState() {
+  state = {
+    level: 1,
+    score: 0,
+    lives: 3,
+    combo: 0,
+    maxCombo: 0,
+    correctCount: 0,
+    totalAnswered: 0,
+    currentQuestionIndex: 0,
+    questionsInLevel: [],
+    startTime: 0,
+    questionStartTime: 0,
+    timerInterval: null,
+    timeLimit: 25,
+    isAnswering: false,
+    // 题型局部状态
+    selectedDragItem: null,
+    matchedCount: 0,
+    matchTotal: 0,
+    classifyPlaced: 0,
+    classifyTotal: 0,
+    classifyWrong: 0,
+    selectedClassifyCard: null,
+    currentSortOrder: [],
+    reactionIndex: 0,
+    reactionResults: [],
+    armState: { biceps: null, triceps: null },
+    plantStimulus: null
+  };
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startGame() {
+  resetState();
+  state.startTime = Date.now();
+  showLevelTransition(1, () => {
+    showScreen('game-screen');
+    loadLevel(1);
+  });
+}
+
+function showLevelTransition(level, callback) {
+  const div = document.createElement('div');
+  div.className = 'level-transition';
+  const titles = { 1: '基础认知', 2: '深入理解', 3: '终极挑战' };
+  const emojis = { 1: '🌱', 2: '🌿', 3: '🔥' };
+  div.innerHTML = `<div style="font-size:70px;">${emojis[level]}</div><h1>LEVEL ${level}</h1><p>${titles[level]}</p>`;
+  document.body.appendChild(div);
+  setTimeout(() => { div.remove(); callback(); }, 1500);
+}
+
+function loadLevel(level) {
+  state.level = level;
+  state.questionsInLevel = QUESTIONS.filter(q => q.level === level);
+  state.currentQuestionIndex = 0;
+  state.timeLimit = level === 1 ? 30 : (level === 2 ? 25 : 20);
+  updateHUD();
+  showQuestion();
+}
+
+function showQuestion() {
+  if (state.currentQuestionIndex >= state.questionsInLevel.length) {
+    if (state.level < 3) {
+      showLevelTransition(state.level + 1, () => loadLevel(state.level + 1));
+    } else {
+      endGame(true);
+    }
+    return;
+  }
+
+  state.isAnswering = true;
+  state.questionStartTime = Date.now();
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+
+  updateHUD();
+  updateProgress();
+
+  // 重置每道题的局部状态
+  state.selectedDragItem = null;
+  state.matchedCount = 0;
+  state.classifyPlaced = 0;
+  state.classifyWrong = 0;
+  state.selectedClassifyCard = null;
+  state.reactionIndex = 0;
+  state.reactionResults = [];
+  state.armState = { biceps: null, triceps: null };
+  state.plantStimulus = null;
+
+  const container = document.getElementById('question-container');
+  const renderMap = {
+    'mcq': renderMCQ,
+    'tf': renderTF,
+    'match': renderMatch,
+    'classify': renderClassify,
+    'fill': renderFill,
+    'reaction': renderReaction,
+    'arm': renderArm,
+    'plant': renderPlant,
+    'spot': renderSpot,
+    'sort': renderSort
+  };
+  renderMap[q.type](q, container);
+
+  // 反应题有自己的计时，不用全局计时器
+  if (q.type !== 'reaction') {
+    startTimer();
+  }
+}
+
+// ============ 题型1: 选择题 ============
+function renderMCQ(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="options">
+        ${q.options.map((opt, i) => `
+          <button class="option" onclick="selectMCQ(${i})">${String.fromCharCode(65+i)}. ${opt}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function selectMCQ(index) {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const options = document.querySelectorAll('.option');
+  options.forEach(o => o.disabled = true);
+
+  const isCorrect = index === q.answer;
+  if (isCorrect) {
+    options[index].classList.add('correct');
+  } else {
+    options[index].classList.add('wrong');
+    options[q.answer].classList.add('correct');
+  }
+  handleAnswer(isCorrect, q);
+}
+
+// ============ 题型2: 判断题 ============
+function renderTF(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="tf-options">
+        <button class="tf-btn true-btn" onclick="selectTF(true)">✓ 对</button>
+        <button class="tf-btn false-btn" onclick="selectTF(false)">✗ 错</button>
+      </div>
+    </div>
+  `;
+}
+
+function selectTF(answer) {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
+  const isCorrect = answer === q.answer;
+  handleAnswer(isCorrect, q);
+}
+
+// ============ 题型3: 配对题 ============
+function renderMatch(q, container) {
+  const rights = q.pairs.map((p, i) => ({ text: p.right, correctIndex: i }));
+  rights.sort(() => Math.random() - 0.5);
+
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="match-area">
+        <div class="match-col">
+          <h4>A 列 👇</h4>
+          ${q.pairs.map((p, i) => `
+            <div class="drag-item" data-index="${i}" onclick="selectDragItem(${i})">${p.left}</div>
+          `).join('')}
+        </div>
+        <div class="match-col">
+          <h4>B 列 👇</h4>
+          ${rights.map((r) => `
+            <div class="drop-zone" data-correct="${r.correctIndex}" onclick="dropOn(this)">${r.text}</div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  state.matchTotal = q.pairs.length;
+}
+
+function selectDragItem(index) {
+  if (!state.isAnswering) return;
+  const items = document.querySelectorAll('.drag-item');
+  if (items[index].classList.contains('matched')) return;
+  items.forEach(it => it.classList.remove('selected'));
+  items[index].classList.add('selected');
+  state.selectedDragItem = index;
+}
+
+function dropOn(zone) {
+  if (!state.isAnswering || state.selectedDragItem === null) return;
+  if (zone.classList.contains('filled')) return;
+
+  const correctIndex = parseInt(zone.dataset.correct);
+  const items = document.querySelectorAll('.drag-item');
+  const selectedItem = items[state.selectedDragItem];
+
+  if (correctIndex === state.selectedDragItem) {
+    zone.classList.add('filled');
+    zone.innerHTML = `✅ ${selectedItem.textContent} = ${zone.textContent}`;
+    selectedItem.classList.add('matched');
+    selectedItem.classList.remove('selected');
+    state.matchedCount++;
+    state.selectedDragItem = null;
+    if (state.matchedCount === state.matchTotal) {
+      handleAnswer(true, state.questionsInLevel[state.currentQuestionIndex]);
+    }
+  } else {
+    zone.classList.add('wrong-flash');
+    setTimeout(() => zone.classList.remove('wrong-flash'), 600);
+    selectedItem.classList.remove('selected');
+    state.selectedDragItem = null;
+    handleAnswer(false, state.questionsInLevel[state.currentQuestionIndex]);
+  }
+}
+
+// ============ 题型4: 分类投放 ============
+function renderClassify(q, container) {
+  const shuffled = [...q.cards].map((c, i) => ({...c, id: i})).sort(() => Math.random() - 0.5);
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="classify-card-pool" id="card-pool">
+        ${shuffled.map(c => `
+          <div class="classify-card" data-id="${c.id}" data-category="${c.category}" onclick="selectClassifyCard(this)">${c.text}</div>
+        `).join('')}
+      </div>
+      <div class="classify-bins">
+        ${q.bins.map((b, i) => `
+          <div class="classify-bin" data-bin="${i}" onclick="placeClassifyCard(this)">
+            <h5>${b}</h5>
+            <div class="bin-contents"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  state.classifyTotal = q.cards.length;
+  state.classifyPlaced = 0;
+  state.classifyWrong = 0;
+}
+
+function selectClassifyCard(card) {
+  if (!state.isAnswering || card.classList.contains('placed')) return;
+  document.querySelectorAll('.classify-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  state.selectedClassifyCard = card;
+}
+
+function placeClassifyCard(bin) {
+  if (!state.isAnswering || !state.selectedClassifyCard) return;
+  const card = state.selectedClassifyCard;
+  const cardCategory = parseInt(card.dataset.category);
+  const binIndex = parseInt(bin.dataset.bin);
+  const isCorrect = cardCategory === binIndex;
+
+  const chip = document.createElement('div');
+  chip.className = 'placed-card' + (isCorrect ? '' : ' wrong');
+  chip.textContent = (isCorrect ? '✓ ' : '✗ ') + card.textContent;
+  bin.querySelector('.bin-contents').appendChild(chip);
+
+  card.classList.add('placed');
+  card.classList.remove('selected');
+  state.selectedClassifyCard = null;
+  state.classifyPlaced++;
+  if (!isCorrect) state.classifyWrong++;
+
+  if (state.classifyPlaced === state.classifyTotal) {
+    // 全部放完，按正确率判分
+    const correctlyPlaced = state.classifyTotal - state.classifyWrong;
+    const finalCorrect = state.classifyWrong === 0;
+    handleAnswer(finalCorrect, state.questionsInLevel[state.currentQuestionIndex]);
+  }
+}
+
+// ============ 题型5: 填空题 ============
+function renderFill(q, container) {
+  // 把 template 中的 [0] [1] 换成 input
+  let html = q.template;
+  q.blanks.forEach((b, i) => {
+    html = html.replace(`[${i}]`, `<input type="text" class="blank-input" data-index="${i}" readonly placeholder="点词库选词">`);
+  });
+
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="fill-blank">${html}</div>
+      <div class="word-bank">
+        ${q.wordBank.map(w => `
+          <div class="word-chip" onclick="fillBlank(this, '${w}')">${w}</div>
+        `).join('')}
+      </div>
+      <button class="check-btn" onclick="checkFill()">✅ 提交答案</button>
+    </div>
+  `;
+}
+
+function fillBlank(chip, word) {
+  if (chip.classList.contains('used')) return;
+  // 找第一个空的 input
+  const inputs = document.querySelectorAll('.blank-input');
+  for (const inp of inputs) {
+    if (!inp.value) {
+      inp.value = word;
+      chip.classList.add('used');
+      chip.dataset.filledIndex = inp.dataset.index;
+      break;
+    }
+  }
+}
+
+function checkFill() {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const inputs = document.querySelectorAll('.blank-input');
+  const userAnswers = Array.from(inputs).map(inp => inp.value);
+  let allCorrect = true;
+
+  if (q.orderless) {
+    // 顺序无关：只要用户答案集合与正确答案集合一致即可（考虑重复值）
+    const correct = [...q.blanks].sort();
+    const user = [...userAnswers].sort();
+    allCorrect = correct.length === user.length && correct.every((v, i) => v === user[i]);
+
+    inputs.forEach((inp, i) => {
+      // 判断这个空的答案是否是正确答案集合中的一个（且没有超量使用）
+      if (q.blanks.includes(inp.value) && allCorrect) {
+        inp.classList.add('correct');
+      } else {
+        inp.classList.add('wrong');
+        setTimeout(() => { inp.value = q.blanks[i]; }, 300);
+      }
+    });
+  } else {
+    // 严格顺序判分
+    inputs.forEach((inp, i) => {
+      if (inp.value === q.blanks[i]) {
+        inp.classList.add('correct');
+      } else {
+        inp.classList.add('wrong');
+        allCorrect = false;
+        setTimeout(() => { inp.value = q.blanks[i]; }, 300);
+      }
+    });
+  }
+
+  document.querySelector('.check-btn').disabled = true;
+  handleAnswer(allCorrect, q);
+}
+
+// ============ 题型6: 反应挑战 ============
+function renderReaction(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="reaction-zone">
+        <div class="reaction-rule">${q.rule}</div>
+        <div class="reaction-display" id="reaction-display">${q.targets[0].text}</div>
+        <div class="reaction-buttons">
+          <button class="reaction-btn tap" onclick="reactionAnswer(true)">✓ 是（随意肌）</button>
+          <button class="reaction-btn skip" onclick="reactionAnswer(false)">✗ 否（不随意肌）</button>
+        </div>
+        <div class="reaction-progress" id="reaction-progress">
+          ${q.targets.map(() => '<div class="reaction-dot"></div>').join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function reactionAnswer(userSaysYes) {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const current = q.targets[state.reactionIndex];
+  const isCorrect = (userSaysYes === current.isTarget);
+
+  const display = document.getElementById('reaction-display');
+  const dots = document.querySelectorAll('.reaction-dot');
+
+  display.classList.add(isCorrect ? 'flash-correct' : 'flash-wrong');
+  dots[state.reactionIndex].classList.add(isCorrect ? 'correct' : 'wrong');
+  state.reactionResults.push(isCorrect);
+
+  setTimeout(() => {
+    display.classList.remove('flash-correct', 'flash-wrong');
+    state.reactionIndex++;
+    if (state.reactionIndex >= q.targets.length) {
+      // 结束，看正确率
+      const correctCount = state.reactionResults.filter(r => r).length;
+      const allCorrect = correctCount >= q.targets.length - 1; // 允许错1个
+      handleAnswer(allCorrect, q);
+    } else {
+      display.textContent = q.targets[state.reactionIndex].text;
+    }
+  }, 400);
+}
+
+// ============ 题型7: 拮抗肌模拟 ============
+function renderArm(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="arm-simulator">
+        <div class="arm-task">${q.task}</div>
+        <div class="arm-canvas-wrap">
+          <svg class="arm-svg" id="arm-svg" viewBox="0 0 400 240">
+            <!-- 肩膀 -->
+            <circle cx="80" cy="120" r="18" fill="#f59e0b"/>
+            <!-- 上臂 -->
+            <rect x="78" y="118" width="120" height="18" rx="9" fill="#fbbf24"/>
+            <!-- 肘关节 -->
+            <circle cx="200" cy="127" r="14" fill="#d97706" id="elbow"/>
+            <!-- 前臂（会转动） -->
+            <g id="forearm" style="transform-origin: 200px 127px; transition: transform 0.8s ease;">
+              <rect x="198" y="120" width="130" height="15" rx="7" fill="#fbbf24"/>
+              <circle cx="330" cy="128" r="13" fill="#f59e0b"/>
+              <text x="330" y="132" text-anchor="middle" font-size="14" fill="white">✊</text>
+            </g>
+            <!-- 肱二头肌 -->
+            <ellipse cx="140" cy="108" rx="35" ry="8" fill="#ef4444" id="biceps" opacity="0.8">
+              <title>肱二头肌</title>
+            </ellipse>
+            <text x="140" y="100" text-anchor="middle" font-size="10" fill="white" font-weight="bold">肱二头肌</text>
+            <!-- 肱三头肌 -->
+            <ellipse cx="140" cy="148" rx="35" ry="7" fill="#3b82f6" id="triceps" opacity="0.8">
+              <title>肱三头肌</title>
+            </ellipse>
+            <text x="140" y="172" text-anchor="middle" font-size="10" fill="white" font-weight="bold">肱三头肌</text>
+          </svg>
+        </div>
+        <div class="arm-controls">
+          <div class="arm-ctrl-group">
+            <h5>🔴 肱二头肌（上侧）</h5>
+            <button class="arm-btn" onclick="setArm('biceps','contract')" id="bc-contract">收缩（变短）</button>
+            <button class="arm-btn" onclick="setArm('biceps','relax')" id="bc-relax">舒张（变长）</button>
+          </div>
+          <div class="arm-ctrl-group">
+            <h5>🔵 肱三头肌（下侧）</h5>
+            <button class="arm-btn" onclick="setArm('triceps','contract')" id="tc-contract">收缩（变短）</button>
+            <button class="arm-btn" onclick="setArm('triceps','relax')" id="tc-relax">舒张（变长）</button>
+          </div>
+        </div>
+        <button class="arm-submit" onclick="submitArm()">🚀 执行动作</button>
+      </div>
+    </div>
+  `;
+}
+
+function setArm(muscle, action) {
+  if (!state.isAnswering) return;
+  state.armState[muscle] = action;
+  const prefix = muscle === 'biceps' ? 'bc' : 'tc';
+  document.getElementById(`${prefix}-contract`).classList.toggle('active', action === 'contract');
+  document.getElementById(`${prefix}-relax`).classList.toggle('active', action === 'relax');
+
+  // 视觉反馈（肌肉变粗/变细）
+  const el = document.getElementById(muscle);
+  if (el) {
+    if (action === 'contract') {
+      el.setAttribute('ry', muscle === 'biceps' ? '12' : '10');
+      el.setAttribute('rx', '30');
+    } else {
+      el.setAttribute('ry', muscle === 'biceps' ? '6' : '5');
+      el.setAttribute('rx', '40');
+    }
+  }
+}
+
+function submitArm() {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  if (!state.armState.biceps || !state.armState.triceps) {
+    alert('⚠️ 请给两块肌肉都选择状态！');
+    return;
+  }
+  const isCorrect = state.armState.biceps === q.correctBiceps && state.armState.triceps === q.correctTriceps;
+  // 动画：手臂弯曲
+  const forearm = document.getElementById('forearm');
+  if (isCorrect) {
+    forearm.style.transform = 'rotate(-100deg)'; // 弯曲
+  } else {
+    // 错误：随便动一下
+    forearm.style.transform = state.armState.biceps === 'contract' ? 'rotate(-20deg)' : 'rotate(10deg)';
+  }
+  document.querySelector('.arm-submit').disabled = true;
+  setTimeout(() => handleAnswer(isCorrect, q), 900);
+}
+
+// ============ 题型8: 植物生长 ============
+function renderPlant(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="plant-scene" id="plant-scene">
+        <div class="sun" id="sun">☀️</div>
+        <div class="plant-stem" id="plant-stem" style="height: 120px; transform: rotate(0deg);">
+          <div class="plant-flower" id="plant-flower">🌻</div>
+        </div>
+        <div class="plant-pot">🪴</div>
+      </div>
+      <div style="text-align:center; margin-bottom:10px; color:#94a3b8; font-size:13px;">选择刺激类型：</div>
+      <div class="stimulus-picker">
+        <button class="stim-btn" onclick="applyStimulus('light', this)">☀️ 光照<br>（左侧）</button>
+        <button class="stim-btn" onclick="applyStimulus('water', this)">💧 水源<br>（右侧）</button>
+        <button class="stim-btn" onclick="applyStimulus('gravity', this)">⬇️ 地心引力</button>
+        <button class="stim-btn" onclick="applyStimulus('chemical', this)">🧪 化学物质</button>
+      </div>
+      <button class="check-btn" onclick="submitPlant()">🌱 确认答案</button>
+    </div>
+  `;
+}
+
+function applyStimulus(type, btn) {
+  if (!state.isAnswering) return;
+  document.querySelectorAll('.stim-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.plantStimulus = type;
+
+  const sun = document.getElementById('sun');
+  const stem = document.getElementById('plant-stem');
+
+  // 视觉预览
+  if (type === 'light') {
+    sun.style.left = '15%';
+    sun.style.transform = 'translateX(0)';
+    stem.style.transform = 'rotate(-30deg)'; // 朝左倾（朝向太阳）
+  } else if (type === 'water') {
+    sun.style.left = '50%';
+    sun.style.transform = 'translateX(-50%)';
+    stem.style.transform = 'rotate(20deg)';
+  } else if (type === 'gravity') {
+    sun.style.left = '50%';
+    sun.style.transform = 'translateX(-50%)';
+    stem.style.transform = 'rotate(0deg)';
+  } else {
+    sun.style.left = '50%';
+    sun.style.transform = 'translateX(-50%)';
+    stem.style.transform = 'rotate(15deg)';
+  }
+}
+
+function submitPlant() {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  if (!state.plantStimulus) {
+    alert('⚠️ 请先选择一种刺激！');
+    return;
+  }
+  const isCorrect = state.plantStimulus === q.correctStimulus;
+  document.querySelector('.check-btn').disabled = true;
+  handleAnswer(isCorrect, q);
+}
+
+// ============ 题型9: 找错题 ============
+function renderSpot(q, container) {
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="spot-statements">
+        ${q.statements.map((s, i) => `
+          <div class="statement-item" onclick="selectSpot(${i})">${String.fromCharCode(65+i)}. ${s.text}</div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function selectSpot(index) {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const items = document.querySelectorAll('.statement-item');
+  items.forEach(it => it.style.pointerEvents = 'none');
+
+  const isCorrect = q.statements[index].wrong;
+  if (isCorrect) {
+    items[index].classList.add('found');
+  } else {
+    items[index].classList.add('safe');
+    // 显示正确的那一句
+    q.statements.forEach((s, i) => {
+      if (s.wrong) items[i].classList.add('found');
+    });
+  }
+  handleAnswer(isCorrect, q);
+}
+
+// ============ 题型10: 排序 ============
+function renderSort(q, container) {
+  // 打乱初始顺序
+  const shuffled = q.items.map((item, originalIndex) => ({ item, originalIndex }));
+  // 简单打乱
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  state.currentSortOrder = shuffled.map(s => s.originalIndex);
+
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="question-type-tag">${q.typeTag}</div>
+      <div class="question-text">${q.question}</div>
+      <div class="question-hint">💭 ${q.hint}</div>
+      <div class="sort-list" id="sort-list"></div>
+      <button class="check-btn" onclick="checkSort()">✅ 提交排序</button>
+    </div>
+  `;
+  renderSortList();
+}
+
+function renderSortList() {
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const list = document.getElementById('sort-list');
+  list.innerHTML = state.currentSortOrder.map((origIdx, displayIdx) => `
+    <div class="sort-item">
+      <div class="sort-number">${displayIdx + 1}</div>
+      <div class="sort-text">${q.items[origIdx]}</div>
+      <div class="sort-arrows">
+        <button class="sort-arrow" onclick="moveSort(${displayIdx}, -1)" ${displayIdx === 0 ? 'disabled' : ''}>▲</button>
+        <button class="sort-arrow" onclick="moveSort(${displayIdx}, 1)" ${displayIdx === state.currentSortOrder.length - 1 ? 'disabled' : ''}>▼</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function moveSort(index, direction) {
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= state.currentSortOrder.length) return;
+  [state.currentSortOrder[index], state.currentSortOrder[newIndex]] =
+    [state.currentSortOrder[newIndex], state.currentSortOrder[index]];
+  renderSortList();
+}
+
+function checkSort() {
+  if (!state.isAnswering) return;
+  const q = state.questionsInLevel[state.currentQuestionIndex];
+  const isCorrect = JSON.stringify(state.currentSortOrder) === JSON.stringify(q.correctOrder);
+  document.querySelector('.check-btn').disabled = true;
+  document.querySelectorAll('.sort-arrow').forEach(b => b.disabled = true);
+  handleAnswer(isCorrect, q);
+}
+
+// ============ 统一答题处理 ============
+function handleAnswer(isCorrect, q) {
+  if (!state.isAnswering) return;
+  state.isAnswering = false;
+  clearInterval(state.timerInterval);
+  state.totalAnswered++;
+
+  if (isCorrect) {
+    state.correctCount++;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+    const timeUsed = (Date.now() - state.questionStartTime) / 1000;
+    const speedBonus = Math.max(0, Math.floor((state.timeLimit - timeUsed) * 2));
+    const comboBonus = state.combo >= 3 ? state.combo * 5 : 0;
+    const levelBonus = state.level * 5;
+    const gained = 10 + speedBonus + comboBonus + levelBonus;
+    state.score += gained;
+
+    if (state.combo >= 3) showComboPopup(state.combo);
+    showExplanation(true, q, gained, { speedBonus, comboBonus, levelBonus });
+  } else {
+    state.lives--;
+    state.combo = 0;
+    showExplanation(false, q, 0, {});
+    if (state.lives <= 0) {
+      setTimeout(() => endGame(false), 2000);
+      return;
+    }
+  }
+  updateHUD();
+}
+
+function showExplanation(isCorrect, q, gained, breakdown) {
+  const container = document.getElementById('question-container');
+  const html = `
+    <div class="explanation ${isCorrect ? 'correct' : 'wrong'}">
+      <div class="explanation-title ${isCorrect ? 'correct' : 'wrong'}">
+        ${isCorrect ? '🎉 答对了！' : '💭 再想想～'}${isCorrect && gained > 0 ? ` +${gained}分` : ''}
+      </div>
+      <p>${q.explain}</p>
+      ${isCorrect && (breakdown.speedBonus > 0 || breakdown.comboBonus > 0) ? `
+        <p style="margin-top:8px;color:#f59e0b;font-size:13px;">
+          ⚡ 速度 +${breakdown.speedBonus}
+          ${breakdown.comboBonus > 0 ? ` | 🔥 连击 +${breakdown.comboBonus}` : ''}
+          | 🎖️ 关卡 +${breakdown.levelBonus}
+        </p>
+      ` : ''}
+      <button class="next-btn" onclick="nextQuestion()">
+        ${state.currentQuestionIndex + 1 >= state.questionsInLevel.length && state.level >= 3 ? '🏁 查看结果' : '下一题 →'}
+      </button>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', html);
+  setTimeout(() => {
+    const exp = document.querySelector('.explanation');
+    if (exp) exp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function nextQuestion() {
+  state.currentQuestionIndex++;
+  showQuestion();
+}
+
+function startTimer() {
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = '100%';
+  let remaining = state.timeLimit;
+  state.timerInterval = setInterval(() => {
+    remaining -= 0.1;
+    const pct = (remaining / state.timeLimit) * 100;
+    fill.style.width = Math.max(0, pct) + '%';
+    if (remaining <= 0) {
+      clearInterval(state.timerInterval);
+      if (state.isAnswering) {
+        handleAnswer(false, state.questionsInLevel[state.currentQuestionIndex]);
+      }
+    }
+  }, 100);
+}
+
+function updateHUD() {
+  document.getElementById('level-display').textContent = `LV.${state.level}`;
+  document.getElementById('score-display').textContent = state.score;
+  document.getElementById('combo-display').textContent = state.combo;
+  document.getElementById('lives-display').textContent = '❤️'.repeat(state.lives) || '💀';
+}
+
+function updateProgress() {
+  const done = QUESTIONS.filter(q => q.level < state.level).length + state.currentQuestionIndex;
+  const pct = (done / QUESTIONS.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function showComboPopup(combo) {
+  const p = document.createElement('div');
+  p.className = 'combo-popup';
+  p.textContent = `COMBO x${combo} 🔥`;
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1000);
+}
+
+function endGame(won) {
+  clearInterval(state.timerInterval);
+  const t = Math.floor((Date.now() - state.startTime) / 1000);
+  const acc = state.totalAnswered > 0 ? Math.round((state.correctCount / state.totalAnswered) * 100) : 0;
+
+  state.finalTime = t;
+  state.finalAccuracy = acc;
+  state.won = won;
+
+  document.getElementById('final-score').textContent = state.score;
+  document.getElementById('final-accuracy').textContent = acc + '%';
+  document.getElementById('final-time').textContent = t + 's';
+  document.getElementById('final-combo').textContent = state.maxCombo;
+
+  if (won) {
+    if (acc === 100) { document.getElementById('result-emoji').textContent = '🏆'; document.getElementById('result-title').textContent = '完美通关！'; }
+    else if (acc >= 80) { document.getElementById('result-emoji').textContent = '🎉'; document.getElementById('result-title').textContent = '挑战成功！'; }
+    else { document.getElementById('result-emoji').textContent = '😊'; document.getElementById('result-title').textContent = '通关啦～'; }
+  } else {
+    document.getElementById('result-emoji').textContent = '💪';
+    document.getElementById('result-title').textContent = '继续加油！';
+  }
+
+  const badges = [];
+  if (acc === 100) badges.push('💎 满分达人');
+  if (acc >= 90) badges.push('🎯 知识大师');
+  if (state.maxCombo >= 5) badges.push('🔥 连击之王');
+  if (state.maxCombo >= 8) badges.push('⚡ 神级连击');
+  if (t <= 180) badges.push('🚀 极速王');
+  if (won && state.lives === 3) badges.push('❤️ 无伤通关');
+  if (state.score >= 400) badges.push('⭐ 高分选手');
+  if (state.score >= 600) badges.push('👑 分数霸主');
+  if (won) badges.push('🏆 生物运动大师');
+  if (badges.length === 0) badges.push('🌱 勇敢挑战者');
+
+  document.getElementById('achievements').innerHTML = badges.map(b => `<div class="badge">${b}</div>`).join('');
+  showScreen('result-screen');
+}
+
+function generateCertificate() {
+  const name = document.getElementById('name-input').value.trim() || '同学';
+  document.getElementById('cert-name').textContent = name;
+  document.getElementById('cert-score').textContent = state.score;
+  document.getElementById('cert-accuracy').textContent = state.finalAccuracy + '%';
+  document.getElementById('cert-time').textContent = state.finalTime + 's';
+
+  let praise = '';
+  if (state.finalAccuracy === 100) praise = '🌟 Perfect! 你是真正的生物运动大师！';
+  else if (state.finalAccuracy >= 80) praise = '🎉 Excellent Work! 知识掌握非常扎实！';
+  else if (state.finalAccuracy >= 60) praise = '👏 Well Done! 继续努力，下次更棒！';
+  else praise = '💪 Keep Going! 每一步都算数！';
+  document.getElementById('cert-praise').textContent = praise;
+
+  const now = new Date();
+  document.getElementById('cert-date').textContent =
+    `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  showScreen('certificate-screen');
+}
+
+function downloadCertificate() {
+  const cert = document.getElementById('certificate');
+  if (typeof html2canvas !== 'undefined') {
+    html2canvas(cert, { backgroundColor: '#fef3c7', scale: 2, logging: false })
+      .then(canvas => {
+        const link = document.createElement('a');
+        const name = document.getElementById('name-input').value.trim() || 'Student';
+        link.download = `生物运动证书_${name}_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch(err => alert('下载出错，请长按证书截图保存 📸'));
+  } else {
+    alert('请长按证书截图保存 📸');
+  }
+}
+
+function restartGame() {
+  showScreen('start-screen');
+}
+</script>
+</body>
+</html>
