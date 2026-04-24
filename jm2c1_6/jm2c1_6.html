@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>离子连连看 · 峇株吧辖华仁中学</title>
+<!-- Firestore REST API — no SDK needed -->
+<script>
+// Firestore REST API config
+window._FS={
+  project:'elements-game-42bb4',
+  apiKey:'AIzaSyDhID9xaqeje5Ki9yacQVPR-wuOwUNX0LE',
+  col:'scores_6',
+  get base(){return 'https://firestore.googleapis.com/v1/projects/'+this.project+'/databases/(default)/documents/'+this.col;},
+  async add(data){
+    const body={fields:{}};
+    for(const[k,v]of Object.entries(data)){
+      if(typeof v==='string') body.fields[k]={stringValue:v};
+      else if(typeof v==='number') body.fields[k]={integerValue:String(v)};
+    }
+    const r=await fetch(this.base+'?key='+this.apiKey,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){const t=await r.text();throw new Error('Add failed '+r.status+': '+t.slice(0,100));}
+    return r.json();
+  },
+  async getTop20(){
+    const url=this.base+'?key='+this.apiKey+'&pageSize=200';
+    console.log('Fetching:',url);
+    const r=await fetch(url);
+    const text=await r.text();
+    console.log('Response status:',r.status,'body:',text.slice(0,200));
+    if(!r.ok)throw new Error('Firestore '+r.status+': '+text.slice(0,120));
+    const data=JSON.parse(text);
+    if(!data.documents&&Object.keys(data).length===0)return[];
+    return data.documents||[];
+  }
+};
+console.log("Firestore REST ready — collection: scores_6");
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<style>
+:root{
+  --bg:#060a10;--surf:#0c1420;--bdr:#172030;
+  --cat:#f59e0b;--cat2:#fcd34d;
+  --an:#22d3ee;--an2:#67e8f9;
+  --ok:#34d399;--err:#f87171;--acc:#a78bfa;
+  --txt:#e2e8f0;--dim:#4a607a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:18px;}html,body{background:var(--bg);color:var(--txt);font-family:'Noto Sans SC',sans-serif;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 65% 55% at 8% 5%,rgba(167,139,250,.08) 0%,transparent 55%),
+             radial-gradient(ellipse 55% 65% at 92% 95%,rgba(34,211,238,.07) 0%,transparent 55%);}
+.page{display:none !important;}
+.page.active{display:flex !important;flex-direction:column;min-height:100vh;position:relative;z-index:1;}
+#pgSplash.active{align-items:center;justify-content:center;padding:20px;}
+#pgWarning.active{align-items:center;justify-content:center;padding:20px;}
+#pgWarning2.active{align-items:center;justify-content:center;padding:20px;}
+#pgSummary.active{align-items:center;justify-content:center;padding:20px;}
+#pgGame.active{display:block !important;padding:10px 12px 14px;}
+.panel{background:rgba(12,20,32,.85);border:1px solid var(--bdr);border-radius:12px;
+  padding:12px 14px;backdrop-filter:blur(8px);}
+.panel-lbl{font-size:.46rem;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px;}
+.btn{font-family:'Orbitron',monospace;font-size:.5rem;font-weight:700;letter-spacing:.07em;
+  padding:5px 11px;border-radius:6px;border:none;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.btn-acc{background:rgba(167,139,250,.15);color:var(--acc);border:1px solid rgba(167,139,250,.42);}
+.btn-acc:hover{background:rgba(167,139,250,.28);}
+.btn-err{background:rgba(248,113,113,.1);color:var(--err);border:1px solid rgba(248,113,113,.28);}
+.btn-err:hover{background:rgba(248,113,113,.2);}
+.btn-big{font-family:'Orbitron',monospace;font-size:.82rem;font-weight:900;letter-spacing:.14em;
+  padding:14px 28px;border-radius:12px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--cat),var(--acc),var(--an));
+  color:#fff;box-shadow:0 0 26px rgba(167,139,250,.2);transition:all .24s;}
+.btn-big:hover{transform:scale(1.02);box-shadow:0 0 36px rgba(167,139,250,.36);}
+.btn-next{font-family:'Orbitron',monospace;font-size:.75rem;font-weight:900;letter-spacing:.13em;
+  padding:12px 28px;border-radius:11px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--acc),var(--an));color:#fff;transition:all .22s;}
+.btn-next:hover{transform:scale(1.04);box-shadow:0 0 18px rgba(167,139,250,.32);}
+.lb-overlay{position:fixed;inset:0;background:rgba(6,10,16,.94);display:none;align-items:center;
+  justify-content:center;z-index:9999;backdrop-filter:blur(10px);}
+.lb-overlay.show{display:flex !important;}
+.lb-box{background:var(--surf);border:1px solid var(--acc);border-radius:18px;
+  padding:26px 32px;width:min(520px,92vw);max-height:85vh;overflow-y:auto;}
+.lb-box.show{animation:mPop .4s cubic-bezier(.34,1.56,.64,1);}
+.lb-title{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:900;
+  background:linear-gradient(135deg,var(--cat),var(--acc),var(--an));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;text-align:center;}
+.lb-sub{font-size:.56rem;color:var(--dim);text-align:center;margin-bottom:16px;letter-spacing:.08em;}
+.lb-table{width:100%;border-collapse:collapse;font-size:.66rem;}
+.lb-table th{font-family:'Orbitron',monospace;font-size:.48rem;color:var(--dim);
+  font-weight:700;letter-spacing:.1em;padding:4px 8px 8px;border-bottom:1px solid var(--bdr);text-align:left;}
+.lb-table td{padding:7px 8px;border-bottom:1px solid rgba(23,32,48,.4);vertical-align:middle;}
+.lb-rank{font-family:'Orbitron',monospace;font-size:.72rem;font-weight:900;width:28px;}
+.lb-rank.r1{color:#ffd700;}.lb-rank.r2{color:#c0c0c0;}.lb-rank.r3{color:#cd7f32;}
+.lb-rank.rn{color:var(--dim);}
+.lb-name{font-weight:700;font-size:.72rem;}
+.lb-score{font-family:'Orbitron',monospace;font-weight:700;color:var(--acc);font-size:.72rem;text-align:right;}
+.lb-grade{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:900;
+  padding:2px 7px;border-radius:5px;text-align:center;}
+.lb-date{font-size:.52rem;color:var(--dim);}
+.lb-loading{text-align:center;padding:20px;color:var(--dim);font-size:.66rem;}
+.lb-empty{text-align:center;padding:20px;color:var(--dim);font-size:.66rem;}
+.lb-highlight{background:rgba(167,139,250,.08);border-radius:6px;}
+.lb-actions{display:flex;gap:8px;justify-content:center;margin-top:16px;}
+.btn-lb{font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;letter-spacing:.08em;
+  padding:8px 18px;border-radius:9px;border:none;cursor:pointer;transition:all .2s;}
+.btn-lb-close{background:rgba(74,96,122,.25);color:var(--dim);border:1px solid var(--bdr);}
+.btn-lb-close:hover{color:var(--txt);border-color:var(--txt);}
+.btn-lb-refresh{background:rgba(167,139,250,.15);color:var(--acc);border:1px solid rgba(167,139,250,.4);}
+.btn-lb-refresh:hover{background:rgba(167,139,250,.28);}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:rgba(12,20,32,.96);border:1px solid var(--ok);border-radius:9px;
+  padding:8px 18px;font-family:'Orbitron',monospace;font-size:.6rem;color:var(--ok);
+  letter-spacing:.07em;z-index:1000;transition:transform .36s cubic-bezier(.34,1.56,.64,1);
+  backdrop-filter:blur(10px);pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.err{border-color:var(--err);color:var(--err);}
+.toast.warn{border-color:var(--cat2);color:var(--cat2);}
+.toast.info{border-color:var(--acc);color:var(--acc);}
+.modal-bg{position:fixed;inset:0;background:rgba(6,10,16,.92);display:flex;
+  align-items:center;justify-content:center;z-index:800;opacity:0;
+  pointer-events:none;transition:opacity .32s;backdrop-filter:blur(8px);}
+.modal-bg.show{opacity:1;pointer-events:all;}
+.modal-box{background:var(--surf);border:1px solid var(--acc);border-radius:18px;
+  padding:28px 36px;text-align:center;width:min(430px,90vw);}
+.modal-bg.show .modal-box{animation:mPop .42s cubic-bezier(.34,1.56,.64,1);}
+@keyframes mPop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-title{font-family:'Orbitron',monospace;font-size:.92rem;font-weight:900;
+  background:linear-gradient(135deg,var(--cat),var(--acc),var(--an));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:5px;}
+.modal-sub{color:var(--dim);font-size:.64rem;margin-bottom:14px;}
+.score-preview{background:rgba(20,30,48,.8);border:1px solid var(--bdr);border-radius:10px;
+  padding:10px 14px;margin-bottom:13px;text-align:left;}
+.msp-row{display:flex;justify-content:space-between;font-size:.6rem;
+  padding:3px 0;border-bottom:1px solid rgba(23,32,48,.5);}
+.msp-row:last-child{border:none;}
+.msp-lbl{color:var(--dim);}
+.msp-val{font-family:'Orbitron',monospace;color:var(--acc);}
+.msp-val.neg{color:var(--err);}.msp-val.gold{color:var(--cat2);}
+.msp-val.fin{color:var(--ok);font-size:.8rem;}
+.name-input{width:100%;padding:8px 12px;border-radius:9px;border:1px solid var(--acc);
+  background:rgba(20,30,46,.8);color:var(--txt);font-family:'Noto Sans SC';
+  font-size:.88rem;outline:none;text-align:center;margin-bottom:12px;}
+.name-input:focus{border-color:var(--cat);}
+.btn-cert{font-family:'Orbitron',monospace;font-size:.68rem;font-weight:700;letter-spacing:.1em;
+  padding:10px 24px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--acc),var(--an));color:#fff;cursor:pointer;transition:all .2s;}
+.btn-cert:hover{transform:scale(1.04);}
+.cert-bg{position:fixed;inset:0;background:rgba(6,10,16,.95);display:flex;
+  align-items:center;justify-content:center;z-index:900;opacity:0;
+  pointer-events:none;transition:opacity .42s;backdrop-filter:blur(10px);}
+.cert-bg.show{opacity:1;pointer-events:all;}
+#certCanvas{border-radius:10px;box-shadow:0 0 50px rgba(167,139,250,.22);
+  max-height:88vh;max-width:96vw;}
+.cert-actions{position:absolute;bottom:16px;display:flex;gap:10px;}
+.btn-cdl{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;letter-spacing:.08em;
+  padding:9px 20px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--cat),var(--acc));color:#fff;cursor:pointer;}
+.btn-cback{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;letter-spacing:.08em;
+  padding:9px 20px;border-radius:9px;border:1px solid var(--dim);
+  background:transparent;color:var(--dim);cursor:pointer;}
+.btn-cback:hover{border-color:var(--txt);color:var(--txt);}
+#pgSplash{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:20px;}
+#pgSplash::before{content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(167,139,250,.05) 1px,transparent 1px);
+  background-size:40px 40px;}
+.sp-inner{position:relative;z-index:1;max-width:840px;width:100%;}
+.sp-badge{display:inline-block;font-family:'Orbitron',monospace;font-size:.5rem;letter-spacing:.22em;
+  color:var(--acc);border:1px solid rgba(167,139,250,.35);border-radius:20px;
+  padding:4px 14px;margin-bottom:12px;text-transform:uppercase;}
+.sp-title{font-family:'Orbitron',monospace;font-size:clamp(1.8rem,5.5vw,3.2rem);font-weight:900;
+  letter-spacing:.08em;line-height:1.1;margin-bottom:5px;
+  background:linear-gradient(135deg,var(--cat),var(--cat2) 30%,var(--acc) 60%,var(--an));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sp-sub{font-size:.76rem;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px;}
+.sp-school{font-size:.7rem;color:rgba(167,139,250,.52);letter-spacing:.1em;margin-bottom:22px;}
+.sp-divider{height:1px;background:linear-gradient(90deg,transparent,var(--cat),var(--acc),var(--an),transparent);
+  margin-bottom:20px;opacity:.36;}
+.sp-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:620px){.sp-2col{grid-template-columns:1fr;}}
+.sp-card{background:rgba(12,20,32,.78);border:1px solid var(--bdr);border-radius:12px;
+  padding:15px 17px;backdrop-filter:blur(8px);}
+.sp-card-ttl{font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;
+  letter-spacing:.13em;text-transform:uppercase;margin-bottom:9px;
+  display:flex;align-items:center;gap:6px;}
+.sp-card-ttl.gold{color:var(--cat2);}.sp-card-ttl.cyan{color:var(--an);}.sp-card-ttl.purple{color:var(--acc);}
+.purpose-txt{font-size:.71rem;line-height:1.85;color:rgba(226,232,240,.66);}
+.purpose-txt b{color:var(--cat2);}
+.howto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:7px;margin-top:8px;}
+.howto-step{background:rgba(22,34,52,.55);border:1px solid rgba(23,32,48,.8);border-radius:8px;
+  padding:8px 10px;font-size:.64rem;color:rgba(226,232,240,.6);line-height:1.65;}
+.howto-step .sn{font-family:'Orbitron',monospace;font-size:.48rem;color:var(--acc);
+  font-weight:700;margin-bottom:3px;letter-spacing:.1em;}
+.lv-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;}
+@media(max-width:600px){.lv-row{grid-template-columns:repeat(3,1fr);}}
+.lv-card{background:rgba(12,20,32,.78);border:1px solid var(--bdr);border-radius:10px;
+  padding:10px 8px;text-align:center;backdrop-filter:blur(8px);}
+.lv-num{font-family:'Orbitron',monospace;font-size:.5rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:5px;}
+.lv-title{font-size:.72rem;font-weight:700;margin-bottom:5px;}
+.lv-rule{font-size:.58rem;color:var(--dim);line-height:1.65;}
+.lv-rule b{color:var(--txt);}
+.score-tbl{width:100%;border-collapse:collapse;font-size:.66rem;}
+.score-tbl th{font-family:'Orbitron',monospace;font-size:.48rem;letter-spacing:.1em;color:var(--dim);
+  font-weight:700;text-align:left;padding:3px 5px 7px;border-bottom:1px solid var(--bdr);}
+.score-tbl td{padding:4px 5px;color:rgba(226,232,240,.7);vertical-align:top;}
+.score-tbl tr:not(:last-child) td{border-bottom:1px solid rgba(23,32,48,.5);}
+.vg{font-family:'Orbitron',monospace;font-weight:700;color:var(--cat2);}
+.vr{font-family:'Orbitron',monospace;font-weight:700;color:var(--err);}
+.grade-row{display:flex;align-items:center;gap:7px;padding:4px 0;
+  border-bottom:1px solid rgba(23,32,48,.42);}
+.grade-row:last-child{border:none;}
+.gbadge{font-family:'Orbitron',monospace;font-size:.7rem;font-weight:900;width:22px;text-align:center;}
+.gscore{font-size:.6rem;color:var(--dim);flex:1;}
+.glabel{font-size:.6rem;}
+.sp-footer{font-size:.56rem;color:rgba(74,96,122,.62);text-align:center;letter-spacing:.1em;}
+#pgWarning{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.warn-card{background:rgba(12,20,32,.92);border:2px solid var(--err);border-radius:20px;
+  padding:36px 44px;max-width:560px;width:100%;text-align:center;
+  box-shadow:0 0 40px rgba(248,113,113,.15);
+  animation:sumPop .5s cubic-bezier(.34,1.56,.64,1);}
+.warn-icon{font-size:3rem;margin-bottom:12px;}
+.warn-title{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;
+  color:var(--err);margin-bottom:10px;}
+.warn-body{font-size:.76rem;line-height:1.9;color:rgba(226,232,240,.72);margin-bottom:20px;}
+.warn-body b{color:var(--cat2);}
+.warn-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 20px;}
+.warn-ex{background:rgba(22,32,48,.7);border:1px solid var(--bdr);border-radius:9px;
+  padding:10px;text-align:center;}
+.warn-ex-title{font-size:.58rem;color:var(--dim);margin-bottom:6px;}
+.warn-ex-ions{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;}
+.warn-ion{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;
+  padding:3px 8px;border-radius:5px;}
+.warn-ion.c{background:rgba(245,158,11,.2);color:var(--cat);border:1px solid rgba(245,158,11,.4);}
+.warn-ion.a{background:rgba(34,211,238,.15);color:var(--an);border:1px solid rgba(34,211,238,.3);}
+#pgGame{min-height:100vh;padding:10px 12px 14px;}
+.wrap{max-width:980px;margin:0 auto;}
+.game-hdr{text-align:center;margin-bottom:8px;}
+.game-title{font-family:'Orbitron',monospace;font-size:clamp(.88rem,2.5vw,1.45rem);font-weight:900;
+  letter-spacing:.12em;background:linear-gradient(135deg,var(--cat),var(--acc),var(--an));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.lv-pips{display:flex;justify-content:center;gap:7px;margin-top:4px;margin-bottom:8px;}
+.pip{width:24px;height:4px;border-radius:2px;background:var(--bdr);transition:background .4s;}
+.pip.done{background:var(--ok);}
+.pip.cur{background:var(--acc);animation:pipP 1.2s ease-in-out infinite;}
+@keyframes pipP{0%,100%{opacity:1}50%{opacity:.45;}}
+.stat-bar{display:flex;gap:10px;padding:6px 12px;margin-bottom:6px;flex-wrap:wrap;align-items:center;}
+.stat{text-align:center;}
+.stat-lbl{font-size:.44rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;}
+.stat-val{font-family:'Orbitron',monospace;font-size:.88rem;font-weight:700;color:var(--acc);}
+.timer-ok{color:var(--cat2);}
+.timer-warn{color:var(--err);animation:tP .6s ease-in-out infinite;}
+@keyframes tP{0%,100%{opacity:1}50%{opacity:.4;}}
+.skills-bar{display:flex;gap:6px;padding:5px 10px;align-items:center;margin-bottom:6px;}
+.sk-lbl{font-size:.44rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;}
+.sk{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 10px;
+  border-radius:7px;border:1px solid var(--bdr);background:rgba(22,32,48,.7);
+  cursor:pointer;transition:all .18s;min-width:60px;}
+.sk:hover:not(:disabled){border-color:var(--acc);background:rgba(167,139,250,.12);}
+.sk:disabled{opacity:.26;cursor:not-allowed;}
+.sk-icon{font-size:.85rem;}.sk-name{font-family:'Orbitron',monospace;font-size:.42rem;font-weight:700;}
+.sk-cnt{font-size:.46rem;color:var(--dim);}
+.sk.sk-hint{border-color:rgba(252,211,77,.26);}.sk.sk-hint .sk-name{color:var(--cat2);}
+.sk.sk-shuf{border-color:rgba(52,211,153,.26);}.sk.sk-shuf .sk-name{color:var(--ok);}
+.sk.sk-swap{border-color:rgba(167,139,250,.26);}.sk.sk-swap .sk-name{color:var(--acc);}
+.sk.active-swap{border-color:var(--acc);background:rgba(167,139,250,.18);
+  animation:skP .8s ease-in-out infinite;}
+@keyframes skP{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(167,139,250,.5);}}
+.cmp-list{display:flex;flex-direction:column;gap:5px;}
+.cc{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:rgba(20,30,46,.7);border:1px solid var(--bdr);border-radius:8px;
+  padding:7px 12px;cursor:pointer;transition:all .2s;width:100%;}
+.cc.active{border-color:var(--acc);background:rgba(167,139,250,.1);box-shadow:0 0 10px rgba(167,139,250,.25);}
+.cc.ready{border-color:var(--ok);background:rgba(52,211,153,.08);box-shadow:0 0 10px rgba(52,211,153,.2);animation:readyPulse 2s ease-in-out infinite;}
+.cc.active.ready{border-color:var(--acc);border-width:2px;background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(52,211,153,.12));box-shadow:0 0 0 2px rgba(52,211,153,.5),0 0 14px rgba(167,139,250,.35);animation:activeReadyPulse 1.5s ease-in-out infinite;}
+@keyframes readyPulse{0%,100%{box-shadow:0 0 6px rgba(52,211,153,.15)}50%{box-shadow:0 0 16px rgba(52,211,153,.45);}}
+@keyframes activeReadyPulse{0%,100%{box-shadow:0 0 0 2px rgba(52,211,153,.4),0 0 10px rgba(167,139,250,.25);}50%{box-shadow:0 0 0 3px rgba(52,211,153,.8),0 0 18px rgba(167,139,250,.5);}}
+.cc.done{border-color:var(--ok);background:rgba(52,211,153,.07);opacity:.55;cursor:default;animation:none;}
+.cc.done::after{content:'✓';color:var(--ok);font-size:.8rem;margin-left:4px;flex-shrink:0;}
+.cc-ready-tag{font-size:.48rem;color:var(--ok);font-family:'Orbitron',monospace;font-weight:700;
+  padding:2px 6px;border:1px solid rgba(52,211,153,.4);border-radius:4px;white-space:nowrap;
+  animation:readyPulse 2s ease-in-out infinite;}
+.cc-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.cc-formula{font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;white-space:nowrap;}
+.cc-name{font-size:.65rem;color:var(--dim);white-space:nowrap;}
+.cc-ions{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;}
+.ibadge{font-size:.65rem;padding:3px 7px;border-radius:4px;font-family:'Orbitron',monospace;font-weight:700;white-space:nowrap;}
+.ibadge.c{background:rgba(245,158,11,.18);color:var(--cat);border:1px solid rgba(245,158,11,.3);}
+.ibadge.a{background:rgba(34,211,238,.13);color:var(--an);border:1px solid rgba(34,211,238,.25);}
+.sel-bar{display:flex;align-items:center;gap:6px;padding:5px 9px;min-height:34px;margin-bottom:6px;}
+.sel-lbl{font-size:.44rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;}
+.sel-ions{display:flex;gap:3px;flex-wrap:wrap;flex:1;}
+.sbadge{font-size:.56rem;padding:2px 5px;border-radius:4px;font-family:'Orbitron',monospace;
+  font-weight:700;animation:popIn .18s cubic-bezier(.34,1.56,.64,1);}
+.sbadge.c{background:rgba(245,158,11,.24);color:var(--cat);border:1px solid var(--cat);}
+.sbadge.a{background:rgba(34,211,238,.18);color:var(--an);border:1px solid var(--an);}
+@keyframes popIn{from{transform:scale(.35);opacity:0}to{transform:scale(1);opacity:1}}
+.hive-wrap{display:flex;justify-content:center;margin-bottom:6px;overflow-x:auto;padding:3px 0;}
+.hive{position:relative;display:inline-block;}
+#pathSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:30;overflow:visible;}
+.path-line{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:3.5;}
+.path-line.cat{stroke:var(--cat);filter:drop-shadow(0 0 5px var(--cat));}
+.path-line.an{stroke:var(--an);filter:drop-shadow(0 0 5px var(--an));}
+.path-line.mixed{stroke:var(--acc);filter:drop-shadow(0 0 5px var(--acc));}
+.hex{position:absolute;cursor:pointer;transition:filter .12s,transform .12s;z-index:2;}
+.hex:not(.removed):not(.inner):hover{filter:brightness(1.4);transform:scale(1.07);z-index:14;}
+.hex.inner{cursor:not-allowed;}
+.hex.removed{pointer-events:none;z-index:1;}
+.hex svg{width:100%;height:100%;display:block;}
+.hex-lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;pointer-events:none;z-index:3;gap:0;}
+.hex-chg{font-size:.85rem;font-weight:900;line-height:1.05;font-family:'Noto Sans SC',sans-serif;}
+.hex-sym{font-family:'Orbitron',monospace;font-size:.75rem;font-weight:700;line-height:1.05;}
+.hex.cat .hex-sym{color:#fff3cd;text-shadow:0 0 6px var(--cat);}
+.hex.cat .hex-chg{color:#fcd34d;text-shadow:0 0 5px rgba(252,211,77,.6);}
+.hex.an .hex-sym{color:#cffafe;text-shadow:0 0 6px var(--an);}
+.hex.an .hex-chg{color:#67e8f9;text-shadow:0 0 5px rgba(103,232,249,.6);}
+.hex.cat .hpoly{fill:#6b3007;stroke:#b45309;stroke-width:1.5;transition:fill .15s,stroke .15s;}
+.hex.cat.sel .hpoly{fill:#d97706;stroke:var(--cat);stroke-width:2.5;}
+.hex.cat:not(.inner):not(.removed):hover .hpoly{fill:#9a3b0c;}
+.hex.an .hpoly{fill:#082940;stroke:#0369a1;stroke-width:1.5;transition:fill .15s,stroke .15s;}
+.hex.an.sel .hpoly{fill:#0284c7;stroke:var(--an);stroke-width:2.5;}
+.hex.an:not(.inner):not(.removed):hover .hpoly{fill:#0c3d5e;}
+.hex.removed .hpoly{fill:rgba(10,16,26,.3);stroke:rgba(20,32,48,.35);stroke-width:.5;}
+.hex.removed .hex-sym,.hex.removed .hex-chg{opacity:0;}
+.hex.inner .hpoly{fill-opacity:.26;stroke-opacity:.1;}
+.hex.inner .hex-sym,.hex.inner .hex-chg{opacity:.2;}
+.hex.hint .hpoly{animation:hP 1s ease-in-out 3;}
+@keyframes hP{0%,100%{fill-opacity:1}50%{fill-opacity:.22;filter:brightness(3);}}
+.hex.swapsel .hpoly{stroke:var(--acc);stroke-width:2.5;stroke-dasharray:4 2;
+  animation:dR 1s linear infinite;}
+@keyframes dR{to{stroke-dashoffset:-12;}}
+@keyframes fE{0%,100%{filter:brightness(1)}25%{filter:brightness(2.2) drop-shadow(0 0 8px #f87171)}60%{filter:brightness(.5)}}
+.hex.ferr{animation:fE .42s ease;}
+@keyframes diss{0%{transform:scale(1) rotate(0);opacity:1;}
+  28%{transform:scale(1.45) rotate(22deg);opacity:.8;filter:brightness(2.8);}
+  100%{transform:scale(0) rotate(190deg);opacity:0;}}
+.hex.dissolving{animation:diss .58s cubic-bezier(.4,0,.6,1) forwards;z-index:20;}
+.legend{display:flex;justify-content:center;gap:14px;margin-bottom:6px;}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:.52rem;color:var(--dim);}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+.leg-dot.c{background:var(--cat);}.leg-dot.a{background:var(--an);}
+.game-footer{text-align:center;font-size:.5rem;color:rgba(74,96,122,.48);
+  letter-spacing:.1em;padding-bottom:10px;}
+#pgSummary{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+@keyframes sumPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.sum-card{background:rgba(12,20,32,.92);border:1px solid var(--acc);border-radius:20px;
+  padding:30px 38px;max-width:480px;width:100%;text-align:center;
+  animation:sumPop .5s cubic-bezier(.34,1.56,.64,1);}
+.sum-lv-badge{font-family:'Orbitron',monospace;font-size:.55rem;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;padding:3px 12px;border-radius:12px;
+  border:1px solid;display:inline-block;margin-bottom:10px;}
+.sum-title{font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;
+  background:linear-gradient(135deg,var(--cat),var(--acc),var(--an));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;}
+.sum-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px;}
+.sum-stat{background:rgba(20,30,48,.7);border:1px solid var(--bdr);border-radius:9px;padding:9px 8px;}
+.sum-stat-icon{font-size:.85rem;margin-bottom:2px;}
+.sum-stat-val{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:700;color:var(--acc);}
+.sum-stat-lbl{font-size:.5rem;color:var(--dim);margin-top:2px;}
+.sum-score-box{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.32);
+  border-radius:10px;padding:10px;margin-bottom:16px;}
+.sum-score-lbl{font-size:.56rem;color:var(--dim);margin-bottom:3px;}
+.sum-score-val{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;color:var(--ok);}
+/* ══ ADMIN ══ */
+.admin-overlay{position:fixed;inset:0;background:rgba(6,10,16,.97);display:none;align-items:center;justify-content:center;z-index:9998;backdrop-filter:blur(12px);}
+.admin-overlay.show{display:flex !important;}
+.admin-box{background:var(--surf);border:1px solid var(--cat);border-radius:18px;width:min(640px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;}
+.admin-hdr{padding:14px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:8px;}
+.admin-title{font-family:'Orbitron',monospace;font-size:.82rem;font-weight:900;color:var(--cat);}
+.admin-body{overflow-y:auto;flex:1;}
+.admin-foot{padding:8px 16px;border-top:1px solid var(--bdr);font-size:.48rem;color:var(--dim);text-align:center;flex-shrink:0;}
+.admin-tbl{width:100%;border-collapse:collapse;font-size:.62rem;}
+.admin-tbl th{font-family:'Orbitron',monospace;font-size:.44rem;color:var(--dim);font-weight:700;letter-spacing:.08em;padding:8px 10px;border-bottom:1px solid var(--bdr);text-align:left;position:sticky;top:0;background:var(--surf);}
+.admin-tbl td{padding:7px 10px;border-bottom:1px solid rgba(23,32,48,.4);vertical-align:middle;}
+.admin-login-box{background:var(--surf);border:1px solid var(--cat);border-radius:16px;padding:30px 28px;width:min(300px,90vw);text-align:center;}
+.admin-login-title{font-family:'Orbitron',monospace;font-size:.82rem;font-weight:900;color:var(--cat);margin-bottom:14px;}
+.admin-pw{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--cat);background:rgba(20,30,46,.8);color:var(--txt);font-family:'Noto Sans SC';font-size:.88rem;outline:none;text-align:center;margin-bottom:10px;letter-spacing:.1em;}
+.btn-admin-enter{font-family:'Orbitron',monospace;font-size:.62rem;font-weight:700;letter-spacing:.1em;padding:9px 22px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--cat),var(--acc));color:#000;cursor:pointer;}
+.btn-admin-csv{font-family:'Orbitron',monospace;font-size:.54rem;font-weight:700;letter-spacing:.08em;padding:7px 16px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.15);color:var(--ok);cursor:pointer;transition:all .2s;}
+.btn-admin-csv:hover{background:rgba(52,211,153,.28);}
+.btn-admin-close{font-family:'Orbitron',monospace;font-size:.54rem;font-weight:700;letter-spacing:.06em;padding:7px 14px;border-radius:8px;border:1px solid var(--bdr);background:rgba(74,96,122,.2);color:var(--dim);cursor:pointer;}
+.btn-admin-close:hover{color:var(--txt);border-color:var(--txt);}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div id="pgSplash" class="page active">
+<div class="sp-inner" style="text-align:center;">
+  <div class="sp-badge">⬡ Chemistry Learning Game</div>
+  <div class="sp-title" id="spTitle" onclick="handleTitleTap()" style="cursor:default;user-select:none;">离子连连看</div>
+  <div class="sp-sub">Ionic Compound Matching · 5 Levels</div>
+  <div class="sp-school">峇株吧辖华仁中学 · 蔡逸众制作</div>
+  <div class="sp-divider"></div>
+  <div class="sp-2col" style="margin-bottom:12px;">
+    <div class="sp-card" style="text-align:left;">
+      <div class="sp-card-ttl gold">⚗ 关于此游戏</div>
+      <p class="purpose-txt">本游戏专为<b>加强学生对离子化合价的认识</b>而设计。蜂巢格中每个方块代表一个<b>单原子离子</b>，玩家须根据<b>化合价平衡原理</b>，从外围方块中选取正确数量与化合价的正负离子，拼凑出目标化合物。共五关，难度逐步提升。<b>第五关</b>加入多化合价干扰（Fe²⁺/Fe³⁺、Cu⁺/Cu²⁺等），考验真正的理解力！</p>
+    </div>
+    <div class="sp-card" style="text-align:left;">
+      <div class="sp-card-ttl cyan">🎮 游戏玩法</div>
+      <div class="howto-grid">
+        <div class="howto-step"><div class="sn">STEP 01</div>从上方选择目标化合物</div>
+        <div class="howto-step"><div class="sn">STEP 02</div>只有<b style="color:var(--acc)">外围亮框方块</b>可点选</div>
+        <div class="howto-step"><div class="sn">STEP 03</div>点选正确化合价和数量的离子</div>
+        <div class="howto-step"><div class="sn">STEP 04</div>确认配对，正确则路径线消除</div>
+        <div class="howto-step"><div class="sn">卡 关</div>系统自动洗牌，不扣分</div>
+        <div class="howto-step"><div class="sn">技 能</div>💡提示·🔀洗牌·🔃换位，每关各3次</div>
+      </div>
+    </div>
+  </div>
+  <div class="lv-row">
+    <div class="lv-card"><div class="lv-num" style="color:var(--ok)">第一关</div><div class="lv-title">入门</div><div class="lv-rule">点击 <b>2–3</b> 个<br>7×5 格</div></div>
+    <div class="lv-card"><div class="lv-num" style="color:#6ee7b7">第二关</div><div class="lv-title">初级</div><div class="lv-rule">点击 <b>4–5</b> 个<br>7×6 格</div></div>
+    <div class="lv-card"><div class="lv-num" style="color:var(--cat2)">第三关</div><div class="lv-title">进阶</div><div class="lv-rule">点击 <b>6–7</b> 个<br>7×7 格</div></div>
+    <div class="lv-card"><div class="lv-num" style="color:#fb923c">第四关</div><div class="lv-title">困难</div><div class="lv-rule">点击 <b>8–12</b> 个<br>8×8 格<br><span style="color:#fb923c;font-size:.5rem;">⚠ N/S多化合价</span></div></div>
+    <div class="lv-card"><div class="lv-num" style="color:var(--err)">第五关</div><div class="lv-title">终极</div><div class="lv-rule">≤12个<br>8×9 格<br><span style="color:#f87171;font-size:.5rem;">⚠ Fe/Cu多化合价</span></div></div>
+  </div>
+  <div class="sp-2col">
+    <div class="sp-card">
+      <div class="sp-card-ttl gold">📊 计分规则</div>
+      <table class="score-tbl">
+        <tr><th>项目</th><th>规则</th><th>上限</th></tr>
+        <tr><td>每关基础分</td><td><span class="vg">500</span></td><td>—</td></tr>
+        <tr><td>时间扣分</td><td>前2分钟免扣，超出每10秒<span class="vr">-2</span></td><td><span class="vr">-100</span></td></tr>
+        <tr><td>错误次数</td><td>每次 <span class="vr">-15</span></td><td><span class="vr">-100</span></td></tr>
+        <tr><td>💡提示</td><td>每次 <span class="vr">-20</span></td><td rowspan="3"><span class="vr">-150</span></td></tr>
+        <tr><td>🔀洗牌</td><td>每次 <span class="vr">-40</span></td></tr>
+        <tr><td>🔃换位</td><td>每次 <span class="vr">-100</span></td></tr>
+        <tr><td>⚡速度奖励</td><td>第1–2关: 1分钟内+100<br>第3关: 1分钟内+200，2分钟内+100<br>第4关: 1分钟内+300，2分钟内+200，3分钟内+100<br>第5关: 1分钟内+400，2分钟内+300，3分钟内+200，4分钟内+100</td><td><span class="vg">+400</span></td></tr>
+        <tr><td colspan="2"><b>总分 = 五关原始分之和 × 1.5　满分 5400</b></td><td><span class="vg">×1.5</span></td></tr>
+      </table>
+      <div style="font-size:.52rem;color:var(--dim);margin-top:6px;">* 自动洗牌不扣分 · 每关技能独立重置</div>
+    </div>
+    <div class="sp-card">
+      <div class="sp-card-ttl purple">🏆 等级评定</div>
+      <div class="grade-row"><div class="gbadge" style="color:#ffd700">S</div><div class="gscore">≥ 4860</div><div class="glabel">⚗ 化学大师</div></div>
+      <div class="grade-row"><div class="gbadge" style="color:#c0c0c0">A</div><div class="gscore">4050–4859</div><div class="glabel">🔬 离子达人</div></div>
+      <div class="grade-row"><div class="gbadge" style="color:#cd7f32">B</div><div class="gscore">3240–4049</div><div class="glabel">🧪 配对能手</div></div>
+      <div class="grade-row"><div class="gbadge" style="color:var(--an)">C</div><div class="gscore">2430–3239</div><div class="glabel">📚 化学新手</div></div>
+      <div class="grade-row"><div class="gbadge" style="color:var(--dim)">D</div><div class="gscore">&lt; 2430</div><div class="glabel">💪 继续努力</div></div>
+      <div style="margin-top:12px;font-size:.58rem;color:var(--dim);border-top:1px solid var(--bdr);padding-top:9px;line-height:1.8;">
+        <span style="color:var(--cat)">金色</span>=正离子 · <span style="color:var(--an)">青色</span>=负离子<br>
+        化合价大字显示在元素符号<b style="color:var(--cat2)">上方</b>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:12px;">
+    <button class="btn-big" style="flex:1;" onclick="startGame()">⬡ 开始游戏</button>
+    <button class="btn-big" style="flex:0 0 auto;background:linear-gradient(135deg,#1e3a5f,#2d5a8e);font-size:.7rem;padding:14px 20px;" onclick="showLeaderboard()">🏆 排行榜</button>
+  </div>
+  <div class="sp-footer">峇株吧辖华仁中学 · 蔡逸众制作</div>
+</div>
+</div>
+
+<div id="pgWarning" class="page">
+  <div class="warn-card">
+    <div class="warn-icon">⚠️</div>
+    <div class="warn-title">第四关 · 注意！</div>
+    <div class="warn-body">从第四关开始，<b>氮 (N) 和硫 (S)</b> 将同时出现<b>不同化合价</b>的方块！<br>必须根据目标化合物选择<b>正确的化合价</b>，选错即配对失败。</div>
+    <div class="warn-examples">
+      <div class="warn-ex"><div class="warn-ex-title">氮离子 — 两种化合价</div><div class="warn-ex-ions"><span class="warn-ion a">N³⁻</span><span class="warn-ion c">N⁵⁺</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">硫离子 — 两种化合价</div><div class="warn-ex-ions"><span class="warn-ion a">S²⁻</span><span class="warn-ion c">S⁶⁺</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">例：NH₄Cl 需要</div><div class="warn-ex-ions"><span class="warn-ion a">N³⁻</span><span class="warn-ion c">H⁺×4</span><span class="warn-ion a">Cl⁻</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">例：Ca(NO₃)₂ 需要</div><div class="warn-ex-ions"><span class="warn-ion c">Ca²⁺</span><span class="warn-ion c">N⁵⁺×2</span><span class="warn-ion a">O²⁻×6</span></div></div>
+    </div>
+    <button class="btn-next" onclick="startLevel(3)">我已了解，进入第四关 →</button>
+  </div>
+</div>
+
+<div id="pgWarning2" class="page">
+  <div class="warn-card" style="border-color:#f87171;box-shadow:0 0 40px rgba(248,113,113,.15);">
+    <div class="warn-icon">⚠️</div>
+    <div class="warn-title" style="color:#f87171;">第五关 · 终极挑战</div>
+    <div class="warn-body">第五关加入<b>铁 (Fe) 和铜 (Cu)</b> 的多化合价！<br>Fe²⁺ 与 Fe³⁺、Cu⁺ 与 Cu²⁺ 同时出现，<b>必须选对化合价</b>。<br>N 和 S 的多化合价干扰也继续保留。</div>
+    <div class="warn-examples">
+      <div class="warn-ex"><div class="warn-ex-title">铁离子 — 选错即失败</div><div class="warn-ex-ions"><span class="warn-ion c">Fe²⁺</span><span class="warn-ion c">Fe³⁺</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">铜离子 — 选错即失败</div><div class="warn-ex-ions"><span class="warn-ion c">Cu⁺</span><span class="warn-ion c">Cu²⁺</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">例：FeO 需要</div><div class="warn-ex-ions"><span class="warn-ion c">Fe²⁺</span><span class="warn-ion a">O²⁻</span></div></div>
+      <div class="warn-ex"><div class="warn-ex-title">例：Fe₂O₃ 需要</div><div class="warn-ex-ions"><span class="warn-ion c">Fe³⁺×2</span><span class="warn-ion a">O²⁻×3</span></div></div>
+    </div>
+    <button class="btn-next" onclick="startLevel(4)">我已了解，进入第五关 →</button>
+  </div>
+</div>
+
+<div id="pgGame" class="page">
+  <div class="modal-bg" id="nameModal">
+    <div class="modal-box">
+      <div class="modal-title">🎉 全部完成！</div>
+      <div class="modal-sub">请输入姓名以生成完成证书</div>
+      <div class="score-preview" id="scorePreview"></div>
+      <input class="name-input" id="nameInput" type="text" placeholder="输入您的姓名…" maxlength="20"
+        onkeydown="if(event.key==='Enter')generateCert()">
+      <br><button class="btn-cert" onclick="generateCert()">生成证书 →</button>
+    </div>
+  </div>
+  <div class="cert-bg" id="certBg">
+    <canvas id="certCanvas"></canvas>
+    <div class="cert-actions">
+      <button class="btn-cdl" onclick="downloadCert()">⬇ 下载证书</button>
+      <button class="btn-cdl" style="background:linear-gradient(135deg,#1e3a5f,#2d5a8e);" onclick="closeLeaderboard();showLeaderboard()">🏆 排行榜</button>
+      <button class="btn-cback" onclick="restartAll()">重新开始</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="game-hdr"><div class="game-title">离子连连看</div></div>
+    <div class="lv-pips" id="lvPips"></div>
+    <div class="stat-bar panel">
+      <div class="stat"><div class="stat-lbl">关卡</div><div class="stat-val" id="sLv" style="color:var(--ok)">1</div></div>
+      <div class="stat"><div class="stat-lbl">计时</div><div class="stat-val" id="sTimer">00:00</div></div>
+      <div class="stat"><div class="stat-lbl">得分</div><div class="stat-val" id="sScore">500</div></div>
+      <div class="stat"><div class="stat-lbl">进度</div><div class="stat-val" id="sProg">0/6</div></div>
+      <div class="stat"><div class="stat-lbl">错误</div><div class="stat-val" id="sErr" style="color:var(--err)">0</div></div>
+      <div style="margin-left:auto;font-size:.46rem;color:var(--dim);line-height:1.7;text-align:right;">⬡ 仅外围<br>亮框可选</div>
+    </div>
+    <div class="skills-bar panel">
+      <div class="sk-lbl">技能</div>
+      <button class="sk sk-hint" id="btnHint" onclick="useHint()"><div class="sk-icon">💡</div><div class="sk-name">提示</div><div class="sk-cnt" id="hCnt">×3</div></button>
+      <button class="sk sk-shuf" id="btnShuf" onclick="useShuffle()"><div class="sk-icon">🔀</div><div class="sk-name">洗牌</div><div class="sk-cnt" id="sCnt">×3</div></button>
+      <button class="sk sk-swap" id="btnSwap" onclick="useSwap()"><div class="sk-icon">🔃</div><div class="sk-name">换位</div><div class="sk-cnt" id="wCnt">×3</div></button>
+      <div style="width:1px;background:var(--bdr);align-self:stretch;margin:0 2px;"></div>
+      <button class="sk" onclick="restartCurrentLevel()" style="border-color:rgba(249,115,22,.35);min-width:54px;">
+        <div class="sk-icon">🔄</div><div class="sk-name" style="color:#fb923c;">重玩</div><div class="sk-cnt" style="color:var(--dim);">本关</div>
+      </button>
+    </div>
+    <div class="panel" style="margin-bottom:6px;">
+      <div class="panel-lbl">⚗ 目标化合物 — 选择后点击外围离子方块配对</div>
+      <div class="cmp-list" id="cmpList"></div>
+    </div>
+    <div class="sel-bar panel">
+      <div class="sel-lbl">已选</div>
+      <div class="sel-ions" id="selIons"><span style="color:var(--dim);font-size:.6rem">点击外围六边形离子…</span></div>
+      <button class="btn btn-acc" onclick="confirmSel()">确认配对</button>
+      <button class="btn btn-err" onclick="clearSel()">清除</button>
+    </div>
+    <div class="hive-wrap">
+      <div class="hive" id="hive"><svg id="pathSvg"></svg></div>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot c"></div>正离子（阳离子）</div>
+      <div class="leg-item"><div class="leg-dot a"></div>负离子（阴离子）</div>
+      <div class="leg-item" style="color:var(--acc)">⬡ 亮框 = 外围可选</div>
+    </div>
+    <div class="game-footer">峇株吧辖华仁中学 · 蔡逸众制作</div>
+  </div>
+</div>
+
+<div id="pgSummary" class="page">
+  <div class="sum-card">
+    <div class="sum-lv-badge" id="sumBadge">第一关完成</div>
+    <div class="sum-title" id="sumTitle">关卡结算</div>
+    <div class="sum-stats" id="sumStats"></div>
+    <div class="sum-score-box">
+      <div class="sum-score-lbl">本关得分</div>
+      <div class="sum-score-val" id="sumScore">0</div>
+    </div>
+    <button class="btn-next" id="nextBtn" onclick="proceedNext()">进入下一关 →</button>
+  </div>
+</div>
+
+<!--峇株吧辖华仁中学蔡逸众制作-->
+
+<script>
+const L1=[{f:'NaCl',n:'氯化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:1}]},{f:'KCl',n:'氯化钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:1}]},{f:'NaF',n:'氟化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'F',q:'⁻',t:'an',n:1}]},{f:'KF',n:'氟化钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'F',q:'⁻',t:'an',n:1}]},{f:'NaBr',n:'溴化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'Br',q:'⁻',t:'an',n:1}]},{f:'KBr',n:'溴化钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'Br',q:'⁻',t:'an',n:1}]},{f:'LiCl',n:'氯化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:1}]},{f:'LiF',n:'氟化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:1},{s:'F',q:'⁻',t:'an',n:1}]},{f:'MgO',n:'氧化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'CaO',n:'氧化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'BaO',n:'氧化钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'ZnO',n:'氧化锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'MgS',n:'硫化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'CaS',n:'硫化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'BaS',n:'硫化钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'ZnS',n:'硫化锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'AlN',n:'氮化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'N',q:'³⁻',t:'an',n:1}]},{f:'H₂O',n:'水',ions:[{s:'H',q:'⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'H₂S',n:'硫化氢',ions:[{s:'H',q:'⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'NaOH',n:'氢氧化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:1}]},{f:'KOH',n:'氢氧化钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:1}]},{f:'LiOH',n:'氢氧化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:1}]},{f:'NaHS',n:'硫氢化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'KHS',n:'硫氢化钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'Na₂O',n:'氧化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'K₂O',n:'氧化钾',ions:[{s:'K',q:'⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'Li₂O',n:'氧化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'Na₂S',n:'硫化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'K₂S',n:'硫化钾',ions:[{s:'K',q:'⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'Li₂S',n:'硫化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'CaCl₂',n:'氯化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'MgCl₂',n:'氯化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'BaCl₂',n:'氯化钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'ZnCl₂',n:'氯化锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'MgBr₂',n:'溴化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'Br',q:'⁻',t:'an',n:2}]},{f:'CaBr₂',n:'溴化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'Br',q:'⁻',t:'an',n:2}]}];
+const L2=[{f:'Li₃N',n:'氮化锂',ions:[{s:'Li',q:'⁺',t:'cat',n:3},{s:'N',q:'³⁻',t:'an',n:1}]},{f:'Na₃N',n:'氮化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:3},{s:'N',q:'³⁻',t:'an',n:1}]},{f:'Na₃P',n:'磷化钠',ions:[{s:'Na',q:'⁺',t:'cat',n:3},{s:'P',q:'³⁻',t:'an',n:1}]},{f:'K₃P',n:'磷化钾',ions:[{s:'K',q:'⁺',t:'cat',n:3},{s:'P',q:'³⁻',t:'an',n:1}]},{f:'AlCl₃',n:'氯化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:3}]},{f:'AlF₃',n:'氟化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'F',q:'⁻',t:'an',n:3}]},{f:'AlBr₃',n:'溴化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'Br',q:'⁻',t:'an',n:3}]},{f:'Ca(OH)₂',n:'氢氧化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'Mg(OH)₂',n:'氢氧化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'Zn(OH)₂',n:'氢氧化锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'Ba(OH)₂',n:'氢氧化钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'HNO₃',n:'硝酸',ions:[{s:'H',q:'⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'CaCO₃',n:'碳酸钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'MgCO₃',n:'碳酸镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'ZnCO₃',n:'碳酸锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'BaCO₃',n:'碳酸钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'FeCO₃',n:'碳酸亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'Al₂O₃',n:'氧化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'Al₂S₃',n:'硫化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:3}]},{f:'Ca₃N₂',n:'氮化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:3},{s:'N',q:'³⁻',t:'an',n:2}]},{f:'Mg₃N₂',n:'氮化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:3},{s:'N',q:'³⁻',t:'an',n:2}]},{f:'Ca₃P₂',n:'磷化钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:3},{s:'P',q:'³⁻',t:'an',n:2}]},{f:'Mg₃P₂',n:'磷化镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:3},{s:'P',q:'³⁻',t:'an',n:2}]}];
+const L3=[{f:'Na₂CO₃',n:'碳酸钠',ions:[{s:'Na',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'K₂CO₃',n:'碳酸钾',ions:[{s:'K',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'Li₂CO₃',n:'碳酸锂',ions:[{s:'Li',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'MgSO₄',n:'硫酸镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'CaSO₄',n:'硫酸钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'BaSO₄',n:'硫酸钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'ZnSO₄',n:'硫酸锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'NH₄Cl',n:'氯化铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:4},{s:'Cl',q:'⁻',t:'an',n:1}]},{f:'NH₄F',n:'氟化铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:4},{s:'F',q:'⁻',t:'an',n:1}]},{f:'NH₄Br',n:'溴化铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:4},{s:'Br',q:'⁻',t:'an',n:1}]},{f:'NaHCO₃',n:'碳酸氢钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'KHCO₃',n:'碳酸氢钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'H₂CO₃',n:'碳酸',ions:[{s:'H',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'AlPO₄',n:'磷酸铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Al(OH)₃',n:'氢氧化铝',ions:[{s:'Al',q:'³⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3},{s:'H',q:'⁺',t:'cat',n:3}]},{f:'H₂SO₄',n:'硫酸',ions:[{s:'H',q:'⁺',t:'cat',n:2},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Na₂SO₄',n:'硫酸钠',ions:[{s:'Na',q:'⁺',t:'cat',n:2},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'K₂SO₄',n:'硫酸钾',ions:[{s:'K',q:'⁺',t:'cat',n:2},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Li₂SO₄',n:'硫酸锂',ions:[{s:'Li',q:'⁺',t:'cat',n:2},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'NaHSO₄',n:'硫酸氢钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'KHSO₄',n:'硫酸氢钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'NH₄OH',n:'氢氧化铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:5},{s:'O',q:'²⁻',t:'an',n:1}]}];
+const L4=[{f:'H₃PO₄',n:'磷酸',ions:[{s:'H',q:'⁺',t:'cat',n:3},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Na₃PO₄',n:'磷酸钠',ions:[{s:'Na',q:'⁺',t:'cat',n:3},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'K₃PO₄',n:'磷酸钾',ions:[{s:'K',q:'⁺',t:'cat',n:3},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Li₃PO₄',n:'磷酸锂',ions:[{s:'Li',q:'⁺',t:'cat',n:3},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'NaH₂PO₄',n:'磷酸二氢钠',ions:[{s:'Na',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:2},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'KH₂PO₄',n:'磷酸二氢钾',ions:[{s:'K',q:'⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:2},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Na₂HPO₄',n:'磷酸氢二钠',ions:[{s:'Na',q:'⁺',t:'cat',n:2},{s:'H',q:'⁺',t:'cat',n:1},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'K₂HPO₄',n:'磷酸氢二钾',ions:[{s:'K',q:'⁺',t:'cat',n:2},{s:'H',q:'⁺',t:'cat',n:1},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Ca(NO₃)₂',n:'硝酸钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Mg(NO₃)₂',n:'硝酸镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Ba(NO₃)₂',n:'硝酸钡',ions:[{s:'Ba',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Zn(NO₃)₂',n:'硝酸锌',ions:[{s:'Zn',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Ca(HCO₃)₂',n:'碳酸氢钙',ions:[{s:'Ca',q:'²⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Mg(HCO₃)₂',n:'碳酸氢镁',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'H',q:'⁺',t:'cat',n:2},{s:'C',q:'⁴⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]}];
+const L5=[{f:'NH₄HCO₃',n:'碳酸氢铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:5},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'NH₄H₂PO₄',n:'磷酸二氢铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:6},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'MgNH₄PO₄',n:'磷酸镁铵',ions:[{s:'Mg',q:'²⁺',t:'cat',n:1},{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:4},{s:'P',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'FeO',n:'氧化亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'Fe₂O₃',n:'氧化铁',ions:[{s:'Fe',q:'³⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'Fe₃O₄',n:'四氧化三铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'Fe',q:'³⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'FeCl₂',n:'氯化亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'FeCl₃',n:'氯化铁',ions:[{s:'Fe',q:'³⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:3}]},{f:'Fe(OH)₂',n:'氢氧化亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'Fe(OH)₃',n:'氢氧化铁',ions:[{s:'Fe',q:'³⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3},{s:'H',q:'⁺',t:'cat',n:3}]},{f:'FeSO₄',n:'硫酸亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'FeS',n:'硫化亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'Fe₂S₃',n:'硫化铁',ions:[{s:'Fe',q:'³⁺',t:'cat',n:2},{s:'S',q:'²⁻',t:'an',n:3}]},{f:'CuO',n:'氧化铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'Cu₂O',n:'氧化亚铜',ions:[{s:'Cu',q:'⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:1}]},{f:'CuCl',n:'氯化亚铜',ions:[{s:'Cu',q:'⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:1}]},{f:'CuCl₂',n:'氯化铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'Cl',q:'⁻',t:'an',n:2}]},{f:'Cu(OH)₂',n:'氢氧化铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:2},{s:'H',q:'⁺',t:'cat',n:2}]},{f:'CuS',n:'硫化铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'S',q:'²⁻',t:'an',n:1}]},{f:'CuSO₄',n:'硫酸铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'S',q:'⁶⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:4}]},{f:'Fe(NO₃)₂',n:'硝酸亚铁',ions:[{s:'Fe',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'Cu(NO₃)₂',n:'硝酸铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'N',q:'⁵⁺',t:'cat',n:2},{s:'O',q:'²⁻',t:'an',n:6}]},{f:'NH₄NO₃',n:'硝酸铵',ions:[{s:'N',q:'³⁻',t:'an',n:1},{s:'H',q:'⁺',t:'cat',n:4},{s:'N',q:'⁵⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]},{f:'CuCO₃',n:'碳酸铜',ions:[{s:'Cu',q:'²⁺',t:'cat',n:1},{s:'C',q:'⁴⁺',t:'cat',n:1},{s:'O',q:'²⁻',t:'an',n:3}]}];
+const ALL_POOLS=[L1,L2,L3,L4,L5];
+const DECOYS=[[{s:'Ag',q:'⁺',t:'cat'},{s:'Pb',q:'²⁺',t:'cat'},{s:'Mn',q:'²⁺',t:'cat'},{s:'I',q:'⁻',t:'an'},{s:'Se',q:'²⁻',t:'an'}],[{s:'Ag',q:'⁺',t:'cat'},{s:'Pb',q:'²⁺',t:'cat'},{s:'Cr',q:'³⁺',t:'cat'},{s:'I',q:'⁻',t:'an'},{s:'Se',q:'²⁻',t:'an'},{s:'Te',q:'²⁻',t:'an'}],[{s:'Ag',q:'⁺',t:'cat'},{s:'Pb',q:'²⁺',t:'cat'},{s:'Cr',q:'³⁺',t:'cat'},{s:'I',q:'⁻',t:'an'},{s:'Se',q:'²⁻',t:'an'},{s:'Bi',q:'³⁺',t:'cat'}],[{s:'Ag',q:'⁺',t:'cat'},{s:'Pb',q:'²⁺',t:'cat'},{s:'Cr',q:'³⁺',t:'cat'},{s:'I',q:'⁻',t:'an'},{s:'Bi',q:'³⁺',t:'cat'},{s:'Te',q:'²⁻',t:'an'}],[{s:'Mn',q:'²⁺',t:'cat'},{s:'Pb',q:'²⁺',t:'cat'},{s:'Ag',q:'⁺',t:'cat'},{s:'I',q:'⁻',t:'an'},{s:'Cr',q:'³⁺',t:'cat'}]];
+const GRIDS=[{cols:7,rows:5},{cols:7,rows:6},{cols:7,rows:7},{cols:8,rows:8},{cols:8,rows:9}];
+const LV_COLORS=['#34d399','#6ee7b7','#fcd34d','#fb923c','#f87171'];
+const LV_NAMES=['第一关','第二关','第三关','第四关','第五关'];
+const CMP_PER_LV=6;
+const HW=58,HH=66,CSTEP=58,RSTEP=49.5,PAD=5;
+
+let lvIdx=0,lvResults=[];
+let compounds=[],grid=[],selected=[],activeIdx=null;
+let lvErrors=0,lvDone=0,lvElapsed=0,lvStartTime=0;
+let skH=3,skS=3,skW=3,skHU=0,skSU=0,skWU=0;
+let swapMode=false,swapFirst=null,animating=false;
+let timerIv=null,watchdogIv=null;
+let lastReshuffleTime=0;
+let COLS=7,ROWS=5;
+
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function startGame(){closeLeaderboard();showPage('pgGame');startLevel(0);}
+function restartAll(){if(watchdogIv)clearInterval(watchdogIv);if(timerIv)clearInterval(timerIv);document.getElementById('certBg').classList.remove('show');showPage('pgSplash');}
+function restartCurrentLevel(){if(lvResults.length>0)lvResults.pop();showPage('pgGame');startLevel(lvIdx);}
+function proceedNext(){if(lvIdx===2){showPage('pgWarning');}else if(lvIdx===3){showPage('pgWarning2');}else{startLevel(lvIdx+1);}}
+
+function startLevel(idx){
+  if(idx<0||idx>4){console.error("Invalid level:",idx);return;}
+  lvIdx=idx;const cfg=GRIDS[idx];COLS=cfg.cols;ROWS=cfg.rows;
+  lvErrors=0;lvDone=0;lvElapsed=0;selected=[];activeIdx=null;
+  skH=3;skS=3;skW=3;skHU=0;skSU=0;skWU=0;
+  swapMode=false;swapFirst=null;animating=false;showPage('pgGame');
+  const poolRaw=shuffle([...ALL_POOLS[idx]]).slice(0,CMP_PER_LV);
+  poolRaw.sort((a,b)=>a.ions.reduce((s,i)=>s+i.n,0)-b.ions.reduce((s,i)=>s+i.n,0));
+  compounds=poolRaw.map(c=>({...c,done:false}));
+  let pool=[];
+  compounds.forEach((c,ci)=>{c.ions.forEach(ion=>{for(let i=0;i<ion.n;i++)pool.push({s:ion.s,q:ion.q,t:ion.t,ci});});});
+  const dec=DECOYS[idx];const TARGET=COLS*ROWS;
+  while(pool.length<TARGET){pool.push({...dec[Math.floor(Math.random()*dec.length)],ci:-1});}
+  pool=shuffle(pool).slice(0,TARGET);
+  grid=[];
+  for(let r=0;r<ROWS;r++){grid.push([]);for(let c=0;c<COLS;c++)grid[r].push({...pool[r*COLS+c],id:r*COLS+c,removed:false,sel:false});}
+  buildPips();
+  document.getElementById('sLv').textContent=idx+1;
+  document.getElementById('sLv').style.color=LV_COLORS[idx];
+  if(timerIv)clearInterval(timerIv);if(watchdogIv)clearInterval(watchdogIv);
+  lastReshuffleTime=0;lvStartTime=Date.now();
+  timerIv=setInterval(tickTimer,500);
+  watchdogIv=setInterval(()=>{if(animating||lvDone>=CMP_PER_LV)return;if(Date.now()-lastReshuffleTime<2000)return;if(checkDeadlock())doReshuffle(false);},1500);
+  renderCompounds();rebuildHive();refreshOuter();updateUI();updateSkUI();
+  activeIdx=0;highlightActive();
+}
+
+function buildPips(){const cont=document.getElementById('lvPips');cont.innerHTML='';for(let i=0;i<5;i++){const d=document.createElement('div');d.className='pip'+(i<lvIdx?' done':i===lvIdx?' cur':'');cont.appendChild(d);}}
+function tickTimer(){lvElapsed=Math.floor((Date.now()-lvStartTime)/1000);const m=Math.floor(lvElapsed/60),s=lvElapsed%60;const el=document.getElementById('sTimer');el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;el.className='stat-val '+(lvElapsed>120?'timer-warn':'timer-ok');updateUI();}
+function speedBonus(lv,t){if(lv===0||lv===1){return t<60?100:0;}if(lv===2){return t<60?200:t<120?100:0;}if(lv===3){return t<60?300:t<120?200:t<180?100:0;}if(lv===4){return t<60?400:t<120?300:t<180?200:t<240?100:0;}return 0;}
+function calcLvScore(lv,t,e,hU,sU,wU){const td=Math.min(100,Math.floor(Math.max(0,t-120)/10)*2);const ed=Math.min(100,e*15);const sd=Math.min(150,hU*20+sU*40+wU*100);const bonus=speedBonus(lv,t);return Math.max(0,500-td-ed-sd)+bonus;}
+function calcCurrent(){return calcLvScore(lvIdx,lvElapsed,lvErrors,skHU,skSU,skWU);}
+function totalRaw(){return lvResults.reduce((s,r)=>s+r.raw,0);}
+function totalFinal(){return Math.round(totalRaw()*1.5);}
+function getGrade(f){if(f>=4860)return{g:'S',l:'化学大师',c:'#ffd700'};if(f>=4050)return{g:'A',l:'离子达人',c:'#c0c0c0'};if(f>=3240)return{g:'B',l:'配对能手',c:'#cd7f32'};if(f>=2430)return{g:'C',l:'化学新手',c:'#22d3ee'};return{g:'D',l:'继续努力',c:'#4a607a'};}
+function fmtT(s){return s<60?`${s}秒`:`${Math.floor(s/60)}分${s%60}秒`;}
+
+function hexPos(c,r){return{x:c*CSTEP+(r%2?HW/2:0)+PAD,y:r*RSTEP+PAD};}
+function hexCenter(c,r){const p=hexPos(c,r);return{x:p.x+HW/2,y:p.y+HH/2};}
+function polyPts(){const cx=HW/2,cy=HH/2,r=HW/2-.8,pts=[];for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;pts.push(`${cx+r*Math.cos(a)} ${cy+r*Math.sin(a)}`);}return pts.join(' ');}
+const POLY=polyPts();
+function nbrs(c,r){const e=r%2===0;return[[c+1,r],[c-1,r],[c+(e?0:1),r-1],[c+(e?-1:0),r-1],[c+(e?0:1),r+1],[c+(e?-1:0),r+1]].filter(([cc,rr])=>cc>=0&&cc<COLS&&rr>=0&&rr<ROWS);}
+function getCell(c,r){return grid[r]?.[c]||null;}
+function setCell(c,r,v){if(grid[r])grid[r][c]=v;}
+function isOuter(c,r){const cell=getCell(c,r);if(!cell||cell.removed)return false;if(c===0||c===COLS-1||r===0||r===ROWS-1)return true;for(const[nc,nr]of nbrs(c,r)){const n=getCell(nc,nr);if(!n||n.removed)return true;}return false;}
+function refreshOuter(){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(!cell||cell.removed)continue;const out=isOuter(c,r);const el=document.getElementById(`hx-${cell.id}`);if(!el)continue;el.classList.toggle('inner',!out);const poly=el.querySelector('.hpoly');if(poly){poly.style.strokeOpacity=out?'1':'.1';poly.style.strokeWidth=out?'2':'.4';}}markReadyCompounds();}
+function markReadyCompounds(){const outer=outerCount();let anyReady=false;compounds.forEach((cmp,i)=>{if(cmp.done)return;let ready=true;for(const ion of cmp.ions){if((outer[ion.s+'|'+ion.q]||0)<ion.n){ready=false;break;}}cmp.outerReady=ready;if(ready)anyReady=true;const el=document.getElementById(`cc-${i}`);if(el){el.classList.toggle('ready',ready);const existing=el.querySelector('.cc-ready-tag');const isActive=(i===activeIdx);if(ready){const tagText=isActive?'✓ 已选中·可配对':'可配对';if(!existing){const tag=document.createElement('span');tag.className='cc-ready-tag';tag.textContent=tagText;el.appendChild(tag);}else{existing.textContent=tagText;}}else if(!ready&&existing){existing.remove();}}});return anyReady;}
+function globalCount(){const cnt={};for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(cell&&!cell.removed){const k=cell.s+'|'+cell.q;cnt[k]=(cnt[k]||0)+1;}}return cnt;}
+function outerCount(){const cnt={};for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(cell&&!cell.removed&&isOuter(c,r)){const k=cell.s+'|'+cell.q;cnt[k]=(cnt[k]||0)+1;}}return cnt;}
+function checkDeadlock(){const global=globalCount();const outer=outerCount();for(const cmp of compounds){if(cmp.done)continue;let globalOk=true;for(const ion of cmp.ions){if((global[ion.s+'|'+ion.q]||0)<ion.n){globalOk=false;break;}}if(!globalOk)continue;let outerFull=true;for(const ion of cmp.ions){if((outer[ion.s+'|'+ion.q]||0)<ion.n){outerFull=false;break;}}if(outerFull)return false;}return true;}
+function replenishMissingIons(){const global=globalCount();const deficit={};const meta={};for(const cmp of compounds){if(cmp.done)continue;for(const ion of cmp.ions){const k=ion.s+'|'+ion.q;meta[k]={s:ion.s,q:ion.q,t:ion.t};const have=global[k]||0;if(have<ion.n)deficit[k]=(deficit[k]||0)+(ion.n-have);}}if(Object.keys(deficit).length===0)return false;let decoys=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(cell&&!cell.removed&&(cell.ci===-1||cell.ci===-2))decoys.push([c,r]);}decoys=shuffle(decoys);let di=0;for(const[k,count]of Object.entries(deficit)){const m=meta[k];for(let i=0;i<count;i++){if(di>=decoys.length)break;const[dc,dr]=decoys[di++];const orig=getCell(dc,dr);setCell(dc,dr,{s:m.s,q:m.q,t:m.t,ci:-2,id:orig.id,removed:false,sel:false});}}return true;}
+function doReshuffle(silent=false){lastReshuffleTime=Date.now();const replenished=replenishMissingIons();if(!silent){showToast(replenished?'🔀 卡关！补充离子并洗牌！':'🔀 卡关，自动洗牌！','warn');}let pool=[],pos=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(cell&&!cell.removed){pool.push({...cell});pos.push([c,r]);}}pool=shuffle(pool);pos.forEach(([c,r],i)=>setCell(c,r,{...pool[i],sel:false}));clearSel();rebuildHive();refreshOuter();}
+
+function rebuildHive(){const hive=document.getElementById('hive');const svg=document.getElementById('pathSvg');hive.innerHTML='';hive.appendChild(svg);svg.innerHTML='';const W=CSTEP*COLS+HW/2+PAD*2+4,H=RSTEP*(ROWS-1)+HH+PAD*2+4;hive.style.width=W+'px';hive.style.height=H+'px';svg.setAttribute('width',W);svg.setAttribute('height',H);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(!cell)continue;const{x,y}=hexPos(c,r);const div=document.createElement('div');div.className=`hex ${cell.t}${cell.removed?' removed':''}`;div.id=`hx-${cell.id}`;div.style.cssText=`left:${x}px;top:${y}px;width:${HW}px;height:${HH}px;`;div.innerHTML=`<svg viewBox="0 0 ${HW} ${HH}" xmlns="http://www.w3.org/2000/svg"><polygon class="hpoly" points="${POLY}"/></svg><div class="hex-lbl"><div class="hex-chg">${cell.q}</div><div class="hex-sym">${cell.s}</div></div>`;div.onclick=()=>onHexClick(c,r);hive.appendChild(div);}}
+
+function onHexClick(c,r){if(animating)return;const cell=getCell(c,r);if(!cell||cell.removed)return;if(swapMode){handleSwap(c,r);return;}if(!isOuter(c,r)){showToast('只能点选外围亮框方块！',true);return;}const el=document.getElementById(`hx-${cell.id}`);if(cell.sel){cell.sel=false;el.classList.remove('sel');selected=selected.filter(([sc,sr])=>!(sc===c&&sr===r));}else{cell.sel=true;el.classList.add('sel');selected.push([c,r]);}updateSelDisplay();}
+function clearSel(){selected.forEach(([c,r])=>{const cell=getCell(c,r);if(cell){cell.sel=false;document.getElementById(`hx-${cell.id}`)?.classList.remove('sel');}});selected=[];updateSelDisplay();}
+
+function confirmSel(){
+  if(animating)return;
+  if(!selected.length){showToast('请先选择离子方块！',true);return;}
+  if(activeIdx===null){showToast('请先选择目标化合物！',true);return;}
+  const cmp=compounds[activeIdx];if(cmp.done){showToast('此化合物已完成！',true);return;}
+  const picked=selected.map(([c,r])=>getCell(c,r));
+  const cnt={};picked.forEach(p=>{const k=p.s+'|'+p.q;cnt[k]=(cnt[k]||0)+1;});
+  const tot=cmp.ions.reduce((s,i)=>s+i.n,0);
+  let ok=picked.length===tot;
+  if(ok){for(const ion of cmp.ions){if((cnt[ion.s+'|'+ion.q]||0)!==ion.n){ok=false;break;}}}
+  if(ok){const rk=new Set(cmp.ions.map(i=>i.s+'|'+i.q));if(Object.keys(cnt).some(k=>!rk.has(k)))ok=false;}
+  if(ok){
+    lvDone++;cmp.done=true;drawPath(selected,picked);animating=true;
+    setTimeout(()=>{dissolve(selected,()=>{selected=[];updateSelDisplay();renderCompounds();updateUI();const ni=compounds.findIndex((cc,i)=>!cc.done&&i!==activeIdx);activeIdx=ni>=0?ni:compounds.findIndex(cc=>!cc.done);if(activeIdx===-1)activeIdx=null;highlightActive();refreshOuter();animating=false;if(lvDone===CMP_PER_LV){clearInterval(timerIv);clearInterval(watchdogIv);lvElapsed=Math.floor((Date.now()-lvStartTime)/1000);setTimeout(()=>finishLevel(),600);}});},460);
+    showToast(`✓ ${cmp.f} 配对成功！`);
+  }else{
+    lvErrors++;picked.forEach(cell=>{const el=document.getElementById(`hx-${cell.id}`);el?.classList.add('ferr');setTimeout(()=>el?.classList.remove('ferr'),440);});
+    const reqMap={};cmp.ions.forEach(ion=>{reqMap[ion.s+'|'+ion.q]={s:ion.s,q:ion.q,need:ion.n,have:cnt[ion.s+'|'+ion.q]||0};});
+    const excess=[];Object.entries(cnt).forEach(([k,have])=>{if(!reqMap[k]){const[s,q]=k.split('|');excess.push(`${s}${q}`);}else if(have>reqMap[k].need){excess.push(`${reqMap[k].s}${reqMap[k].q}(多${have-reqMap[k].need}个)`);}});
+    const missing=[];Object.values(reqMap).forEach(({s,q,need,have})=>{if(have<need)missing.push(`${s}${q}(少${need-have}个)`);});
+    let msg;if(excess.length>0){msg=`合成${cmp.n}并不需要 ${excess.slice(0,2).join('、')} 哦！`;}else if(missing.length>0){msg=`要合成${cmp.n}还需要 ${missing.slice(0,2).join('、')} 哦！`;}else{msg='✗ 配对错误，请再试！';}
+    showToast(msg,true);updateUI();
+  }
+}
+
+function finishLevel(){const completedIdx=lvIdx;const raw=calcLvScore(completedIdx,lvElapsed,lvErrors,skHU,skSU,skWU);lvResults.push({raw,time:lvElapsed,errors:lvErrors,hU:skHU,sU:skSU,wU:skWU,cmps:[...compounds]});showSummary(completedIdx);}
+function showSummary(completedIdx){const res=lvResults[completedIdx];const badge=document.getElementById('sumBadge');badge.textContent=LV_NAMES[completedIdx]+'完成';badge.style.color=LV_COLORS[completedIdx];badge.style.borderColor=LV_COLORS[completedIdx];document.getElementById('sumTitle').textContent='关卡结算';const bonus=speedBonus(completedIdx,res.time);document.getElementById('sumStats').innerHTML=`<div class="sum-stat"><div class="sum-stat-icon">⏱</div><div class="sum-stat-val">${fmtT(res.time)}</div><div class="sum-stat-lbl">完成时间</div></div><div class="sum-stat"><div class="sum-stat-icon">❌</div><div class="sum-stat-val" style="color:var(--err)">${res.errors}</div><div class="sum-stat-lbl">错误次数</div></div><div class="sum-stat"><div class="sum-stat-icon">⚡</div><div class="sum-stat-val" style="color:${bonus>0?'var(--cat2)':'var(--dim)'}">${bonus>0?'+'+bonus:0}</div><div class="sum-stat-lbl">速度奖励</div></div><div class="sum-stat"><div class="sum-stat-icon">💡</div><div class="sum-stat-val">${res.hU}</div><div class="sum-stat-lbl">提示使用</div></div><div class="sum-stat"><div class="sum-stat-icon">🔀</div><div class="sum-stat-val">${res.sU}</div><div class="sum-stat-lbl">洗牌使用</div></div><div class="sum-stat"><div class="sum-stat-icon">🔃</div><div class="sum-stat-val">${res.wU}</div><div class="sum-stat-lbl">换位使用</div></div>`;document.getElementById('sumScore').textContent=res.raw+' 分';const btn=document.getElementById('nextBtn');if(completedIdx<4){btn.textContent='进入'+LV_NAMES[completedIdx+1]+' →';btn.onclick=proceedNext;}else{btn.textContent='查看最终成绩 →';btn.onclick=showFinalModal;}showPage('pgSummary');}
+function showFinalModal(){const fin=totalFinal();const gr=getGrade(fin);const rows=lvResults.map((r,i)=>`<div class="msp-row"><div class="msp-lbl">${LV_NAMES[i]}原始分</div><div class="msp-val gold">${r.raw}</div></div>`).join('');document.getElementById('scorePreview').innerHTML=rows+`<div class="msp-row"><div class="msp-lbl">五关原始总分 × 1.5</div><div class="msp-val">${totalRaw()} × 1.5</div></div>`+`<div class="msp-row"><div class="msp-lbl">最终得分</div><div class="msp-val fin">${fin}</div></div>`+`<div class="msp-row"><div class="msp-lbl">等级</div><div class="msp-val" style="color:${gr.c};font-size:.82rem;">${gr.g} ${gr.l}</div></div>`;showPage('pgGame');document.getElementById('nameModal').classList.add('show');document.getElementById('nameInput').focus();}
+
+function drawPath(coords,cells){const svg=document.getElementById('pathSvg');svg.innerHTML='';if(!coords.length)return;const d='M'+coords.map(([c,r])=>hexCenter(c,r)).map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('L');const cls=cells.every(c=>c.t==='cat')?'cat':cells.every(c=>c.t==='an')?'an':'mixed';const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.setAttribute('class',`path-line ${cls}`);svg.appendChild(path);try{const len=path.getTotalLength();path.style.strokeDasharray=len;path.style.strokeDashoffset=len;path.getBoundingClientRect();path.style.transition='stroke-dashoffset 0.42s ease';path.style.strokeDashoffset='0';}catch(e){}setTimeout(()=>{svg.innerHTML='';},560);}
+function dissolve(coords,cb){coords.forEach(([c,r],i)=>{const cell=getCell(c,r);if(!cell)return;cell.sel=false;const el=document.getElementById(`hx-${cell.id}`);if(el){el.classList.remove('sel');el.style.animationDelay=(i*48)+'ms';el.classList.add('dissolving');}});setTimeout(()=>{coords.forEach(([c,r])=>{const cell=getCell(c,r);if(!cell)return;cell.removed=true;const el=document.getElementById(`hx-${cell.id}`);if(el){el.classList.remove('dissolving');el.classList.add('removed');}});if(cb)cb();},coords.length*48+640);}
+
+function useHint(){if(skH<=0){showToast('提示次数已用完！',true);return;}if(activeIdx===null){const readyIdx=compounds.findIndex(c=>!c.done&&c.outerReady);if(readyIdx>=0){activeIdx=readyIdx;highlightActive();}else{showToast('请先选择化合物！',true);return;}}skH--;skHU++;updateSkUI();updateUI();const cmp=compounds[activeIdx];const needed={};cmp.ions.forEach(i=>{needed[i.s+'|'+i.q]=i.n;});let found=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=getCell(c,r);if(!cell||cell.removed||!isOuter(c,r))continue;if(needed[cell.s+'|'+cell.q]!==undefined){const el=document.getElementById(`hx-${cell.id}`);el?.classList.add('hint');setTimeout(()=>el?.classList.remove('hint'),3400);found++;}}if(found>0){showToast(`💡 高亮了 ${found} 个外围离子`,'info');}else{showToast('此化合物外围暂无可用离子','warn');}}
+function useShuffle(){if(skS<=0){showToast('洗牌次数已用完！',true);return;}skS--;skSU++;updateSkUI();updateUI();clearSel();doReshuffle(true);showToast('🔀 洗牌完成！','info');}
+function useSwap(){if(skW<=0){showToast('换位次数已用完！',true);return;}if(swapMode){swapMode=false;swapFirst=null;document.querySelectorAll('.hex.swapsel').forEach(el=>el.classList.remove('swapsel'));document.getElementById('btnSwap').classList.remove('active-swap');showToast('换位已取消','info');return;}swapMode=true;document.getElementById('btnSwap').classList.add('active-swap');showToast('🔃 请点选第一个方块…','info');}
+function handleSwap(c,r){const cell=getCell(c,r);if(!cell||cell.removed)return;if(!swapFirst){swapFirst=[c,r];document.getElementById(`hx-${cell.id}`)?.classList.add('swapsel');showToast('🔃 请点选第二个方块…','info');}else{const[c1,r1]=swapFirst;if(c1===c&&r1===r){swapFirst=null;document.querySelectorAll('.hex.swapsel').forEach(el=>el.classList.remove('swapsel'));return;}const a=getCell(c1,r1),b=getCell(c,r);const aid=a.id,bid=b.id;setCell(c1,r1,{...b,id:aid,sel:false});setCell(c,r,{...a,id:bid,sel:false});skW--;skWU++;updateSkUI();updateUI();clearSel();swapMode=false;swapFirst=null;document.getElementById('btnSwap').classList.remove('active-swap');rebuildHive();refreshOuter();showToast('🔃 换位完成！','info');}}
+
+function updateUI(){document.getElementById('sScore').textContent=calcCurrent();document.getElementById('sProg').textContent=`${lvDone}/${CMP_PER_LV}`;document.getElementById('sErr').textContent=lvErrors;}
+function updateSkUI(){document.getElementById('hCnt').textContent=`×${skH}`;document.getElementById('sCnt').textContent=`×${skS}`;document.getElementById('wCnt').textContent=`×${skW}`;document.getElementById('btnHint').disabled=skH<=0;document.getElementById('btnShuf').disabled=skS<=0;document.getElementById('btnSwap').disabled=skW<=0;}
+function updateSelDisplay(){const cont=document.getElementById('selIons');if(!selected.length){cont.innerHTML='<span style="color:var(--dim);font-size:.6rem">点击外围六边形离子…</span>';return;}cont.innerHTML=selected.map(([c,r])=>{const cell=getCell(c,r);return`<span class="sbadge ${cell.t}">${cell.s}${cell.q}</span>`;}).join('');}
+function renderCompounds(){const list=document.getElementById('cmpList');list.innerHTML='';compounds.forEach((c,i)=>{const div=document.createElement('div');div.className=`cc${i===activeIdx&&!c.done?' active':''}${c.done?' done':''}`;div.id=`cc-${i}`;div.onclick=()=>{if(!c.done){activeIdx=i;highlightActive();}};const b=c.ions.map(ion=>`<span class="ibadge ${ion.t}">${ion.n}×${ion.s}${ion.q}</span>`).join('');div.innerHTML=`<div class="cc-left"><div class="cc-formula">${c.f}</div><div class="cc-name">${c.n}</div></div><div class="cc-ions">${b}</div>`;list.appendChild(div);});}
+function highlightActive(){document.querySelectorAll('.cc').forEach((el,i)=>{const isActive=i===activeIdx&&!compounds[i]?.done;el.classList.toggle('active',isActive);const tag=el.querySelector('.cc-ready-tag');if(tag&&compounds[i]&&!compounds[i].done&&compounds[i].outerReady){tag.textContent=isActive?'✓ 已选中·可配对':'可配对';}});}
+function showToast(msg,type=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type===true?' err':type==='warn'?' warn':type==='info'?' info':'')+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// Certificate drawing functions (identical to original)
+function generateCert(){const name=document.getElementById('nameInput').value.trim();if(!name){showToast('请输入姓名！',true);return;}document.getElementById('nameModal').classList.remove('show');const _fin=totalFinal(),_gr=getGrade(_fin);window._lastSubmitName=name;window._lastSubmitScore=_fin;submitScore(name,_fin,_gr.g);drawCert(name);document.getElementById('certBg').classList.add('show');}
+function drawCert(name){const canvas=document.getElementById('certCanvas');const W=620,H=1050;canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d');const fin=totalFinal();const gr=getGrade(fin);const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#08101e');bg.addColorStop(.5,'#0c1828');bg.addColorStop(1,'#070e1a');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.save();ctx.globalAlpha=.028;ctx.strokeStyle='#a78bfa';ctx.lineWidth=.7;for(let row=0;row<24;row++)for(let col=0;col<12;col++){cHexS(ctx,col*58+(row%2)*29,row*50,19);}ctx.restore();const g0=ctx.createLinearGradient(0,0,W,H);g0.addColorStop(0,'#f59e0b');g0.addColorStop(.5,'#a78bfa');g0.addColorStop(1,'#22d3ee');ctx.strokeStyle=g0;ctx.lineWidth=5;cRR(ctx,10,10,W-20,H-20,16);ctx.stroke();ctx.strokeStyle='rgba(167,139,250,.26)';ctx.lineWidth=1.5;cRR(ctx,18,18,W-36,H-36,12);ctx.stroke();[[40,40,1,1],[W-40,40,-1,1],[40,H-40,1,-1],[W-40,H-40,-1,-1]].forEach(([x,y,sx,sy])=>cCorner(ctx,x,y,sx,sy));ctx.save();['#f59e0b','#a78bfa','#22d3ee','#34d399','#f87171'].forEach((col,i)=>{ctx.globalAlpha=.65;ctx.fillStyle=col;cHexF(ctx,W/2+(i-2)*50,70,14);});ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='bold 10px "Noto Sans SC"';ctx.fillStyle='rgba(167,139,250,.5)';ctx.fillText('峇株吧辖华仁中学',W/2,103);ctx.font='bold 9px "Orbitron",monospace';ctx.fillStyle='rgba(167,139,250,.58)';ctx.fillText('CERTIFICATE  OF  ACHIEVEMENT',W/2,120);ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='bold 31px "Noto Sans SC"';const tg=ctx.createLinearGradient(W/2-130,0,W/2+130,0);tg.addColorStop(0,'#f59e0b');tg.addColorStop(.5,'#fcd34d');tg.addColorStop(1,'#f59e0b');ctx.fillStyle=tg;ctx.shadowColor='rgba(245,158,11,.5)';ctx.shadowBlur=13;ctx.fillText('离子连连看',W/2,156);ctx.shadowBlur=0;ctx.font='bold 9px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.34)';ctx.fillText('Ionic Compound Matching · 5 Levels',W/2,173);ctx.restore();cLDiv(ctx,W/2,188,165);ctx.save();ctx.textAlign='center';ctx.font='13px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.48)';ctx.fillText('兹证明以下学生',W/2,216);ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='bold 44px "Noto Sans SC"';const ng=ctx.createLinearGradient(W/2-150,0,W/2+150,0);ng.addColorStop(0,'#22d3ee');ng.addColorStop(.5,'#e2e8f0');ng.addColorStop(1,'#22d3ee');ctx.fillStyle=ng;ctx.shadowColor='rgba(34,211,238,.38)';ctx.shadowBlur=16;ctx.fillText(name,W/2,270);const nw=ctx.measureText(name).width;ctx.shadowBlur=0;ctx.strokeStyle='rgba(34,211,238,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(W/2-nw/2-14,282);ctx.lineTo(W/2+nw/2+14,282);ctx.stroke();ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='13px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.44)';ctx.fillText('成功完成离子连连看全五关配对挑战',W/2,310);ctx.restore();cLDiv(ctx,W/2,326,130);ctx.save();ctx.textAlign='center';ctx.fillStyle='rgba(20,30,50,.8)';ctx.strokeStyle=gr.c+'60';ctx.lineWidth=2;cRR(ctx,W/2-82,336,164,70,11);ctx.fill();ctx.stroke();ctx.font='bold 42px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.shadowColor=gr.c;ctx.shadowBlur=14;ctx.fillText(gr.g,W/2-30,390);ctx.shadowBlur=0;ctx.font='bold 14px "Noto Sans SC"';ctx.fillStyle=gr.c;ctx.fillText(gr.l,W/2+30,374);ctx.font='10px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.48)';ctx.fillText(`${fin} pts`,W/2+30,392);ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='10px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.3)';ctx.fillText(`原始总分 ${totalRaw()} × 1.5 = ${fin} 分　（满分5400）`,W/2,424);ctx.restore();cLDiv(ctx,W/2,436,120);const tY=448,rH=56,cW=(W-80)/4,sX=40;['关卡','用时','错误','本关分'].forEach((h,i)=>{ctx.font='bold 8px "Orbitron",monospace';ctx.fillStyle='rgba(226,232,240,.32)';ctx.textAlign='center';ctx.fillText(h,sX+i*cW+cW/2,tY);});lvResults.forEach((res,ri)=>{const y=tY+14+ri*rH;ctx.fillStyle='rgba(18,28,46,.6)';ctx.strokeStyle=LV_COLORS[ri]+'30';ctx.lineWidth=1;cRR(ctx,sX,y,W-80,rH-5,7);ctx.fill();ctx.stroke();ctx.textAlign='center';ctx.font='bold 11px "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri];ctx.fillText(LV_NAMES[ri],sX+cW/2,y+22);ctx.font='8px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.3)';ctx.fillText(`💡${res.hU} 🔀${res.sU} 🔃${res.wU}`,sX+cW/2,y+38);ctx.font='bold 12px "Orbitron",monospace';ctx.fillStyle='#e2e8f0';ctx.fillText(fmtT(res.time),sX+cW+cW/2,y+24);ctx.fillStyle=res.errors>0?'#f87171':'#34d399';ctx.fillText(String(res.errors),sX+cW*2+cW/2,y+24);ctx.fillStyle='#a78bfa';ctx.fillText(String(res.raw),sX+cW*3+cW/2,y+24);});const afterTable=tY+14+5*rH+6;cLDiv(ctx,W/2,afterTable,115);const tH=lvResults.reduce((s,r)=>s+r.hU,0);const tS=lvResults.reduce((s,r)=>s+r.sU,0);const tWS=lvResults.reduce((s,r)=>s+r.wU,0);ctx.save();ctx.textAlign='center';ctx.font='10px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.28)';ctx.fillText(`共用技能：💡${tH}次  🔀${tS}次  🔃${tWS}次`,W/2,afterTable+16);ctx.restore();cLDiv(ctx,W/2,afterTable+30,108);lvResults.forEach((res,ri)=>{const list=res.cmps.map(c=>c.f).join('  ');ctx.save();ctx.textAlign='center';ctx.font='8.5px "Noto Sans SC"';ctx.fillStyle=LV_COLORS[ri]+'88';ctx.fillText(`${LV_NAMES[ri]}：${list}`,W/2,afterTable+46+ri*16);ctx.restore();});const dateY=afterTable+46+5*16+10;ctx.save();ctx.textAlign='center';ctx.font='10px "Noto Sans SC"';ctx.fillStyle='rgba(226,232,240,.22)';ctx.fillText(`完成日期：${new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'})}`,W/2,dateY);ctx.restore();const sealY=dateY+72;cSeal(ctx,W/2,sealY,gr);ctx.save();['#22d3ee','#a78bfa','#f59e0b','#a78bfa','#22d3ee'].forEach((col,i)=>{ctx.globalAlpha=.36;ctx.fillStyle=col;cHexF(ctx,W/2+(i-2)*40,H-38,10);});ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='7.5px "Noto Sans SC"';ctx.fillStyle='rgba(74,96,122,.38)';ctx.fillText('峇株吧辖华仁中学 · 蔡逸众制作',W/2,H-18);ctx.restore();}
+function cHexS(ctx,cx,cy,r){ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();ctx.stroke();}
+function cHexF(ctx,cx,cy,r){ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();ctx.fill();}
+function cRR(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+function cCorner(ctx,x,y,sx,sy){ctx.save();ctx.strokeStyle='rgba(245,158,11,.48)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+sy*24);ctx.lineTo(x,y);ctx.lineTo(x+sx*24,y);ctx.stroke();ctx.strokeStyle='rgba(167,139,250,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y+sy*14);ctx.lineTo(x+sx*4,y+sy*7);ctx.lineTo(x+sx*7,y+sy*4);ctx.lineTo(x+sx*14,y);ctx.stroke();ctx.restore();}
+function cLDiv(ctx,cx,y,hw){ctx.save();const g=ctx.createLinearGradient(cx-hw,0,cx+hw,0);g.addColorStop(0,'transparent');g.addColorStop(.25,'#f59e0b');g.addColorStop(.75,'#22d3ee');g.addColorStop(1,'transparent');ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx-hw,y);ctx.lineTo(cx+hw,y);ctx.stroke();ctx.restore();}
+function cSeal(ctx,cx,cy,gr){ctx.save();ctx.beginPath();ctx.arc(cx,cy,44,0,Math.PI*2);const sg=ctx.createRadialGradient(cx,cy,10,cx,cy,44);sg.addColorStop(0,gr.c+'38');sg.addColorStop(1,'rgba(10,16,26,.04)');ctx.fillStyle=sg;ctx.fill();ctx.strokeStyle=gr.c+'72';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=gr.c+'26';cHexF(ctx,cx,cy,26);ctx.fill();ctx.strokeStyle=gr.c+'82';ctx.lineWidth=1.5;cHexF(ctx,cx,cy,26);ctx.stroke();ctx.font='bold 18px "Orbitron",monospace';ctx.fillStyle=gr.c;ctx.textAlign='center';ctx.shadowColor=gr.c;ctx.shadowBlur=9;ctx.fillText(gr.g,cx,cy+6);ctx.shadowBlur=0;for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.strokeStyle=gr.c+'44';ctx.lineWidth=i%3===0?2:1;ctx.beginPath();ctx.moveTo(cx+34*Math.cos(a),cy+34*Math.sin(a));ctx.lineTo(cx+41*Math.cos(a),cy+41*Math.sin(a));ctx.stroke();}ctx.restore();}
+function downloadCert(){const canvas=document.getElementById('certCanvas');const off=document.createElement('canvas');off.width=canvas.width;off.height=canvas.height;const oct=off.getContext('2d');oct.drawImage(canvas,0,0);oct.fillStyle='#07101c';oct.fillRect(0,canvas.height-28,canvas.width,28);const a=document.createElement('a');a.download='ionic_certificate.png';a.href=off.toDataURL('image/png');a.click();}
+
+// Leaderboard — uses scores_6 collection
+async function submitScore(name,finalScore,grade){try{await window._FS.add({name:name.trim().slice(0,20),score:finalScore,grade:grade,ts:Date.now()});console.log('Score submitted to scores_6');}catch(e){console.warn('Score submit failed:',e);}}
+async function loadLeaderboard(){const cont=document.getElementById('lbContent');cont.innerHTML='<div class="lb-loading">加载中…</div>';try{const docs=await window._FS.getTop20();const rows=[];for(const doc of docs){if(!doc.fields)continue;const f=doc.fields;rows.push({name:(f.name&&f.name.stringValue)||'—',score:parseInt((f.score&&(f.score.integerValue||f.score.doubleValue))||0),grade:(f.grade&&f.grade.stringValue)||'?',ts:parseInt((f.ts&&(f.ts.integerValue||f.ts.doubleValue))||0)});}rows.sort((a,b)=>b.score-a.score);const top20=rows.slice(0,20);if(top20.length===0){cont.innerHTML='<div class="lb-empty">还没有记录，快来争第一！</div>';return;}const gradeColor={'S':'#ffd700','A':'#c0c0c0','B':'#cd7f32','C':'#22d3ee','D':'#4a607a'};let html='<table class="lb-table"><thead><tr><th>名次</th><th>姓名</th><th>得分</th><th>等级</th><th>日期</th></tr></thead><tbody>';top20.forEach((r,i)=>{const rankCls=i===0?'r1':i===1?'r2':i===2?'r3':'rn';const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const date=r.ts?new Date(r.ts).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}):'';const gc=gradeColor[r.grade]||'#4a607a';const isMe=(r.name===window._lastSubmitName&&r.score===window._lastSubmitScore);html+=`<tr class="${isMe?'lb-highlight':''}"><td><span class="lb-rank ${rankCls}">${medal||('#'+(i+1))}</span></td><td class="lb-name">${r.name}</td><td class="lb-score">${r.score}</td><td><span class="lb-grade" style="color:${gc};border:1px solid ${gc}44;">${r.grade}</span></td><td class="lb-date">${date}</td></tr>`;});html+='</tbody></table>';cont.innerHTML=html;}catch(e){cont.innerHTML=`<div class="lb-empty">加载失败：${e.message}<br><small style="color:var(--dim)">请确认Firebase规则已设置为 allow read: true</small></div>`;console.warn('Leaderboard load failed:',e);}}
+function closeLeaderboard(){const ov=document.getElementById('lbOverlay');if(ov){ov.classList.remove('show');ov.style.display='';}}
+function showLeaderboard(){const ov=document.getElementById('lbOverlay');if(!ov){console.warn('lbOverlay not found');return;}if(!ov._listenerAdded){ov.addEventListener('click',function(e){if(e.target===this)closeLeaderboard();});ov._listenerAdded=true;}ov.classList.add('show');ov.style.display='flex';loadLeaderboard();}
+window._lastSubmitName='';window._lastSubmitScore=0;
+
+// ── Admin panel ──
+var ADMIN_HASH='aaf8e1c088864246bec73f84b4fa49b973aa01dba1679571f2b5bcb614131616';
+var _adminTaps=0,_adminTimer=null;
+function handleTitleTap(){
+  _adminTaps++;
+  if(_adminTimer)clearTimeout(_adminTimer);
+  if(_adminTaps>=5){_adminTaps=0;showAdminLogin();}
+  else{_adminTimer=setTimeout(function(){_adminTaps=0;},2000);}
+}
+function showAdminLogin(){
+  var ov=document.getElementById('adminLoginOv');
+  ov.classList.add('show');
+  setTimeout(function(){document.getElementById('adminPwInput').focus();},100);
+}
+function closeAdminLogin(){document.getElementById('adminLoginOv').classList.remove('show');}
+function tryAdminLogin(){
+  var pw=document.getElementById('adminPwInput').value;
+  var enc=new TextEncoder().encode(pw);
+  crypto.subtle.digest('SHA-256',enc).then(function(buf){
+    var hex=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+    if(hex===ADMIN_HASH){closeAdminLogin();showAdminPanel();}
+    else{
+      var inp=document.getElementById('adminPwInput');
+      inp.style.borderColor='var(--err)';inp.value='';
+      setTimeout(function(){inp.style.borderColor='var(--cat)';},1500);
+    }
+  });
+}
+async function showAdminPanel(){
+  var ov=document.getElementById('adminPanelOv');
+  ov.classList.add('show');
+  var cont=document.getElementById('adminContent');
+  cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim);font-size:.66rem;">加载中…</div>';
+  try{
+    var baseAll='https://firestore.googleapis.com/v1/projects/'+window._FS.project+'/databases/(default)/documents/scores_6';
+    var r=await fetch(baseAll+'?key='+window._FS.apiKey+'&pageSize=500');
+    var text=await r.text();
+    var data=JSON.parse(text);
+    var docs=data.documents||[];
+    var rows=[];
+    for(var i=0;i<docs.length;i++){
+      var f=docs[i].fields;if(!f)continue;
+      rows.push({
+        name:(f.name&&f.name.stringValue)||'—',
+        score:parseInt((f.score&&(f.score.integerValue||f.score.doubleValue))||0),
+        grade:(f.grade&&f.grade.stringValue)||'?',
+        ts:parseInt((f.ts&&(f.ts.integerValue||f.ts.doubleValue))||0)
+      });
+    }
+    rows.sort(function(a,b){return b.score-a.score;});
+    document.getElementById('adminCount').textContent='共 '+rows.length+' 条记录';
+    window._adminRows=rows;
+    if(rows.length===0){cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim);font-size:.66rem;">暂无记录</div>';return;}
+    var gradeColor={'S':'#ffd700','A':'#c0c0c0','B':'#cd7f32','C':'#22d3ee','D':'#4a607a'};
+    var html='<table class="admin-tbl"><thead><tr><th>#</th><th>姓名</th><th>得分</th><th>等级</th><th>日期</th></tr></thead><tbody>';
+    rows.forEach(function(r,i){
+      var gc=gradeColor[r.grade]||'#4a607a';
+      var date=r.ts?new Date(r.ts).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);
+      html+='<tr style="background:'+(i%2===0?'rgba(255,255,255,.02)':'transparent')+'">';
+      html+='<td style="color:'+(i<3?'var(--cat2)':'var(--dim)')+';">'+medal+'</td>';
+      html+='<td style="color:var(--txt);font-weight:600;">'+r.name+'</td>';
+      html+='<td style="font-family:Orbitron,monospace;color:'+gc+';font-weight:700;">'+r.score+'</td>';
+      html+='<td><span style="font-family:Orbitron,monospace;font-size:.58rem;color:'+gc+';border:1px solid '+gc+'44;padding:2px 7px;border-radius:4px;">'+r.grade+'</span></td>';
+      html+='<td style="color:var(--dim);font-size:.54rem;">'+date+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+    cont.innerHTML=html;
+  }catch(e){
+    cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--err);font-size:.62rem;">加载失败：'+e.message+'</div>';
+  }
+}
+function closeAdminPanel(){document.getElementById('adminPanelOv').classList.remove('show');}
+function exportAdminCSV(){
+  if(!window._adminRows||!window._adminRows.length)return;
+  var header=['排名','姓名','得分','等级','日期'];
+  var lines=[header.join(',')];
+  window._adminRows.forEach(function(r,i){
+    var date=r.ts?new Date(r.ts).toLocaleDateString('zh-CN'):'';
+    lines.push([i+1,r.name,r.score,r.grade,date].join(','));
+  });
+  var blob=new Blob([String.fromCharCode(0xFEFF)+lines.join(String.fromCharCode(10))],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='离子连连看_成绩单.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+<!--峇株吧辖华仁中学蔡逸众制作-->
+
+<div class="lb-overlay" id="lbOverlay">
+  <div class="lb-box" id="lbBox">
+    <div class="lb-title">🏆 全球排行榜</div>
+    <div class="lb-sub">离子连连看 · 峇株吧辖华仁中学 · TOP 20</div>
+    <div id="lbContent"><div class="lb-loading">加载中…</div></div>
+    <div class="lb-actions">
+      <button class="btn-lb btn-lb-refresh" onclick="loadLeaderboard()">🔄 刷新</button>
+      <button class="btn-lb btn-lb-close" onclick="closeLeaderboard()">关闭</button>
+    </div>
+  </div>
+</div>
+<!-- Admin Login -->
+<div class="admin-overlay" id="adminLoginOv">
+  <div class="admin-login-box">
+    <div style="font-size:2rem;margin-bottom:8px;">🔑</div>
+    <div class="admin-login-title">管理员入口</div>
+    <input class="admin-pw" id="adminPwInput" type="password" placeholder="请输入密码"
+      onkeydown="if(event.key==='Enter')tryAdminLogin()">
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button class="btn-admin-close" onclick="closeAdminLogin()">取消</button>
+      <button class="btn-admin-enter" onclick="tryAdminLogin()">进入</button>
+    </div>
+  </div>
+</div>
+<!-- Admin Panel -->
+<div class="admin-overlay" id="adminPanelOv">
+  <div class="admin-box">
+    <div style="height:4px;background:linear-gradient(90deg,var(--cat),var(--acc),var(--an));flex-shrink:0;"></div>
+    <div class="admin-hdr">
+      <div>
+        <div class="admin-title">🔑 管理员面板 · 离子连连看</div>
+        <div style="font-size:.5rem;color:var(--dim);margin-top:2px;" id="adminCount">加载中…</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-admin-csv" onclick="exportAdminCSV()">⬇ 导出 CSV</button>
+        <button class="btn-admin-close" onclick="closeAdminPanel()">关闭</button>
+      </div>
+    </div>
+    <div class="admin-body" id="adminContent"></div>
+    <div class="admin-foot">峇株吧辖华仁中学 · 管理员专用 · scores_6</div>
+  </div>
+</div>
+</body>
+</html>
