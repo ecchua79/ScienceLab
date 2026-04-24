@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>化学方程式配平实验室</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --accent: #2ea043;
+    --accent-dim: #1a3a22;
+    --warn: #d29922;
+    --warn-dim: #3a2e0a;
+    --danger: #da3633;
+    --danger-dim: #3a1010;
+    --blue: #388bfd;
+    --blue-dim: #0d2044;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans SC', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(46,160,67,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,160,67,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app { position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(13,17,23,0.8);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .lab-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 21px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  /* 峇株吧辖华仁中学蔡逸众制作 */
+  }
+  header p {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .progress-bar-wrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .progress-bar {
+    width: 120px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── LEVEL TABS ── */
+  .level-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .level-tab {
+    padding: 8px 16px;
+    font-size: 15px;
+    font-family: var(--mono);
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    background: transparent;
+    transition: all 0.2s;
+    position: relative;
+    bottom: -1px;
+  }
+  .level-tab:hover { color: var(--text); border-color: var(--border); }
+  .level-tab.active {
+    background: var(--surface);
+    border-color: var(--border);
+    border-bottom-color: var(--surface);
+    color: var(--text);
+  }
+  .level-tab.locked { opacity: 0.4; cursor: not-allowed; }
+  .level-tab .badge {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ── MAIN ── */
+  main { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+  /* ── QUESTION SELECTOR ── */
+  .q-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .q-btn {
+    padding: 6px 14px;
+    font-size: 15px;
+    font-family: var(--mono);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .q-btn:hover { border-color: var(--accent); color: var(--text); }
+  .q-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .q-btn.solved { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .q-btn.solved::after { content: ' ✓'; }
+
+  /* ── EQUATION CARD ── */
+  .eq-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .eq-card-title {
+    font-size: 14px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  /* ── EQUATION DISPLAY ── */
+  .equation-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    font-family: var(--mono);
+  }
+  .eq-compound {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .coeff-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .coeff-btn {
+    width: 22px; height: 18px;
+    border: 1px solid var(--border);
+  /* 峇株吧辖蔡逸众制作 */
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    transition: all 0.15s;
+    font-family: var(--mono);
+  }
+  .coeff-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .coeff-display {
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--blue);
+    min-width: 28px;
+    text-align: center;
+    line-height: 1;
+    font-family: var(--mono);
+  }
+  .compound-formula {
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .compound-formula sub {
+    font-size: 16px;
+    vertical-align: sub;
+    color: var(--text-muted);
+  }
+  .eq-op {
+    font-size: 23px;
+    color: var(--text-muted);
+    font-weight: 300;
+    padding: 0 4px;
+  }
+  .eq-arrow {
+    font-size: 25px;
+    color: var(--warn);
+    padding: 0 8px;
+  }
+
+  /* ── ATOM COUNT TABLE ── */
+  .atom-table {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 2px;
+    font-family: var(--mono);
+    font-size: 16px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .atom-table-header { display: contents; }
+  .atom-table-header > div {
+    background: var(--bg);
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .atom-row { display: contents; }
+  .atom-row > div {
+    padding: 8px 12px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+  }
+  .atom-name { font-weight: 600; color: var(--text); }
+  .atom-count { font-size: 19px; font-weight: 700; }
+  .atom-count.balanced { color: var(--accent); }
+  .atom-count.unbalanced { color: var(--danger); }
+  .atom-count.neutral { color: var(--text-muted); }
+  .balance-indicator {
+    margin-left: auto;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .balance-indicator.ok { background: var(--accent); }
+  .balance-indicator.no { background: var(--danger); }
+
+  /* ── HINT / LCM PANEL ── */
+  .hint-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 16px;
+    overflow: hidden;
+  }
+  .hint-toggle {
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: var(--warn);
+    font-family: var(--mono);
+    font-size: 15px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.05em;
+  }
+  .hint-toggle:hover { background: var(--warn-dim); }
+  .hint-content { padding: 0 16px 16px; display: none; }
+  .hint-content.open { display: block; }
+  .hint-step {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 8px;
+  }
+  /* 华仁中学蔡逸众制作 */
+  .hint-step span { color: var(--text); }
+  .lcm-tool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .lcm-input {
+    width: 60px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 17px;
+    padding: 6px 10px;
+    text-align: center;
+  }
+  .lcm-input:focus { outline: none; border-color: var(--warn); }
+  .lcm-label { font-size: 15px; color: var(--text-muted); font-family: var(--mono); }
+  .lcm-result { font-family: var(--mono); font-size: 16px; color: var(--warn); font-weight: 600; }
+
+  /* ── FEEDBACK ── */
+  .feedback {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-family: var(--mono);
+    display: none;
+    line-height: 1.7;
+  }
+  .feedback.show { display: block; }
+  .feedback.error { background: var(--danger-dim); border: 1px solid var(--danger); color: #ff6b6b; }
+  .feedback.success { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
+  .feedback.info { background: var(--blue-dim); border: 1px solid var(--blue); color: #79c0ff; }
+
+  /* ── ACTIONS ── */
+  .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .btn-primary {
+    padding: 10px 22px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #3fb950; transform: translateY(-1px); }
+  .btn-secondary {
+    padding: 10px 22px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* ── SUCCESS OVERLAY ── */
+  .success-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+    padding: 24px 16px;
+  }
+  .success-overlay.show { display: flex; }
+  .success-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px 36px;
+    text-align: center;
+    max-width: 440px;
+    width: 100%;
+    animation: popIn 0.3s ease;
+    box-shadow: 0 0 60px rgba(46,160,67,0.2);
+    flex-shrink: 0;
+    margin: auto;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-icon { font-size: 48px; margin-bottom: 16px; }
+  .success-title { font-family: var(--mono); font-size: 23px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .success-sub { font-size: 17px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .step-replay {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 2;
+    max-height: 130px;
+    overflow-y: auto;
+  }
+  .step-replay span { color: var(--accent); }
+
+  /* ── CERTIFICATE ── */
+  .cert-overlay {
+  /* Made by ecchua79 */
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 300;
+    backdrop-filter: blur(6px);
+    overflow-y: auto;
+    padding: 24px 16px;
+  }
+  .cert-overlay.show { display: flex; }
+  #cert-canvas {
+    border-radius: 12px;
+    box-shadow: 0 0 80px rgba(46,160,67,0.3);
+    max-width: 95vw;
+  }
+  .cert-actions {
+    text-align: center;
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* ── INFO STRIP ── */
+  .info-strip {
+    background: var(--blue-dim);
+    border: 1px solid var(--blue);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 15px;
+    color: #79c0ff;
+    font-family: var(--mono);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  /* ── EXAM MODE ── */
+  .exam-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: var(--danger-dim);
+    border: 1px solid var(--danger);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: var(--mono);
+    color: var(--danger);
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── ATTEMPT DOTS ── */
+  .attempt-dots { display: flex; gap: 4px; margin-top: 10px; }
+  .attempt-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+  }
+  .attempt-dot.used { background: var(--danger); border-color: var(--danger); }
+
+  @media (max-width: 600px) {
+    main { padding: 16px; }
+    .eq-card { padding: 18px; }
+    .eq-op, .eq-arrow { font-size: 16px; }
+    .compound-formula { font-size: 18px; }
+  }
+
+  /* ── COVER PAGE ── */
+  #coverPage {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    overflow-y: auto;
+  }
+  #coverPage::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(46,160,67,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,160,67,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .cover-inner { position: relative; max-width: 680px; width: 100%; text-align: center; }
+  .cover-top-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.1s forwards;
+  }
+  .cover-flask {
+    font-size: 72px;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.2s forwards;
+    filter: drop-shadow(0 0 24px rgba(46,160,67,0.4));
+  }
+  .cover-title {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.3s forwards;
+  }
+  .cover-title span { color: var(--accent); }
+  .cover-subtitle {
+    font-size: 15px;
+  /* 峇株吧辖华仁中学蔡逸众制作 */
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.4s forwards;
+  }
+  .cover-divider {
+    width: 60px;
+    height: 2px;
+    background: var(--accent);
+    margin: 0 auto 40px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.45s forwards;
+  }
+  .cover-features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.5s forwards;
+  }
+  .cover-feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: left;
+    transition: border-color 0.2s;
+  }
+  .cover-feature:hover { border-color: var(--accent); }
+  .cover-feature-icon { font-size: 24px; margin-bottom: 8px; }
+  .cover-feature-title { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .cover-feature-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .cover-levels {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.55s forwards;
+  }
+  .cover-level-pill {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .cover-level-pill.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .cover-start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 48px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.65s forwards;
+    box-shadow: 0 0 32px rgba(46,160,67,0.25);
+  }
+  .cover-start-btn:hover { background: #3fb950; transform: translateY(-2px); box-shadow: 0 0 48px rgba(46,160,67,0.4); }
+  .cover-footer {
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.75s forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (max-width: 520px) {
+    .cover-title { font-size: 26px; }
+    .cover-features { grid-template-columns: 1fr; }
+    .cover-start-btn { font-size: 16px; padding: 14px 36px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ COVER PAGE ══ -->
+<div id="coverPage">
+  <div class="cover-inner">
+    <div class="cover-top-label">峇株吧辖华仁中学 · 化学科互动教学</div>
+    <div class="cover-flask">⚗️</div>
+    <div class="cover-title">化学方程式<span>配平</span>实验室</div>
+    <div class="cover-subtitle">Chemical Equation Balancing Lab</div>
+    <div class="cover-divider"></div>
+
+    <div class="cover-features" style="opacity:0;animation:fadeUp 0.6s ease 0.5s forwards">
+      <div class="cover-feature">
+        <div class="cover-feature-icon">🔢</div>
+        <div class="cover-feature-title">逐步引导教学</div>
+        <div class="cover-feature-desc">调整系数，实时观察两边原子数变化，自己发现配平规律</div>
+      </div>
+      <div class="cover-feature">
+        <div class="cover-feature-icon">📐</div>
+        <div class="cover-feature-title">最小公倍数工具</div>
+        <div class="cover-feature-desc">内置 LCM 计算器，帮助找出正确系数比例</div>
+      </div>
+      <div class="cover-feature">
+        <div class="cover-feature-icon">📊</div>
+        <div class="cover-feature-title">四关卡 · 18 题</div>
+        <div class="cover-feature-desc">入门 → 基础 → 进阶，层层解锁，循序渐进</div>
+      </div>
+      <div class="cover-feature">
+        <div class="cover-feature-icon">🏆</div>
+        <div class="cover-feature-title">完成证书</div>
+        <div class="cover-feature-desc">完成挑战测验后，生成专属姓名证书，可下载留念</div>
+      </div>
+    </div>
+
+    <div class="cover-levels">
+      <span class="cover-level-pill accent">⚡ 入门级 · 4题</span>
+      <span class="cover-level-pill">🔬 基础级 · 5题</span>
+      <span class="cover-level-pill">🧪 进阶级 · 4题</span>
+      <span class="cover-level-pill">🏆 挑战测验 · 5题</span>
+    </div>
+
+    <button class="cover-start-btn" onclick="startGame()">
+      开始实验 →
+    </button>
+
+    <div class="cover-footer">
+      峇株吧辖华仁中学 · 化学科 &nbsp;|&nbsp; 适用年级：中一至中三
+    </div>
+  </div>
+</div>
+
+<div id="app">
+
+<header>
+  <div class="lab-icon">⚗️</div>
+  <div>
+    <h1>化学方程式配平实验室</h1>
+    <p>Chemical Equation Balancing Lab</p>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <span id="progressText">0 / 0</span>
+  </div>
+</header>
+
+<div class="level-tabs" id="levelTabs"></div>
+
+<main>
+  <div class="q-selector" id="qSelector"></div>
+  <div id="questionArea"></div>
+</main>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <div class="success-title" id="successTitle">配平成功！</div>
+    <div class="success-sub" id="successSub"></div>
+    <div class="step-replay" id="stepReplay"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-primary" id="nextBtn">下一题 →</button>
+      <button class="btn-secondary" onclick="document.getElementById('successOverlay').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Name Input Modal -->
+<div class="success-overlay" id="nameOverlay">
+  <div class="success-box" style="max-width:380px">
+    <div class="success-icon">🏆</div>
+    <div class="success-title">恭喜完成所有挑战！</div>
+    <div class="success-sub">请输入你的姓名，将印在证书上</div>
+    <input id="studentName" type="text" placeholder="请输入姓名…"
+      style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:16px;text-align:center;margin-bottom:20px;outline:none;"
+      onkeydown="if(event.key==='Enter')confirmName()">
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn-primary" onclick="confirmName()">生成证书 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Certificate Overlay -->
+<div class="cert-overlay" id="certOverlay">
+  <div style="text-align:center;padding-bottom:16px">
+    <canvas id="cert-canvas" width="520" height="740"></canvas>
+    <div class="cert-actions">
+      <button class="btn-primary" onclick="downloadCert()">⬇ 下载证书</button>
+      <button class="btn-secondary" onclick="document.getElementById('certOverlay').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+// ══════════════════════════════════════════════
+// COVER
+// ══════════════════════════════════════════════
+
+function startGame() {
+  const cover = document.getElementById('coverPage');
+  cover.style.transition = 'opacity 0.5s ease';
+  cover.style.opacity = '0';
+  setTimeout(() => { cover.style.display = 'none'; }, 500);
+}
+
+// ══════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════
+
+const LEVELS = [
+  {
+    id: 'beginner',
+    name: '入门级',
+    desc: '2种元素，一步调整',
+    hint: true,
+    questions: [
+      {
+        id: 'b1',
+        left:  [{ formula:'H₂', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'H₂O', coeff:1 }],
+        answer: [2,1,2],
+        atoms: { left: [{H:2},{O:2}], right:[{H:2,O:1}] },
+        hint: '先看H：左边2个，右边2个；再看O：左边2个，右边只有1个。让O配平需要把H₂O系数变为2，然后再调H₂。',
+        reaction: '氢气燃烧生成水'
+      },
+      {
+        id: 'b2',
+        left:  [{ formula:'Na', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'Na₂O', coeff:1 }],
+        answer: [4,1,2],
+        atoms: { left:[{Na:1},{O:2}], right:[{Na:2,O:1}] },
+        hint: '右边Na₂O里Na是2，所以左边Na至少要4才能搭配2个Na₂O。找O的LCM。',
+        reaction: '钠在氧气中燃烧'
+      },
+      {
+        id: 'b3',
+        left:  [{ formula:'Mg', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'MgO', coeff:1 }],
+        answer: [2,1,2],
+        //华仁中学蔡逸众制作
+        atoms: { left:[{Mg:1},{O:2}], right:[{Mg:1,O:1}] },
+        hint: 'O₂里有2个O，MgO里只有1个O。让O配平，右边MgO要2个，左边Mg跟着变。',
+        reaction: '镁在氧气中燃烧'
+      },
+      {
+        id: 'b4',
+        left:  [{ formula:'H₂', coeff:1 }, { formula:'Cl₂', coeff:1 }],
+        right: [{ formula:'HCl', coeff:1 }],
+        answer: [1,1,2],
+        atoms: { left:[{H:2},{Cl:2}], right:[{H:1,Cl:1}] },
+        hint: '左边H₂有2个H，HCl里1个H，所以右边HCl要2个。Cl也刚好配平！',
+        reaction: '氢气与氯气合成氯化氢'
+      },
+    ]
+  },
+  {
+    id: 'basic',
+    name: '基础级',
+    desc: '需要求最小公倍数',
+    hint: true,
+    questions: [
+      {
+        id: 'k1',
+        left:  [{ formula:'Fe', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'Fe₂O₃', coeff:1 }],
+        answer: [4,3,2],
+        atoms: { left:[{Fe:1},{O:2}], right:[{Fe:2,O:3}] },
+        hint: 'O：左边每个O₂有2个O，右边Fe₂O₃有3个O。2和3的LCM是6，所以O₂要3个，Fe₂O₃要2个，算出Fe要4个。',
+        reaction: '铁在氧气中燃烧'
+      },
+      {
+        id: 'k2',
+        left:  [{ formula:'Al', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'Al₂O₃', coeff:1 }],
+        answer: [4,3,2],
+        atoms: { left:[{Al:1},{O:2}], right:[{Al:2,O:3}] },
+        hint: '和铁类似！O₂里2个O，Al₂O₃里3个O。LCM(2,3)=6，推出系数。',
+        reaction: '铝在氧气中燃烧'
+      },
+      {
+        id: 'k3',
+        left:  [{ formula:'N₂', coeff:1 }, { formula:'H₂', coeff:1 }],
+        right: [{ formula:'NH₃', coeff:1 }],
+        answer: [1,3,2],
+        atoms: { left:[{N:2},{H:2}], right:[{N:1,H:3}] },
+        hint: '先看N：左边N₂有2个N，右边NH₃有1个N，所以NH₃系数=2。再看H：右边2×3=6个H，H₂系数=3。',
+        reaction: '合成氨'
+      },
+      {
+        id: 'k4',
+        left:  [{ formula:'P', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'P₂O₅', coeff:1 }],
+        answer: [4,5,2],
+        atoms: { left:[{P:1},{O:2}], right:[{P:2,O:5}] },
+        hint: '先从P₂O₅入手：设P₂O₅系数=2，则P需要4个，O需要10个，O₂需要5个。',
+        reaction: '磷在氧气中燃烧'
+      },
+      {
+        id: 'k5',
+        left:  [{ formula:'C', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'CO₂', coeff:1 }],
+        answer: [1,1,1],
+        atoms: { left:[{C:1},{O:2}], right:[{C:1,O:2}] },
+        hint: '这是最简单的！C:1=1，O:2=2，系数都是1。',
+        reaction: '碳完全燃烧'
+      },
+    ]
+  },
+  {
+    id: 'advanced',
+    name: '进阶级',
+    desc: '多种元素，有策略',
+    hint: true,
+    questions: [
+      {
+        id: 'a1',
+        left:  [{ formula:'CH₄', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'CO₂', coeff:1 }, { formula:'H₂O', coeff:1 }],
+        answer: [1,2,1,2],
+        atoms: { left:[{C:1,H:4},{O:2}], right:[{C:1,O:2},{H:2,O:1}] },
+        hint: '策略：先配C（最简单），再配H，最后配O。C:1=1，H:4→H₂O系数=2，O:右边2+2=4→O₂系数=2。',
+        reaction: '甲烷燃烧'
+      },
+      {
+        id: 'a2',
+        left:  [{ formula:'C₂H₆', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'CO₂', coeff:1 }, { formula:'H₂O', coeff:1 }],
+        answer: [2,7,4,6],
+        atoms: { left:[{C:2,H:6},{O:2}], right:[{C:1,O:2},{H:2,O:1}] },
+        hint: '先设C₂H₆=1：C→CO₂=2，H₆→H₂O=3，O需要2×2+3×1=7个，O₂=3.5→全乘以2！',
+        reaction: '乙烷燃烧'
+      },
+      {
+        id: 'a3',
+        left:  [{ formula:'Fe₃O₄', coeff:1 }, { formula:'H₂', coeff:1 }],
+        right: [{ formula:'Fe', coeff:1 }, { formula:'H₂O', coeff:1 }],
+        answer: [1,4,3,4],
+        atoms: { left:[{Fe:3,O:4},{H:2}], right:[{Fe:1},{H:2,O:1}] },
+        hint: '从Fe₃O₄入手：Fe→右边需要3个Fe，O有4个→H₂O=4，H₂也=4。',
+        reaction: '氧化铁与氢气反应'
+      },
+      {
+        id: 'a4',
+        left:  [{ formula:'C₃H₈', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'CO₂', coeff:1 }, { formula:'H₂O', coeff:1 }],
+        answer: [1,5,3,4],
+        atoms: { left:[{C:3,H:8},{O:2}], right:[{C:1,O:2},{H:2,O:1}] },
+        hint: '先C：C₃H₈=1→CO₂=3。再H：H₈→H₂O=4。O：右边3×2+4=10，O₂=5。',
+        reaction: '丙烷燃烧'
+      },
+    ]
+  },
+  //Made by ecchua79
+  {
+    id: 'exam',
+    name: '挑战测验',
+    desc: '无提示，答对得证书',
+    hint: false,
+    exam: true,
+    questions: [
+      {
+        id: 'e1',
+        left:  [{ formula:'Cu', coeff:1 }, { formula:'O₂', coeff:1 }],
+        right: [{ formula:'CuO', coeff:1 }],
+        answer: [2,1,2],
+        atoms: { left:[{Cu:1},{O:2}], right:[{Cu:1,O:1}] },
+        reaction: '铜在氧气中加热'
+      },
+      {
+        id: 'e2',
+        left:  [{ formula:'Zn', coeff:1 }, { formula:'HCl', coeff:1 }],
+        right: [{ formula:'ZnCl₂', coeff:1 }, { formula:'H₂', coeff:1 }],
+        answer: [1,2,1,1],
+        atoms: { left:[{Zn:1},{H:1,Cl:1}], right:[{Zn:1,Cl:2},{H:2}] },
+        reaction: '锌与盐酸反应'
+      },
+      {
+        id: 'e3',
+        left:  [{ formula:'Ca', coeff:1 }, { formula:'H₂O', coeff:1 }],
+        right: [{ formula:'Ca(OH)₂', coeff:1 }, { formula:'H₂', coeff:1 }],
+        answer: [1,2,1,1],
+        atoms: { left:[{Ca:1},{H:2,O:1}], right:[{Ca:1,O:2,H:2},{H:2}] },
+        reaction: '钙与水反应'
+      },
+      {
+        id: 'e4',
+        left:  [{ formula:'KClO₃', coeff:1 }],
+        right: [{ formula:'KCl', coeff:1 }, { formula:'O₂', coeff:1 }],
+        answer: [2,2,3],
+        atoms: { left:[{K:1,Cl:1,O:3}], right:[{K:1,Cl:1},{O:2}] },
+        reaction: '氯酸钾分解'
+      },
+      {
+        id: 'e5',
+        left:  [{ formula:'C', coeff:1 }, { formula:'Fe₂O₃', coeff:1 }],
+        right: [{ formula:'Fe', coeff:1 }, { formula:'CO₂', coeff:1 }],
+        answer: [3,2,4,3],
+        atoms: { left:[{C:1},{Fe:2,O:3}], right:[{Fe:1},{C:1,O:2}] },
+        reaction: '碳还原氧化铁'
+      },
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+
+let currentLevel = 0;
+let currentQ = 0;
+let solvedSet = new Set();
+let coefficients = [];
+let attempts = 0;
+let userHistory = [];
+
+function getLevelData() { return LEVELS[currentLevel]; }
+function getQuestion() { return getLevelData().questions[currentQ]; }
+
+function countAtoms(q, coeffs) {
+  function parseAtoms(compoundsArr, coeffsArr) {
+    const map = {};
+    compoundsArr.forEach((c, i) => {
+      const multiplier = coeffsArr[i];
+      Object.entries(c).forEach(([el, count]) => {
+        map[el] = (map[el] || 0) + count * multiplier;
+      });
+    });
+    return map;
+  }
+  const leftAtoms = parseAtoms(q.atoms.left, coeffs.slice(0, q.left.length));
+  const rightAtoms = parseAtoms(q.atoms.right, coeffs.slice(q.left.length));
+  return { leftAtoms, rightAtoms };
+}
+
+function getAllElements(q) {
+  const els = new Set();
+  [...q.atoms.left, ...q.atoms.right].forEach(obj => Object.keys(obj).forEach(k => els.add(k)));
+  return [...els];
+}
+
+function isBalanced(q, coeffs) {
+  const { leftAtoms, rightAtoms } = countAtoms(q, coeffs);
+  const els = getAllElements(q);
+  return els.every(el => (leftAtoms[el]||0) === (rightAtoms[el]||0));
+}
+
+function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+function lcm(a, b) { return a * b / gcd(a, b); }
+
+// ══════════════════════════════════════════════
+// RENDER
+//峇株吧辖华仁中学蔡逸众制作
+// ══════════════════════════════════════════════
+
+function renderTabs() {
+  const tabs = document.getElementById('levelTabs');
+  tabs.innerHTML = LEVELS.map((lv, i) => {
+    const solved = lv.questions.filter(q => solvedSet.has(q.id)).length;
+    const allDone = solved === lv.questions.length;
+    const locked = i > 0 && LEVELS[i-1].questions.some(q => !solvedSet.has(q.id));
+    return `<button class="level-tab ${i===currentLevel?'active':''} ${locked?'locked':''}"
+      onclick="${locked?'':'selectLevel('+i+')'}"
+      title="${locked?'完成上一关才能解锁':''}">
+      ${lv.name}
+      ${allDone ? '<span class="badge"></span>' : ''}
+    </button>`;
+  }).join('');
+}
+
+function renderQSelector() {
+  const qs = document.getElementById('qSelector');
+  const level = getLevelData();
+  qs.innerHTML = level.questions.map((q, i) => {
+    const solved = solvedSet.has(q.id);
+    return `<button class="q-btn ${i===currentQ?'active':''} ${solved?'solved':''}"
+      onclick="selectQ(${i})">
+      Q${i+1}
+    </button>`;
+  }).join('');
+}
+
+function renderQuestion() {
+  const q = getQuestion();
+  const level = getLevelData();
+  const totalCompounds = q.left.length + q.right.length;
+  coefficients = new Array(totalCompounds).fill(1);
+  userHistory = [];
+  attempts = 0;
+  const area = document.getElementById('questionArea');
+  area.innerHTML = buildQuestionHTML(q, level);
+  updateAtomTable(q);
+  setupLCMTool();
+}
+
+function buildQuestionHTML(q, level) {
+  let eqHtml = '<div class="equation-row">';
+  q.left.forEach((c, i) => {
+    if (i > 0) eqHtml += '<span class="eq-op">+</span>';
+    eqHtml += compoundHTML(c, i, q);
+  });
+  eqHtml += '<span class="eq-arrow">→</span>';
+  //峇株吧辖蔡逸众制作
+  q.right.forEach((c, i) => {
+    if (i > 0) eqHtml += '<span class="eq-op">+</span>';
+    eqHtml += compoundHTML(c, q.left.length + i, q);
+  });
+  eqHtml += '</div>';
+
+  const els = getAllElements(q);
+  let tableHtml = `<div class="atom-table">
+    <div class="atom-table-header">
+      <div>元素</div><div>左边 (反应物)</div><div>右边 (生成物)</div>
+    </div>`;
+  els.forEach(el => {
+    tableHtml += `<div class="atom-row" id="atomrow-${el}">
+      <div><span class="atom-name">${el}</span></div>
+      <div><span class="atom-count" id="left-${el}">?</span></div>
+      <div style="display:flex;align-items:center">
+        <span class="atom-count" id="right-${el}">?</span>
+        <span class="balance-indicator" id="ind-${el}" style="margin-left:8px"></span>
+      </div>
+    </div>`;
+  });
+  tableHtml += '</div>';
+
+  let hintHtml = '';
+  if (level.hint) {
+    hintHtml = `<div class="hint-panel">
+      <button class="hint-toggle" onclick="toggleHint()">
+        💡 需要提示？点击展开
+      </button>
+      <div class="hint-content" id="hintContent">
+        <p class="hint-step">${q.hint}</p>
+        <div style="margin-top:12px;font-size:12px;color:var(--text-muted);font-family:var(--mono)">最小公倍数计算器：</div>
+        <div class="lcm-tool">
+          <span class="lcm-label">LCM(</span>
+          <input class="lcm-input" id="lcm-a" type="number" min="1" max="99" placeholder="a" oninput="calcLCM()">
+          <span class="lcm-label">,</span>
+          <input class="lcm-input" id="lcm-b" type="number" min="1" max="99" placeholder="b">
+          <span class="lcm-label">) =</span>
+          <span class="lcm-result" id="lcm-result">?</span>
+          <span class="lcm-label">)</span>
+        </div>
+      </div>
+    </div>`;
+  }
+  if (level.exam) {
+    hintHtml = `<div class="info-strip">⚠️ 挑战模式：没有提示，没有LCM工具。你有 <strong>3次</strong> 检查机会。<span class="exam-badge">EXAM</span></div>`;
+  }
+
+  const examAttempts = level.exam ? `<div class="attempt-dots">${[0,1,2].map(i=>`<div class="attempt-dot" id="dot-${i}"></div>`).join('')}</div>` : '';
+
+  return `
+    <div class="eq-card">
+      <div class="eq-card-title">${q.reaction} &nbsp;·&nbsp; 调整系数使两边原子数相等</div>
+      ${eqHtml}
+      ${tableHtml}
+      ${hintHtml}
+      <div class="feedback" id="feedback"></div>
+      ${examAttempts}
+      <div class="actions">
+        <button class="btn-primary" onclick="checkAnswer()">✔ 检查配平</button>
+        <button class="btn-secondary" onclick="resetCoeffs()">↺ 重置</button>
+      </div>
+    </div>`;
+}
+
+function compoundHTML(compound, idx, q) {
+  const formula = formatFormula(compound.formula);
+  return `<div class="eq-compound">
+    <div class="coeff-control">
+      <button class="coeff-btn" onclick="changeCoeff(${idx},1)">▲</button>
+      <div class="coeff-display" id="coeff-${idx}">1</div>
+      <button class="coeff-btn" onclick="changeCoeff(${idx},-1)">▼</button>
+    </div>
+    <div class="compound-formula">${formula}</div>
+  </div>`;
+}
+
+function formatFormula(f) {
+  return f.replace(/([₀₁₂₃₄₅₆₇₈₉]+)/g, '<sub>$1</sub>');
+}
+
+function updateAtomTable(q) {
+  const { leftAtoms, rightAtoms } = countAtoms(q, coefficients);
+  const els = getAllElements(q);
+  els.forEach(el => {
+    const lEl = document.getElementById(`left-${el}`);
+    const rEl = document.getElementById(`right-${el}`);
+    const ind = document.getElementById(`ind-${el}`);
+    if (!lEl) return;
+    const lv = leftAtoms[el] || 0;
+    const rv = rightAtoms[el] || 0;
+    lEl.textContent = lv;
+    rEl.textContent = rv;
+    const ok = lv === rv;
+    lEl.className = `atom-count ${ok ? 'balanced' : 'unbalanced'}`;
+    rEl.className = `atom-count ${ok ? 'balanced' : 'unbalanced'}`;
+    if (ind) ind.className = `balance-indicator ${ok ? 'ok' : 'no'}`;
+  });
+}
+
+// ══════════════════════════════════════════════
+// INTERACTIONS
+// ══════════════════════════════════════════════
+
+function changeCoeff(idx, delta) {
+  const q = getQuestion();
+  const oldVal = coefficients[idx];
+  const newVal = Math.max(1, Math.min(12, coefficients[idx] + delta));
+  coefficients[idx] = newVal;
+  document.getElementById(`coeff-${idx}`).textContent = newVal;
+  updateAtomTable(q);
+  const name = idx < q.left.length ? q.left[idx].formula : q.right[idx - q.left.length].formula;
+  if (oldVal !== newVal) userHistory.push(`调整 ${name} 系数 ${oldVal} → ${newVal}`);
+}
+
+function resetCoeffs() {
+  const q = getQuestion();
+  const n = q.left.length + q.right.length;
+  coefficients = new Array(n).fill(1);
+  coefficients.forEach((v, i) => {
+    const el = document.getElementById(`coeff-${i}`);
+    if (el) el.textContent = 1;
+  });
+  //华仁中学蔡逸众制作
+  updateAtomTable(q);
+  hideFeedback();
+  userHistory = [];
+}
+
+function checkAnswer() {
+  const q = getQuestion();
+  const level = getLevelData();
+  if (isBalanced(q, coefficients)) {
+    solvedSet.add(q.id);
+    updateProgress();
+    renderTabs();
+    renderQSelector();
+    showSuccess(q, level);
+  } else {
+    attempts++;
+    if (level.exam) {
+      const dot = document.getElementById(`dot-${attempts-1}`);
+      if (dot) dot.classList.add('used');
+      if (attempts >= 3) {
+        showFeedback('error', '❌ 三次机会已用完。仔细检查每种元素的原子数，重置后再试。');
+        attempts = 0;
+        [0,1,2].forEach(i => { const d = document.getElementById(`dot-${i}`); if (d) d.classList.remove('used'); });
+      } else {
+        showFeedback('error', `❌ 还没配平。检查原子计数表中标红的元素。（还剩 ${3-attempts} 次机会）`);
+      }
+    } else {
+      const { leftAtoms, rightAtoms } = countAtoms(q, coefficients);
+      const els = getAllElements(q);
+      const wrongs = els.filter(el => (leftAtoms[el]||0) !== (rightAtoms[el]||0));
+      const msgs = wrongs.map(el => `${el}：左边 ${leftAtoms[el]||0} 个，右边 ${rightAtoms[el]||0} 个`);
+      showFeedback('error', `❌ 还没配平：\n${msgs.join('\n')}`);
+    }
+  }
+}
+
+function showFeedback(type, msg) {
+  const fb = document.getElementById('feedback');
+  if (!fb) return;
+  fb.className = `feedback show ${type}`;
+  fb.innerHTML = msg.replace(/\n/g, '<br>');
+}
+
+function hideFeedback() {
+  const fb = document.getElementById('feedback');
+  if (fb) fb.className = 'feedback';
+}
+
+function toggleHint() {
+  const hc = document.getElementById('hintContent');
+  if (hc) hc.classList.toggle('open');
+}
+
+function setupLCMTool() {
+  const b = document.getElementById('lcm-b');
+  if (b) b.addEventListener('input', calcLCM);
+}
+
+function calcLCM() {
+  const a = parseInt(document.getElementById('lcm-a')?.value);
+  const b = parseInt(document.getElementById('lcm-b')?.value);
+  const res = document.getElementById('lcm-result');
+  if (res) res.textContent = (a > 0 && b > 0) ? lcm(a, b) : '?';
+}
+
+// ══════════════════════════════════════════════
+// SUCCESS
+// ══════════════════════════════════════════════
+
+function showSuccess(q, level) {
+  const overlay = document.getElementById('successOverlay');
+  const title = document.getElementById('successTitle');
+  const sub = document.getElementById('successSub');
+  const replay = document.getElementById('stepReplay');
+  const nextBtn = document.getElementById('nextBtn');
+
+  title.textContent = '配平成功！🎉';
+  sub.textContent = `「${q.reaction}」已成功配平。正确系数：${q.answer.join(' : ')}`;
+
+  if (userHistory.length > 0) {
+    replay.innerHTML = '<div style="color:var(--text-muted);margin-bottom:6px">你的操作步骤：</div>' +
+      userHistory.map((h,i) => `<div><span style="color:var(--accent)">步骤${i+1}：</span>${h}</div>`).join('');
+  } else {
+    replay.innerHTML = '<div style="color:var(--text-muted)">首次即正确！</div>';
+  }
+
+  const allSolved = level.questions.every(q => solvedSet.has(q.id));
+  if (allSolved && level.exam) {
+    title.textContent = '🏆 全部完成！';
+    sub.textContent = '你已完成所有挑战题！即将进入证书颁发流程…';
+    nextBtn.style.display = 'none';
+    setTimeout(() => {
+      overlay.classList.remove('show');
+      showNameModal();
+    }, 1600);
+  } else {
+    nextBtn.style.display = '';
+    nextBtn.onclick = () => {
+      overlay.classList.remove('show');
+      goNextQuestion();
+    };
+  }
+  overlay.classList.add('show');
+}
+
+function goNextQuestion() {
+  const level = getLevelData();
+  const nextQ = currentQ + 1;
+  if (nextQ < level.questions.length) {
+    selectQ(nextQ);
+  } else {
+    const nextLevel = currentLevel + 1;
+    if (nextLevel < LEVELS.length) selectLevel(nextLevel);
+  }
+}
+
+// ══════════════════════════════════════════════
+// CERTIFICATE
+//峇株吧辖蔡逸众制作
+// ══════════════════════════════════════════════
+
+function showNameModal() {
+  document.getElementById('studentName').value = '';
+  document.getElementById('nameOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('studentName').focus(), 100);
+}
+
+function confirmName() {
+  const name = document.getElementById('studentName').value.trim();
+  if (!name) { document.getElementById('studentName').style.borderColor = 'var(--danger)'; return; }
+  document.getElementById('nameOverlay').classList.remove('show');
+  generateCertificate(name);
+}
+
+function generateCertificate(studentName) {
+  const canvas = document.getElementById('cert-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 520, H = 740;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#0a0f14';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(46,160,67,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  ctx.strokeStyle = '#2ea043';
+  ctx.lineWidth = 2.5;
+  roundRect(ctx, 16, 16, W-32, H-32, 10);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(46,160,67,0.25)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 24, 24, W-48, H-48, 7);
+  ctx.stroke();
+
+  [[16,16],[W-16,16],[16,H-16],[W-16,H-16]].forEach(([x,y]) => {
+    ctx.fillStyle = '#2ea043';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+  });
+
+  const topGrad = ctx.createLinearGradient(30, 0, W-30, 0);
+  topGrad.addColorStop(0, 'rgba(46,160,67,0)');
+  topGrad.addColorStop(0.3, 'rgba(46,160,67,0.2)');
+  topGrad.addColorStop(0.7, 'rgba(46,160,67,0.2)');
+  topGrad.addColorStop(1, 'rgba(46,160,67,0)');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(30, 44, W-60, 56);
+
+  ctx.font = '44px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚗️', W/2, 88);
+
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#2ea043';
+  ctx.letterSpacing = '3px';
+  ctx.fillText('CHEMICAL EQUATION BALANCING LAB', W/2, 110);
+  ctx.letterSpacing = '0px';
+
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#7d8590';
+  ctx.fillText('化学方程式配平实验室', W/2, 128);
+
+  drawDivider(ctx, W, 140);
+
+  ctx.font = 'bold 28px serif';
+  ctx.fillStyle = '#e6edf3';
+  ctx.fillText('配平能力认证证书', W/2, 182);
+
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#7d8590';
+  ctx.fillText('CERTIFICATE OF PROFICIENCY', W/2, 202);
+
+  ctx.font = '13px sans-serif';
+  ctx.fillStyle = '#7d8590';
+  ctx.fillText('本证书授予', W/2, 238);
+
+  const nameGrad = ctx.createLinearGradient(60, 0, W-60, 0);
+  nameGrad.addColorStop(0, 'rgba(46,160,67,0)');
+  nameGrad.addColorStop(0.15, 'rgba(46,160,67,0.15)');
+  nameGrad.addColorStop(0.85, 'rgba(46,160,67,0.15)');
+  nameGrad.addColorStop(1, 'rgba(46,160,67,0)');
+  ctx.fillStyle = nameGrad;
+  ctx.fillRect(60, 252, W-120, 48);
+
+  ctx.font = 'bold 30px serif';
+  ctx.fillStyle = '#2ea043';
+  ctx.fillText(studentName, W/2, 284);
+
+  ctx.strokeStyle = 'rgba(46,160,67,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 298); ctx.lineTo(W-80, 298); ctx.stroke();
+
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#a0adb8';
+  ctx.fillText('已成功完成化学方程式配平实验室', W/2, 326);
+  ctx.fillText('全部四个关卡共 18 道题目', W/2, 346);
+
+  drawDivider(ctx, W, 364);
+
+  const badges = [
+    { icon:'🔬', label:'入门级', sub:'4题全对' },
+    { icon:'⚗️', label:'基础级', sub:'5题全对' },
+    { icon:'🧪', label:'进阶级', sub:'4题全对' },
+    { icon:'🏆', label:'挑战测验', sub:'5题全对' },
+  ];
+  const bw = (W - 80) / 4;
+  badges.forEach((b, i) => {
+    const bx = 40 + bw * i + bw / 2;
+    ctx.fillStyle = 'rgba(46,160,67,0.08)';
+    roundRect(ctx, 40 + bw*i + 4, 376, bw - 8, 72, 6);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(46,160,67,0.2)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, 40 + bw*i + 4, 376, bw - 8, 72, 6);
+    ctx.stroke();
+    ctx.font = '20px serif';
+    ctx.fillText(b.icon, bx, 402);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#e6edf3';
+    ctx.fillText(b.label, bx, 420);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#2ea043';
+    ctx.fillText(b.sub, bx, 436);
+  });
+
+  drawDivider(ctx, W, 464);
+
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#2ea043';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('已掌握技能', W/2, 484);
+  ctx.letterSpacing = '0px';
+
+  ['最小公倍数配平法', '多元素联立分析', '化学反应方程式书写'].forEach((s, i) => {
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#a0adb8';
+    ctx.fillText(`✦  ${s}`, W/2, 506 + i * 22);
+  });
+
+  drawDivider(ctx, W, 576);
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日`;
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#7d8590';
+  ctx.fillText(`完成日期：${dateStr}`, W/2, 600);
+  ctx.fillText(`完成时间：${timeStr}`, W/2, 620);
+
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillStyle = '#a0adb8';
+  ctx.fillText('峇株吧辖华仁中学 · 化学科', W/2, 648);
+
+  ctx.beginPath();
+  ctx.arc(W/2, 698, 28, 0, Math.PI*2);
+  ctx.strokeStyle = '#2ea043';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(W/2, 698, 22, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(46,160,67,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = '20px serif';
+  ctx.fillStyle = '#2ea043';
+  ctx.fillText('✓', W/2, 706);
+
+  document.getElementById('certOverlay').classList.add('show');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function drawDivider(ctx, W, y) {
+  const g = ctx.createLinearGradient(40, y, W-40, y);
+  g.addColorStop(0, 'rgba(46,160,67,0)');
+  g.addColorStop(0.5, 'rgba(46,160,67,0.4)');
+  g.addColorStop(1, 'rgba(46,160,67,0)');
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W-40, y); ctx.stroke();
+}
+
+function downloadCert() {
+  const canvas = document.getElementById('cert-canvas');
+  const name = document.getElementById('studentName').value.trim() || '学生';
+  const a = document.createElement('a');
+  a.download = `化学配平证书_${name}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function selectLevel(i) {
+  if (i > 0 && LEVELS[i-1].questions.some(q => !solvedSet.has(q.id))) return;
+  currentLevel = i;
+  currentQ = 0;
+  shuffleArray(LEVELS[i].questions);
+  renderTabs();
+  renderQSelector();
+  renderQuestion();
+  updateProgress();
+}
+
+function selectQ(i) {
+  currentQ = i;
+  renderQSelector();
+  renderQuestion();
+}
+
+function updateProgress() {
+  const total = LEVELS.reduce((s,lv) => s + lv.questions.length, 0);
+  const done = solvedSet.size;
+  document.getElementById('progressFill').style.width = (done/total*100) + '%';
+  document.getElementById('progressText').textContent = `${done} / ${total}`;
+}
+
+// ══════════════════════════════════════════════
+// INIT
+//峇株吧辖华仁中学蔡逸众制作
+// ══════════════════════════════════════════════
+
+function init() {
+  LEVELS.forEach(lv => shuffleArray(lv.questions));
+  renderTabs();
+  renderQSelector();
+  renderQuestion();
+  updateProgress();
+}
+
+//Made by ecchua79
+init();
+</script>
+</body>
+</html>
