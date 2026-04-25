@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🦴 骨骼侦探：关节大搜查 3D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+    background: linear-gradient(135deg, #1a1a3e 0%, #2d1b4e 50%, #1a1a3e 100%);
+    color: #fff; user-select: none;
+  }
+  #app { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+
+  /* ============ 通用按钮 ============ */
+  .btn {
+    padding: 14px 28px; border: none; border-radius: 50px;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    background: linear-gradient(135deg, #ff6b9d, #c06eff);
+    color: white; box-shadow: 0 6px 20px rgba(192, 110, 255, 0.5);
+    transition: all 0.2s; touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.95); box-shadow: 0 3px 10px rgba(192, 110, 255, 0.3); }
+  .btn-secondary { background: linear-gradient(135deg, #4facfe, #00f2fe); box-shadow: 0 6px 20px rgba(79, 172, 254, 0.5); }
+  .btn-success { background: linear-gradient(135deg, #43e97b, #38f9d7); box-shadow: 0 6px 20px rgba(67, 233, 123, 0.5); color: #1a1a3e; }
+
+  /* ============ 屏幕切换 ============ */
+  .screen {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .screen.active { display: flex; }
+
+  /* ============ 开始页 ============ */
+  #startScreen { justify-content: center; align-items: center; text-align: center; }
+  .logo { font-size: 60px; margin-bottom: 10px; animation: bounce 2s infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  h1 {
+    font-size: 36px; margin-bottom: 10px;
+    background: linear-gradient(135deg, #ff6b9d, #c06eff, #4facfe);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { font-size: 16px; color: #aaa; margin-bottom: 30px; max-width: 320px; line-height: 1.6; }
+  .menu-buttons { display: flex; flex-direction: column; gap: 15px; width: 260px; }
+
+  /* ============ 3D 探索页 ============ */
+  #exploreScreen { padding: 0; }
+  #threeContainer { position: absolute; inset: 0; }
+  .explore-header {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 15px 20px; z-index: 10;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7), transparent);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .back-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+    color: white; font-size: 20px; cursor: pointer; backdrop-filter: blur(10px);
+  }
+  .explore-title { font-size: 18px; font-weight: bold; }
+  /* 折叠的切换菜单 */
+  .switch-toggle {
+    position: absolute; top: 15px; right: 20px; z-index: 11;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b9d, #c06eff);
+    border: none; color: white; font-size: 20px; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(192,110,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s;
+  }
+  .switch-toggle.open { transform: rotate(45deg); }
+  .tabs {
+    position: absolute; top: 70px; right: 20px;
+    display: flex; flex-direction: column; gap: 8px; z-index: 10;
+    opacity: 0; pointer-events: none; transform: translateY(-10px);
+    transition: all 0.3s;
+  }
+  .tabs.show {
+    opacity: 1; pointer-events: auto; transform: translateY(0);
+  }
+  .tab {
+    padding: 10px 16px; border-radius: 25px; font-size: 13px; font-weight: bold;
+    background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3);
+    color: white; cursor: pointer; backdrop-filter: blur(10px); white-space: nowrap;
+    text-align: right;
+  }
+  .tab.active {
+    background: linear-gradient(135deg, #ff6b9d, #c06eff);
+    border-color: transparent; box-shadow: 0 4px 15px rgba(192,110,255,0.5);
+  }
+  /* 当前关节的小徽章（未展开时显示） */
+  .current-badge {
+    position: absolute; top: 22px; right: 74px; z-index: 10;
+    padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: bold;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+    color: white; backdrop-filter: blur(10px); white-space: nowrap;
+    transition: opacity 0.3s;
+  }
+  .current-badge.hidden { opacity: 0; pointer-events: none; }
+  /* 信息面板折叠 */
+  .info-panel.collapsed .info-desc,
+  .info-panel.collapsed .info-example { display: none; }
+  .info-toggle {
+    position: absolute; top: 10px; right: 15px;
+    background: rgba(255,255,255,0.15); border: none; color: white;
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    font-size: 14px;
+  }
+  .info-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 20px; background: linear-gradient(0deg, rgba(26,26,62,0.95), rgba(26,26,62,0.7));
+    backdrop-filter: blur(10px); z-index: 9;
+  }
+  .info-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #ffd54f; }
+  .info-desc { font-size: 14px; line-height: 1.6; color: #e0e0e0; margin-bottom: 8px; }
+  .info-example { font-size: 13px; color: #81d4fa; font-style: italic; }
+  .hint { position: absolute; top: 75px; left: 50%; transform: translateX(-50%); 
+    background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; 
+    font-size: 12px; z-index: 10; opacity: 0.8; }
+
+  /* ============ 游戏页 ============ */
+  #gameScreen { padding: 15px; }
+  .game-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px; flex-wrap: wrap; gap: 10px;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.1); padding: 8px 14px; border-radius: 20px;
+    font-size: 14px; font-weight: bold; backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .hearts { color: #ff6b9d; }
+  .score { color: #ffd54f; }
+  .level { color: #4facfe; }
+  .progress-bar {
+    width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px;
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #43e97b, #38f9d7);
+    transition: width 0.5s; width: 0%;
+  }
+  .question-card {
+    background: rgba(255,255,255,0.08); border-radius: 20px; padding: 20px;
+    border: 1px solid rgba(255,255,255,0.15); margin-bottom: 15px;
+    backdrop-filter: blur(10px);
+  }
+  .question-num { font-size: 12px; color: #c06eff; font-weight: bold; margin-bottom: 8px; }
+  .question-text { font-size: 18px; line-height: 1.5; margin-bottom: 10px; }
+  .question-emoji { font-size: 40px; text-align: center; margin: 10px 0; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    padding: 14px 18px; background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2); border-radius: 15px;
+    font-size: 15px; cursor: pointer; text-align: left; color: white;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .option:active { transform: scale(0.98); }
+  .option.correct { background: rgba(67, 233, 123, 0.3); border-color: #43e97b; }
+  .option.wrong { background: rgba(255, 107, 157, 0.3); border-color: #ff6b9d; }
+  .option:disabled { cursor: not-allowed; }
+  .feedback {
+    margin-top: 12px; padding: 12px; border-radius: 12px;
+    background: rgba(255,213,79,0.15); border-left: 4px solid #ffd54f;
+    font-size: 14px; line-height: 1.5; display: none;
+  }
+  .feedback.show { display: block; animation: slideIn 0.3s; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .combo-display {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 60px; font-weight: bold; color: #ffd54f;
+    text-shadow: 0 0 20px rgba(255,213,79,0.8);
+    pointer-events: none; z-index: 100; opacity: 0;
+  }
+  .combo-display.show { animation: comboAnim 1s ease-out; }
+  @keyframes comboAnim {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* ============ 拖拽题 ============ */
+  .drag-area { display: flex; flex-direction: column; gap: 15px; }
+  .drop-zones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .drop-zone {
+    min-height: 100px; border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 12px; padding: 10px; text-align: center;
+    background: rgba(255,255,255,0.05); font-size: 12px;
+  }
+  .drop-zone.drag-over { background: rgba(255,213,79,0.2); border-color: #ffd54f; }
+  .drop-zone-title { font-weight: bold; margin-bottom: 8px; font-size: 13px; color: #c06eff; }
+  .drag-items { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 15px; }
+  .drag-item {
+    padding: 8px 14px; background: linear-gradient(135deg, #4facfe, #00f2fe);
+    border-radius: 20px; cursor: grab; font-size: 13px; font-weight: bold;
+    color: #1a1a3e; user-select: none; touch-action: none;
+  }
+  .drag-item.dragging { opacity: 0.5; }
+  .drag-item.placed { cursor: default; opacity: 0.7; }
+
+  /* ============ 结算页 ============ */
+  #resultScreen { justify-content: center; align-items: center; text-align: center; }
+  .result-card {
+    background: rgba(255,255,255,0.1); border-radius: 25px; padding: 30px 25px;
+    max-width: 340px; width: 100%; backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .result-emoji { font-size: 70px; margin-bottom: 10px; }
+  .result-title { font-size: 26px; font-weight: bold; margin-bottom: 15px; }
+  .result-stats { display: flex; flex-direction: column; gap: 8px; margin: 15px 0; }
+  .result-stat {
+    display: flex; justify-content: space-between; padding: 10px 15px;
+    background: rgba(255,255,255,0.08); border-radius: 12px; font-size: 14px;
+  }
+  .result-stat-label { color: #aaa; }
+  .result-stat-value { font-weight: bold; color: #ffd54f; }
+  .achievements { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 15px 0; }
+  .achievement {
+    padding: 6px 12px; background: linear-gradient(135deg, #ffd54f, #ff9800);
+    color: #1a1a3e; font-size: 12px; font-weight: bold; border-radius: 15px;
+  }
+  .name-input {
+    width: 100%; padding: 14px 18px; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1);
+    color: white; font-size: 16px; margin: 10px 0; font-family: inherit;
+  }
+  .name-input::placeholder { color: rgba(255,255,255,0.5); }
+  .name-input:focus { outline: none; border-color: #ffd54f; }
+
+  /* ============ 证书页 ============ */
+  #certScreen { justify-content: center; align-items: center; padding: 15px; }
+  .certificate {
+    width: 100%; max-width: 360px; padding: 25px 20px;
+    background: linear-gradient(135deg, #fff8e1, #fff3c4);
+    border: 6px double #d4a017; border-radius: 15px;
+    color: #3e2723; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .cert-corner {
+    position: absolute; font-size: 30px;
+  }
+  .cert-corner.tl { top: 10px; left: 15px; }
+  .cert-corner.tr { top: 10px; right: 15px; }
+  .cert-corner.bl { bottom: 10px; left: 15px; }
+  .cert-corner.br { bottom: 10px; right: 15px; }
+  .cert-header { text-align: center; padding: 15px 0 10px; border-bottom: 2px solid #d4a017; }
+  .cert-title {
+    font-size: 22px; font-weight: bold; color: #b71c1c;
+    letter-spacing: 2px; margin-bottom: 5px;
+  }
+  .cert-subtitle { font-size: 12px; color: #6d4c41; letter-spacing: 3px; }
+  .cert-body { text-align: center; padding: 20px 10px; }
+  .cert-presented { font-size: 13px; color: #6d4c41; margin-bottom: 8px; }
+  .cert-name {
+    font-size: 28px; font-weight: bold; color: #1a1a3e;
+    font-family: 'Brush Script MT', cursive; margin: 10px 0;
+    border-bottom: 1px solid #d4a017; padding-bottom: 5px; display: inline-block;
+    min-width: 200px;
+  }
+  .cert-text { font-size: 13px; color: #4a2c2a; line-height: 1.8; margin: 10px 0; }
+  .cert-highlight { color: #b71c1c; font-weight: bold; }
+  .cert-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin: 15px 0; padding: 12px; background: rgba(212, 160, 23, 0.1);
+    border-radius: 8px;
+  }
+  .cert-stat { text-align: center; }
+  .cert-stat-label { font-size: 10px; color: #6d4c41; }
+  .cert-stat-value { font-size: 16px; font-weight: bold; color: #1a1a3e; }
+  .cert-footer {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding-top: 15px; border-top: 2px solid #d4a017; font-size: 11px;
+  }
+  .cert-seal {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: radial-gradient(circle, #d4a017, #b71c1c);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .cert-date { color: #6d4c41; text-align: left; }
+  .cert-signature { color: #6d4c41; text-align: right; font-style: italic; }
+  .cert-buttons { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 360px) {
+    h1 { font-size: 28px; }
+    .logo { font-size: 50px; }
+    .question-text { font-size: 16px; }
+    .cert-name { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ========== 开始屏幕 ========== -->
+  <div id="startScreen" class="screen active">
+    <div class="logo">🦴🕵️</div>
+    <h1>骨骼侦探</h1>
+    <div style="font-size: 20px; color: #ffd54f; margin-bottom: 15px;">关节大搜查 3D</div>
+    <div class="subtitle">
+      欢迎，侦探！👋<br>
+      身体里的关节们等你来分类！<br>
+      先去 3D 实验室观察，再接受知识挑战吧！
+    </div>
+    <div class="menu-buttons">
+      <button class="btn btn-secondary" onclick="showScreen('exploreScreen'); initExplore();">🔬 3D 实验室</button>
+      <button class="btn" onclick="startGame()">🎮 开始挑战</button>
+    </div>
+  </div>
+
+  <!-- ========== 3D 探索屏幕 ========== -->
+  <div id="exploreScreen" class="screen">
+    <div id="threeContainer"></div>
+    <div class="explore-header">
+      <button class="back-btn" onclick="exitExplore()">←</button>
+      <div class="explore-title">🔬 3D 关节实验室</div>
+      <div style="width: 42px;"></div>
+    </div>
+    <div class="hint">👆 拖动旋转 · 双指缩放</div>
+    <div class="current-badge" id="currentBadge">🧱 不动关节</div>
+    <button class="switch-toggle" id="switchToggle" onclick="toggleTabs()">+</button>
+    <div class="tabs" id="tabsMenu">
+      <button class="tab active" onclick="switchJoint(0)">🧱 不动关节</button>
+      <button class="tab" onclick="switchJoint(1)">🌀 微动关节</button>
+      <button class="tab" onclick="switchJoint(2)">⚙️ 活动关节</button>
+    </div>
+    <div class="info-panel" id="infoPanel">
+      <button class="info-toggle" onclick="toggleInfo()" id="infoToggleBtn">▼</button>
+      <div class="info-title" id="infoTitle">🧱 不动关节 (Immovable Joints)</div>
+      <div class="info-desc" id="infoDesc">两块骨头紧紧连在一起，几乎不能动。像胶水粘住的拼图一样！</div>
+      <div class="info-example" id="infoExample">💡 例子：头盖骨（颅骨）之间的接缝</div>
+    </div>
+  </div>
+
+  <!-- ========== 游戏屏幕 ========== -->
+  <div id="gameScreen" class="screen">
+    <div class="game-header">
+      <div class="stat-box level">📊 Lv.<span id="level">1</span></div>
+      <div class="stat-box hearts">❤️ <span id="hearts">3</span></div>
+      <div class="stat-box score">⭐ <span id="score">0</span></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div id="questionContainer"></div>
+    <div class="combo-display" id="comboDisplay"></div>
+  </div>
+
+  <!-- ========== 结算屏幕 ========== -->
+  <div id="resultScreen" class="screen">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">挑战完成！</div>
+      <div class="result-stats">
+        <div class="result-stat"><span class="result-stat-label">⭐ 总分</span><span class="result-stat-value" id="finalScore">0</span></div>
+        <div class="result-stat"><span class="result-stat-label">✅ 正确率</span><span class="result-stat-value" id="finalAccuracy">0%</span></div>
+        <div class="result-stat"><span class="result-stat-label">🔥 最高连击</span><span class="result-stat-value" id="finalCombo">0</span></div>
+        <div class="result-stat"><span class="result-stat-label">⏱️ 用时</span><span class="result-stat-value" id="finalTime">0s</span></div>
+      </div>
+      <div class="achievements" id="achievementList"></div>
+      <input type="text" class="name-input" id="nameInput" placeholder="输入你的名字领证书 ✍️" maxlength="20">
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-success" onclick="generateCert()">🏆 生成证书</button>
+        <button class="btn btn-secondary" onclick="restartGame()">🔁 再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 证书屏幕 ========== -->
+  <div id="certScreen" class="screen">
+    <div class="certificate" id="certificate">
+      <div class="cert-corner tl">🦴</div>
+      <div class="cert-corner tr">🦴</div>
+      <div class="cert-corner bl">🦴</div>
+      <div class="cert-corner br">🦴</div>
+      <div class="cert-header">
+        <div class="cert-title">CERTIFICATE</div>
+        <div class="cert-subtitle">OF ACHIEVEMENT</div>
+      </div>
+      <div class="cert-body">
+        <div class="cert-presented">特此颁发给</div>
+        <div class="cert-name" id="certName">Student</div>
+        <div class="cert-text">
+          在 <span class="cert-highlight">《骨骼侦探：关节大搜查 3D》</span><br>
+          中表现优异，成功掌握<br>
+          <span class="cert-highlight">不动关节、微动关节、活动关节</span><br>的核心知识！
+        </div>
+        <div class="cert-stats">
+          <div class="cert-stat">
+            <div class="cert-stat-label">TOTAL SCORE</div>
+            <div class="cert-stat-value" id="certScore">0</div>
+          </div>
+          <div class="cert-stat">
+            <div class="cert-stat-label">TIME TAKEN</div>
+            <div class="cert-stat-value" id="certTime">0s</div>
+          </div>
+          <div class="cert-stat">
+            <div class="cert-stat-label">ACCURACY</div>
+            <div class="cert-stat-value" id="certAccuracy">0%</div>
+          </div>
+          <div class="cert-stat">
+            <div class="cert-stat-label">LEVEL</div>
+            <div class="cert-stat-value" id="certLevel">Expert</div>
+          </div>
+        </div>
+        <div class="cert-text" id="certMessage" style="font-weight: bold; color: #b71c1c;">
+          🌟 Excellent Work! 🌟
+        </div>
+      </div>
+      <div class="cert-footer">
+        <div class="cert-date" id="certDate">2026-04-25</div>
+        <div class="cert-seal">🏆</div>
+        <div class="cert-signature">— Dr. Bone</div>
+      </div>
+    </div>
+    <div class="cert-buttons">
+      <button class="btn btn-success" onclick="downloadCert()">📥 下载证书</button>
+      <button class="btn btn-secondary" onclick="showScreen('startScreen')">🏠 回首页</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==================== 全局状态 ====================
+let gameState = {
+  score: 0, hearts: 3, level: 1, combo: 0, maxCombo: 0,
+  questionIndex: 0, correctCount: 0, totalAnswered: 0,
+  startTime: 0, questionStartTime: 0
+};
+
+// ==================== 题库 ====================
+const questions = [
+  // Level 1: 基础认识
+  {
+    level: 1, type: 'quiz', emoji: '🧠',
+    q: '头盖骨里不同骨头之间的接缝属于哪种关节？',
+    options: ['活动关节', '微动关节', '不动关节', '伸缩关节'],
+    answer: 2,
+    explain: '💡 头盖骨的接缝叫"颅缝"，骨头之间完全融合，像胶水粘住一样，属于**不动关节**。这样可以保护脆弱的大脑！'
+  },
+  {
+    level: 1, type: 'quiz', emoji: '💪',
+    q: '下面哪个关节可以像球一样四面八方转动？',
+    options: ['膝盖', '手肘', '肩膀', '脊椎'],
+    answer: 2,
+    explain: '💡 肩膀是典型的"球窝关节"，像一个球放在碗里，所以可以 360° 转动。膝盖和手肘只能一个方向弯曲哦！'
+  },
+  {
+    level: 1, type: 'quiz', emoji: '🦴',
+    q: '"关节"到底指的是什么？',
+    options: ['一块特殊的骨头', '两块骨头相接的地方', '肌肉连接的地方', '皮肤下的软组织'],
+    answer: 1,
+    explain: '💡 关节 ≠ 骨头！关节是**两块骨头碰面的位置**，就像门和门框的连接处——合页才是真正的"关节"。'
+  },
+  {
+    level: 1, type: 'quiz', emoji: '👶',
+    q: '为什么婴儿的头顶摸起来软软的？',
+    options: ['头骨还没长出来', '颅缝（不动关节）还没完全长好', '有很多脂肪', '大脑在呼吸'],
+    answer: 1,
+    explain: '💡 婴儿的颅缝（本来会成为不动关节）还没完全闭合，留有"囟门"。这样方便大脑继续发育长大！'
+  },
+
+  // Level 2: 区分应用
+  {
+    level: 2, type: 'quiz', emoji: '🏃',
+    q: '做仰卧起坐时，身体能弯曲，主要靠哪类关节？',
+    options: ['不动关节', '微动关节（脊椎之间）', '肩膀的活动关节', '膝盖的活动关节'],
+    answer: 1,
+    explain: '💡 每两节脊椎骨之间只能动一点点（微动关节），但有 20 多节加起来，就能让我们弯腰、转身啦！'
+  },
+  {
+    level: 2, type: 'quiz', emoji: '🤔',
+    q: '下面哪个**不是**活动关节的特征？',
+    options: ['关节之间有关节腔', '有润滑液减少摩擦', '两块骨头完全融合', '可以较大幅度运动'],
+    answer: 2,
+    explain: '💡 骨头完全融合就是**不动关节**了！活动关节的特点是两块骨头之间有缝隙、有润滑液，所以能灵活运动。'
+  },
+  {
+    level: 2, type: 'quiz', emoji: '🥊',
+    q: '拳击手出拳时，主要用到哪些关节？',
+    options: ['只用肩膀', '只用手肘', '肩关节 + 肘关节 + 腕关节', '只用脊椎'],
+    answer: 2,
+    explain: '💡 一个出拳动作，需要肩膀（球窝）旋转发力 + 手肘（铰链）伸展 + 手腕微调方向。这些都是**活动关节**的配合！'
+  },
+  {
+    level: 2, type: 'quiz', emoji: '🧩',
+    q: '微动关节之间通常填充着什么？',
+    options: ['空气', '软骨或纤维组织', '肌肉', '血液'],
+    answer: 1,
+    explain: '💡 微动关节之间有**软骨或纤维组织**，像弹簧一样让骨头能挪动一点点，但又不会完全散开。'
+  },
+
+  // 拖拽题
+  {
+    level: 2, type: 'drag', emoji: '🎯',
+    q: '把下面的身体部位拖到正确的关节类型！',
+    zones: ['🧱 不动关节', '🌀 微动关节', '⚙️ 活动关节'],
+    items: [
+      { name: '膝盖', zone: 2 },
+      { name: '头盖骨接缝', zone: 0 },
+      { name: '脊椎之间', zone: 1 },
+      { name: '肩膀', zone: 2 }
+    ],
+    explain: '💡 记住规律：头部接缝都是不动的，脊椎之间是微动的，四肢关节大多是可以大幅度活动的！'
+  },
+
+  // Level 3: Boss挑战
+  {
+    level: 3, type: 'quiz', emoji: '🦵',
+    q: '膝盖只能向一个方向弯曲，它是什么类型的活动关节？',
+    options: ['球窝关节', '铰链关节', '车轴关节', '滑动关节'],
+    answer: 1,
+    explain: '💡 **铰链关节**就像门的合页，只能一个方向开关。膝盖和手肘都是这种。而肩膀是"球窝关节"，可以 360° 转！'
+  },
+  {
+    level: 3, type: 'quiz', emoji: '🎭',
+    q: '下列哪种说法是**错误**的？',
+    options: ['脊椎整体很灵活，是因为有很多微动关节', '所有关节都可以运动', '活动关节里有润滑液', '不动关节保护内部器官'],
+    answer: 1,
+    explain: '💡 **并不是所有关节都能动**！不动关节（如头骨）就完全不能动，它的任务是保护大脑等重要器官。'
+  },
+  {
+    level: 3, type: 'quiz', emoji: '🏆',
+    q: 'Boss 挑战！下面哪个组合完全正确？',
+    options: [
+      '头骨-不动｜脊椎-活动｜膝盖-微动',
+      '头骨-微动｜脊椎-不动｜膝盖-活动',
+      '头骨-不动｜脊椎-微动｜膝盖-活动',
+      '头骨-活动｜脊椎-微动｜膝盖-不动'
+    ],
+    answer: 2,
+    explain: '🏆 完美！头骨接缝=不动（保护脑），脊椎之间=微动（灵活又稳固），膝盖=活动（大幅运动）。你掌握了核心知识！'
+  }
+];
+
+// ==================== 屏幕切换 ====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showRules() {
+  alert('🎮 游戏规则\n\n❤️ 你有 3 条生命，答错扣 1 条\n⭐ 答对 +100 分，速度快有加成\n🔥 连续答对触发 Combo，分数翻倍！\n📈 难度从 Level 1 到 Level 3\n🏆 闯关成功可获得精美证书！\n\n💡 建议先去 3D 实验室观察一下哦！');
+}
+
+// ==================== 3D 场景 ====================
+let scene, camera, renderer, currentGroup;
+let isDragging = false, prevX = 0, prevY = 0;
+let rotX = 0, rotY = 0, zoom = 1;
+let animationId;
+let jointGroups = [];
+let animTime = 0;
+
+const jointInfo = [
+  {
+    title: '🧱 不动关节 (Immovable)',
+    desc: '两块骨头紧紧连在一起，几乎不能动。像胶水粘住的拼图一样！它的任务是保护内部的重要器官。',
+    example: '💡 例子：头盖骨（颅骨）之间的接缝，保护大脑 🧠'
+  },
+  {
+    title: '🌀 微动关节 (Slightly Movable)',
+    desc: '骨头之间有一层软软的软骨或纤维组织，只能动一点点。但很多个加在一起就灵活啦！',
+    example: '💡 例子：脊椎骨之间，让你能弯腰、转身 🙆'
+  },
+  {
+    title: '⚙️ 活动关节 (Freely Movable)',
+    desc: '两块骨头之间有关节腔，里面有润滑液（像机器上的油），可以大幅度自由运动！',
+    example: '💡 例子：肩膀（球窝）、膝盖（合页），让你能跑能跳 🏃'
+  }
+];
+
+function initExplore() {
+  const container = document.getElementById('threeContainer');
+  container.innerHTML = '';
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1a3e);
+  
+  // 添加星空背景
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = [];
+  for (let i = 0; i < 500; i++) {
+    starPos.push((Math.random()-0.5)*50, (Math.random()-0.5)*50, (Math.random()-0.5)*50 - 20);
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.z = 8;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  container.appendChild(renderer.domElement);
+
+  // 灯光
+  scene.add(new THREE.AmbientLight(0x606080, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(5, 10, 7);
+  scene.add(dirLight);
+  const pointLight = new THREE.PointLight(0xc06eff, 0.8, 20);
+  pointLight.position.set(-5, 3, 5);
+  scene.add(pointLight);
+  const pointLight2 = new THREE.PointLight(0x4facfe, 0.6, 20);
+  pointLight2.position.set(5, -3, 3);
+  scene.add(pointLight2);
+
+  // 创建三种关节
+  jointGroups = [
+    createImmovableJoint(),
+    createSlightlyMovableJoint(),
+    createFreelyMovableJoint()
+  ];
+
+  switchJoint(0);
+  setupControls(container);
+  animate();
+
+  window.addEventListener('resize', onResize);
+}
+
+function onResize() {
+  const container = document.getElementById('threeContainer');
+  if (!container || !renderer) return;
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+// ===== 不动关节：头盖骨（颅缝在颅顶表面）=====
+function createImmovableJoint() {
+  const group = new THREE.Group();
+  
+  const SKULL_R = 2.2;       // 颅骨半径
+  
+  // 用 Canvas 绘制颅骨表面纹理：背景骨色 + 锯齿状颅缝
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  
+  // 背景：骨头颜色（带轻微渐变）
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
+  bgGrad.addColorStop(0, '#fff5e1');
+  bgGrad.addColorStop(0.5, '#ffe8c4');
+  bgGrad.addColorStop(1, '#ffd9a3');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 1024, 512);
+  
+  // 添加一些骨头质感的斑点
+  for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${150 + Math.random() * 30}, ${100 + Math.random() * 30}, ${0.1 + Math.random() * 0.15})`;
+    ctx.beginPath();
+    ctx.arc(Math.random() * 1024, Math.random() * 512, 2 + Math.random() * 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // 绘制锯齿状颅缝
+  // 颅缝1：冠状缝（横向，从左到右穿过头顶）—— 在纹理上是一条横线
+  // 颅缝2：矢状缝（前后向，从前到后）—— 在纹理上是一条竖线
+  // 颅缝3：人字缝（后脑两条斜线）
+  
+  function drawZigzagSeam(startX, startY, endX, endY, segments, amplitude) {
+    ctx.strokeStyle = '#5d3a1a';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 3;
+    ctx.beginPath();
+    
+    const dx = (endX - startX) / segments;
+    const dy = (endY - startY) / segments;
+    // 垂直于缝线方向的法向量
+    const len = Math.sqrt((endX-startX)**2 + (endY-startY)**2);
+    const nx = -(endY - startY) / len;
+    const ny = (endX - startX) / len;
+    
+    ctx.moveTo(startX, startY);
+    for (let i = 1; i <= segments; i++) {
+      const baseX = startX + dx * i;
+      const baseY = startY + dy * i;
+      const offset = (i % 2 === 0 ? 1 : -1) * amplitude;
+      ctx.lineTo(baseX + nx * offset, baseY + ny * offset);
+    }
+    ctx.stroke();
+    
+    // 在锯齿处添加深色阴影点，强化"咬合"感
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(60, 30, 10, 0.6)';
+    for (let i = 1; i <= segments; i++) {
+      const baseX = startX + dx * i;
+      const baseY = startY + dy * i;
+      const offset = (i % 2 === 0 ? 1 : -1) * amplitude;
+      ctx.beginPath();
+      ctx.arc(baseX + nx * offset, baseY + ny * offset, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  // 由于我们只渲染上半球（球体的上半部分），UV 中：
+  // u: 0~1 对应经度 0~360°
+  // v: 0~1 对应纬度，对于半球（0~PI/2），v 范围 0~0.5（顶部到赤道）
+  // 我们要在 v: 0~0.5 这部分绘制颅缝
+  
+  // 矢状缝：从颅顶（v=0, 任意u）沿 u=0.25 一路到 v=0.5（前到后）
+  // 在 canvas 上：x = 0.25 * 1024 = 256，y 从 0 到 256
+  drawZigzagSeam(256, 0, 256, 256, 16, 12);
+  
+  // 后部对应缝（u=0.75 对称位置）
+  drawZigzagSeam(768, 0, 768, 256, 16, 12);
+  
+  // 冠状缝：横穿头顶，从一侧到另一侧（v=0.18 这个高度，u 从 0 到 1）
+  // 在 canvas 上：y = 0.18 * 512 ≈ 92，x 从 0 到 1024
+  drawZigzagSeam(0, 92, 1024, 92, 30, 10);
+  
+  // 人字缝：v=0.35 附近的两条斜线
+  drawZigzagSeam(80, 250, 460, 180, 18, 10);
+  drawZigzagSeam(944, 250, 564, 180, 18, 10);
+  
+  const skullTexture = new THREE.CanvasTexture(canvas);
+  skullTexture.wrapS = THREE.RepeatWrapping;
+  
+  // 半球颅骨（只保留上半部分）
+  const skullGeo = new THREE.SphereGeometry(SKULL_R, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+  const skullMat = new THREE.MeshPhongMaterial({
+    map: skullTexture,
+    specular: 0x553322,
+    shininess: 30,
+    side: THREE.DoubleSide
+  });
+  const skull = new THREE.Mesh(skullGeo, skullMat);
+  skull.position.y = 0;
+  // 让颅骨稍微"扁"一点，更像真实头骨
+  skull.scale.set(1.05, 0.85, 1.15);
+  group.add(skull);
+  
+  // 颅骨底部封口（让它看起来是完整的头）
+  const baseGeo = new THREE.CircleGeometry(SKULL_R, 64);
+  const baseMat = new THREE.MeshPhongMaterial({
+    color: 0xc4a070,
+    side: THREE.DoubleSide,
+    specular: 0x443322
+  });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.rotation.x = Math.PI / 2;
+  base.position.y = 0;
+  base.scale.set(1.05, 1.15, 1);
+  group.add(base);
+  
+  // 锁链装饰（强调"完全锁住、不能动"的感觉）
+  const lockGroup = new THREE.Group();
+  const lockEmoji = makeTextLabel('🔒 完全融合', 0xffd54f);
+  lockEmoji.position.set(0, SKULL_R * 0.85 + 0.5, 0);
+  lockEmoji.scale.set(2.5, 0.6, 1);
+  group.add(lockEmoji);
+  
+  // 底部说明标签
+  const label = makeTextLabel('颅缝 · 不能活动', 0xffd54f);
+  label.position.set(0, -1.5, 0);
+  group.add(label);
+  
+  group.userData = {
+    type: 'immovable',
+    animate: (t) => {
+      // 不动关节 —— 完全静止，只随容器整体缓慢旋转，让用户能 360° 观察
+      group.rotation.y += 0.005;
+    }
+  };
+  
+  return group;
+}
+
+// ===== 微动关节：脊椎（楔形累积旋转版）=====
+function createSlightlyMovableJoint() {
+  const group = new THREE.Group();
+  
+  const VERT_H = 0.5;    // 脊椎骨高
+  const DISC_H = 0.35;   // 椎间盘原始厚度
+  const RADIUS = 0.9;    // 脊椎半径
+  const DISC_R = 0.95;   // 椎间盘半径
+  const N = 5;           // 脊椎节数
+  
+  const vertMat = new THREE.MeshPhongMaterial({ 
+    color: 0xfff5e1, specular: 0x444444, shininess: 40
+  });
+  const discMat = new THREE.MeshPhongMaterial({ 
+    color: 0xff6b9d, transparent: true, opacity: 0.92,
+    specular: 0xffffff, shininess: 80, emissive: 0x331020
+  });
+  const cordMat = new THREE.MeshPhongMaterial({
+    color: 0x111111, specular: 0x333333, shininess: 60
+  });
+  
+  // 每节脊椎骨用一个 Group 包裹，方便整体定位+旋转
+  const vertGroups = [];   // 脊椎骨容器（含脊髓段）
+  const discGroups = [];   // 椎间盘容器（含脊髓段）
+  const discMeshes = [];   // 椎间盘 mesh（用于变形）
+  
+  for (let i = 0; i < N; i++) {
+    const vGroup = new THREE.Group();
+    
+    // 脊椎骨
+    const vertGeo = new THREE.CylinderGeometry(RADIUS, RADIUS, VERT_H, 24);
+    const vert = new THREE.Mesh(vertGeo, vertMat);
+    vGroup.add(vert);
+    
+    // 脊突
+    const spineGeo = new THREE.ConeGeometry(0.28, 0.55, 8);
+    const spine = new THREE.Mesh(spineGeo, vertMat);
+    spine.rotation.x = Math.PI / 2;
+    spine.position.set(0, 0, -RADIUS - 0.1);
+    vGroup.add(spine);
+    
+    // 脊髓段（穿过脊椎骨）
+    const cordVertGeo = new THREE.CylinderGeometry(0.14, 0.14, VERT_H + 0.02, 12);
+    const cordVert = new THREE.Mesh(cordVertGeo, cordMat);
+    vGroup.add(cordVert);
+    
+    group.add(vGroup);
+    vertGroups.push(vGroup);
+  }
+  
+  for (let i = 0; i < N - 1; i++) {
+    const dGroup = new THREE.Group();
+    
+    // 椎间盘
+    const discGeo = new THREE.CylinderGeometry(DISC_R, DISC_R, DISC_H, 32, 6);
+    const disc = new THREE.Mesh(discGeo, discMat);
+    disc.userData.origPositions = discGeo.attributes.position.array.slice();
+    dGroup.add(disc);
+    
+    // 脊髓段（穿过椎间盘）
+    const cordDiscGeo = new THREE.CylinderGeometry(0.14, 0.14, DISC_H + 0.05, 12);
+    const cordDisc = new THREE.Mesh(cordDiscGeo, cordMat);
+    dGroup.add(cordDisc);
+    
+    group.add(dGroup);
+    discGroups.push(dGroup);
+    discMeshes.push(disc);
+  }
+  
+  const label = makeTextLabel('椎间盘受压 · 脊柱弯曲', 0xff6b9d);
+  label.position.set(0, -3.2, 0);
+  group.add(label);
+  
+  group.userData = {
+    type: 'slight',
+    animate: (t) => {
+      // 弯曲幅度（0~1，为压缩比例）
+      const bendAmount = Math.abs(Math.sin(t * 0.6)) * 0.55;
+      // 弯曲方向（在 XZ 平面缓慢旋转）
+      const bendDir = t * 0.4;
+      const bx = Math.cos(bendDir);
+      const bz = Math.sin(bendDir);
+      
+      // 单个椎间盘的楔形角度
+      // 受压侧厚度 = DISC_H * (1 - bendAmount)
+      // 反侧厚度 = DISC_H * (1 + bendAmount * 0.2)
+      // 角度 = (反侧 - 受压侧) / 直径
+      const wedgeAngle = Math.atan(
+        (DISC_H * (1 + bendAmount * 0.2) - DISC_H * (1 - bendAmount)) / (2 * DISC_R)
+      );
+      
+      // 旋转轴：水平面上垂直于弯曲方向的轴
+      // 弯曲方向是 (bx, 0, bz)，旋转轴 = (-bz, 0, bx)
+      // 这样绕该轴正向旋转 wedgeAngle 时，物体会向 (bx, bz) 方向倾斜
+      const rotAxis = new THREE.Vector3(-bz, 0, bx);
+      
+      // === 从底部向上累积位置和角度 ===
+      // 底部脊椎中心位置（固定，不动）
+      const totalH = N * VERT_H + (N - 1) * DISC_H;
+      let basePos = new THREE.Vector3(0, -totalH / 2 + VERT_H / 2, 0);
+      let accumQuat = new THREE.Quaternion(); // 累积旋转
+      
+      // 当前向上方向（初始是 +Y）
+      const upInit = new THREE.Vector3(0, 1, 0);
+      
+      // 放置第一节脊椎骨（最底部，不旋转）
+      vertGroups[0].position.copy(basePos);
+      vertGroups[0].quaternion.copy(accumQuat);
+      
+      // "当前顶部位置" = 第一节脊椎骨的顶面中心
+      let currentTop = basePos.clone().add(
+        upInit.clone().applyQuaternion(accumQuat).multiplyScalar(VERT_H / 2)
+      );
+      
+      for (let i = 0; i < N - 1; i++) {
+        // === 放置椎间盘 ===
+        // 椎间盘中心 = 当前顶部 + 当前向上方向 * (DISC_H/2)
+        // 但椎间盘本身要"半旋转"，因为它处于过渡区
+        // 我们用：椎间盘的下表面贴住下方脊椎顶面，上表面贴住上方脊椎底面
+        // 这意味着椎间盘整体绕中心旋转 wedgeAngle/2
+        
+        // 椎间盘的旋转 = 累积旋转 * (再绕 rotAxis 转 -wedgeAngle/2)
+        // 用负角度让椎间盘弯曲侧倾下去，与上方脊椎骨倾斜方向一致
+        const halfWedge = new THREE.Quaternion().setFromAxisAngle(rotAxis, -wedgeAngle / 2);
+        const discQuat = accumQuat.clone().multiply(halfWedge);
+        
+        // 椎间盘"中心"位置：从下方脊椎顶面沿"中线方向"移动 DISC_H/2
+        // 中线方向 = 椎间盘自己的 +Y 方向
+        const discUp = new THREE.Vector3(0, 1, 0).applyQuaternion(discQuat);
+        const discCenter = currentTop.clone().add(discUp.clone().multiplyScalar(DISC_H / 2));
+        
+        discGroups[i].position.copy(discCenter);
+        discGroups[i].quaternion.copy(discQuat);
+        
+        // === 椎间盘形变：单侧压缩 ===
+        // 在椎间盘的本地坐标系里，弯曲方向已经被椎间盘的旋转"旋转过了"
+        // 我们需要计算"弯曲方向"在椎间盘本地坐标系下的方向
+        const worldBend = new THREE.Vector3(bx, 0, bz);
+        const invQuat = discQuat.clone().invert();
+        const localBend = worldBend.clone().applyQuaternion(invQuat);
+        // localBend 在椎间盘本地的 (x, z) 平面上
+        const lbx = localBend.x;
+        const lbz = localBend.z;
+        const lbLen = Math.sqrt(lbx * lbx + lbz * lbz);
+        const nlbx = lbLen > 0.001 ? lbx / lbLen : 1;
+        const nlbz = lbLen > 0.001 ? lbz / lbLen : 0;
+        
+        const disc = discMeshes[i];
+        const posAttr = disc.geometry.attributes.position;
+        const orig = disc.userData.origPositions;
+        
+        for (let v = 0; v < posAttr.count; v++) {
+          const ox = orig[v * 3];
+          const oy = orig[v * 3 + 1];
+          const oz = orig[v * 3 + 2];
+          
+          // 顶点在本地"弯曲方向"上的归一化投影 (-1 到 +1)
+          // projection > 0 表示该顶点在"弯曲方向"那一侧 → 受压变薄
+          // projection < 0 表示在反侧 → 略膨胀
+          const projection = (ox * nlbx + oz * nlbz) / DISC_R;
+          
+          // 弯曲方向侧（projection > 0）：厚度变薄
+          // 反侧（projection < 0）：厚度略膨胀
+          let scale;
+          if (projection > 0) {
+            scale = 1 - projection * bendAmount;       // 越接近弯曲侧越薄
+          } else {
+            scale = 1 + (-projection) * bendAmount * 0.2; // 反侧轻微膨胀
+          }
+          
+          posAttr.array[v * 3] = ox;
+          posAttr.array[v * 3 + 1] = oy * scale;
+          posAttr.array[v * 3 + 2] = oz;
+        }
+        posAttr.needsUpdate = true;
+        disc.geometry.computeVertexNormals();
+        
+        // === 经过这个椎间盘后，累积旋转增加 wedgeAngle ===
+        // 楔形让上方倾斜：弯曲方向那侧低，反侧高
+        // 所以上方应该向弯曲方向 (bx, bz) 倒下去
+        // 绕轴 (-bz, 0, bx) 正向旋转会让 +Y 转向 (bx, 0, bz) 方向
+        // 验证：用右手定则，绕 (-bz, 0, bx) 正转，
+        //   当 bx=1, bz=0 时，轴=(0,0,1)，绕 +Z 正转，+Y → -X？不对
+        //   绕 +Z 正转：+Y → -X 方向，这是错的（应该 +Y → +X）
+        // 所以应该用反方向的轴，或负角度
+        const fullWedge = new THREE.Quaternion().setFromAxisAngle(rotAxis, -wedgeAngle);
+        accumQuat = accumQuat.clone().multiply(fullWedge);
+        
+        // 椎间盘顶面中心（也是上方脊椎底面中心）
+        // = 椎间盘中心 + 椎间盘"中线方向" * DISC_H/2
+        // 但实际上，因为椎间盘上表面已经倾斜，我们更准确的做法是：
+        // 上方脊椎"底面"的中心 = 椎间盘中心 + 上方脊椎"向上方向"反过来的 0
+        // 简化：椎间盘顶面中心 = 椎间盘中心 + (新的上方向) * DISC_H/2
+        const newUp = new THREE.Vector3(0, 1, 0).applyQuaternion(accumQuat);
+        currentTop = discCenter.clone().add(newUp.clone().multiplyScalar(DISC_H / 2));
+        
+        // === 放置上方脊椎骨 ===
+        // 上方脊椎中心 = 椎间盘顶面中心 + (上方向) * VERT_H/2
+        const nextVertCenter = currentTop.clone().add(
+          newUp.clone().multiplyScalar(VERT_H / 2)
+        );
+        vertGroups[i + 1].position.copy(nextVertCenter);
+        vertGroups[i + 1].quaternion.copy(accumQuat);
+        
+        // 更新 currentTop 为这块脊椎骨的顶面中心
+        currentTop = nextVertCenter.clone().add(
+          newUp.clone().multiplyScalar(VERT_H / 2)
+        );
+      }
+      
+      // 整根脊柱缓慢绕 Y 轴旋转，让用户从各角度看
+      group.rotation.y += 0.004;
+    }
+  };
+  
+  return group;
+}
+
+// ===== 活动关节：膝盖/肩膀 =====
+function createFreelyMovableJoint() {
+  const group = new THREE.Group();
+  
+  // 上骨头（大腿骨示意）
+  const upperGeo = new THREE.CylinderGeometry(0.5, 0.4, 2.5, 16);
+  const boneMat = new THREE.MeshPhongMaterial({ 
+    color: 0xfff5e1, specular: 0x444444, shininess: 40
+  });
+  const upperBone = new THREE.Mesh(upperGeo, boneMat);
+  upperBone.position.y = 1.5;
+  group.add(upperBone);
+  
+  // 上骨头的球头
+  const ballGeo = new THREE.SphereGeometry(0.7, 24, 24);
+  const ball = new THREE.Mesh(ballGeo, boneMat);
+  ball.position.y = 0.3;
+  group.add(ball);
+  
+  // 关节腔（半透明球，包围关节）
+  const capsuleGeo = new THREE.SphereGeometry(1, 24, 24);
+  const capsuleMat = new THREE.MeshPhongMaterial({ 
+    color: 0x4facfe, transparent: true, opacity: 0.25,
+    specular: 0xffffff, shininess: 100
+  });
+  const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
+  capsule.position.y = 0;
+  group.add(capsule);
+  
+  // 润滑液粒子（关节液）
+  const fluidGroup = new THREE.Group();
+  for (let i = 0; i < 20; i++) {
+    const bubbleGeo = new THREE.SphereGeometry(0.07, 8, 8);
+    const bubbleMat = new THREE.MeshPhongMaterial({ 
+      color: 0x00f2fe, emissive: 0x004455, transparent: true, opacity: 0.8
+    });
+    const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+    const angle = (i / 20) * Math.PI * 2;
+    const r = 0.75;
+    bubble.position.set(
+      Math.cos(angle) * r,
+      Math.sin(i * 0.5) * 0.3,
+      Math.sin(angle) * r
+    );
+    bubble.userData = { angle, r, speed: 0.5 + Math.random() * 0.5, yOff: Math.random() * Math.PI };
+    fluidGroup.add(bubble);
+  }
+  group.add(fluidGroup);
+  
+  // 软骨盖（在球头上）
+  const cartGeo = new THREE.SphereGeometry(0.72, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+  const cartMat = new THREE.MeshPhongMaterial({ 
+    color: 0xc06eff, specular: 0xffffff, shininess: 100
+  });
+  const cartilage = new THREE.Mesh(cartGeo, cartMat);
+  cartilage.position.y = 0.3;
+  cartilage.rotation.x = Math.PI;
+  group.add(cartilage);
+  
+  // 下骨头的窝
+  const socketGeo = new THREE.SphereGeometry(0.85, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+  const socket = new THREE.Mesh(socketGeo, boneMat);
+  socket.position.y = -0.2;
+  socket.rotation.x = Math.PI;
+  group.add(socket);
+  
+  // 下骨头（小腿骨示意）
+  const lowerGeo = new THREE.CylinderGeometry(0.45, 0.5, 2.5, 16);
+  const lowerBone = new THREE.Mesh(lowerGeo, boneMat);
+  lowerBone.position.y = -1.5;
+  group.add(lowerBone);
+  
+  // 上半部分（会一起摆动）
+  const upperAssembly = new THREE.Group();
+  upperAssembly.add(upperBone);
+  upperAssembly.add(ball);
+  upperAssembly.add(cartilage);
+  group.add(upperAssembly);
+  
+  const label = makeTextLabel('自由活动 · 球窝关节', 0x4facfe);
+  label.position.set(0, -3.2, 0);
+  group.add(label);
+  
+  group.userData = { type: 'free', upperAssembly, fluidGroup, animate: (t) => {
+    // 大幅度旋转运动
+    upperAssembly.rotation.z = Math.sin(t * 1.2) * 0.6;
+    upperAssembly.rotation.x = Math.cos(t * 0.9) * 0.4;
+    
+    // 润滑液流动
+    fluidGroup.children.forEach((bubble, i) => {
+      const d = bubble.userData;
+      bubble.position.x = Math.cos(d.angle + t * d.speed) * d.r;
+      bubble.position.z = Math.sin(d.angle + t * d.speed) * d.r;
+      bubble.position.y = Math.sin(t * 2 + d.yOff) * 0.4;
+    });
+    
+    group.rotation.y += 0.006;
+  }};
+  
+  return group;
+}
+
+// 创建文字标签
+function makeTextLabel(text, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.font = 'bold 56px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const colorHex = '#' + color.toString(16).padStart(6, '0');
+  ctx.shadowColor = colorHex;
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = colorHex;
+  ctx.fillText(text, 256, 64);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(4, 1, 1);
+  return sprite;
+}
+
+function switchJoint(index) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === index);
+  });
+  
+  if (currentGroup) scene.remove(currentGroup);
+  currentGroup = jointGroups[index];
+  scene.add(currentGroup);
+  
+  // 重置视角
+  rotX = 0; rotY = 0; zoom = 1;
+  currentGroup.rotation.x = 0;
+  currentGroup.rotation.y = 0;
+  camera.position.z = 8;
+  
+  // 更新信息面板
+  document.getElementById('infoTitle').textContent = jointInfo[index].title;
+  document.getElementById('infoDesc').textContent = jointInfo[index].desc;
+  document.getElementById('infoExample').textContent = jointInfo[index].example;
+  
+  // 更新当前徽章并自动收起菜单
+  const badges = ['🧱 不动关节', '🌀 微动关节', '⚙️ 活动关节'];
+  document.getElementById('currentBadge').textContent = badges[index];
+  
+  // 选完自动收起
+  document.getElementById('tabsMenu').classList.remove('show');
+  document.getElementById('switchToggle').classList.remove('open');
+  document.getElementById('currentBadge').classList.remove('hidden');
+}
+
+function toggleTabs() {
+  const menu = document.getElementById('tabsMenu');
+  const btn = document.getElementById('switchToggle');
+  const badge = document.getElementById('currentBadge');
+  const isOpen = menu.classList.toggle('show');
+  btn.classList.toggle('open', isOpen);
+  badge.classList.toggle('hidden', isOpen);
+}
+
+function toggleInfo() {
+  const panel = document.getElementById('infoPanel');
+  const btn = document.getElementById('infoToggleBtn');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '▲' : '▼';
+}
+
+function setupControls(container) {
+  const el = container;
+  
+  // 鼠标事件
+  el.addEventListener('mousedown', e => {
+    isDragging = true;
+    prevX = e.clientX; prevY = e.clientY;
+  });
+  el.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    rotY += (e.clientX - prevX) * 0.008;
+    rotX += (e.clientY - prevY) * 0.008;
+    prevX = e.clientX; prevY = e.clientY;
+  });
+  el.addEventListener('mouseup', () => isDragging = false);
+  el.addEventListener('mouseleave', () => isDragging = false);
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoom *= (e.deltaY > 0) ? 1.1 : 0.9;
+    zoom = Math.max(0.5, Math.min(3, zoom));
+  });
+  
+  // 触摸事件
+  let lastDist = 0;
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      prevX = e.touches[0].clientX;
+      prevY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastDist = Math.sqrt(dx*dx + dy*dy);
+    }
+  });
+  el.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && isDragging) {
+      rotY += (e.touches[0].clientX - prevX) * 0.008;
+      rotX += (e.touches[0].clientY - prevY) * 0.008;
+      prevX = e.touches[0].clientX;
+      prevY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (lastDist > 0) {
+        zoom *= lastDist / dist;
+        zoom = Math.max(0.5, Math.min(3, zoom));
+      }
+      lastDist = dist;
+    }
+  }, { passive: false });
+  el.addEventListener('touchend', () => {
+    isDragging = false;
+    lastDist = 0;
+  });
+}
+
+function animate() {
+  animationId = requestAnimationFrame(animate);
+  animTime += 0.016;
+  
+  if (currentGroup) {
+    // 用户控制的旋转
+    currentGroup.rotation.x = rotX;
+    currentGroup.rotation.y += 0;
+    
+    // 缩放
+    camera.position.z = 8 * zoom;
+    
+    // 每种关节自己的动画
+    if (currentGroup.userData.animate) {
+      currentGroup.userData.animate(animTime);
+    }
+    
+    // 用户拖动的 Y 旋转覆盖自动旋转
+    if (rotY !== 0) {
+      currentGroup.rotation.y = rotY;
+    }
+  }
+  
+  renderer.render(scene, camera);
+}
+
+function exitExplore() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (renderer) {
+    renderer.dispose();
+    const container = document.getElementById('threeContainer');
+    container.innerHTML = '';
+  }
+  window.removeEventListener('resize', onResize);
+  showScreen('startScreen');
+}
+
+// ==================== 游戏逻辑 ====================
+function startGame() {
+  gameState = {
+    score: 0, hearts: 3, level: 1, combo: 0, maxCombo: 0,
+    questionIndex: 0, correctCount: 0, totalAnswered: 0,
+    startTime: Date.now(), questionStartTime: Date.now()
+  };
+  showScreen('gameScreen');
+  renderQuestion();
+}
+
+function updateHUD() {
+  document.getElementById('level').textContent = gameState.level;
+  document.getElementById('hearts').textContent = gameState.hearts;
+  document.getElementById('score').textContent = gameState.score;
+  document.getElementById('progressFill').style.width = 
+    (gameState.questionIndex / questions.length * 100) + '%';
+}
+
+function renderQuestion() {
+  updateHUD();
+  const q = questions[gameState.questionIndex];
+  if (!q) { endGame(); return; }
+  
+  gameState.level = q.level;
+  gameState.questionStartTime = Date.now();
+  
+  const container = document.getElementById('questionContainer');
+  
+  if (q.type === 'quiz') {
+    container.innerHTML = `
+      <div class="question-card">
+        <div class="question-num">第 ${gameState.questionIndex + 1} 题 / ${questions.length} · Level ${q.level}</div>
+        <div class="question-emoji">${q.emoji}</div>
+        <div class="question-text">${q.q}</div>
+        <div class="options">
+          ${q.options.map((opt, i) => `
+            <button class="option" data-index="${i}" onclick="answerQuiz(${i})">${String.fromCharCode(65+i)}. ${opt}</button>
+          `).join('')}
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    `;
+  } else if (q.type === 'drag') {
+    container.innerHTML = `
+      <div class="question-card">
+        <div class="question-num">第 ${gameState.questionIndex + 1} 题 / ${questions.length} · 拖拽挑战</div>
+        <div class="question-emoji">${q.emoji}</div>
+        <div class="question-text">${q.q}</div>
+        <div class="drag-area">
+          <div class="drop-zones">
+            ${q.zones.map((z, i) => `
+              <div class="drop-zone" data-zone="${i}">
+                <div class="drop-zone-title">${z}</div>
+                <div class="zone-items"></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="drag-items" id="dragItems">
+            ${q.items.map((item, i) => `
+              <div class="drag-item" data-item-index="${i}" data-correct-zone="${item.zone}">${item.name}</div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    `;
+    setupDragDrop();
+  }
+}
+
+function answerQuiz(choice) {
+  const q = questions[gameState.questionIndex];
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach(b => b.disabled = true);
+  
+  const timeTaken = (Date.now() - gameState.questionStartTime) / 1000;
+  const isCorrect = choice === q.answer;
+  
+  buttons[q.answer].classList.add('correct');
+  if (!isCorrect) buttons[choice].classList.add('wrong');
+  
+  const feedback = document.getElementById('feedback');
+  
+  if (isCorrect) {
+    gameState.combo++;
+    gameState.correctCount++;
+    gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+    
+    let points = 100;
+    if (timeTaken < 5) points += 50; // 速度加分
+    if (gameState.combo >= 2) {
+      points = Math.floor(points * 1.5);
+      showCombo(gameState.combo);
+    }
+    gameState.score += points;
+    
+    feedback.innerHTML = `✅ <b>正确！</b> +${points} 分 ${gameState.combo >= 2 ? `🔥 ${gameState.combo} Combo!` : ''}<br>${q.explain}`;
+    feedback.style.borderLeftColor = '#43e97b';
+    feedback.style.background = 'rgba(67,233,123,0.15)';
+  } else {
+    gameState.combo = 0;
+    gameState.hearts--;
+    feedback.innerHTML = `❌ <b>不对哦～</b> 别灰心！<br>${q.explain}`;
+    feedback.style.borderLeftColor = '#ff6b9d';
+    feedback.style.background = 'rgba(255,107,157,0.15)';
+  }
+  
+  gameState.totalAnswered++;
+  feedback.classList.add('show');
+  updateHUD();
+  
+  setTimeout(() => {
+    if (gameState.hearts <= 0) { endGame(); return; }
+    gameState.questionIndex++;
+    renderQuestion();
+  }, 3000);
+}
+
+// ==================== 拖拽逻辑 ====================
+function setupDragDrop() {
+  const q = questions[gameState.questionIndex];
+  const items = document.querySelectorAll('.drag-item');
+  const zones = document.querySelectorAll('.drop-zone');
+  let placedCount = 0;
+  let correctCount = 0;
+  
+  items.forEach(item => {
+    // 触摸拖拽
+    let draggedElem = null;
+    let offsetX = 0, offsetY = 0;
+    let origParent, origNext;
+    
+    const startDrag = (clientX, clientY) => {
+      if (item.classList.contains('placed')) return;
+      draggedElem = item;
+      const rect = item.getBoundingClientRect();
+      offsetX = clientX - rect.left;
+      offsetY = clientY - rect.top;
+      origParent = item.parentNode;
+      origNext = item.nextSibling;
+      
+      item.style.position = 'fixed';
+      item.style.left = (clientX - offsetX) + 'px';
+      item.style.top = (clientY - offsetY) + 'px';
+      item.style.zIndex = '1000';
+      item.classList.add('dragging');
+    };
+    
+    const moveDrag = (clientX, clientY) => {
+      if (!draggedElem) return;
+      draggedElem.style.left = (clientX - offsetX) + 'px';
+      draggedElem.style.top = (clientY - offsetY) + 'px';
+      
+      // 检测悬停区域
+      zones.forEach(z => z.classList.remove('drag-over'));
+      const el = document.elementFromPoint(clientX, clientY);
+      const zone = el ? el.closest('.drop-zone') : null;
+      if (zone) zone.classList.add('drag-over');
+    };
+    
+    const endDrag = (clientX, clientY) => {
+      if (!draggedElem) return;
+      
+      zones.forEach(z => z.classList.remove('drag-over'));
+      const el = document.elementFromPoint(clientX, clientY);
+      const zone = el ? el.closest('.drop-zone') : null;
+      
+      if (zone) {
+        const targetZone = parseInt(zone.dataset.zone);
+        const correctZone = parseInt(draggedElem.dataset.correctZone);
+        const isCorrect = targetZone === correctZone;
+        
+        draggedElem.style.position = '';
+        draggedElem.style.left = '';
+        draggedElem.style.top = '';
+        draggedElem.style.zIndex = '';
+        draggedElem.classList.remove('dragging');
+        draggedElem.classList.add('placed');
+        
+        if (isCorrect) {
+          draggedElem.style.background = 'linear-gradient(135deg, #43e97b, #38f9d7)';
+          correctCount++;
+        } else {
+          draggedElem.style.background = 'linear-gradient(135deg, #ff6b9d, #ff9d9d)';
+        }
+        
+        zone.querySelector('.zone-items').appendChild(draggedElem);
+        placedCount++;
+        
+        if (placedCount === q.items.length) {
+          setTimeout(() => finishDrag(correctCount, q.items.length), 500);
+        }
+      } else {
+        // 放回原位
+        draggedElem.style.position = '';
+        draggedElem.style.left = '';
+        draggedElem.style.top = '';
+        draggedElem.style.zIndex = '';
+        draggedElem.classList.remove('dragging');
+      }
+      
+      draggedElem = null;
+    };
+    
+    // 触摸
+    item.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      startDrag(t.clientX, t.clientY);
+    }, { passive: false });
+    
+    document.addEventListener('touchmove', e => {
+      if (draggedElem === item) {
+        e.preventDefault();
+        const t = e.touches[0];
+        moveDrag(t.clientX, t.clientY);
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchend', e => {
+      if (draggedElem === item) {
+        const t = e.changedTouches[0];
+        endDrag(t.clientX, t.clientY);
+      }
+    });
+    
+    // 鼠标
+    item.addEventListener('mousedown', e => {
+      e.preventDefault();
+      startDrag(e.clientX, e.clientY);
+    });
+    
+    document.addEventListener('mousemove', e => {
+      if (draggedElem === item) moveDrag(e.clientX, e.clientY);
+    });
+    
+    document.addEventListener('mouseup', e => {
+      if (draggedElem === item) endDrag(e.clientX, e.clientY);
+    });
+  });
+}
+
+function finishDrag(correct, total) {
+  const q = questions[gameState.questionIndex];
+  const feedback = document.getElementById('feedback');
+  const allCorrect = correct === total;
+  
+  const points = correct * 75 + (allCorrect ? 100 : 0);
+  gameState.score += points;
+  
+  if (allCorrect) {
+    gameState.combo++;
+    gameState.correctCount++;
+    gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+    if (gameState.combo >= 2) showCombo(gameState.combo);
+    feedback.innerHTML = `🏆 <b>全部正确！</b> +${points} 分<br>${q.explain}`;
+    feedback.style.borderLeftColor = '#43e97b';
+    feedback.style.background = 'rgba(67,233,123,0.15)';
+  } else {
+    gameState.combo = 0;
+    if (correct < total / 2) gameState.hearts--;
+    feedback.innerHTML = `⚡ 答对 ${correct}/${total} 个，+${points} 分<br>${q.explain}`;
+    feedback.style.borderLeftColor = '#ffd54f';
+    feedback.style.background = 'rgba(255,213,79,0.15)';
+  }
+  
+  gameState.totalAnswered++;
+  feedback.classList.add('show');
+  updateHUD();
+  
+  setTimeout(() => {
+    if (gameState.hearts <= 0) { endGame(); return; }
+    gameState.questionIndex++;
+    renderQuestion();
+  }, 3500);
+}
+
+function showCombo(combo) {
+  const el = document.getElementById('comboDisplay');
+  el.textContent = `${combo} COMBO! 🔥`;
+  el.classList.remove('show');
+  void el.offsetWidth; // 重置动画
+  el.classList.add('show');
+}
+
+// ==================== 结算 ====================
+function endGame() {
+  const accuracy = gameState.totalAnswered > 0 
+    ? Math.round(gameState.correctCount / gameState.totalAnswered * 100) : 0;
+  const timeSec = Math.round((Date.now() - gameState.startTime) / 1000);
+  
+  document.getElementById('finalScore').textContent = gameState.score;
+  document.getElementById('finalAccuracy').textContent = accuracy + '%';
+  document.getElementById('finalCombo').textContent = gameState.maxCombo;
+  document.getElementById('finalTime').textContent = timeSec + 's';
+  
+  // 成就
+  const achievements = [];
+  if (accuracy === 100) achievements.push('💯 满分达人');
+  if (gameState.maxCombo >= 5) achievements.push('🔥 连击大师');
+  if (timeSec < 60) achievements.push('⚡ 极速王');
+  if (gameState.hearts === 3) achievements.push('🛡️ 零失误');
+  if (gameState.score >= 1500) achievements.push('👑 骨骼大师');
+  if (achievements.length === 0) achievements.push('🌱 新手侦探');
+  
+  document.getElementById('achievementList').innerHTML = 
+    achievements.map(a => `<div class="achievement">${a}</div>`).join('');
+  
+  // 结果文案
+  let title = '挑战完成！', emoji = '🎉';
+  if (gameState.hearts <= 0) { title = '挑战失败～'; emoji = '💪'; }
+  else if (accuracy === 100) { title = '完美通关！'; emoji = '🏆'; }
+  else if (accuracy >= 80) { title = '表现优秀！'; emoji = '⭐'; }
+  
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultEmoji').textContent = emoji;
+  
+  showScreen('resultScreen');
+}
+
+function restartGame() {
+  startGame();
+}
+
+// ==================== 证书 ====================
+function generateCert() {
+  const name = document.getElementById('nameInput').value.trim() || 'Student';
+  const accuracy = gameState.totalAnswered > 0 
+    ? Math.round(gameState.correctCount / gameState.totalAnswered * 100) : 0;
+  const timeSec = Math.round((Date.now() - gameState.startTime) / 1000);
+  
+  document.getElementById('certName').textContent = name;
+  document.getElementById('certScore').textContent = gameState.score;
+  document.getElementById('certTime').textContent = timeSec + 's';
+  document.getElementById('certAccuracy').textContent = accuracy + '%';
+  
+  let level = 'Beginner';
+  let msg = '🌱 Good Start! Keep Learning!';
+  if (gameState.score >= 1500) { level = 'Master'; msg = '🏆 Outstanding! You Are a Bone Master!'; }
+  else if (gameState.score >= 1000) { level = 'Expert'; msg = '🌟 Excellent Work! Keep Going!'; }
+  else if (gameState.score >= 500) { level = 'Advanced'; msg = '⭐ Great Job! Well Done!'; }
+  
+  document.getElementById('certLevel').textContent = level;
+  document.getElementById('certMessage').textContent = msg;
+  
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' + 
+    String(now.getMonth()+1).padStart(2,'0') + '-' + 
+    String(now.getDate()).padStart(2,'0') + ' ' +
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('certDate').textContent = dateStr;
+  
+  showScreen('certScreen');
+}
+
+function downloadCert() {
+  const cert = document.getElementById('certificate');
+  html2canvas(cert, { 
+    backgroundColor: '#fff8e1',
+    scale: 2,
+    useCORS: true
+  }).then(canvas => {
+    const name = document.getElementById('certName').textContent;
+    const link = document.createElement('a');
+    link.download = `证书_${name}_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(() => {
+    alert('📸 下载失败～请长按证书截图保存吧！');
+  });
+}
+
+// 防止双指缩放页面
+document.addEventListener('gesturestart', e => e.preventDefault());
+</script>
+</body>
+</html>
