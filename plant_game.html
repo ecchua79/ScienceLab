@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 植物生存大挑战 2.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+:root {
+    --primary: #4CAF50;
+    --secondary: #8BC34A;
+    --accent: #FFC107;
+    --bg: #E8F5E9;
+    --text: #2E7D32;
+    --danger: #F44336;
+    --sky: #87CEEB;
+    --soil: #8B4513;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+    color: var(--text);
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.container {
+    width: 100%;
+    max-width: 520px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+.screen {
+    display: none;
+    padding: 25px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+.screen.active { display: block; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+h1, h2 { margin-top: 0; color: var(--primary); }
+button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    font-size: 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 8px 0;
+    width: 100%;
+    font-weight: bold;
+}
+button:hover { transform: scale(1.03); background: #388E3C; }
+button:active { transform: scale(0.98); }
+
+/* HUD */
+.hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 12px 16px;
+    font-weight: bold;
+    font-size: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.hud > div { white-space: nowrap; }
+.combo { color: #FFEB3B; }
+.level-badge {
+    background: rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+/* Timer Bar */
+.timer-bar {
+    height: 6px;
+    background: #ddd;
+    overflow: hidden;
+}
+.timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
+    width: 100%;
+    transition: width 0.1s linear;
+}
+
+/* Plant Visualization */
+.plant-stage {
+    background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 80%, #D2691E 80%, #8B4513 100%);
+    height: 220px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 3px solid #5D4037;
+}
+.sun {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: radial-gradient(circle, #FFEB3B, #FFC107);
+    border-radius: 50%;
+    top: 15px;
+    transition: left 1s ease;
+    box-shadow: 0 0 20px #FFEB3B;
+    z-index: 2;
+}
+.water-drop {
+    /* Made by ecchua79 */
+    position: absolute;
+    font-size: 24px;
+    bottom: 30%;
+    transition: all 1s ease;
+    z-index: 2;
+}
+.plant-svg {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 3;
+}
+.stage-label {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    background: rgba(255,255,255,0.85);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text);
+}
+
+/* Question Area */
+.q-area {
+    padding: 18px;
+}
+#question-text {
+    font-size: 16px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    min-height: 50px;
+}
+.option-btn {
+    background: #f1f8e9;
+    color: var(--text);
+    border: 2px solid var(--secondary);
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin: 6px 0;
+}
+.option-btn:hover { background: var(--secondary); color: white; }
+.option-btn.correct { background: #4CAF50 !important; color: white !important; border-color: #2E7D32 !important; }
+.option-btn.wrong { background: #F44336 !important; color: white !important; border-color: #B71C1C !important; }
+
+.feedback {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    display: none;
+    font-size: 13px;
+    text-align: left;
+    line-height: 1.5;
+}
+.feedback.error { background: #ffebee; color: var(--danger); border-left: 4px solid var(--danger); }
+.feedback.success { background: #e8f5e9; color: var(--primary); border-left: 4px solid var(--primary); }
+
+/* Drag & Drop */
+.drag-zone {
+    background: #f5f5f5;
+    border: 2px dashed #aaa;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    min-height: 60px;
+}
+.drag-items { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.drag-item {
+    background: white;
+    border: 2px solid var(--secondary);
+    padding: 10px 16px;
+    border-radius: 20px;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    font-size: 14px;
+    transition: transform 0.15s, background 0.15s;
+    display: inline-block;
+    touch-action: none;
+}
+.drag-item:active { cursor: grabbing; transform: scale(0.95); }
+.drag-item.placed { background: #e8f5e9; border-style: dashed; font-size: 13px; }
+.drag-item.dragging-clone { cursor: grabbing; }
+.drop-bin {
+    /* 华仁中学蔡逸众制作 */
+    background: #f1f8e9;
+    border: 2px dashed var(--primary);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 6px 0;
+    min-height: 50px;
+}
+.drop-bin.over { background: #c8e6c9; border-style: solid; transform: scale(1.02); }
+.drag-zone.over { background: #fff9c4; border-color: var(--accent); }
+.drop-bin-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; }
+
+input[type="text"] {
+    width: 85%;
+    padding: 12px;
+    border: 2px solid var(--secondary);
+    border-radius: 10px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* Certificate */
+.certificate-box {
+    border: 6px double var(--accent);
+    padding: 25px 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fffde7 0%, #ffffff 100%);
+    position: relative;
+    margin-bottom: 18px;
+}
+.cert-title { font-size: 22px; color: #d84315; margin-bottom: 8px; font-weight: bold; }
+.cert-name {
+    font-size: 28px; font-weight: bold; color: var(--primary);
+    margin: 12px 0; border-bottom: 2px solid var(--primary);
+    display: inline-block; padding: 0 18px;
+}
+.cert-details { font-size: 14px; color: #555; line-height: 1.7; }
+.badge {
+    width: 55px; height: 55px;
+    background: var(--accent); color: white;
+    border-radius: 50%; line-height: 55px;
+    position: absolute; bottom: 15px; right: 15px;
+    font-weight: bold; font-size: 11px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transform: rotate(-15deg);
+}
+.achievement-list {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+.ach-tag {
+    background: var(--accent);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+.btn-secondary { background: var(--secondary); }
+.btn-accent { background: var(--accent); color: #333; }
+
+/* Animations */
+@keyframes grow { from { transform: translateX(-50%) scale(0.5); } to { transform: translateX(-50%) scale(1); } }
+@keyframes shake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-55%); } 75% { transform: translateX(-45%); } }
+.shake { animation: shake 0.4s; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- 开始界面 -->
+<div id="start-screen" class="screen active">
+    <h1>🌱 植物生存大挑战 2.0</h1>
+    <div style="font-size:60px; margin: 10px 0;">🌿☀️💧</div>
+    <p style="line-height:1.6;">欢迎来到大自然！你是一颗刚发芽的小种子<strong>植小宝</strong>。<br>
+    植物虽然不能满地跑，但也有自己的生存智慧！</p>
+    <div style="background:#f1f8e9; padding:12px; border-radius:10px; text-align:left; font-size:13px; margin:15px 0;">
+        🎯 <strong>挑战目标：</strong>从种子成长为参天大树<br>
+        ❤️ <strong>生命值：</strong>3 次犯错机会<br>
+        ⏱️ <strong>每题限时：</strong>15 秒（5秒内答对有速度奖励）<br>
+        🔥 <strong>连击奖励：</strong>连对越多分数越高<br>
+        🏆 <strong>4 种成就徽章</strong>等你解锁！
+    </div>
+    <button onclick="startGame()">🚀 开始进化！</button>
+    <div style="margin-top:18px; font-size:9px; color:#c8e6c9; letter-spacing:0.5px;">峇株吧辖华仁中学 · 蔡逸众制作 · Made by ecchua79</div>
+</div>
+
+<!-- 游戏界面 -->
+<!-- 峇株吧辖蔡逸众制作 -->
+<div id="game-screen" class="screen" style="padding:0;">
+    <div class="hud">
+        <div>⭐<span id="score-display">0</span></div>
+        <div class="level-badge" id="level-display">第 1/10 关</div>
+        <div class="combo" id="combo-display">　</div>
+        <div id="hearts-display">❤️❤️❤️</div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+    
+    <!-- 植物可视化舞台 -->
+    <div class="plant-stage" id="plant-stage">
+        <div class="stage-label" id="stage-label">🌱 种子阶段</div>
+        <div class="sun" id="sun" style="left: 50%;">☀️</div>
+        <div class="water-drop" id="water-drop" style="display:none; left: 50%;">💧</div>
+        <svg class="plant-svg" id="plant-svg" width="140" height="220" viewBox="0 0 140 220"></svg>
+    </div>
+    
+    <div class="q-area">
+        <h3 id="question-text">题目加载中...</h3>
+        <div id="options-container"></div>
+        <div id="drag-container" style="display:none;"></div>
+        <div id="feedback-box" class="feedback"></div>
+        <button id="next-btn" style="display:none;" onclick="nextQuestion()">下一关 ➡️</button>
+    </div>
+</div>
+
+<!-- 输入姓名界面 -->
+<div id="name-screen" class="screen">
+    <h2>🎉 挑战完成！</h2>
+    <div style="font-size:50px;">🌳</div>
+    <p>植小宝在你的帮助下成长为了参天大树！</p>
+    <div style="background:#f1f8e9; padding:15px; border-radius:10px; margin:15px 0;">
+        <div>最终得分: <strong id="final-score" style="color:var(--primary); font-size:28px;">0</strong></div>
+        <div style="font-size:14px; margin-top:8px;">通关用时: <strong id="final-time">0</strong> 秒</div>
+        <div id="achievements-preview" style="margin-top:10px;"></div>
+    </div>
+    <input type="text" id="student-name" placeholder="请输入你的大名领走证书" maxlength="12">
+    <button onclick="generateCertificate()">🏆 生成专属荣誉证书</button>
+</div>
+
+<!-- 证书界面 -->
+<div id="certificate-screen" class="screen">
+    <div class="certificate-box" id="cert-content">
+        <div class="cert-title">🏆 杰出自然探索者 🏆</div>
+        <div style="font-size:13px; color:#888;">— Plant Survival Challenge —</div>
+        <div style="margin-top:10px;">特此证明</div>
+        <div class="cert-name" id="cert-student-name">同学</div>
+        <div class="cert-details">
+            在《植物生存大挑战》中展现了卓越的生物学知识！<br><br>
+            🎓 <strong>挑战得分：</strong><span id="cert-score">0</span> 分<br>
+            ⏱️ <strong>通关用时：</strong><span id="cert-time">0</span> 秒<br>
+            🔥 <strong>最高连击：</strong><span id="cert-combo">0</span> 次<br>
+            📅 <strong>颁发日期：</strong><span id="cert-date">2026-04-26</span>
+        </div>
+        <div class="achievement-list" id="cert-achievements"></div>
+        <div class="badge">植物大师</div>
+        <p style="margin-top:18px; font-size: 13px; font-weight: bold; color: var(--primary);" id="cert-praise">"Excellent Work! 探索自然永无止境！"</p>
+    </div>
+    <button class="btn-accent" onclick="downloadCert()">📥 下载证书 PNG</button>
+    <button class="btn-secondary" onclick="location.reload()">🔄 再玩一次</button>
+</div>
+
+</div>
+
+<script>
+/* ============ 题库（基于 NotebookLM 资料） ============ */
+const questions = [
+    // Level 1: 基础认知
+    {
+        type: 'choice',
+        level: 1,
+        q: "🔥 森林里突然着火！作为一棵小树，你能像小鹿一样跑走吗？",
+        options: [
+            "能，立刻拔腿就跑",
+            "能，跳起来逃走",
+            "不能，植物不能自主整体移动",
+            "不能，但可以让风吹走自己"
+        ],
+        answer: 2,
+        explanation: "植物与动物不同，不能自主地整体移动。所以遇到危险只能依靠后续慢慢适应环境啦。",
+        scene: 'seed'
+    },
+    {
+        type: 'choice',
+        level: 1,
+        q: "🤔 既然植物不能跑，那它们算运动吗？为什么我们感觉不到？",
+        options: [
+            "不算运动，植物完全静止",
+            "算运动，但动作太快了所以看不见",
+            "算运动，只是反应非常缓慢，肉眼难以察觉",
+            "只有被风吹时才算运动"
+        ],
+        answer: 2,
+        explanation: "植物也会运动！它们会对刺激产生反应，只不过动作像超级慢放一样，需要较长时间才能显现。",
+        scene: 'sprout'
+    },
+    // 峇株吧辖华仁中学蔡逸众制作
+    {
+        type: 'choice',
+        level: 1,
+        q: "📚 植物为适应环境产生的运动主要分为哪两种？",
+        options: [
+            "跑步运动 vs 跳跃运动",
+            "屈性运动 vs 感性运动",
+            "白天运动 vs 夜晚运动",
+            "向上运动 vs 向下运动"
+        ],
+        answer: 1,
+        explanation: "教材指出，植物运动主要分为「屈性运动」（向性运动）和「感性运动」两大类。",
+        scene: 'sprout'
+    },
+    
+    // Level 2: 屈性运动具体场景（带可视化）
+    {
+        type: 'choice',
+        level: 2,
+        q: "☀️ 小苗长在窗台边，发现它总是弯腰朝窗外长。这是什么？",
+        options: [
+            "植物在寻找地心引力",
+            "向光生长的屈性运动",
+            "植物想看风景",
+            "植物的感性运动"
+        ],
+        answer: 1,
+        explanation: "光是影响屈性运动的常见刺激因素之一。植物需要阳光进行光合作用，所以会朝光的方向生长！",
+        scene: 'phototropism'
+    },
+    {
+        type: 'choice',
+        level: 2,
+        q: "🌍 在又黑又干的泥土里，植物的根怎么知道往哪钻？",
+        options: [
+            "靠听觉寻找水声",
+            "受水和地心引力刺激产生屈性运动",
+            "随机乱钻碰运气",
+            "由种子大脑指挥方向"
+        ],
+        answer: 1,
+        explanation: "根部对「水」和「地心引力」非常敏感，会顺着引力向下，并朝有水的方向生长。这叫向地性 + 向水性！",
+        scene: 'gravitropism'
+    },
+    {
+        type: 'choice',
+        level: 2,
+        q: "🧪 农民施了化肥（化学物质），植物的根会有什么反应？",
+        options: [
+            "完全无视化肥",
+            "朝化肥（养分）方向生长",
+            "远离化肥以保护自己",
+            "停止生长进入休眠"
+        ],
+        answer: 1,
+        explanation: "化学物质也是刺激因素！根感应到营养就会努力朝那边长去吸收，这叫「向化性」。",
+        scene: 'chemotropism'
+    },
+    
+    // Level 3: 高阶（拖拽 + 综合）
+    {
+        type: 'drag',
+        level: 3,
+        q: "🎯 把下列词语拖到正确的分类框！",
+        items: ['光线', '地心引力', '水分', '化学物质', '音乐', '颜色'],
+        bins: [
+            { id: 'yes', title: '✅ 影响屈性运动的因素', correct: ['光线', '地心引力', '水分', '化学物质'] },
+            { id: 'no', title: '❌ 不是常见刺激因素', correct: ['音乐', '颜色'] }
+        ],
+        explanation: "影响屈性运动的常见刺激包括：光、水、地心引力、化学物质。音乐和颜色虽然有趣，但不在教材列出的常见因素里哦！",
+        scene: 'tree'
+    },
+    {
+        type: 'choice',
+        level: 3,
+        q: "💡 屈性运动是怎么实现的？",
+        options: [
+            "靠植物的肌肉快速收缩",
+            "靠局部器官的生长（朝向或远离刺激）",
+            "靠风吹动叶子",
+            "靠植物体内的小马达"
+        ],
+        answer: 1,
+        explanation: "动物才有肌肉系统！植物的屈性运动本质是受刺激后，局部器官生长速度改变，产生生长弯曲。",
+        scene: 'tree'
+    },
+    {
+        type: 'choice',
+        level: 3,
+        q: "🌻 含羞草被碰到会立刻合拢叶子，这种快速反应属于？",
+        options: [
+            "屈性运动（向性运动）",
+            "感性运动",
+            "动物的本能反应",
+            "光合作用的一部分"
+        ],
+        answer: 1,
+        explanation: "含羞草这种「不依赖生长方向、对刺激快速反应」的运动属于「感性运动」，和屈性运动有本质区别！",
+        scene: 'tree'
+    },
+    // Made by ecchua79
+    {
+        type: 'choice',
+        level: 3,
+        q: "🎓 总结题：植物费这么大劲产生屈性运动，最终目的是？",
+        options: [
+            "锻炼肌肉变强壮",
+            "适应不断变化的环境",
+            "和动物进行比赛",
+            "纯粹是为了好看"
+        ],
+        answer: 1,
+        explanation: "所有生物的本能都是适应环境才能生存！植物的运动正是它们与大自然博弈的智慧。",
+        scene: 'mature'
+    }
+];
+
+/* ============ 状态变量 ============ */
+let currentQIndex = 0;
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let hearts = 3;
+let mistakes = 0;
+let startTime;
+let timeTaken = 0;
+let isAnswered = false;
+let questionStartTime;
+let timerInterval;
+const QUESTION_TIME = 15; // 秒
+
+/* ============ 屏幕切换 ============ */
+function switchScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+/* ============ 开始游戏 ============ */
+function startGame() {
+    score = 0; combo = 0; maxCombo = 0;
+    hearts = 3; mistakes = 0;
+    currentQIndex = 0;
+    startTime = new Date();
+    updateHUD();
+    loadQuestion();
+    switchScreen('game-screen');
+}
+
+function updateHUD() {
+    document.getElementById('score-display').innerText = score;
+    document.getElementById('hearts-display').innerText = '❤️'.repeat(hearts) + '🖤'.repeat(3-hearts);
+    document.getElementById('level-display').innerText = `第 ${currentQIndex+1}/${questions.length} 关`;
+    document.getElementById('combo-display').innerText = combo >= 2 ? `🔥${combo}连击` : '　';
+}
+
+/* ============ 植物可视化引擎 ============ */
+function drawPlant(scene) {
+    const svg = document.getElementById('plant-svg');
+    const sun = document.getElementById('sun');
+    const drop = document.getElementById('water-drop');
+    const label = document.getElementById('stage-label');
+    
+    // 重置：默认隐藏太阳和水滴
+    sun.style.display = 'none';
+    sun.style.left = '50%';
+    drop.style.display = 'none';
+    
+    // SVG 坐标系统说明：
+    // viewBox 高度 220, 地面线在 y=176（即下方 20% = 44px 是土壤）
+    // 茎叶画在 y < 176 区域，根画在 y > 176 区域
+    svg.setAttribute('viewBox', '0 0 140 220');
+    svg.setAttribute('width', '140');
+    svg.setAttribute('height', '220');
+    
+    let svgContent = '';
+    let labelText = '';
+    
+    switch(scene) {
+        case 'seed':
+            labelText = '🌱 种子阶段';
+            sun.style.display = 'block';
+            sun.style.left = '75%';
+            // 种子半埋在土里
+            svgContent = `<ellipse cx="70" cy="178" rx="14" ry="9" fill="#8D6E63"/>`;
+            break;
+            
+        case 'sprout':
+            labelText = '🌿 嫩芽阶段（已出土）';
+            sun.style.display = 'block';
+            sun.style.left = '75%';
+            svgContent = `
+                <!-- 茎在地上 -->
+                <line x1="70" y1="176" x2="70" y2="115" stroke="#66BB6A" stroke-width="4"/>
+                <!-- 两片嫩叶 -->
+                <ellipse cx="55" cy="115" rx="12" ry="7" fill="#81C784" transform="rotate(-30 55 115)"/>
+                <ellipse cx="85" cy="115" rx="12" ry="7" fill="#81C784" transform="rotate(30 85 115)"/>
+                <!-- 一点小根在地下 -->
+                <line x1="70" y1="176" x2="70" y2="200" stroke="#5D4037" stroke-width="2"/>
+            `;
+            break;
+            
+        case 'phototropism': // 向光性 - 太阳移到左边，植物朝左弯
+            labelText = '☀️ 向光性运动';
+            sun.style.display = 'block';
+            sun.style.left = '15%';
+            svgContent = `
+                <!-- 茎朝左弯曲 -->
+                <path d="M 70 176 Q 65 130 40 90" stroke="#66BB6A" stroke-width="5" fill="none"/>
+                <!-- 朝光的叶子 -->
+                <ellipse cx="38" cy="85" rx="16" ry="10" fill="#4CAF50" transform="rotate(-45 38 85)"/>
+                <ellipse cx="60" cy="135" rx="12" ry="7" fill="#81C784" transform="rotate(-50 60 135)"/>
+                <!-- 根 -->
+                <line x1="70" y1="176" x2="70" y2="205" stroke="#5D4037" stroke-width="3"/>
+                <line x1="70" y1="195" x2="60" y2="210" stroke="#5D4037" stroke-width="2"/>
+                <line x1="70" y1="195" x2="80" y2="210" stroke="#5D4037" stroke-width="2"/>
+            `;
+            break;
+            
+        case 'gravitropism': // 向地性 - 根明显朝下生长
+            // 华仁中学蔡逸众制作
+            labelText = '🌍 向地性运动（看根！）';
+            // 这关重点是根，不需要太阳
+            svgContent = `
+                <!-- 茎 -->
+                <line x1="70" y1="176" x2="70" y2="115" stroke="#66BB6A" stroke-width="4"/>
+                <!-- 叶 -->
+                <ellipse cx="55" cy="115" rx="12" ry="7" fill="#4CAF50" transform="rotate(-30 55 115)"/>
+                <ellipse cx="85" cy="115" rx="12" ry="7" fill="#4CAF50" transform="rotate(30 85 115)"/>
+                <!-- 强壮的根系朝下！这是重点 -->
+                <line x1="70" y1="176" x2="70" y2="215" stroke="#5D4037" stroke-width="3.5"/>
+                <path d="M 70 185 Q 60 200 50 215" stroke="#5D4037" stroke-width="2.5" fill="none"/>
+                <path d="M 70 185 Q 80 200 90 215" stroke="#5D4037" stroke-width="2.5" fill="none"/>
+                <path d="M 70 200 Q 65 210 58 218" stroke="#5D4037" stroke-width="1.5" fill="none"/>
+                <path d="M 70 200 Q 75 210 82 218" stroke="#5D4037" stroke-width="1.5" fill="none"/>
+                <!-- 向下箭头提示 -->
+                <text x="100" y="200" font-size="14" fill="#fff" font-weight="bold">⬇</text>
+            `;
+            break;
+            
+        case 'chemotropism': // 向化性 - 根朝化肥方向延伸
+            labelText = '🧪 向化性运动';
+            // 这关重点是根，不需要太阳
+            svgContent = `
+                <!-- 茎 -->
+                <line x1="70" y1="176" x2="70" y2="115" stroke="#66BB6A" stroke-width="4"/>
+                <ellipse cx="55" cy="115" rx="12" ry="7" fill="#4CAF50" transform="rotate(-30 55 115)"/>
+                <ellipse cx="85" cy="115" rx="12" ry="7" fill="#4CAF50" transform="rotate(30 85 115)"/>
+                <!-- 根明显朝右下化肥延伸 -->
+                <path d="M 70 176 Q 90 195 115 215" stroke="#5D4037" stroke-width="3.5" fill="none"/>
+                <path d="M 70 176 Q 75 195 78 215" stroke="#5D4037" stroke-width="2" fill="none"/>
+                <!-- 化肥图标 -->
+                <text x="110" y="218" font-size="16">🧪</text>
+                <text x="50" y="218" font-size="11" fill="#fff" font-weight="bold">朝养分→</text>
+            `;
+            break;
+            
+        case 'tree':
+            labelText = '🌳 茁壮成长';
+            sun.style.display = 'block';
+            sun.style.left = '82%'; // 太阳放右上角，远离植物
+            svgContent = `
+                <!-- 树干在地面以上 -->
+                <line x1="70" y1="176" x2="70" y2="100" stroke="#5D4037" stroke-width="6"/>
+                <!-- 树冠 -->
+                <circle cx="70" cy="80" r="32" fill="#4CAF50"/>
+                <circle cx="48" cy="85" rx="20" ry="20" fill="#66BB6A"/>
+                <circle cx="92" cy="85" rx="20" ry="20" fill="#66BB6A"/>
+                <circle cx="70" cy="55" r="20" fill="#81C784"/>
+                <!-- 根系 -->
+                <line x1="70" y1="176" x2="70" y2="210" stroke="#5D4037" stroke-width="3"/>
+                <line x1="70" y1="190" x2="55" y2="215" stroke="#5D4037" stroke-width="2"/>
+                <line x1="70" y1="190" x2="85" y2="215" stroke="#5D4037" stroke-width="2"/>
+            `;
+            break;
+            
+        case 'mature':
+            labelText = '🌳 参天大树';
+            sun.style.display = 'block';
+            sun.style.left = '82%'; // 太阳放右上角，远离植物
+            svgContent = `
+                <!-- 粗壮树干 -->
+                <line x1="70" y1="176" x2="70" y2="90" stroke="#5D4037" stroke-width="8"/>
+                <!-- 茂密树冠 -->
+                <circle cx="70" cy="65" r="40" fill="#388E3C"/>
+                <circle cx="40" cy="78" r="25" fill="#4CAF50"/>
+                <circle cx="100" cy="78" r="25" fill="#4CAF50"/>
+                <circle cx="70" cy="35" r="25" fill="#66BB6A"/>
+                <!-- 果实 -->
+                <circle cx="50" cy="55" r="6" fill="#FFEB3B"/>
+                <circle cx="90" cy="60" r="6" fill="#F44336"/>
+                <circle cx="75" cy="40" r="5" fill="#FF5722"/>
+                <!-- 根系 -->
+                <line x1="70" y1="176" x2="70" y2="215" stroke="#5D4037" stroke-width="4"/>
+                <path d="M 70 185 Q 55 200 45 215" stroke="#5D4037" stroke-width="2.5" fill="none"/>
+                <path d="M 70 185 Q 85 200 95 215" stroke="#5D4037" stroke-width="2.5" fill="none"/>
+            `;
+            break;
+    }
+    
+    svg.innerHTML = svgContent;
+    label.innerText = labelText;
+    svg.style.animation = 'none';
+    setTimeout(() => svg.style.animation = 'grow 1s ease', 10);
+}
+
+/* ============ 加载题目 ============ */
+function loadQuestion() {
+    isAnswered = false;
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('feedback-box').style.display = 'none';
+    document.getElementById('options-container').innerHTML = '';
+    document.getElementById('drag-container').innerHTML = '';
+    document.getElementById('drag-container').style.display = 'none';
+    document.getElementById('options-container').style.display = 'block';
+    
+    const qData = questions[currentQIndex];
+    document.getElementById('question-text').innerText = qData.q;
+    
+    // 绘制对应植物场景
+    drawPlant(qData.scene || 'sprout');
+    
+    if (qData.type === 'choice') {
+        // 峇株吧辖蔡逸众制作
+        const opts = document.getElementById('options-container');
+        
+        // 🎲 打乱选项顺序，但记录正确答案在新数组中的位置
+        // 把每个选项变成 {text, isCorrect} 对象，再打乱
+        const shuffled = qData.options
+            .map((opt, idx) => ({ text: opt, isCorrect: idx === qData.answer }))
+            .sort(() => Math.random() - 0.5);
+        
+        // 把当前正确答案的新位置存进 qData，给 checkAnswer 用
+        qData._currentCorrectIdx = shuffled.findIndex(o => o.isCorrect);
+        
+        shuffled.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = String.fromCharCode(65 + idx) + '. ' + opt.text;
+            btn.onclick = () => checkAnswer(idx, btn);
+            opts.appendChild(btn);
+        });
+    } else if (qData.type === 'drag') {
+        document.getElementById('options-container').style.display = 'none';
+        document.getElementById('drag-container').style.display = 'block';
+        loadDragQuestion(qData);
+    }
+    
+    questionStartTime = new Date();
+    startTimer();
+    updateHUD();
+}
+
+/* ============ 倒计时 ============ */
+function startTimer() {
+    let timeLeft = QUESTION_TIME;
+    const fill = document.getElementById('timer-fill');
+    fill.style.width = '100%';
+    
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        fill.style.width = (timeLeft / QUESTION_TIME * 100) + '%';
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            if (!isAnswered) {
+                timeOut();
+            }
+        }
+    }, 100);
+}
+
+function timeOut() {
+    isAnswered = true;
+    combo = 0;
+    hearts--;
+    const qData = questions[currentQIndex];
+    const fb = document.getElementById('feedback-box');
+    fb.className = 'feedback error';
+    fb.style.display = 'block';
+    fb.innerHTML = `⏰ <strong>时间到！</strong>扣除 1 滴血<br><span style="font-weight:normal; font-size:12px;">提示：${qData.explanation}</span>`;
+    
+    document.getElementById('plant-svg').classList.add('shake');
+    setTimeout(() => document.getElementById('plant-svg').classList.remove('shake'), 400);
+    
+    updateHUD();
+    if (hearts <= 0) {
+        setTimeout(gameOver, 1500);
+    } else {
+        document.getElementById('next-btn').style.display = 'block';
+    }
+}
+
+/* ============ 检查答案（选择题） ============ */
+function checkAnswer(selectedIdx, btnEl) {
+    if (isAnswered) return;
+    isAnswered = true;
+    clearInterval(timerInterval);
+    
+    const qData = questions[currentQIndex];
+    const fb = document.getElementById('feedback-box');
+    fb.style.display = 'block';
+    
+    const elapsed = (new Date() - questionStartTime) / 1000;
+    
+    // 使用打乱后的正确答案位置
+    const correctIdx = qData._currentCorrectIdx;
+    
+    if (selectedIdx === correctIdx) {
+        // 答对
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        
+        let basePoints = 100;
+        let comboBonus = Math.min(combo, 5) * 20; // 最多 5 倍
+        let speedBonus = elapsed < 5 ? 50 : 0;
+        let levelBonus = qData.level * 30;
+        let totalPoints = basePoints + comboBonus + speedBonus + levelBonus;
+        score += totalPoints;
+        
+        btnEl.classList.add('correct');
+        fb.className = 'feedback success';
+        fb.innerHTML = `✅ <strong>回答正确！</strong> +${totalPoints}分 
+            ${speedBonus > 0 ? '<span style="color:#FFC107;">⚡ 速度奖励!</span>' : ''}
+            ${combo >= 3 ? '<span style="color:#F44336;">🔥 火力全开!</span>' : ''}
+            <br><span style="font-weight:normal; font-size:12px;">${qData.explanation}</span>`;
+    } else {
+        // 答错
+        combo = 0;
+        hearts--;
+        mistakes++;
+        btnEl.classList.add('wrong');
+        document.querySelectorAll('.option-btn')[correctIdx].classList.add('correct');
+        fb.className = 'feedback error';
+        fb.innerHTML = `❌ <strong>哎呀，选错啦！</strong>扣除 1 滴血<br><span style="font-weight:normal; font-size:12px;">大自然提示：${qData.explanation}</span>`;
+        
+        document.getElementById('plant-svg').classList.add('shake');
+        setTimeout(() => document.getElementById('plant-svg').classList.remove('shake'), 400);
+    }
+    
+    updateHUD();
+    if (hearts <= 0) {
+        setTimeout(gameOver, 1500);
+    } else {
+        document.getElementById('next-btn').style.display = 'block';
+    }
+}
+
+/* ============ 归类题（真·拖拽 - Pointer Events 兼容鼠标和触摸） ============ */
+// 峇株吧辖华仁中学蔡逸众制作
+function loadDragQuestion(qData) {
+    const container = document.getElementById('drag-container');
+    
+    // 🎲 打乱词条显示顺序（不影响答案判断，因为判断按归属而非顺序）
+    qData._shuffledItems = [...qData.items].sort(() => Math.random() - 0.5);
+    
+    // 初始化每个项目的归属
+    qData._placement = {};
+    qData.items.forEach(item => qData._placement[item] = null);
+    
+    let html = `
+        <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:10px; font-size:13px; color:#666;">
+            👆 <strong>玩法：</strong>用手指（或鼠标）<strong>按住</strong>词语，拖到下方分类框里！
+        </div>
+        <div id="drag-pool-area"></div>
+        <div id="drag-bins-area"></div>
+        <button onclick="checkDragAnswer()" style="margin-top:10px;">提交答案 ✓</button>
+    `;
+    container.innerHTML = html;
+    
+    renderDragState(qData);
+}
+
+function renderDragState(qData) {
+    const poolArea = document.getElementById('drag-pool-area');
+    const binsArea = document.getElementById('drag-bins-area');
+    
+    // 未分类区（用打乱后的顺序）
+    const itemList = qData._shuffledItems || qData.items;
+    const unplaced = itemList.filter(item => qData._placement[item] === null);
+    let poolHtml = `<div class="drag-zone" data-bin="pool">
+        <div style="font-size:12px; color:#888; margin-bottom:6px;">📦 待分类（按住拖动）：</div>
+        <div class="drag-items">`;
+    if (unplaced.length === 0) {
+        poolHtml += '<div style="color:#aaa; font-size:13px; padding:10px;">✅ 全部已分类</div>';
+    } else {
+        unplaced.forEach(item => {
+            poolHtml += `<div class="drag-item" data-item="${item}">${item}</div>`;
+        });
+    }
+    poolHtml += '</div></div>';
+    poolArea.innerHTML = poolHtml;
+    
+    // 分类框
+    let binsHtml = '';
+    qData.bins.forEach(bin => {
+        const items = itemList.filter(item => qData._placement[item] === bin.id);
+        binsHtml += `<div class="drop-bin" data-bin="${bin.id}">
+            <div class="drop-bin-title">${bin.title}</div>
+            <div class="drag-items">`;
+        if (items.length === 0) {
+            binsHtml += '<div style="color:#bbb; font-size:12px;">（拖到这里）</div>';
+        } else {
+            items.forEach(item => {
+                binsHtml += `<div class="drag-item placed" data-item="${item}">${item}</div>`;
+            });
+        }
+        binsHtml += '</div></div>';
+    });
+    binsArea.innerHTML = binsHtml;
+    
+    // 给所有词条绑定拖拽
+    document.querySelectorAll('.drag-item').forEach(el => {
+        el.addEventListener('pointerdown', startDrag);
+    });
+}
+
+// 拖拽状态
+let dragState = {
+    el: null,         // 被拖动的克隆元素
+    item: null,       // 词条名称
+    sourceEl: null,   // 原始DOM元素
+    offsetX: 0,
+    offsetY: 0
+};
+
+function startDrag(e) {
+    if (isAnswered) return;
+    e.preventDefault();
+    
+    const sourceEl = e.currentTarget;
+    const itemName = sourceEl.dataset.item;
+    const rect = sourceEl.getBoundingClientRect();
+    
+    // 创建一个跟随手指/鼠标的克隆体
+    // Made by ecchua79
+    const clone = sourceEl.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    clone.style.width = rect.width + 'px';
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.opacity = '0.85';
+    clone.style.transform = 'scale(1.1)';
+    clone.style.boxShadow = '0 6px 16px rgba(0,0,0,0.3)';
+    clone.classList.add('dragging-clone');
+    document.body.appendChild(clone);
+    
+    // 原元素半透明
+    sourceEl.style.opacity = '0.3';
+    
+    dragState = {
+        el: clone,
+        item: itemName,
+        sourceEl: sourceEl,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top
+    };
+    
+    // 捕获 pointer，确保能跟踪到 release
+    document.addEventListener('pointermove', moveDrag);
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+}
+
+function moveDrag(e) {
+    if (!dragState.el) return;
+    e.preventDefault();
+    
+    dragState.el.style.left = (e.clientX - dragState.offsetX) + 'px';
+    dragState.el.style.top = (e.clientY - dragState.offsetY) + 'px';
+    
+    // 高亮当前悬停的分类框
+    document.querySelectorAll('.drop-bin, .drag-zone').forEach(b => b.classList.remove('over'));
+    const target = getDropTarget(e.clientX, e.clientY);
+    if (target) target.classList.add('over');
+}
+
+function endDrag(e) {
+    if (!dragState.el) return;
+    
+    document.removeEventListener('pointermove', moveDrag);
+    document.removeEventListener('pointerup', endDrag);
+    document.removeEventListener('pointercancel', endDrag);
+    
+    const target = getDropTarget(e.clientX, e.clientY);
+    document.querySelectorAll('.drop-bin, .drag-zone').forEach(b => b.classList.remove('over'));
+    
+    if (target) {
+        const binId = target.dataset.bin;
+        const qData = questions[currentQIndex];
+        // 'pool' = 放回待分类（null）
+        qData._placement[dragState.item] = (binId === 'pool') ? null : binId;
+        
+        // 移除克隆体并重渲染
+        dragState.el.remove();
+        dragState = { el: null, item: null, sourceEl: null, offsetX: 0, offsetY: 0 };
+        renderDragState(qData);
+    } else {
+        // 没有放进任何区域，回弹
+        dragState.el.style.transition = 'all 0.3s ease';
+        const sourceRect = dragState.sourceEl.getBoundingClientRect();
+        dragState.el.style.left = sourceRect.left + 'px';
+        dragState.el.style.top = sourceRect.top + 'px';
+        dragState.el.style.opacity = '0';
+        const sEl = dragState.sourceEl;
+        const cl = dragState.el;
+        setTimeout(() => {
+            cl.remove();
+            sEl.style.opacity = '1';
+        }, 300);
+        dragState = { el: null, item: null, sourceEl: null, offsetX: 0, offsetY: 0 };
+    }
+}
+
+// 找到鼠标/手指下方的分类框
+function getDropTarget(x, y) {
+    // 临时隐藏克隆体，用 elementFromPoint 查
+    if (dragState.el) dragState.el.style.display = 'none';
+    const elBelow = document.elementFromPoint(x, y);
+    if (dragState.el) dragState.el.style.display = '';
+    
+    if (!elBelow) return null;
+    return elBelow.closest('.drop-bin, .drag-zone');
+}
+
+function checkDragAnswer() {
+    if (isAnswered) return;
+    
+    const qData = questions[currentQIndex];
+    
+    const unplaced = qData.items.filter(item => qData._placement[item] === null);
+    if (unplaced.length > 0) {
+        alert(`还有 ${unplaced.length} 个词没分类哦！请先全部分类完再提交。`);
+        return;
+    }
+    
+    isAnswered = true;
+    // 华仁中学蔡逸众制作
+    clearInterval(timerInterval);
+    
+    let correct = 0;
+    let total = qData.items.length;
+    
+    qData.items.forEach(item => {
+        const placedBin = qData._placement[item];
+        const correctBin = qData.bins.find(b => b.correct.includes(item));
+        if (correctBin && correctBin.id === placedBin) correct++;
+    });
+    
+    const fb = document.getElementById('feedback-box');
+    fb.style.display = 'block';
+    
+    if (correct === total) {
+        combo++;
+        if (combo > maxCombo) maxCombo = combo;
+        let pts = 200 + combo * 20;
+        score += pts;
+        fb.className = 'feedback success';
+        fb.innerHTML = `🎯 <strong>全部归类正确！</strong> +${pts}分<br><span style="font-weight:normal; font-size:12px;">${qData.explanation}</span>`;
+    } else {
+        combo = 0;
+        hearts--;
+        mistakes++;
+        fb.className = 'feedback error';
+        fb.innerHTML = `❌ <strong>归类不完全正确（${correct}/${total}）</strong><br><span style="font-weight:normal; font-size:12px;">${qData.explanation}</span>`;
+        document.getElementById('plant-svg').classList.add('shake');
+        setTimeout(() => document.getElementById('plant-svg').classList.remove('shake'), 400);
+    }
+    
+    updateHUD();
+    if (hearts <= 0) {
+        setTimeout(gameOver, 1500);
+    } else {
+        document.getElementById('next-btn').style.display = 'block';
+    }
+}
+
+/* ============ 下一题 ============ */
+function nextQuestion() {
+    currentQIndex++;
+    if (currentQIndex >= questions.length) {
+        gameComplete();
+    } else {
+        loadQuestion();
+    }
+}
+
+function gameOver() {
+    clearInterval(timerInterval);
+    alert("💔 血量归零，植小宝倒下了... 再试一次吧！");
+    switchScreen('start-screen');
+}
+
+/* ============ 通关 ============ */
+function gameComplete() {
+    clearInterval(timerInterval);
+    timeTaken = Math.floor((new Date() - startTime) / 1000);
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-time').innerText = timeTaken;
+    
+    // 计算成就
+    const achievements = calculateAchievements();
+    const preview = document.getElementById('achievements-preview');
+    if (achievements.length > 0) {
+        preview.innerHTML = '<div style="font-size:12px; color:#666; margin-top:10px;">解锁成就：</div>' +
+            '<div style="margin-top:6px;">' + achievements.map(a => `<span class="ach-tag">${a}</span>`).join(' ') + '</div>';
+    } else {
+        preview.innerHTML = '';
+    }
+    
+    switchScreen('name-screen');
+}
+
+function calculateAchievements() {
+    const list = [];
+    if (mistakes === 0) list.push('💎 完美主义者');
+    if (timeTaken <= 90) list.push('⚡ 极速王');
+    if (maxCombo >= 7) list.push('🔥 连击大师');
+    if (score >= 2500) list.push('🌟 植物学家');
+    return list;
+}
+
+/* ============ 证书生成 ============ */
+// 峇株吧辖蔡逸众制作
+function generateCertificate() {
+    const name = document.getElementById('student-name').value.trim();
+    if (!name) {
+        alert("请输入你的名字，不然证书不知道发给谁啦！");
+        return;
+    }
+    
+    document.getElementById('cert-student-name').innerText = name;
+    document.getElementById('cert-score').innerText = score;
+    document.getElementById('cert-time').innerText = timeTaken;
+    document.getElementById('cert-combo').innerText = maxCombo;
+    
+    const today = new Date();
+    const dateStr = today.getFullYear() + "-" + 
+        String(today.getMonth()+1).padStart(2,'0') + "-" + 
+        String(today.getDate()).padStart(2,'0');
+    document.getElementById('cert-date').innerText = dateStr;
+    
+    // 显示成就
+    const achievements = calculateAchievements();
+    const achEl = document.getElementById('cert-achievements');
+    achEl.innerHTML = achievements.length > 0 
+        ? achievements.map(a => `<span class="ach-tag">${a}</span>`).join('') 
+        : '<span style="font-size:12px; color:#999;">继续努力，下次解锁更多成就！</span>';
+    
+    // 鼓励语根据分数变化
+    let praise = "Excellent Work! 探索自然永无止境！";
+    if (score >= 2500) praise = "🏆 满分级表现！你是真正的植物学家！";
+    else if (score >= 1800) praise = "🌟 太棒了！你对植物的世界已了如指掌！";
+    else if (score >= 1000) praise = "👍 不错的开始！多复习就能成为大师！";
+    else praise = "🌱 继续加油！每一次挑战都是成长！";
+    document.getElementById('cert-praise').innerText = praise;
+    
+    switchScreen('certificate-screen');
+}
+
+/* ============ 下载证书 PNG ============ */
+function downloadCert() {
+    const cert = document.getElementById('cert-content');
+    html2canvas(cert, { 
+        scale: 2,
+        backgroundColor: '#ffffff'
+    }).then(canvas => {
+        const link = document.createElement('a');
+        const name = document.getElementById('cert-student-name').innerText;
+        link.download = `${name}_植物挑战证书.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }).catch(err => {
+        alert('下载失败，请尝试截图保存！');
+    });
+}
+</script>
+
+</body>
+</html>
