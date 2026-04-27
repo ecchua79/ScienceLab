@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>手臂肌肉拮抗作用 3D 演示</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            overflow: hidden;
+            background: #0a0e1a;
+            font-family: 'Noto Sans SC', 'Segoe UI', sans-serif;
+            color: #fff;
+            touch-action: none;
+        }
+
+        #canvas-container { position: fixed; inset: 0; z-index: 1; }
+
+        #action-btns {
+            position: fixed;
+            top: 50%;
+            left: 1.2rem;
+            transform: translateY(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.7rem 1.1rem;
+            border-radius: 0.75rem;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            background: rgba(20,26,42,0.82);
+            backdrop-filter: blur(10px);
+            color: #c9d1e0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            letter-spacing: 0.03em;
+        }
+        .btn-action:hover { background: rgba(40,52,80,0.92); border-color: rgba(255,255,255,0.22); }
+        .btn-action.active-bend {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            border-color: #ff6b6b;
+            color: #fff;
+            box-shadow: 0 0 18px rgba(231,76,60,0.5);
+        }
+        .btn-action.active-straight {
+            background: linear-gradient(135deg, #1a6cc0, #2980b9);
+            border-color: #60a5fa;
+            color: #fff;
+            box-shadow: 0 0 18px rgba(41,128,185,0.5);
+        }
+
+        #btn-auto {
+            padding: 0.55rem 1rem;
+            font-size: 0.78rem;
+            border-radius: 0.6rem;
+            background: rgba(20,26,42,0.75);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            color: #8899bb;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        #btn-auto:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+        #btn-auto.on { color: #facc15; border-color: #facc15; box-shadow: 0 0 12px rgba(250,204,21,0.3); }
+
+        #info-panel {
+            position: fixed;
+            top: 1.2rem;
+            right: 1.2rem;
+            z-index: 20;
+            width: min(320px, calc(100vw - 2.4rem));
+            background: rgba(14,20,36,0.88);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem;
+            padding: 1.2rem 1.4rem;
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        #info-panel.hidden-panel {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(20px);
+        }
+        #info-panel h1 {
+            font-size: 1.15rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #f87171, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.55rem;
+        }
+        #info-panel .subtitle {
+            font-size: 0.75rem;
+            color: #7a8ba8;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        #status-card {
+            border-radius: 0.65rem;
+            padding: 0.85rem 1rem;
+            border-left: 3.5px solid #ef4444;
+            background: rgba(255,255,255,0.04);
+            font-size: 0.82rem;
+            line-height: 1.75;
+            transition: border-color 0.4s;
+        }
+        .muscle-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot-red { background: #ef4444; }
+        .dot-blue { background: #60a5fa; }
+        .dot-gray { background: #4b5563; }
+        .tag { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 0.3rem; font-weight: 700; }
+        .tag-contract { background: rgba(239,68,68,0.2); color: #f87171; }
+        .tag-relax { background: rgba(75,85,99,0.3); color: #9ca3af; }
+        #close-panel {
+            position: absolute;
+            top: 0.7rem; right: 0.75rem;
+            background: none; border: none;
+            color: #4b5563; cursor: pointer;
+            font-size: 1.1rem; line-height: 1;
+            transition: color 0.2s;
+        }
+        #close-panel:hover { color: #ef4444; }
+
+        #legend {
+            position: fixed;
+            bottom: 1.2rem; right: 1.2rem;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            background: rgba(14,20,36,0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+        }
+        .legend-row { display: flex; align-items: center; gap: 0.5rem; color: #c9d1e0; }
+        .legend-swatch { width: 20px; height: 7px; border-radius: 3px; }
+
+        #hint {
+            position: fixed;
+            bottom: 1.2rem; left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            font-size: 0.72rem;
+            color: #3d4d6a;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        #btn-show-panel {
+            position: fixed;
+            top: 1.2rem; right: 1.2rem;
+            z-index: 21;
+            display: none;
+            padding: 0.5rem 0.9rem;
+            background: rgba(20,26,42,0.85);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 0.6rem;
+            color: #7a8ba8;
+            font-size: 0.78rem;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #btn-show-panel:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="action-btns">
+        <button id="btn-bend" class="btn-action"><span>💪</span> 曲臂</button>
+        <button id="btn-straight" class="btn-action"><span>📏</span> 直臂</button>
+        <div style="height:0.2rem"></div>
+        <button id="btn-auto">🔄 自动演示</button>
+        <button id="btn-labels" class="btn-action" style="font-size:0.78rem;padding:0.55rem 1rem;">
+            <span>👁️</span> <span id="label-txt">隐藏标注</span>
+        </button>
+    </div>
+
+    <div id="info-panel">
+        <button id="close-panel">✕</button>
+        <h1>骨骼肌的拮抗作用</h1>
+        <p class="subtitle">骨骼肌只能收缩，不能主动伸长。<br>完成屈伸动作需两组肌肉协同配合。</p>
+        <div id="status-card"><div style="font-weight:700">正在加载…</div></div>
+        <p style="margin-top:0.7rem;font-size:0.68rem;color:#3d4d6a;">拖动旋转视角 · 滚轮/双指缩放</p>
+    </div>
+    <button id="btn-show-panel">⚙️ 原理说明</button>
+
+    <div id="legend">
+        <div class="legend-row">
+            <div class="legend-swatch" style="background:linear-gradient(90deg,#c0392b,#e74c3c)"></div>
+            收缩肌肉（变短粗）
+        </div>
+        <div class="legend-row">
+            <div class="legend-swatch" style="background:linear-gradient(90deg,#1a5276,#2980b9)"></div>
+            舒张肌肉（被拉长）
+        </div>
+        <div class="legend-row">
+            <div class="legend-swatch" style="background:#d4c5a0"></div>
+            骨骼
+        </div>
+    </div>
+    <div id="hint">鼠标左键旋转 · 右键平移 · 滚轮缩放</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0a0e1a, 0.035);
+    scene.background = new THREE.Color(0x0a0e1a);
+
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(14, 1, 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, -3, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.minDistance = 5;
+    controls.maxDistance = 30;
+
+    // 光照
+    scene.add(new THREE.AmbientLight(0x8899cc, 0.6));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    sun.position.set(8, 12, 8);
+    sun.castShadow = true;
+    scene.add(sun);
+    const fill = new THREE.DirectionalLight(0x4466aa, 0.4);
+    fill.position.set(-8, -4, -6);
+    scene.add(fill);
+    const rim = new THREE.PointLight(0xffeedd, 0.5, 20);
+    rim.position.set(0, 6, -6);
+    scene.add(rim);
+
+    // 材质
+    const boneMat  = new THREE.MeshStandardMaterial({ color: 0xd4c5a0, roughness: 0.55, metalness: 0.05 });
+    const jointMat = new THREE.MeshStandardMaterial({ color: 0xc8b88a, roughness: 0.4,  metalness: 0.1  });
+    const bicepsMat  = new THREE.MeshStandardMaterial({ color: 0xe74c3c, roughness: 0.3, transparent: true, opacity: 0.92 });
+    const tricepsMat = new THREE.MeshStandardMaterial({ color: 0x2980b9, roughness: 0.3, transparent: true, opacity: 0.88 });
+
+    // 骨骼
+    const armGroup = new THREE.Group();
+    scene.add(armGroup);
+
+    const humerusGroup = new THREE.Group();
+    armGroup.add(humerusGroup);
+
+    const humerusMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.38, 6, 20), boneMat);
+    humerusMesh.castShadow = true;
+    humerusGroup.add(humerusMesh);
+
+    const sJoint = new THREE.Mesh(new THREE.SphereGeometry(0.62, 20, 20), jointMat);
+    sJoint.position.y = 3;
+    humerusGroup.add(sJoint);
+
+    const eJoint = new THREE.Mesh(new THREE.SphereGeometry(0.68, 20, 20), jointMat);
+    eJoint.position.y = -3;
+    humerusGroup.add(eJoint);
+
+    const elbowPivot = new THREE.Group();
+    elbowPivot.position.y = -3;
+    humerusGroup.add(elbowPivot);
+
+    const ulnaMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.18, 6.5, 16), boneMat);
+    ulnaMesh.position.set(-0.28, -3.25, 0);
+    ulnaMesh.castShadow = true;
+    elbowPivot.add(ulnaMesh);
+
+    const radiusMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 6.0, 16), boneMat);
+    radiusMesh.position.set(0.28, -3.0, 0);
+    radiusMesh.castShadow = true;
+    elbowPivot.add(radiusMesh);
+
+    const wristMesh = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), jointMat);
+    wristMesh.position.set(0, -6.3, 0);
+    elbowPivot.add(wristMesh);
+
+    // 肌肉锚点
+    // 二头肌：肱骨上端前侧 → 前臂桡骨粗隆（前侧）
+    const bicepsOrigin = new THREE.Object3D();
+    bicepsOrigin.position.set(0.1, 2.4, 0.55);
+    humerusGroup.add(bicepsOrigin);
+
+    const bicepsInsert = new THREE.Object3D();
+    bicepsInsert.position.set(0.3, -1.2, 0.4);
+    elbowPivot.add(bicepsInsert);
+
+    // 三头肌：肱骨上端后侧 → 前臂尺骨鹰嘴（后侧）
+    const tricepsOrigin = new THREE.Object3D();
+    tricepsOrigin.position.set(-0.1, 1.8, -0.6);
+    humerusGroup.add(tricepsOrigin);
+
+    const tricepsInsert = new THREE.Object3D();
+    tricepsInsert.position.set(-0.2, 0.6, -0.55);
+    elbowPivot.add(tricepsInsert);
+
+    // 肌肉网格
+    let bicepsMesh  = new THREE.Mesh(new THREE.BufferGeometry(), bicepsMat);
+    let tricepsMesh = new THREE.Mesh(new THREE.BufferGeometry(), tricepsMat);
+    bicepsMesh.castShadow = true;
+    tricepsMesh.castShadow = true;
+    scene.add(bicepsMesh, tricepsMesh);
+
+    // 标签（Canvas 尺寸改为 512×128，2的幂次方，消除 WebGL resize warning）
+    function createLabel(text, bgColor, textColor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, 512, 128);
+        ctx.fillStyle = bgColor;
+        ctx.beginPath();
+        ctx.roundRect(8, 10, 496, 108, 20);
+        ctx.fill();
+        ctx.font = 'bold 52px sans-serif';
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 256, 66);
+        const tex = new THREE.CanvasTexture(canvas);
+        const sp  = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+        sp.scale.set(3.2, 1.0, 1);
+        return sp;
+    }
+
+    const lblHumerus = createLabel('肱骨',    'rgba(30,40,60,0.88)',  '#d4c5a0');
+    lblHumerus.position.set(0.8, 0.3, 2.2);
+    humerusGroup.add(lblHumerus);
+
+    const lblForearm = createLabel('前臂骨',  'rgba(30,40,60,0.88)',  '#d4c5a0');
+    lblForearm.position.set(0.8, -3.2, 2.0);
+    elbowPivot.add(lblForearm);
+
+    const lblBiceps  = createLabel('肱二头肌', 'rgba(80,20,20,0.88)',  '#ffaaaa');
+    const lblTriceps = createLabel('肱三头肌', 'rgba(15,30,70,0.88)',  '#99bbff');
+    scene.add(lblBiceps, lblTriceps);
+
+    const allLabels = [lblHumerus, lblForearm, lblBiceps, lblTriceps];
+    let labelsVisible = true;
+
+    // ===== 肌肉几何更新（无穿模版） =====
+    // ratio: 0 = 完全直臂，1 = 完全曲臂
+    // 弯曲方向：elbowPivot.rotation.x 为负 → 前臂向 +Z（二头肌/前侧）弯
+    // 二头肌控制点向 +Z 弓出（与弯曲方向相同，收缩变粗，偏移增大）
+    // 三头肌控制点向 -Z 弓出（后侧，直臂时收缩）
+    function buildTube(start, mid, end, radius) {
+        return new THREE.TubeGeometry(
+            new THREE.QuadraticBezierCurve3(start, mid, end), 32, radius, 24, false
+        );
+    }
+
+    function updateMuscles(ratio) {
+        const bStart = new THREE.Vector3(); bicepsOrigin.getWorldPosition(bStart);
+        const bEnd   = new THREE.Vector3(); bicepsInsert.getWorldPosition(bEnd);
+        const tStart = new THREE.Vector3(); tricepsOrigin.getWorldPosition(tStart);
+        const tEnd   = new THREE.Vector3(); tricepsInsert.getWorldPosition(tEnd);
+
+        // 二头肌：曲臂时向 +Z 大幅弓出，管径变粗（收缩）
+        const bMid = new THREE.Vector3().lerpVectors(bStart, bEnd, 0.5);
+        bMid.z += 0.7 + ratio * 3.0;   // 直臂时 0.7 轻微弓出，曲臂时 3.7 大幅弓出，远离骨骼
+        bMid.y += ratio * 0.4;
+        const bRadius = 0.26 + ratio * 0.42;
+        bicepsMesh.geometry.dispose();
+        bicepsMesh.geometry = buildTube(bStart, bMid, bEnd, bRadius);
+        bicepsMat.color.setHSL(ratio > 0.5 ? 0.0 : 0.6, 0.78, 0.35 + ratio * 0.18);
+        lblBiceps.position.copy(bMid).add(new THREE.Vector3(0, 0.3, 1.6));
+
+        // 三头肌：直臂时向 -Z 大幅弓出，管径变粗（收缩）
+        const tMid = new THREE.Vector3().lerpVectors(tStart, tEnd, 0.5);
+        tMid.z -= 0.7 + (1 - ratio) * 2.6;
+        const tRadius = 0.24 + (1 - ratio) * 0.38;
+        tricepsMesh.geometry.dispose();
+        tricepsMesh.geometry = buildTube(tStart, tMid, tEnd, tRadius);
+        tricepsMat.color.setHSL(ratio < 0.5 ? 0.0 : 0.6, 0.78, 0.3 + (1 - ratio) * 0.2);
+        lblTriceps.position.copy(tMid).add(new THREE.Vector3(0, 0.3, -1.6));
+    }
+
+    // ===== 动画状态 =====
+    // 曲臂：前臂向 +Z（二头肌前侧）弯 → rotation.x 取负值
+    // 直臂：rotation.x ≈ 0
+    const ANGLE_BEND     = -2.2;
+    const ANGLE_STRAIGHT = -0.05;
+
+    let targetAngle  = ANGLE_BEND;
+    let currentAngle = ANGLE_BEND;
+    let autoMode = false;
+    let autoTimer = 0;
+    let autoPhase = 'bend';
+    let pauseCounter = 0;
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (autoMode) {
+            autoTimer++;
+            if (autoTimer % 3 === 0) {
+                if (autoPhase === 'bend') {
+                    currentAngle -= 0.028;
+                    if (currentAngle <= ANGLE_BEND) {
+                        currentAngle = ANGLE_BEND;
+                        autoPhase = 'pause_bend';
+                        pauseCounter = 0;
+                    }
+                } else if (autoPhase === 'pause_bend') {
+                    if (++pauseCounter > 55) autoPhase = 'straight';
+                } else if (autoPhase === 'straight') {
+                    currentAngle += 0.028;
+                    if (currentAngle >= ANGLE_STRAIGHT) {
+                        currentAngle = ANGLE_STRAIGHT;
+                        autoPhase = 'pause_straight';
+                        pauseCounter = 0;
+                    }
+                } else if (autoPhase === 'pause_straight') {
+                    if (++pauseCounter > 55) autoPhase = 'bend';
+                }
+                targetAngle = currentAngle;
+            }
+        } else {
+            currentAngle += (targetAngle - currentAngle) * 0.08;
+        }
+
+        elbowPivot.rotation.x = currentAngle;
+        humerusGroup.updateMatrixWorld(true);
+
+        // ratio: 0=直臂, 1=曲臂
+        const ratio = (currentAngle - ANGLE_STRAIGHT) / (ANGLE_BEND - ANGLE_STRAIGHT);
+        updateMuscles(Math.max(0, Math.min(1, ratio)));
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // ===== UI =====
+    const statusCard = document.getElementById('status-card');
+
+    function updatePanel(type) {
+        if (type === 'bend') {
+            statusCard.style.borderColor = '#ef4444';
+            statusCard.innerHTML = `
+                <div style="font-weight:900;font-size:0.88rem;margin-bottom:0.5rem">
+                    💪 曲臂 <span style="font-size:0.72rem;color:#555;font-weight:400">(Flexion)</span>
+                </div>
+                <div class="muscle-row">
+                    <div class="dot dot-red"></div>
+                    <span>肱二头肌</span>
+                    <span class="tag tag-contract">收缩</span>
+                    <span style="color:#555;font-size:0.72rem">（变短变粗）</span>
+                </div>
+                <div class="muscle-row">
+                    <div class="dot dot-gray"></div>
+                    <span style="color:#6b7280">肱三头肌</span>
+                    <span class="tag tag-relax">舒张</span>
+                    <span style="color:#555;font-size:0.72rem">（被牵拉伸长）</span>
+                </div>`;
+        } else {
+            statusCard.style.borderColor = '#60a5fa';
+            statusCard.innerHTML = `
+                <div style="font-weight:900;font-size:0.88rem;margin-bottom:0.5rem">
+                    📏 直臂 <span style="font-size:0.72rem;color:#555;font-weight:400">(Extension)</span>
+                </div>
+                <div class="muscle-row">
+                    <div class="dot dot-blue"></div>
+                    <span>肱三头肌</span>
+                    <span class="tag tag-contract" style="background:rgba(41,128,185,0.2);color:#60a5fa">收缩</span>
+                    <span style="color:#555;font-size:0.72rem">（变短变粗）</span>
+                </div>
+                <div class="muscle-row">
+                    <div class="dot dot-gray"></div>
+                    <span style="color:#6b7280">肱二头肌</span>
+                    <span class="tag tag-relax">舒张</span>
+                    <span style="color:#555;font-size:0.72rem">（被牵拉伸长）</span>
+                </div>`;
+        }
+    }
+
+    const btnBend     = document.getElementById('btn-bend');
+    const btnStraight = document.getElementById('btn-straight');
+    const btnAuto     = document.getElementById('btn-auto');
+    const btnLabels   = document.getElementById('btn-labels');
+    const labelTxt    = document.getElementById('label-txt');
+    const infoPanel   = document.getElementById('info-panel');
+    const closePanel  = document.getElementById('close-panel');
+    const btnShowP    = document.getElementById('btn-show-panel');
+
+    function setAction(type) {
+        autoMode = false;
+        btnAuto.classList.remove('on');
+        btnAuto.textContent = '🔄 自动演示';
+        btnBend.classList.remove('active-bend', 'active-straight');
+        btnStraight.classList.remove('active-bend', 'active-straight');
+        if (type === 'bend') {
+            targetAngle = ANGLE_BEND;
+            btnBend.classList.add('active-bend');
+        } else {
+            targetAngle = ANGLE_STRAIGHT;
+            btnStraight.classList.add('active-straight');
+        }
+        updatePanel(type);
+    }
+
+    btnBend.addEventListener('click',     () => setAction('bend'));
+    btnStraight.addEventListener('click', () => setAction('straight'));
+
+    btnAuto.addEventListener('click', () => {
+        autoMode = !autoMode;
+        if (autoMode) {
+            btnAuto.classList.add('on');
+            btnAuto.textContent = '⏸ 停止演示';
+            btnBend.classList.remove('active-bend', 'active-straight');
+            btnStraight.classList.remove('active-bend', 'active-straight');
+            autoPhase = 'bend';
+        } else {
+            btnAuto.classList.remove('on');
+            btnAuto.textContent = '🔄 自动演示';
+        }
+    });
+
+    btnLabels.addEventListener('click', () => {
+        labelsVisible = !labelsVisible;
+        allLabels.forEach(l => l.visible = labelsVisible);
+        labelTxt.textContent = labelsVisible ? '隐藏标注' : '显示标注';
+    });
+
+    closePanel.addEventListener('click', () => {
+        infoPanel.classList.add('hidden-panel');
+        btnShowP.style.display = 'block';
+    });
+    btnShowP.addEventListener('click', () => {
+        infoPanel.classList.remove('hidden-panel');
+        btnShowP.style.display = 'none';
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+    });
+
+    setAction('bend');
+    animate();
+    </script>
+</body>
+</html>
