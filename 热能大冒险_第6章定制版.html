@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔥 热能大冒险：拯救冰雪王国</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* //峇株吧辖华仁中学蔡逸众制作 */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #ff6b6b 100%);
+  min-height: 100vh;
+  color: #fff;
+  overflow-x: hidden;
+  user-select: none;
+}
+.app { max-width: 500px; margin: 0 auto; min-height: 100vh; padding: 15px; position: relative; }
+
+.btn {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  border: none; color: white; padding: 14px 30px;
+  font-size: 18px; font-weight: bold; border-radius: 50px;
+  cursor: pointer; box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+  transition: transform 0.2s; width: 100%; margin-top: 10px;
+}
+.btn:active { transform: scale(0.95); }
+.btn-secondary { background: linear-gradient(135deg, #4facfe, #00f2fe); box-shadow: 0 4px 15px rgba(79,172,254,0.4); }
+.btn-success { background: linear-gradient(135deg, #43e97b, #38f9d7); box-shadow: 0 4px 15px rgba(67,233,123,0.4); }
+
+.screen { display: none; animation: fadeIn 0.5s; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.start-screen { text-align: center; padding-top: 40px; }
+.title {
+  font-size: 36px; font-weight: bold;
+  background: linear-gradient(90deg, #ffd700, #ff6b6b, #4facfe);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+  animation: glow 2s infinite alternate;
+}
+@keyframes glow { from { filter: drop-shadow(0 0 5px #ffd700); } to { filter: drop-shadow(0 0 20px #ff6b6b); } }
+.subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
+.story-box {
+  background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px;
+  margin: 20px 0; backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.2);
+}
+.story-box p { line-height: 1.8; font-size: 15px; margin: 8px 0; }
+.fire-icon { font-size: 70px; animation: bounce 1s infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.rules-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; font-size: 14px; }
+.rules-box h3 { margin-bottom: 10px; color: #ffd700; }
+.rules-box li { margin: 6px 0; list-style: none; padding-left: 20px; position: relative; }
+.rules-box li::before { content: "▶"; position: absolute; left: 0; color: #ff8e53; }
+
+.hud {
+  background: rgba(0,0,0,0.4); padding: 12px; border-radius: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 15px; backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.hud-item { text-align: center; flex: 1; }
+.hud-label { font-size: 11px; opacity: 0.7; }
+.hud-value { font-size: 20px; font-weight: bold; color: #ffd700; }
+.hearts { color: #ff4757; letter-spacing: 3px; font-size: 22px; }
+.combo-badge {
+  background: linear-gradient(90deg, #ff6b6b, #ffd700);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: bold;
+  display: inline-block;
+  animation: pulse 0.5s infinite alternate;
+}
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+.level-bar {
+  background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px;
+  margin-bottom: 15px; text-align: center;
+}
+.level-name { font-size: 14px; color: #ffd700; margin-bottom: 5px; }
+.progress-track { background: rgba(255,255,255,0.2); height: 8px; border-radius: 4px; overflow: hidden; }
+.progress-fill {
+  background: linear-gradient(90deg, #43e97b, #38f9d7);
+  height: 100%; transition: width 0.5s; border-radius: 4px;
+}
+
+.question-card {
+  background: rgba(255,255,255,0.95); color: #333;
+  padding: 20px; border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  margin-bottom: 15px;
+}
+.question-text { font-size: 17px; line-height: 1.6; margin-bottom: 15px; font-weight: 500; }
+.timer-bar { background: #eee; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 15px; }
+.timer-fill { background: linear-gradient(90deg, #43e97b, #ffd700, #ff6b6b); height: 100%; transition: width 0.1s linear; }
+
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option {
+  background: linear-gradient(135deg, #f5f7fa, #e8ecf3);
+  color: #333; padding: 14px; border-radius: 12px;
+  border: 2px solid transparent; cursor: pointer;
+  transition: all 0.2s; font-size: 15px; font-weight: 500;
+  text-align: left;
+}
+.option:active { transform: scale(0.98); }
+.option:hover { border-color: #4facfe; transform: translateY(-2px); }
+.option.correct { background: linear-gradient(135deg, #43e97b, #38f9d7); color: white; border-color: #2ecc71; }
+.option.wrong { background: linear-gradient(135deg, #ff6b6b, #ee5253); color: white; border-color: #c0392b; }
+.option:disabled { cursor: not-allowed; }
+
+.feedback {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.95); padding: 25px; border-radius: 20px;
+  max-width: 90%; width: 380px; z-index: 100;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: popIn 0.3s; display: none;
+  border: 3px solid #ffd700;
+}
+.feedback.show { display: block; }
+@keyframes popIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.feedback-icon { font-size: 60px; text-align: center; margin-bottom: 10px; }
+.feedback-title { font-size: 22px; text-align: center; font-weight: bold; margin-bottom: 10px; }
+.feedback-explain {
+  background: rgba(255,255,255,0.1); padding: 12px; border-radius: 10px;
+  font-size: 14px; line-height: 1.6; margin-bottom: 15px;
+}
+
+.combo-popup {
+  position: fixed; top: 30%; left: 50%; transform: translateX(-50%);
+  font-size: 50px; font-weight: bold; pointer-events: none;
+  background: linear-gradient(90deg, #ffd700, #ff6b6b);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  z-index: 200; opacity: 0;
+}
+.combo-popup.show { animation: comboShow 1s; }
+@keyframes comboShow {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+
+.level-transition {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.9); z-index: 150;
+  display: none; justify-content: center; align-items: center;
+  flex-direction: column;
+}
+.level-transition.show { display: flex; animation: fadeIn 0.5s; }
+.level-num { font-size: 80px; color: #ffd700; font-weight: bold; }
+.level-desc { font-size: 22px; margin: 10px 0; }
+.level-tip { font-size: 14px; opacity: 0.8; max-width: 300px; text-align: center; padding: 0 20px; }
+
+.result-screen { text-align: center; }
+.result-card {
+  background: rgba(255,255,255,0.1); padding: 25px; border-radius: 20px;
+  margin: 20px 0; backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.result-emoji { font-size: 70px; margin-bottom: 10px; }
+.final-score { font-size: 50px; font-weight: bold; color: #ffd700; margin: 10px 0; }
+.stat-row { display: flex; justify-content: space-around; margin: 15px 0; }
+.stat-box { background: rgba(0,0,0,0.3); padding: 10px 15px; border-radius: 12px; }
+.stat-label { font-size: 11px; opacity: 0.7; }
+.stat-value { font-size: 20px; font-weight: bold; color: #4facfe; }
+.achievements { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 15px 0; }
+.achievement {
+  background: linear-gradient(135deg, #ffd700, #ff8e53);
+  color: #333; padding: 6px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: bold;
+}
+.name-input {
+  width: 100%; padding: 12px; border-radius: 10px; border: none;
+  font-size: 16px; margin: 10px 0; text-align: center;
+  background: rgba(255,255,255,0.9); color: #333;
+}
+
+.certificate {
+  background: linear-gradient(135deg, #fff8dc, #ffe4b5);
+  color: #333; padding: 30px 20px; border-radius: 20px;
+  border: 8px double #b8860b; margin: 20px 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
+}
+.cert-corner { position: absolute; font-size: 30px; }
+.cert-corner.tl { top: 10px; left: 15px; }
+.cert-corner.tr { top: 10px; right: 15px; }
+.cert-corner.bl { bottom: 10px; left: 15px; }
+.cert-corner.br { bottom: 10px; right: 15px; }
+.cert-title {
+  font-size: 24px; font-weight: bold; color: #b8860b;
+  text-align: center; margin-bottom: 5px;
+}
+.cert-subtitle { text-align: center; font-size: 12px; color: #8b6914; margin-bottom: 15px; }
+.cert-body { text-align: center; font-size: 14px; line-height: 1.8; margin: 15px 0; color: #5d4e1c; }
+.cert-name {
+  font-size: 26px; font-weight: bold; color: #d2691e;
+  margin: 10px 0;
+  border-bottom: 2px solid #b8860b; display: inline-block; padding: 0 20px 5px;
+}
+.cert-stats { display: flex; justify-content: space-around; margin: 15px 0; flex-wrap: wrap; gap: 10px; }
+.cert-stat { text-align: center; }
+.cert-stat-label { font-size: 11px; color: #8b6914; }
+.cert-stat-value { font-size: 18px; font-weight: bold; color: #d2691e; }
+.cert-praise { font-size: 16px; color: #b8860b; font-style: italic; margin: 10px 0; }
+.cert-date { font-size: 11px; color: #8b6914; margin-top: 15px; }
+.cert-seal { font-size: 60px; text-align: center; margin: 10px 0; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- 开始界面 -->
+<div class="screen start-screen active" id="startScreen">
+  <div class="fire-icon">🔥</div>
+  <h1 class="title">热能大冒险</h1>
+  <p class="subtitle">⚔️ 拯救冰雪王国 ⚔️</p>
+  
+  <div class="story-box">
+    <p>🧊 邪恶的「绝对零度博士」用寒冰冻住了王国！</p>
+    <p>🔥 你是被选中的「热能小英雄」</p>
+    <p>📚 必须用<b style="color:#ffd700">第六章《热》</b>的知识闯过 5 大关卡</p>
+    <p>👑 最终击败Boss，融化王国！</p>
+  </div>
+
+  <div class="rules-box">
+    <h3>📜 游戏规则</h3>
+    <ul>
+      <li>❤️ 你有 <b>3 颗心</b>，答错扣一颗</li>
+      <li>⏱️ 每题限时 <b>15秒</b>，越快分越高</li>
+      <li>🔥 连答3题进入<b>热浪模式</b>（双倍分数！）</li>
+      <li>🏆 通关获得专属<b>电子证书</b>，下载和同学比拼</li>
+    </ul>
+  </div>
+
+  <button class="btn" onclick="startGame()">🚀 开始冒险！</button>
+  <button class="btn btn-secondary" onclick="showLeaderboard()">🏅 查看排行榜</button>
+  <p style="font-size:9px; color:rgba(30,60,114,0.55); margin-top:18px; letter-spacing:0.5px;">峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79</p>
+</div>
+
+<!-- 游戏界面 -->
+<!-- //峇株吧辖蔡逸众制作 -->
+<!--
+  ─────────────────────────────────────────────────────────────
+  Level 1: 🧠 热学基础
+  知识点：热能定义、热传递条件与方向、热量单位(焦耳J)
+  ─────────────────────────────────────────────────────────────
+  Level 2: ⚖️ 温度 vs 热量
+  知识点：比热容概念、温度相同≠热量相同的易错点
+  ─────────────────────────────────────────────────────────────
+  Level 3: 🔄 三种传热方式
+  知识点：传导(固体粒子碰撞)、对流(液气流动)、辐射(无需介质)
+  ─────────────────────────────────────────────────────────────
+  Level 4: 🎨 辐射特性 + 热胀冷缩微观原理
+  知识点：深色粗糙吸热强、粒子间距变化(非粒子变大)、气体膨胀最明显
+  ─────────────────────────────────────────────────────────────
+  Level 5: 👹 Boss战 - 生活应用
+  知识点：拧瓶盖、双金属片、桥梁留缝、电线安装、玻璃杯
+  ─────────────────────────────────────────────────────────────
+-->
+<div class="screen" id="gameScreen">
+  <div class="hud">
+    <div class="hud-item">
+      <div class="hud-label">生命</div>
+      <div class="hearts" id="hearts">❤❤❤</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">分数</div>
+      <div class="hud-value" id="score">0</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">连击</div>
+      <div class="hud-value" id="combo">0</div>
+    </div>
+  </div>
+
+  <div class="level-bar">
+    <div class="level-name" id="levelName">Level 1</div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="questionContainer"></div>
+</div>
+
+<!-- 结算界面 -->
+<div class="screen result-screen" id="resultScreen">
+  <div class="result-emoji" id="resultEmoji">🏆</div>
+  <h2 id="resultTitle">通关成功！</h2>
+  
+  <div class="result-card">
+    <div class="hud-label">最终分数</div>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-label">⏱️ 用时</div>
+        <div class="stat-value" id="timeUsed">0s</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">✅ 正确率</div>
+        <div class="stat-value" id="accuracy">0%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">🔥 最高连击</div>
+        <div class="stat-value" id="maxCombo">0</div>
+      </div>
+    </div>
+    <div class="achievements" id="achievements"></div>
+  </div>
+
+  <div class="result-card">
+    <p style="margin-bottom: 10px;">🎓 输入你的名字，生成专属证书</p>
+    <input type="text" class="name-input" id="playerName" placeholder="输入你的姓名" maxlength="12">
+    <button class="btn btn-success" onclick="generateCertificate()">📜 生成证书</button>
+  </div>
+
+  <button class="btn" onclick="restartGame()">🔄 再玩一次</button>
+</div>
+
+<!-- 证书界面 -->
+<div class="screen" id="certScreen">
+  <div id="certificateBox">
+    <div class="certificate" id="certificate">
+      <span class="cert-corner tl">🔥</span>
+      <span class="cert-corner tr">❄️</span>
+      <span class="cert-corner bl">❄️</span>
+      <span class="cert-corner br">🔥</span>
+      
+      <div class="cert-title">🏆 热能大师证书 🏆</div>
+      <div class="cert-subtitle">Heat Energy Master Certificate</div>
+      
+      <div class="cert-seal">👑</div>
+      
+      <div class="cert-body">
+        兹证明
+        <div class="cert-name" id="certName">学生姓名</div>
+        在《热能大冒险：拯救冰雪王国》中
+        <br>展现卓越的科学智慧，成功掌握第六章《热》的知识
+        <br>获颁此证书以资鼓励！
+      </div>
+
+      <div class="cert-stats">
+        <div class="cert-stat">
+          <div class="cert-stat-label">🎯 总分</div>
+          <div class="cert-stat-value" id="certScore">0</div>
+        </div>
+        <div class="cert-stat">
+          <div class="cert-stat-label">⏱️ 用时</div>
+          <div class="cert-stat-value" id="certTime">0s</div>
+        </div>
+        <div class="cert-stat">
+          <div class="cert-stat-label">⭐ 等级</div>
+          <div class="cert-stat-value" id="certRank">A</div>
+        </div>
+      </div>
+
+      <div class="cert-praise" id="certPraise">Excellent Work!</div>
+      <div class="cert-date" id="certDate">2025-01-01 12:00:00</div>
+    </div>
+  </div>
+  
+  <button class="btn btn-success" onclick="downloadCertificate()">📥 下载证书 (PNG)</button>
+  <button class="btn btn-secondary" onclick="document.getElementById('certScreen').classList.remove('active'); document.getElementById('resultScreen').classList.add('active');">⬅️ 返回</button>
+</div>
+
+<!-- 排行榜 -->
+<!-- //华仁中学蔡逸众制作 -->
+<div class="screen" id="leaderScreen">
+  <h2 style="text-align:center; margin: 20px 0;">🏅 本地排行榜</h2>
+  <div id="leaderboardList" class="result-card"></div>
+  <button class="btn" onclick="document.getElementById('leaderScreen').classList.remove('active'); document.getElementById('startScreen').classList.add('active');">⬅️ 返回</button>
+</div>
+
+<!-- 反馈弹窗 -->
+<div class="feedback" id="feedback">
+  <div class="feedback-icon" id="fbIcon">✨</div>
+  <div class="feedback-title" id="fbTitle">答对了！</div>
+  <div class="feedback-explain" id="fbExplain"></div>
+  <button class="btn" onclick="nextQuestion()">继续 ▶</button>
+</div>
+
+<!-- 关卡过渡 -->
+<div class="level-transition" id="levelTransition">
+  <div class="level-num" id="ltNum">1</div>
+  <div class="level-desc" id="ltDesc">Level 1</div>
+  <div class="level-tip" id="ltTip">概念辨认</div>
+</div>
+
+<!-- Combo弹窗 -->
+<div class="combo-popup" id="comboPopup">COMBO!</div>
+
+</div>
+
+<script>
+// ========== 题库（基于NotebookLM笔记定制） ==========
+const LEVELS = [
+  {
+    name: "🧠 热学基础", desc: "热能、热量、温度的关系",
+    questions: [
+      {
+        q: "🌡️ 热传递发生的<b>必要条件</b>是什么？",
+        opts: ["两物体接触", "存在温度差异", "物体足够大", "有阳光照射"],
+        ans: 1,
+        exp: "💡 关键是<b>温度差</b>！没有温差就不会传热，就算两个物体紧紧贴着，只要温度一样，热也不会流动~就像水位一样高就不会流动！"
+      },
+      {
+        q: "🔄 热能传递的方向是？",
+        opts: ["低温→高温", "高温→低温", "随机方向", "看物体大小"],
+        ans: 1,
+        exp: "💡 热永远<b>自动从高温→低温</b>流动！传到两物体温度相同时（达到热平衡），就停止啦~"
+      },
+      {
+        q: "📏 热量的国际标准单位是？",
+        opts: ["卡路里 (cal)", "瓦特 (W)", "焦耳 (J)", "摄氏度 (℃)"],
+        ans: 2,
+        exp: "💡 热量单位是<b>焦耳 (J)</b>！注意别和温度（℃）、功率（W）混了~"
+      }
+    ]
+  },
+  {
+    name: "⚖️ 温度 vs 热量", desc: "最容易混淆的概念！",
+    questions: [
+      {
+        q: "🤔 1kg水升温1℃需4200J，1kg铜只需390J。这说明？",
+        opts: ["铜比水更难加热", "质量和升温相同时，不同材质所需热量不同", "水的温度更高", "铜不会吸热"],
+        ans: 1,
+        exp: "💡 这就是<b>比热容</b>的概念雏形！相同质量、相同升温幅度，不同材质吸的热不一样多。水「吃」热多，所以海边温度变化小~"
+      },
+      {
+        q: "❓ 两个物体温度相同，它们的热量也一定相同吗？",
+        opts: ["一定相同", "不一定，还和质量、材质、物态有关", "温度低的热量多", "温度高的热量多"],
+        ans: 1,
+        exp: "💡 <b>温度相同 ≠ 热量相同</b>！热量还跟质量、材质有关。比如一杯100℃的水和一桶100℃的水，桶里的热量更多~"
+      },
+      {
+        q: "🔥 关于「热能」的微观本质，下面哪个对？",
+        opts: ["热是一种特殊的物质", "热是粒子运动时具有的能量", "热是温度的别名", "热只存在于热的物体中"],
+        ans: 1,
+        exp: "💡 热能本质是<b>粒子运动的能量</b>！粒子动得越快，热能越多。冰块里粒子也在动，只是动得慢~"
+      }
+    ]
+  },
+  {
+    name: "🔄 三种传热方式", desc: "传导 / 对流 / 辐射",
+    questions: [
+      {
+        q: "🥄 用铁汤匙搅热汤，汤匙柄变烫。这是哪种传热？",
+        opts: ["传导", "对流", "辐射", "蒸发"],
+        ans: 0,
+        exp: "💡 这是<b>传导</b>！热能通过金属本身传过来，<b>介质本身没有明显运动</b>，只是粒子在原位振动传能量~"
+      },
+      {
+        q: "💨 烧开水时，整壶水都变热，主要靠？",
+        opts: ["传导", "对流", "辐射", "魔法"],
+        ans: 1,
+        exp: "💡 这是<b>对流</b>！锅底热水受热<b>密度变小→上升</b>，冷水下沉，循环把热带遍整壶~所以空调要装高处（让冷空气下沉循环）！"
+      },
+      {
+        q: "☀️ 太阳的热能能穿过<b>真空</b>到达地球，靠的是？",
+        opts: ["传导", "对流", "辐射", "三种都有"],
+        ans: 2,
+        exp: "💡 真空里没介质！传导和对流都需要介质，只有<b>辐射</b>能在真空中走（沿直线、电磁波）~电熨斗、烤火也是辐射！"
+      },
+      {
+        q: "📊 关于导热能力，下列排序正确的是？",
+        opts: ["金属 > 非金属 > 液体/气体", "气体 > 液体 > 固体", "都一样", "塑料 > 金属"],
+        ans: 0,
+        exp: "💡 <b>金属是良导体</b>，非金属（木、塑料）是不良导体，液体/气体导热最差~所以保温杯利用空气层！"
+      }
+    ]
+  },
+  {
+    name: "🎨 辐射的秘密 + 微观原理", desc: "颜色、表面、粒子运动",
+    questions: [
+      {
+        q: "🧪 实验：黑瓶 vs 白瓶在阳光下，谁升温快？",
+        opts: ["白瓶", "黑瓶", "一样快", "看天气"],
+        ans: 1,
+        exp: "💡 <b>深色、粗糙</b>表面吸收辐射强！所以夏天穿浅色衣服凉快，太阳能板做成黑色吸热多~"
+      },
+      {
+        q: "🔬 物体受热膨胀，从微观看真正发生了什么？",
+        opts: ["粒子本身变大了", "粒子数量变多了", "粒子间平均距离增大", "粒子变重了"],
+        ans: 2,
+        exp: "💡 注意！是<b>粒子之间的距离变大</b>，不是粒子本身变大！受热后粒子振动加剧，互相「推开」，宏观上就是膨胀~"
+      },
+      {
+        q: "🎈 固、液、气三态中，热胀冷缩最明显的是？",
+        opts: ["固体", "液体", "气体", "都一样"],
+        ans: 2,
+        exp: "💡 <b>气体</b>最明显！因为气体粒子间距本来就大，活动空间大。所以瘪乒乓球泡热水会鼓起来~"
+      }
+    ]
+  },
+  {
+    name: "👹 Boss战：生活应用大挑战", desc: "学以致用！",
+    questions: [
+      {
+        q: "🔧 拧不开瓶盖，把瓶盖浸热水后就开了。原理是？",
+        opts: ["热水让手更有力", "金属瓶盖受热膨胀变松", "玻璃瓶缩小了", "热水有魔法"],
+        ans: 1,
+        exp: "💡 <b>金属比玻璃膨胀更快</b>！瓶盖受热膨胀变松，自然就好拧了~聪明的生活小技巧！"
+      },
+      {
+        q: "🧪 双金属片实验：铜+铁铆合后加热，会向哪边弯？",
+        opts: ["向铜片方向弯", "向铁片方向弯", "不会弯", "断开"],
+        ans: 1,
+        exp: "💡 <b>铜的膨胀程度比铁大</b>！铜「长得快」一边，就把整体推向铁片方向弯曲~这是温控开关的原理哦！"
+      },
+      {
+        q: "🌉 为什么桥梁、铁轨建造时要<b>留有缝隙</b>？",
+        opts: ["为了好看", "防止热膨胀挤压导致拱起或裂开", "让水排出", "节省材料"],
+        ans: 1,
+        exp: "💡 夏天高温时桥梁、铁轨会膨胀，<b>留缝</b>给膨胀腾空间！否则会挤压变形甚至断裂~"
+      },
+      {
+        q: "🥶 冰箱拿出的冷玻璃杯，为什么不能立刻倒热水？",
+        opts: ["会烫到手", "杯子内外膨胀不均匀，会碎裂", "热水会变凉", "杯子会变形"],
+        ans: 1,
+        exp: "💡 <b>不均匀膨胀</b>是关键！内壁突然受热剧烈膨胀，外壁还冷着，应力差太大就「砰」碎了~"
+      },
+      {
+        q: "🔌 安装电线时为什么不能拉太紧？",
+        opts: ["美观", "防止冬天冷缩拉断", "省电", "防雷击"],
+        ans: 1,
+        exp: "💡 冬天温度低，电线<b>冷缩</b>！如果安装时拉太紧，冬天就被「拉断」了~所以电线总是松松地挂着~"
+      }
+    ]
+  }
+];
+
+// ========== 游戏状态 ==========
+// //峇株吧辖华仁中学蔡逸众制作
+let state = {
+  level: 0, qIndex: 0, score: 0, lives: 3,
+  combo: 0, maxCombo: 0, totalQ: 0, correctQ: 0,
+  startTime: 0, currentTimer: null, timeLeft: 15,
+  lastTime: 0
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateHUD() {
+  document.getElementById('hearts').textContent = '❤'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
+  document.getElementById('score').textContent = state.score;
+  let comboEl = document.getElementById('combo');
+  if (state.combo >= 3) {
+    comboEl.innerHTML = `<span class="combo-badge">🔥${state.combo}x</span>`;
+  } else {
+    comboEl.textContent = state.combo;
+  }
+  
+  const totalLevels = LEVELS.length;
+  const progress = ((state.level + (state.qIndex / LEVELS[state.level].questions.length)) / totalLevels) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+  document.getElementById('levelName').textContent = `Level ${state.level + 1}: ${LEVELS[state.level].name}`;
+}
+
+function startGame() {
+  state = {
+    level: 0, qIndex: 0, score: 0, lives: 3,
+    combo: 0, maxCombo: 0, totalQ: 0, correctQ: 0,
+    startTime: Date.now(), currentTimer: null, timeLeft: 15,
+    lastTime: 0
+  };
+  showScreen('gameScreen');
+  showLevelTransition(() => {
+    updateHUD();
+    loadQuestion();
+  });
+}
+
+function showLevelTransition(callback) {
+  const lt = document.getElementById('levelTransition');
+  document.getElementById('ltNum').textContent = state.level + 1;
+  document.getElementById('ltDesc').textContent = `Level ${state.level + 1}`;
+  document.getElementById('ltTip').textContent = LEVELS[state.level].name + ' - ' + LEVELS[state.level].desc;
+  lt.classList.add('show');
+  setTimeout(() => {
+    lt.classList.remove('show');
+    callback();
+  }, 1500);
+}
+
+function loadQuestion() {
+  const level = LEVELS[state.level];
+  const q = level.questions[state.qIndex];
+  state.timeLeft = 15;
+  state.totalQ++;
+
+  const container = document.getElementById('questionContainer');
+  container.innerHTML = `
+    <div class="question-card">
+      <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+      <div class="question-text">${q.q}</div>
+      <div class="options" id="optionsList">
+        ${q.opts.map((opt, i) => `<button class="option" onclick="selectAnswer(${i})">${String.fromCharCode(65+i)}. ${opt}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  
+  startTimer();
+}
+
+function startTimer() {
+  if (state.currentTimer) clearInterval(state.currentTimer);
+  const fill = document.getElementById('timerFill');
+  state.currentTimer = setInterval(() => {
+    state.timeLeft -= 0.1;
+    if (fill) fill.style.width = (state.timeLeft / 15 * 100) + '%';
+    if (state.timeLeft <= 0) {
+      clearInterval(state.currentTimer);
+      selectAnswer(-1);
+    }
+  }, 100);
+}
+
+function selectAnswer(idx) {
+  // //Made by ecchua79
+  clearInterval(state.currentTimer);
+  const q = LEVELS[state.level].questions[state.qIndex];
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach(b => b.disabled = true);
+  
+  const correct = idx === q.ans;
+  
+  if (idx >= 0) {
+    buttons[idx].classList.add(correct ? 'correct' : 'wrong');
+  }
+  buttons[q.ans].classList.add('correct');
+
+  if (correct) {
+    state.correctQ++;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    
+    let basePoints = 100;
+    let timeBonus = Math.round(state.timeLeft * 10);
+    let comboMultiplier = state.combo >= 3 ? 2 : 1;
+    let gained = (basePoints + timeBonus) * comboMultiplier;
+    state.score += gained;
+    
+    if (state.combo >= 3) showCombo(state.combo);
+    showFeedback(true, q.exp, gained);
+  } else {
+    state.combo = 0;
+    state.lives--;
+    showFeedback(false, q.exp, 0);
+  }
+  
+  updateHUD();
+}
+
+function showCombo(n) {
+  const popup = document.getElementById('comboPopup');
+  popup.textContent = `🔥 ${n} COMBO!`;
+  popup.classList.remove('show');
+  void popup.offsetWidth;
+  popup.classList.add('show');
+}
+
+function showFeedback(correct, exp, points) {
+  const fb = document.getElementById('feedback');
+  document.getElementById('fbIcon').textContent = correct ? '✨' : '💔';
+  document.getElementById('fbTitle').innerHTML = correct 
+    ? `<span style="color:#43e97b">答对了！+${points}分</span>` 
+    : `<span style="color:#ff6b6b">答错了～</span>`;
+  document.getElementById('fbExplain').innerHTML = exp;
+  fb.classList.add('show');
+}
+
+function nextQuestion() {
+  document.getElementById('feedback').classList.remove('show');
+  
+  if (state.lives <= 0) {
+    endGame(false);
+    return;
+  }
+  
+  state.qIndex++;
+  if (state.qIndex >= LEVELS[state.level].questions.length) {
+    state.qIndex = 0;
+    state.level++;
+    if (state.level >= LEVELS.length) {
+      endGame(true);
+      return;
+    }
+    showLevelTransition(() => {
+      updateHUD();
+      loadQuestion();
+    });
+  } else {
+    updateHUD();
+    loadQuestion();
+  }
+}
+
+function endGame(victory) {
+  // //华仁中学蔡逸众制作
+  const timeUsed = Math.round((Date.now() - state.startTime) / 1000);
+  state.lastTime = timeUsed;
+  
+  document.getElementById('resultEmoji').textContent = victory ? '🏆' : '💀';
+  document.getElementById('resultTitle').textContent = victory ? '🎉 通关成功！' : '💔 任务失败...';
+  document.getElementById('finalScore').textContent = state.score;
+  document.getElementById('timeUsed').textContent = timeUsed + 's';
+  document.getElementById('accuracy').textContent = state.totalQ > 0 ? Math.round(state.correctQ / state.totalQ * 100) + '%' : '0%';
+  document.getElementById('maxCombo').textContent = state.maxCombo;
+  
+  const achievements = [];
+  if (victory && state.lives === 3) achievements.push('💎 零失误大师');
+  if (state.maxCombo >= 5) achievements.push('🔥 Combo大师');
+  if (timeUsed < 120 && victory) achievements.push('⚡ 极速王');
+  if (state.score >= 4000) achievements.push('⭐ 满分达人');
+  if (victory) achievements.push('👑 王国拯救者');
+  if (state.correctQ === state.totalQ && victory) achievements.push('🌟 完美通关');
+  
+  document.getElementById('achievements').innerHTML = achievements.length > 0 
+    ? achievements.map(a => `<span class="achievement">${a}</span>`).join('') 
+    : '<span style="opacity:0.5">继续努力解锁成就！</span>';
+  
+  showScreen('resultScreen');
+}
+
+function showLeaderboard() {
+  let scores = [];
+  try {
+    scores = JSON.parse(localStorage.getItem('heatGameScores') || '[]');
+  } catch(e) {}
+  
+  scores.sort((a, b) => b.score - a.score);
+  scores = scores.slice(0, 10);
+  
+  const list = document.getElementById('leaderboardList');
+  if (scores.length === 0) {
+    list.innerHTML = '<p style="text-align:center; padding:20px;">还没有记录，快来当第一名吧！🏃‍♂️</p>';
+  } else {
+    list.innerHTML = scores.map((s, i) => `
+      <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid rgba(255,255,255,0.2);">
+        <span>${['🥇','🥈','🥉'][i] || (i+1)+'.'} <b>${s.name}</b></span>
+        <span style="color:#ffd700;"><b>${s.score}</b> 分</span>
+      </div>
+    `).join('');
+  }
+  showScreen('leaderScreen');
+}
+
+function generateCertificate() {
+  const name = document.getElementById('playerName').value.trim() || '匿名英雄';
+  const timeUsed = state.lastTime || 0;
+  
+  try {
+    let scores = JSON.parse(localStorage.getItem('heatGameScores') || '[]');
+    scores.push({ name: name, score: state.score, time: timeUsed, date: new Date().toISOString() });
+    localStorage.setItem('heatGameScores', JSON.stringify(scores));
+  } catch(e) {}
+  
+  document.getElementById('certName').textContent = name;
+  document.getElementById('certScore').textContent = state.score;
+  document.getElementById('certTime').textContent = timeUsed + '秒';
+  
+  let rank = 'C', praise = 'Keep Trying! 继续努力！';
+  if (state.score >= 5000) { rank = 'S+'; praise = '🌟 Legendary Master! 传奇大师！'; }
+  else if (state.score >= 4000) { rank = 'S'; praise = '🔥 Excellent Work! 出类拔萃！'; }
+  else if (state.score >= 2500) { rank = 'A'; praise = '⭐ Great Job! 表现优异！'; }
+  else if (state.score >= 1000) { rank = 'B'; praise = '👍 Good Effort! 继续加油！'; }
+  
+  document.getElementById('certRank').textContent = rank;
+  document.getElementById('certPraise').textContent = praise;
+  
+  const now = new Date();
+  document.getElementById('certDate').textContent = 
+    `颁发日期：${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  
+  showScreen('certScreen');
+}
+
+function downloadCertificate() {
+  const cert = document.getElementById('certificate');
+  html2canvas(cert, { scale: 2, backgroundColor: null }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `热能大冒险证书_${document.getElementById('certName').textContent}_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => {
+    alert('下载失败，请截图保存哦！\n按住屏幕 → 截图 → 保存');
+  });
+}
+
+function restartGame() {
+  // //峇株吧辖蔡逸众制作
+  showScreen('startScreen');
+}
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+// ============================================================
+// 游戏知识点索引
+// ============================================================
+// Q01 热传递条件：温度差
+// Q02 热传递方向：高温→低温
+// Q03 热量单位：焦耳(J)
+// Q04 比热容：不同材质升温所需热量不同
+// Q05 温度相同≠热量相同
+// Q06 热能本质：粒子运动的能量
+// Q07 传导：固体介质不动，粒子碰撞传能
+// Q08 对流：液体/气体受热密度降低上升循环
+// Q09 辐射：电磁波无需介质沿直线传播
+// Q10 导热能力：金属>非金属>液体/气体
+// Q11 辐射吸收：深色粗糙>浅色光滑
+// Q12 热胀冷缩微观：粒子间距变化非粒子变大
+// Q13 膨胀程度：气体>液体>固体
+// Q14 拧瓶盖：金属比玻璃膨胀快
+// Q15 双金属片：铜膨胀>铁，弯向铁片
+// Q16 桥梁铁轨：留缝防热膨胀挤压
+// Q17 玻璃杯：防不均匀膨胀碎裂
+// Q18 电线安装：防冬天冷缩拉断
+// ============================================================
+// 分数系统说明
+// ============================================================
+// 基础分：每题100分
+// 时间加分：剩余秒数 × 10
+// Combo倍率：连对≥3题时 × 2
+// 最高单题理论分：(100 + 150) × 2 = 500分
+// 满分5关18题理论上限：约5000+分
+// ============================================================
+// 成就解锁条件
+// ============================================================
+// 💎 零失误大师：通关且保留3颗心
+// 🔥 Combo大师：单局最高连击≥5
+// ⚡ 极速王：通关用时<120秒
+// ⭐ 满分达人：总分≥4000
+// 👑 王国拯救者：成功通关
+// 🌟 完美通关：全部答对且通关
+// ============================================================
+// 证书等级标准
+// ============================================================
+// S+ 等级：≥5000分  Legendary Master! 传奇大师！
+// S  等级：≥4000分  Excellent Work! 出类拔萃！
+// A  等级：≥2500分  Great Job! 表现优异！
+// B  等级：≥1000分  Good Effort! 继续加油！
+// C  等级：＜1000分  Keep Trying! 继续努力！
+// ============================================================
+// 教学设计理念
+// ============================================================
+// 本游戏基于初一科学第六章《热》的NotebookLM学习笔记开发
+// 采用闯关式游戏结构，将18道核心知识点题目
+// 分散在5个关卡中，配合Combo系统和时间挑战
+// 激励学生主动学习、重复练习、与同学竞争
+// 答错后提供类比式提示而非直接给出答案
+// 以帮助学生真正理解概念而非死记硬背
+// ============================================================
+// //Made by ecchua79
+// ============================================================
+
+</script>
+</body>
+</html>
