@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 热力大师 v3.0：拯救冰河世纪</title>
+<style>
+:root {
+    --primary: #ff6b6b;
+    --secondary: #4ecdc4;
+    --hot: #ff4757;
+    --cold: #5dade2;
+    --gold: #ffd700;
+    --dark: #1a2332;
+    /* 峇株吧辖华仁中学蔡逸众制作 */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+    background: linear-gradient(135deg, #0f1c2e 0%, #1a2940 50%, #2c3e50 100%);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* === 背景：飘落的雪花 === */
+#snow-canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+}
+
+/* === 屏幕震动 === */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px) rotate(-1deg); }
+    40% { transform: translateX(8px) rotate(1deg); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s; }
+
+/* === 答对闪光 === */
+@keyframes correctFlash {
+    0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.8); }
+    100% { box-shadow: 0 0 0 100px rgba(46, 204, 113, 0); }
+}
+@keyframes wrongFlash {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.8); }
+    100% { box-shadow: 0 0 0 100px rgba(231, 76, 60, 0); }
+}
+
+.container {
+    width: 92%;
+    max-width: 620px;
+    margin: 20px auto;
+    background: rgba(30, 42, 58, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 25px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 0 30px rgba(78, 205, 196, 0.05);
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    position: relative;
+    z-index: 10;
+    text-align: center;
+}
+
+h1 {
+    background: linear-gradient(90deg, #ff6b6b, #ffa726, #ff6b6b);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+@keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+h2 { font-size: 1.15rem; line-height: 1.6; margin: 15px 0 20px; }
+.hidden { display: none !important; }
+
+/* === 开始界面 === */
+.intro-icon {
+    font-size: 5rem;
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+.rules {
+    /* 峇株吧辖蔡逸众制作 */
+    text-align: left;
+    background: rgba(0,0,0,0.3);
+    padding: 18px 18px 18px 38px;
+    border-radius: 12px;
+    margin: 20px 0;
+    line-height: 2;
+    border-left: 4px solid var(--secondary);
+}
+
+/* === HUD === */
+.hud {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    background: rgba(0,0,0,0.4);
+    padding: 12px;
+    border-radius: 14px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+.hud-item {
+    text-align: center;
+    padding: 5px;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+.hud-item.pulse {
+    animation: pulse 0.5s;
+    background: rgba(255, 215, 0, 0.2);
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+.hud-label { font-size: 0.7rem; opacity: 0.7; display: block; }
+.hud-value { font-size: 1.1rem; font-weight: bold; }
+
+/* === 温度计（替代进度条） === */
+.thermometer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.thermometer-icon { font-size: 1.5rem; }
+.thermometer {
+    flex: 1;
+    height: 18px;
+    background: linear-gradient(90deg, #5dade2 0%, #2c3e50 100%);
+    border-radius: 9px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.2);
+    position: relative;
+}
+.thermo-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4757, #ffa726, #ffd700);
+    width: 100%;
+    transition: width 1s linear;
+    box-shadow: 0 0 15px rgba(255, 167, 38, 0.6);
+    position: relative;
+}
+.thermo-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 20px; height: 100%;
+    background: rgba(255,255,255,0.4);
+    filter: blur(5px);
+}
+.timer-text {
+    font-weight: bold;
+    min-width: 45px;
+    text-align: right;
+    font-size: 1.1rem;
+}
+
+/* === 题目卡片 === */
+.question-card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    min-height: 80px;
+    transition: all 0.3s;
+}
+.question-card.flash-correct { animation: correctFlash 0.6s; }
+.question-card.flash-wrong { animation: wrongFlash 0.6s; }
+
+.q-number {
+    display: inline-block;
+    background: var(--primary);
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+}
+
+/* === 选项按钮 === */
+/* 华仁中学蔡逸众制作 */
+#options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.opt-btn {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+    border: none;
+    padding: 14px 18px;
+    font-size: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 0 #2a7068, 0 6px 12px rgba(0,0,0,0.3);
+    text-align: left;
+    font-weight: 500;
+    position: relative;
+    overflow: hidden;
+}
+.opt-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+.opt-btn:hover:not(:disabled)::before { left: 100%; }
+.opt-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #2a7068, 0 10px 20px rgba(0,0,0,0.4);
+}
+.opt-btn:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #2a7068, 0 3px 6px rgba(0,0,0,0.2);
+}
+.opt-btn.wrong {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    box-shadow: 0 4px 0 #7c2017 !important;
+    animation: shake 0.4s;
+}
+.opt-btn.correct {
+    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
+    box-shadow: 0 4px 0 #1a6b3a, 0 0 30px #2ecc71 !important;
+    animation: pulse 0.5s;
+}
+.opt-btn:disabled { cursor: not-allowed; opacity: 0.85; }
+
+/* === 反馈框 === */
+.feedback {
+    padding: 18px;
+    border-radius: 12px;
+    margin: 15px 0;
+    font-weight: 500;
+    line-height: 1.6;
+    animation: popIn 0.4s ease-out;
+    border-left: 5px solid;
+}
+.feedback.correct {
+    background: linear-gradient(135deg, #d4edda, #a8e6a3);
+    color: #1a6b3a;
+    border-color: #2ecc71;
+}
+.feedback.wrong {
+    background: linear-gradient(135deg, #fff5f5, #ffd6d6);
+    color: #721c24;
+    border-color: #e74c3c;
+}
+@keyframes popIn {
+    0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* === 主操作按钮 === */
+.main-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 5px 0 #b73a32, 0 8px 20px rgba(255,107,107,0.4);
+    transition: all 0.2s;
+    margin: 8px 5px;
+}
+.main-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #b73a32, 0 12px 25px rgba(255,107,107,0.5);
+}
+.main-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #b73a32, 0 3px 8px rgba(255,107,107,0.3);
+}
+.main-btn.secondary {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    box-shadow: 0 5px 0 #2a7068, 0 8px 20px rgba(78,205,196,0.4);
+}
+.main-btn.secondary:hover {
+    box-shadow: 0 7px 0 #2a7068, 0 12px 25px rgba(78,205,196,0.5);
+}
+
+/* === Combo 火焰 === */
+.combo-fire {
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+/* === 浮动加分动画 === */
+/* Made by ecchua79 */
+.score-popup {
+    position: absolute;
+    color: var(--gold);
+    font-weight: bold;
+    font-size: 1.5rem;
+    pointer-events: none;
+    animation: scoreFly 1.2s ease-out forwards;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    z-index: 100;
+}
+@keyframes scoreFly {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { transform: translateY(-20px) scale(1.3); opacity: 1; }
+    100% { transform: translateY(-100px) scale(1); opacity: 0; }
+}
+
+/* === 心形损失动画 === */
+.heart-lost {
+    position: fixed;
+    font-size: 3rem;
+    pointer-events: none;
+    z-index: 1000;
+    animation: heartBreak 1s ease-in forwards;
+}
+@keyframes heartBreak {
+    0% { transform: scale(1) rotate(0); opacity: 1; }
+    50% { transform: scale(2) rotate(20deg); opacity: 1; }
+    100% { transform: scale(0.5) translateY(200px) rotate(-30deg); opacity: 0; }
+}
+
+/* === 火焰粒子（答对时爆发） === */
+.particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 50;
+    font-size: 1.5rem;
+}
+
+/* === 证书 === */
+.certificate {
+    background: linear-gradient(135deg, #fffaf0, #fff8dc);
+    color: #2c3e50;
+    padding: 30px 25px;
+    border-radius: 12px;
+    margin: 20px 0;
+    position: relative;
+    box-shadow: 0 0 0 4px var(--gold), 0 0 0 8px #fff, 0 10px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+.certificate::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,215,0,0.2) 50%, transparent 70%);
+    animation: certShine 4s linear infinite;
+}
+@keyframes certShine {
+    0% { transform: translate(-30%, -30%) rotate(0deg); }
+    100% { transform: translate(-30%, -30%) rotate(360deg); }
+}
+.cert-content { position: relative; z-index: 2; }
+.cert-medal {
+    font-size: 4rem;
+    animation: medalSpin 2s ease-out;
+}
+@keyframes medalSpin {
+    0% { transform: scale(0) rotate(-180deg); }
+    60% { transform: scale(1.2) rotate(20deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+.cert-title {
+    color: #c0392b;
+    font-size: 1.6rem;
+    margin: 10px 0;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.cert-name {
+    font-size: 1.5rem;
+    color: #2c3e50;
+    border-bottom: 2px dashed #c0392b;
+    display: inline-block;
+    padding: 5px 30px;
+    margin: 15px 0;
+}
+.cert-stats {
+    background: rgba(255, 215, 0, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px dashed #c0392b;
+}
+.cert-stats p { margin: 6px 0; }
+
+input[type="text"] {
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 2px solid var(--secondary);
+    width: 80%;
+    max-width: 280px;
+    text-align: center;
+    outline: none;
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    margin: 10px 0;
+    transition: all 0.3s;
+}
+input[type="text"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(255,107,107,0.5);
+}
+
+/* 打印时隐藏不必要元素 */
+@media print {
+    body * { visibility: hidden; }
+    .certificate, .certificate * { visibility: visible; }
+    .certificate {
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%;
+    }
+    #snow-canvas { display: none; }
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    h1 { font-size: 1.5rem; }
+    .container { padding: 18px; }
+    .opt-btn { padding: 12px 14px; font-size: 14px; }
+    .hud { font-size: 0.8rem; }
+    .hud-value { font-size: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="snow-canvas"></canvas>
+
+<!-- 开始界面 -->
+<div class="container" id="start-screen">
+    <div class="intro-icon">🔥❄️</div>
+    <h1>热力大师 v3.0</h1>
+    <h2>拯救冰河世纪</h2>
+    <p style="opacity: 0.85;">地球温度急剧下降！只有掌握热学知识的英雄才能点燃火种，融化冰封的世界！</p>
+    <div class="rules">
+        <li>🎯 答对题目 = 收集热能</li>
+        <li>❤️ 3 条命，错一题失去一颗</li>
+        <li>⏱️ 每题 15 秒倒计时</li>
+        <li>🔥 连击越高，火焰越旺，加分越多</li>
+        <li>⚡ 速度奖励：答得越快，分数越高</li>
+    </div>
+    <button class="main-btn" onclick="startGame()">🚀 开始挑战</button>
+    <p style="font-size:9px;color:#253040;margin-top:10px;letter-spacing:0.5px;user-select:none;">峇株吧辖华仁中学蔡逸众制作</p>
+</div>
+
+<!-- 游戏界面 -->
+<div class="container hidden" id="game-screen">
+    <div class="hud">
+        <div class="hud-item" id="hud-lives">
+            <span class="hud-label">生命</span>
+            <span class="hud-value" id="lives">❤️❤️❤️</span>
+        </div>
+        <div class="hud-item" id="hud-score">
+            <span class="hud-label">分数</span>
+            <span class="hud-value" id="score">0</span>
+        </div>
+        <div class="hud-item" id="hud-combo">
+            <span class="hud-label">连击</span>
+            <span class="hud-value">x<span id="combo">0</span> <span class="combo-fire" id="combo-fire"></span></span>
+        </div>
+    </div>
+    
+    <div class="thermometer-wrap">
+        <span class="thermometer-icon">🌡️</span>
+        <div class="thermometer"><div class="thermo-fill" id="timer-fill"></div></div>
+        <span class="timer-text" id="timer-text">15s</span>
+    </div>
+    
+    <div class="question-card" id="question-card">
+        <div class="q-number" id="q-number">第 1 题</div>
+        <h2 id="question-text">问题加载中...</h2>
+    </div>
+    
+    <div id="options-container"></div>
+    
+    <div id="feedback-box" class="feedback hidden"></div>
+    <button id="next-btn" class="main-btn hidden" onclick="nextQuestion()">下一题 ➔</button>
+</div>
+
+<!-- 结算界面 -->
+<div class="container hidden" id="result-screen">
+    <h1 id="final-title">挑战结束！</h1>
+    <h2 id="final-status"></h2>
+    <p style="font-size: 1.3rem; margin: 15px 0;">最终战力：<span id="final-score" style="color: var(--gold); font-weight: bold; font-size: 2rem; text-shadow: 0 0 15px rgba(255,215,0,0.6);">0</span> 分</p>
+    
+    <div id="achievements" style="margin: 15px 0;"></div>
+    
+    <div id="name-input-section">
+        <p style="margin: 15px 0;">输入你的大名，生成专属荣誉证书：</p>
+        <input type="text" id="player-name" placeholder="输入姓名" maxlength="12">
+        <br>
+        <button class="main-btn" onclick="generateCert()">🏆 领取证书</button>
+    </div>
+
+    <div id="certificate-box" class="certificate hidden">
+        <div class="cert-content">
+            <div class="cert-medal">🏅</div>
+            <div class="cert-title">★ 物理热学大师认证 ★</div>
+            <p>兹证明</p>
+            <div class="cert-name" id="cert-name"></div>
+            <p>在《热与热传递》冰河保卫战中表现卓越，<br>成功掌握热学核心奥秘，特此颁发荣誉证书。</p>
+            <div class="cert-stats">
+                <p>🎖️ 总战力：<strong id="cert-score" style="color: #c0392b;"></strong> 分</p>
+                <p>⏱️ 救援耗时：<strong id="cert-time"></strong> 秒</p>
+                <p>📅 颁发日期：<strong id="cert-date"></strong></p>
+            </div>
+            <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 20px;">— 物理改变生活，科学探索未来 —</p>
+        </div>
+    </div>
+    
+    <div id="post-cert-buttons" class="hidden">
+        <button class="main-btn secondary" onclick="window.print()">🖨️ 保存证书</button>
+        <button class="main-btn" onclick="location.reload()">🔁 再玩一次</button>
+    </div>
+    <button id="restart-btn" class="main-btn secondary" onclick="location.reload()">🔁 再玩一次</button>
+</div>
+
+<script>
+// ========== 雪花背景动画 ==========
+const canvas = document.getElementById('snow-canvas');
+const ctx = canvas.getContext('2d');
+let snowflakes = [];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Snowflake {
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 3 + 1;
+        this.speed = Math.random() * 1 + 0.5;
+        this.drift = Math.random() * 0.5 - 0.25;
+        this.opacity = Math.random() * 0.5 + 0.3;
+    }
+    update() {
+        this.y += this.speed;
+        this.x += this.drift;
+        if (this.y > canvas.height) {
+            this.y = -10;
+            this.x = Math.random() * canvas.width;
+        }
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 230, 255, ${this.opacity})`;
+        ctx.fill();
+    }
+}
+
+for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
+
+function animateSnow() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    snowflakes.forEach(f => { f.update(); f.draw(); });
+    requestAnimationFrame(animateSnow);
+}
+animateSnow();
+
+// ========== 音效系统（Web Audio API 合成） ==========
+// 峇株吧辖蔡逸众制作
+let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, duration, type = 'sine', volume = 0.2) {
+    try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+}
+function soundCorrect() {
+    playTone(523, 0.1, 'sine', 0.2);
+    setTimeout(() => playTone(659, 0.1, 'sine', 0.2), 80);
+    setTimeout(() => playTone(784, 0.2, 'sine', 0.2), 160);
+}
+function soundWrong() {
+    playTone(200, 0.3, 'sawtooth', 0.15);
+}
+function soundCombo(level) {
+    playTone(400 + level * 100, 0.15, 'square', 0.15);
+}
+function soundTick() {
+    playTone(800, 0.05, 'sine', 0.1);
+}
+
+// ========== 题目库 ==========
+const questions = [
+    {
+        q: "热量总是遵循什么规律进行流动的？",
+        options: ["从温度高的流向温度低的", "从温度低的流向温度高的", "从质量大的流向质量小的", "从体积大的流向体积小的"],
+        correct: "从温度高的流向温度低的",
+        hint: "热能是个暖男，总是从【高温】走向【低温】，直到双方温度平衡哦！"
+    },
+    {
+        q: "在国际单位制中，热量的标准单位是什么？",
+        options: ["焦耳 (J)", "千克 (kg)", "摄氏度 (°C)", "牛顿 (N)"],
+        correct: "焦耳 (J)",
+        hint: "热量也是一种能量，能量和热量的国际通用单位都是【焦耳 (J)】。"
+    },
+    {
+        q: "判断：100°C的水和100°C的铜，因为温度一样，所以它们含有的热量也绝对一样多。",
+        options: ["错误，因为质量和材质可能不同", "正确，温度相同热量就相同", "错误，水的热量肯定永远比铜多", "错误，铜的热量肯定永远比水多"],
+        correct: "错误，因为质量和材质可能不同",
+        hint: "大错特错！温度相同不代表热量相同。质量和材质都会影响热量的多少。"
+    },
+    {
+        q: "家里炒菜用的铁锅，主要利用了金属的什么物理性质？",
+        options: ["它是热的良导体", "它是热的不良导体", "它是热的绝缘体", "它能发生热辐射"],
+        correct: "它是热的良导体",
+        hint: "铁传热非常快，属于【热的良导体】，这样燃气灶的热量才能迅速传给食物！"
+    },
+    {
+        q: "冬天穿羽绒服很保暖，主要是因为羽绒蓬松的空隙里锁住了哪种『不良导体』？",
+        options: ["空气", "水蒸气", "真空", "二氧化碳"],
+        correct: "空气",
+        hint: "【空气】是很差的热导体，羽绒服靠锁住一层厚厚的静止空气来防止热量流失。"
+    },
+    {
+        q: "烧水时，壶里的水会上下翻滚受热，这种发生在液体中的热传递方式叫什么？",
+        options: ["对流", "传导", "辐射", "折射"],
+        correct: "对流",
+        hint: "热的水比较轻会上升，冷的水比较重会下降，形成循环，这叫【对流】。"
+    },
+    {
+        q: "太阳把热量跨越茫茫太空传到地球，太空中是真空状态。这是靠哪种热传递方式？",
+        options: ["辐射", "对流", "传导", "散射"],
+        correct: "辐射",
+        hint: "【辐射】不需要任何介质，可以直接在真空中传递，太阳光就是热辐射。"
+    },
+    {
+        q: "炎热的夏天，如果想在太阳底下凉快一点，最好穿什么样的衣服？",
+        options: ["浅色、有光泽的衣服", "深色、无光泽的衣服", "浅色、粗糙的衣服", "深色、粗糙的衣服"],
+        correct: "浅色、有光泽的衣服",
+        hint: "【浅色、有光泽】的表面对热辐射吸收能力最弱（反光强），所以更凉快！"
+    },
+    {
+        q: "不小心把乒乓球踩瘪了（但没破），最科学的恢复方法是什么？",
+        options: ["放进热水里泡", "放进冰箱冷冻室", "用针扎个小洞放气", "放在阴凉通风处静置"],
+        correct: "放进热水里泡",
+        hint: "利用气体的【热胀冷缩】！泡热水后，球内空气膨胀就会把瘪的地方顶出来。"
+    },
+    {
+        q: "工程常识：铺设火车的铁轨时，为什么两根铁轨之间必须留一点空隙？",
+        options: ["防止热胀冷缩导致挤压断裂", "为了节省铺设材料", "为了让下雨时的积水流走", "为了增加火车行驶的摩擦力"],
+        correct: "防止热胀冷缩导致挤压断裂",
+        hint: "固体也会热胀冷缩！夏天暴晒时铁轨会变长，留缝隙才不会挤压变形。"
+    }
+];
+
+// ========== 游戏状态 ==========
+let currentQ = 0, score = 0, lives = 3, combo = 0, maxCombo = 0;
+let timer, timeLeft = 15, startTime;
+let perfectAnswers = 0; // 完美答题（满血+满速）
+
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function startGame() {
+    initAudio();
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    startTime = Date.now();
+    loadQuestion();
+}
+
+function loadQuestion() {
+    if (lives <= 0 || currentQ >= questions.length) {
+        endGame();
+        return;
+    }
+    const q = questions[currentQ];
+    document.getElementById('q-number').innerText = `第 ${currentQ + 1} / ${questions.length} 题`;
+    document.getElementById('question-text').innerText = q.q;
+    
+    const card = document.getElementById('question-card');
+    card.classList.remove('flash-correct', 'flash-wrong');
+    
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = '';
+    document.getElementById('feedback-box').classList.add('hidden');
+    document.getElementById('next-btn').classList.add('hidden');
+    
+    const shuffledOptions = shuffleArray(q.options);
+    shuffledOptions.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn';
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + idx)}.</strong> ${optText}`;
+        btn.dataset.text = optText;
+        btn.onclick = (e) => checkAnswer(optText, btn, e);
+        optionsContainer.appendChild(btn);
+    });
+
+    timeLeft = 15;
+    updateTimerDisplay();
+    clearInterval(timer);
+    timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 5 && timeLeft > 0) soundTick();
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            handleWrong(null);
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const fill = document.getElementById('timer-fill');
+    const text = document.getElementById('timer-text');
+    const pct = (timeLeft / 15) * 100;
+    fill.style.width = `${pct}%`;
+    text.innerText = `${timeLeft}s`;
+    if (timeLeft <= 5) {
+        fill.style.background = 'linear-gradient(90deg, #ff4757, #ff6b6b)';
+        text.style.color = '#ff4757';
+    } else {
+        fill.style.background = 'linear-gradient(90deg, #ff4757, #ffa726, #ffd700)';
+        text.style.color = '#fff';
+    }
+}
+
+function checkAnswer(selectedText, btn, event) {
+    clearInterval(timer);
+    const q = questions[currentQ];
+    const buttons = document.querySelectorAll('.opt-btn');
+    buttons.forEach(b => b.disabled = true);
+
+    if (selectedText === q.correct) {
+        btn.classList.add('correct');
+        combo++;
+        maxCombo = Math.max(maxCombo, combo);
+        if (lives === 3 && timeLeft >= 10) perfectAnswers++;
+        
+        let timeBonus = timeLeft * 3;
+        let comboBonus = combo * 5;
+        let points = 20 + comboBonus + timeBonus;
+        score += points;
+        
+        document.getElementById('score').innerText = score;
+        document.getElementById('combo').innerText = combo;
+        updateComboFire();
+        
+        // 视觉特效
+        document.getElementById('question-card').classList.add('flash-correct');
+        document.getElementById('hud-score').classList.add('pulse');
+        document.getElementById('hud-combo').classList.add('pulse');
+        setTimeout(() => {
+            document.getElementById('hud-score').classList.remove('pulse');
+            document.getElementById('hud-combo').classList.remove('pulse');
+        }, 500);
+        
+        // 浮动加分动画
+        if (event) showScorePopup(event.clientX, event.clientY, `+${points}`);
+        // 火焰粒子爆发
+        burstParticles(event ? event.clientX : window.innerWidth/2, event ? event.clientY : window.innerHeight/2, '🔥');
+        
+        soundCorrect();
+        if (combo >= 3) soundCombo(combo);
+        
+        showFeedback(`✅ 完美！连击 x${combo}！<br><span style="font-size:0.9em; opacity:0.8;">基础+20 / 连击+${comboBonus} / 速度+${timeBonus}</span>`, true);
+    } else {
+        if (btn) btn.classList.add('wrong');
+        buttons.forEach(b => {
+            if (b.dataset.text === q.correct) b.classList.add('correct');
+        });
+        handleWrong();
+    }
+}
+
+function handleWrong() {
+    // 峇株吧辖华仁中学蔡逸众制作
+    combo = 0;
+    lives--;
+    document.getElementById('combo').innerText = combo;
+    updateComboFire();
+    
+    // 心碎动画
+    showHeartBreak();
+    
+    let heartStr = '';
+    for (let i = 0; i < lives; i++) heartStr += '❤️';
+    for (let i = lives; i < 3; i++) heartStr += '🖤';
+    document.getElementById('lives').innerText = heartStr;
+    
+    // 屏幕震动
+    document.getElementById('game-screen').classList.add('shake');
+    setTimeout(() => document.getElementById('game-screen').classList.remove('shake'), 400);
+    
+    // 结冰粒子
+    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '❄️');
+    
+    document.getElementById('question-card').classList.add('flash-wrong');
+    soundWrong();
+
+    const q = questions[currentQ];
+    const msg = timeLeft <= 0 ? "⏰ 时间到！热能流失！" : "❌ 选错了！";
+    showFeedback(`${msg}<br>💡 <b>提示：</b>${q.hint}`, false);
+}
+
+function updateComboFire() {
+    // Made by ecchua79
+    const fire = document.getElementById('combo-fire');
+    if (combo >= 5) fire.innerText = '🔥🔥🔥';
+    else if (combo >= 3) fire.innerText = '🔥🔥';
+    else if (combo >= 1) fire.innerText = '🔥';
+    else fire.innerText = '';
+}
+
+function showScorePopup(x, y, text) {
+    // 峇株吧辖蔡逸众制作
+    const popup = document.createElement('div');
+    popup.className = 'score-popup';
+    popup.innerText = text;
+    popup.style.left = x + 'px';
+    popup.style.top = y + 'px';
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1200);
+}
+
+function showHeartBreak() {
+    const heart = document.createElement('div');
+    heart.className = 'heart-lost';
+    heart.innerText = '💔';
+    heart.style.left = (window.innerWidth / 2 - 30) + 'px';
+    heart.style.top = '30%';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 1000);
+}
+
+function burstParticles(x, y, emoji) {
+    // 华仁中学蔡逸众制作
+    for (let i = 0; i < 12; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.innerText = emoji;
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        document.body.appendChild(p);
+        
+        const angle = (Math.PI * 2 * i) / 12;
+        const dist = 80 + Math.random() * 60;
+        const dx = Math.cos(angle) * dist;
+        const dy = Math.sin(angle) * dist;
+        
+        p.animate([
+            { transform: 'translate(0,0) scale(0.5)', opacity: 1 },
+            { transform: `translate(${dx}px, ${dy}px) scale(1.2)`, opacity: 0 }
+        ], { duration: 800, easing: 'ease-out' });
+        
+        setTimeout(() => p.remove(), 800);
+    }
+}
+
+function showFeedback(msg, isCorrect) {
+    const fb = document.getElementById('feedback-box');
+    fb.innerHTML = msg;
+    fb.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+    fb.classList.remove('hidden');
+    
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.classList.remove('hidden');
+    if (lives <= 0 || currentQ === questions.length - 1) {
+        nextBtn.innerText = "🌟 查看最终结算";
+    } else {
+        nextBtn.innerText = "下一题 ➔";
+    }
+}
+
+function nextQuestion() {
+    currentQ++;
+    loadQuestion();
+}
+
+function endGame() {
+    clearInterval(timer);
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    
+    let status = "";
+    if (lives > 0) {
+        status = "🎉 任务成功！你成功点燃了热能火种，地球得救了！";
+        document.getElementById('final-title').style.color = "#2ecc71";
+        document.getElementById('final-title').innerText = "🏆 拯救成功！";
+    } else {
+        status = "❄️ 遗憾！热能耗尽，世界被冰封了... 再来一次吗？";
+        document.getElementById('final-title').style.color = "#e74c3c";
+        document.getElementById('final-title').innerText = "💔 任务失败";
+    }
+    document.getElementById('final-status').innerText = status;
+    
+    // 数字滚动动画
+    animateNumber('final-score', 0, score, 1500);
+    
+    // 成就系统
+    showAchievements();
+}
+
+function animateNumber(id, from, to, duration) {
+    const el = document.getElementById(id);
+    const start = Date.now();
+    const tick = () => {
+        const elapsed = Date.now() - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const value = Math.floor(from + (to - from) * progress);
+        el.innerText = value;
+        if (progress < 1) requestAnimationFrame(tick);
+    };
+    tick();
+}
+
+function showAchievements() {
+    // 华仁中学蔡逸众制作
+    const achievements = [];
+    if (lives === 3) achievements.push('💎 完美无伤');
+    if (maxCombo >= 5) achievements.push('🔥 连击大师');
+    if (maxCombo === questions.length) achievements.push('👑 全连击王');
+    if (perfectAnswers >= 5) achievements.push('⚡ 极速思考');
+    if (score >= 500) achievements.push('🌟 高分达人');
+    
+    const div = document.getElementById('achievements');
+    if (achievements.length > 0) {
+        div.innerHTML = '<p style="margin-bottom:8px; opacity:0.8;">解锁成就：</p>' + 
+            achievements.map(a => `<span style="display:inline-block; background:rgba(255,215,0,0.2); padding:6px 12px; margin:4px; border-radius:20px; border:1px solid var(--gold);">${a}</span>`).join('');
+    }
+}
+
+function generateCert() {
+    // Made by ecchua79
+    const name = document.getElementById('player-name').value.trim();
+    if (!name) {
+        alert("请输入名字，证书需要你的英雄之名！");
+        return;
+    }
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+    const today = new Date();
+    const certDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+    document.getElementById('name-input-section').classList.add('hidden');
+    document.getElementById('restart-btn').classList.add('hidden');
+    document.getElementById('certificate-box').classList.remove('hidden');
+    document.getElementById('post-cert-buttons').classList.remove('hidden');
+    
+    document.getElementById('cert-name').innerText = name;
+    document.getElementById('cert-score').innerText = score;
+    document.getElementById('cert-time').innerText = timeTaken;
+    document.getElementById('cert-date').innerText = certDate;
+}
+</script>
+</body>
+</html>
