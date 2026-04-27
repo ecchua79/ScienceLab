@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🧪 酸碱虚拟实验室</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Microsoft YaHei',sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:10px;color:#2f3542}
+.container{width:100%;max-width:680px;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;display:flex;flex-direction:column;min-height:600px}
+.header{background:linear-gradient(90deg,#16a085,#1abc9c);color:#fff;padding:14px 18px;text-align:center}
+.header h1{font-size:20px;margin-bottom:3px}
+.header p{font-size:11px;opacity:0.9}
+.body{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1}
+/* //峇株吧辖华仁中学蔡逸众制作 */
+.sel-bar{background:#34495e;color:#fff;padding:8px 12px;border-radius:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;min-height:40px;flex-wrap:wrap;gap:8px}
+.pills{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.pill{background:#3498db;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold}
+.beaker{background:linear-gradient(180deg,rgba(173,216,230,0.3),rgba(135,206,235,0.5));border:4px solid #3498db;border-top:none;border-radius:0 0 30px 30px;height:240px;position:relative;overflow:hidden;box-shadow:inset 0 0 30px rgba(52,152,219,0.3);transition:background 1s}
+.beaker::before{content:'';position:absolute;top:0;left:-4px;right:-4px;height:6px;background:#3498db}
+.b-tip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(52,152,219,0.6);font-size:12px;font-weight:bold;text-align:center;pointer-events:none}
+.b-lbl{position:absolute;bottom:5px;right:10px;color:rgba(52,152,219,0.5);font-size:11px;font-weight:bold}
+.mol{position:absolute;animation:mf 4s ease-in-out infinite;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2))}
+.mol.fly{animation:mfly 0.8s ease-in forwards;z-index:10}
+.mol.exp{animation:mexp 0.5s ease-out forwards}
+.mol.app{animation:mapp 0.6s ease-out}
+@keyframes mf{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(5deg)}}
+@keyframes mfly{0%{transform:translate(0,0) scale(1)}100%{transform:translate(var(--fx),var(--fy)) scale(1.3)}}
+@keyframes mexp{0%{transform:scale(1);opacity:1}50%{transform:scale(2);opacity:0.7}100%{transform:scale(0.3);opacity:0}}
+@keyframes mapp{0%{transform:scale(0) rotate(-180deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+/* //Made by ecchua79 */
+.bub{position:absolute;color:#74b9ff;font-size:18px;font-weight:bold;animation:bup 2s ease-out forwards;pointer-events:none}
+@keyframes bup{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-220px);opacity:0}}
+.flash{position:absolute;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.95),rgba(255,193,7,0.7),transparent);animation:fl 0.8s ease-out forwards;pointer-events:none;z-index:5}
+@keyframes fl{0%{transform:scale(0);opacity:1}100%{transform:scale(3);opacity:0}}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.cb{padding:9px 14px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:12px;color:#fff;transition:transform 0.2s}
+.cb:hover{transform:translateY(-2px)}
+.cb:disabled{opacity:0.4;cursor:not-allowed}
+.cb.r{background:linear-gradient(135deg,#e74c3c,#c0392b)}
+.cb.c{background:linear-gradient(135deg,#7f8c8d,#95a5a6)}
+.cb.h{background:linear-gradient(135deg,#f39c12,#e67e22)}
+.eq{background:linear-gradient(135deg,#fffacd,#fff3a8);border:2px solid #f39c12;border-radius:12px;padding:12px;display:none;animation:pop 0.5s}
+.eq.show{display:block}
+@keyframes pop{0%{transform:scale(0.9);opacity:0}100%{transform:scale(1);opacity:1}}
+.eq-h{font-size:13px;color:#d35400;font-weight:bold;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+/* //华仁中学蔡逸众制作 */
+.eq-t{padding:2px 8px;background:#e74c3c;color:#fff;border-radius:10px;font-size:11px;font-weight:bold}
+.eq-f{font-family:'Cambria Math',serif;font-size:18px;text-align:center;color:#2c3e50;font-weight:bold;margin:8px 0;line-height:1.6}
+.eq-f sub{font-size:0.7em}
+.eq-a{color:#e74c3c;margin:0 6px;font-weight:bold}
+.eq-e{font-size:12px;color:#7d3c00;line-height:1.6;background:rgba(255,255,255,0.7);padding:10px;border-radius:8px;margin-top:8px}
+.shelf{background:linear-gradient(180deg,#f1f2f6,#dfe4ea);border-radius:12px;padding:10px}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.tab{padding:5px 10px;background:#fff;border:1px solid #ced6e0;border-radius:15px;font-size:11px;cursor:pointer;color:#57606f;font-weight:bold}
+.tab.on{background:#3498db;color:#fff;border-color:#3498db}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
+/* //峇株吧辖蔡逸众制作 */
+.rb{padding:8px 4px;background:#fff;border:2px solid #dfe4ea;border-radius:10px;cursor:pointer;text-align:center;font-weight:bold;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rb:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,0.15)}
+.rb .f{font-size:13px}
+.rb .n{font-size:9px;color:#7f8c8d}
+.rb.acid{border-color:#ff4757;color:#ff4757}
+.rb.base{border-color:#1e90ff;color:#1e90ff}
+.rb.metal{border-color:#7f8c8d;color:#2c3e50}
+.rb.salt{border-color:#ffa502;color:#e67e22}
+.rb.indicator{border-color:#9b59b6;color:#9b59b6}
+.log{background:#1e272e;color:#2ed573;padding:8px 12px;border-radius:8px;font-family:'Courier New',monospace;font-size:11px;max-height:90px;overflow-y:auto}
+.log div{margin:2px 0}
+.lw{color:#f1c40f}.li{color:#74b9ff}.ls{color:#2ed573}
+@media(max-width:480px){.container{border-radius:14px;min-height:100vh}.beaker{height:200px}.grid{grid-template-columns:repeat(auto-fill,minmax(62px,1fr))}.eq-f{font-size:15px}.rb{padding:6px 3px}.rb .f{font-size:11px}.rb .n{font-size:8px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>🧪 酸碱虚拟实验室</h1><p>组合粒子 · 看反应 · 学方程式</p></div>
+<p style="font-size:8px;color:rgba(22,160,133,0.4);text-align:center;margin:0;padding:1px 0;letter-spacing:0.5px;">峇株吧辖华仁中学蔡逸众制作 &nbsp;&nbsp; Made by ecchua79</p>
+<div class="body">
+<div class="sel-bar"><span style="white-space:nowrap">已选：</span><div class="pills" id="pills"><span style="color:#95a5a6;font-size:11px">（还未选择）</span></div><button class="cb c" onclick="clr()" style="padding:4px 10px;font-size:11px">清空</button></div>
+<div class="beaker" id="beaker"><div class="b-tip" id="tip">👇 从试剂架选取2-3种粒子</div><div class="b-lbl">250 mL</div></div>
+<div class="ctrl"><button class="cb r" id="rbtn" onclick="react()" disabled>⚡ 开始反应</button><button class="cb c" onclick="wash()">🧹 清洗烧杯</button><button class="cb h" onclick="hint()">💡 反应提示</button></div>
+<div class="eq" id="eqbox"><div class="eq-h"><span>📝 化学方程式</span><span class="eq-t" id="eqt">类型</span></div><div class="eq-f" id="eqf"></div><div class="eq-e" id="eqe"></div></div>
+<div class="shelf">
+<div class="tabs">
+<div class="tab on" onclick="tab(this,'acid')">🔴 酸</div>
+<div class="tab" onclick="tab(this,'base')">🔵 碱</div>
+<div class="tab" onclick="tab(this,'metal')">⚙️ 金属</div>
+<div class="tab" onclick="tab(this,'salt')">🟡 盐</div>
+<div class="tab" onclick="tab(this,'indicator')">🌈 指示剂</div>
+<div class="tab" onclick="tab(this,'oxide')">🔥 氧化物</div>
+<div class="tab" onclick="tab(this,'solvent')">💧 溶剂</div>
+</div>
+<div class="grid" id="grid"></div>
+</div>
+<div class="log" id="log"><div class="li">📋 [系统] 实验室就绪，从试剂架选取粒子开始实验！</div></div>
+</div>
+</div>
+<script>
+
+const P={
+'HCl':{n:'盐酸',c:'acid',s:'<svg width="44" height="44" viewBox="0 0 60 60"><circle cx="20" cy="30" r="14" fill="#ffd700" stroke="#b8860b" stroke-width="2"/><text x="20" y="35" text-anchor="middle" font-size="13" font-weight="bold">H</text><circle cx="42" cy="30" r="16" fill="#7ed957" stroke="#3a8e1f" stroke-width="2"/><text x="42" y="35" text-anchor="middle" font-size="12" font-weight="bold">Cl</text></svg>'},
+'H2SO4':{n:'硫酸',c:'acid',s:'<svg width="64" height="56" viewBox="0 0 90 75"><line x1="20" y1="37" x2="38" y2="37" stroke="#999" stroke-width="1.5"/><line x1="52" y1="37" x2="70" y2="37" stroke="#999" stroke-width="1.5"/><line x1="45" y1="18" x2="45" y2="28" stroke="#999" stroke-width="1.5"/><line x1="45" y1="46" x2="45" y2="57" stroke="#999" stroke-width="1.5"/><line x1="8" y1="37" x2="16" y2="37" stroke="#999" stroke-width="1.5"/><line x1="74" y1="37" x2="82" y2="37" stroke="#999" stroke-width="1.5"/><circle cx="45" cy="37" r="11" fill="#ffe066" stroke="#cc9900" stroke-width="2"/><text x="45" y="41" text-anchor="middle" font-size="10" font-weight="bold" fill="#5d4e00">S</text><circle cx="24" cy="37" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="24" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="66" cy="37" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="66" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="45" cy="14" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="45" y="18" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="45" cy="61" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="45" y="65" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="10" cy="37" r="7" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="10" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="#5d4e00">H</text><circle cx="80" cy="37" r="7" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="80" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="#5d4e00">H</text></svg>'},
+'HNO3':{n:'硝酸',c:'acid',s:'<svg width="62" height="52" viewBox="0 0 85 70"><line x1="32" y1="35" x2="20" y2="20" stroke="#999" stroke-width="1.5"/><line x1="32" y1="35" x2="20" y2="50" stroke="#999" stroke-width="1.5"/><line x1="43" y1="35" x2="58" y2="35" stroke="#999" stroke-width="1.5"/><line x1="66" y1="35" x2="76" y2="35" stroke="#999" stroke-width="1.5"/><circle cx="37" cy="35" r="10" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="37" y="39" text-anchor="middle" font-size="10" font-weight="bold" fill="white">N</text><circle cx="16" cy="18" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="16" y="22" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="16" cy="52" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="16" y="56" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="62" cy="35" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="62" y="39" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="78" cy="35" r="7" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="78" y="39" text-anchor="middle" font-size="9" font-weight="bold" fill="#5d4e00">H</text></svg>'},
+'NaOH':{n:'氢氧化钠',c:'base',s:'<svg width="52" height="44" viewBox="0 0 70 60"><circle cx="18" cy="30" r="13" fill="#a29bfe" stroke="#6c5ce7" stroke-width="2"/><text x="18" y="34" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Na</text><circle cx="50" cy="30" r="14" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="50" y="34" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">OH</text></svg>'},
+'KOH':{n:'氢氧化钾',c:'base',s:'<svg width="48" height="44" viewBox="0 0 65 60"><circle cx="16" cy="30" r="12" fill="#fd79a8" stroke="#e84393" stroke-width="2"/><text x="16" y="34" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">K</text><circle cx="46" cy="30" r="14" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="46" y="34" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">OH</text></svg>'},
+'Ca(OH)2':{n:'氢氧化钙',c:'base',s:'<svg width="58" height="48" viewBox="0 0 80 60"><circle cx="20" cy="30" r="13" fill="#55efc4" stroke="#00b894" stroke-width="2"/><text x="20" y="34" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Ca</text><circle cx="52" cy="18" r="11" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="52" y="22" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">OH</text><circle cx="52" cy="42" r="11" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="52" y="46" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">OH</text></svg>'},
+'Zn':{n:'锌',c:'metal',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#b2bec3" stroke="#636e72" stroke-width="2"/><text x="25" y="31" text-anchor="middle" font-size="16" font-weight="bold">Zn</text></svg>'},
+'Mg':{n:'镁',c:'metal',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#dfe6e9" stroke="#636e72" stroke-width="2"/><text x="25" y="31" text-anchor="middle" font-size="16" font-weight="bold">Mg</text></svg>'},
+'Fe':{n:'铁',c:'metal',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#a29bfe" stroke="#5f4d8a" stroke-width="2"/><text x="25" y="31" text-anchor="middle" font-size="16" font-weight="bold" fill="#fff">Fe</text></svg>'},
+'Cu':{n:'铜',c:'metal',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#e17055" stroke="#a34328" stroke-width="2"/><text x="25" y="31" text-anchor="middle" font-size="16" font-weight="bold" fill="#fff">Cu</text></svg>'},
+'Na2CO3':{n:'碳酸钠',c:'salt',s:'<svg width="86" height="56" viewBox="0 0 120 75"><circle cx="12" cy="37" r="11" fill="#a29bfe" stroke="#6c5ce7" stroke-width="2"/><text x="12" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Na</text><text x="12" y="50" text-anchor="middle" font-size="7" fill="#dfe6e9">+</text><circle cx="108" cy="37" r="11" fill="#a29bfe" stroke="#6c5ce7" stroke-width="2"/><text x="108" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Na</text><text x="108" y="50" text-anchor="middle" font-size="7" fill="#dfe6e9">+</text><line x1="60" y1="28" x2="60" y2="18" stroke="#e17055" stroke-width="1.5"/><line x1="53" y1="43" x2="46" y2="54" stroke="#e17055" stroke-width="1.5"/><line x1="67" y1="43" x2="74" y2="54" stroke="#e17055" stroke-width="1.5"/><circle cx="60" cy="37" r="9" fill="#2d3436" stroke="#636e72" stroke-width="2"/><text x="60" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="white">C</text><circle cx="60" cy="12" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="60" y="16" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text><circle cx="42" cy="60" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="42" y="64" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text><circle cx="78" cy="60" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="78" y="64" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text><text x="91" y="18" text-anchor="middle" font-size="8" fill="#fdcb6e">2-</text></svg>'},
+'CaCO3':{n:'碳酸钙',c:'salt',s:'<svg width="80" height="56" viewBox="0 0 110 75"><circle cx="14" cy="37" r="13" fill="#55efc4" stroke="#00b894" stroke-width="2"/><text x="14" y="40" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Ca</text><text x="14" y="52" text-anchor="middle" font-size="7" fill="#dfe6e9">2+</text><line x1="70" y1="28" x2="70" y2="18" stroke="#e17055" stroke-width="1.5"/><line x1="63" y1="43" x2="56" y2="54" stroke="#e17055" stroke-width="1.5"/><line x1="77" y1="43" x2="84" y2="54" stroke="#e17055" stroke-width="1.5"/><circle cx="70" cy="37" r="9" fill="#2d3436" stroke="#636e72" stroke-width="2"/><text x="70" y="41" text-anchor="middle" font-size="9" font-weight="bold" fill="white">C</text><circle cx="70" cy="12" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="70" y="16" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text><circle cx="52" cy="60" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="52" y="64" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text><circle cx="88" cy="60" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="88" y="64" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text></svg>'},
+'石蕊':{n:'紫色石蕊',c:'indicator',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#a55eea" stroke="#8854d0" stroke-width="2"/><text x="25" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">石蕊</text></svg>'},
+'酚酞':{n:'无色酚酞',c:'indicator',s:'<svg width="40" height="40" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#f5f6fa" stroke="#a4b0be" stroke-width="2"/><text x="25" y="29" text-anchor="middle" font-size="9" font-weight="bold">酚酞</text></svg>'},
+'H2O':{n:'水',c:'solvent',s:'<svg width="40" height="38" viewBox="0 0 50 50"><circle cx="25" cy="28" r="14" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><circle cx="13" cy="18" r="6" fill="#ffd700" stroke="#b8860b"/><circle cx="37" cy="18" r="6" fill="#ffd700" stroke="#b8860b"/><text x="25" y="32" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">H₂O</text></svg>'},
+'NaCl':{n:'氯化钠',c:'p',s:'<svg width="46" height="40" viewBox="0 0 60 50"><circle cx="18" cy="25" r="13" fill="#a29bfe" stroke="#6c5ce7"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Na</text><circle cx="42" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="42" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl</text></svg>'},
+'KCl':{n:'氯化钾',c:'p',s:'<svg width="46" height="40" viewBox="0 0 60 50"><circle cx="18" cy="25" r="13" fill="#fd79a8" stroke="#e84393"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">K</text><circle cx="42" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="42" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl</text></svg>'},
+'CaCl2':{n:'氯化钙',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#55efc4" stroke="#00b894"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Ca</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl₂</text></svg>'},
+'CaSO4':{n:'硫酸钙',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#55efc4" stroke="#00b894"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Ca</text><circle cx="50" cy="25" r="14" fill="#ffe066" stroke="#cc9900"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">SO₄</text></svg>'},
+'Na2SO4':{n:'硫酸钠',c:'p',s:'<svg width="60" height="40" viewBox="0 0 80 50"><circle cx="14" cy="25" r="11" fill="#a29bfe" stroke="#6c5ce7"/><text x="14" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">Na</text><circle cx="40" cy="25" r="11" fill="#a29bfe" stroke="#6c5ce7"/><text x="40" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">Na</text><circle cx="66" cy="25" r="13" fill="#ffe066" stroke="#cc9900"/><text x="66" y="29" text-anchor="middle" font-size="9" font-weight="bold">SO₄</text></svg>'},
+'ZnCl2':{n:'氯化锌',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#b2bec3" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Zn</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl₂</text></svg>'},
+'ZnSO4':{n:'硫酸锌',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#b2bec3" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Zn</text><circle cx="50" cy="25" r="14" fill="#ffe066" stroke="#cc9900"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">SO₄</text></svg>'},
+'MgCl2':{n:'氯化镁',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Mg</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl₂</text></svg>'},
+'MgSO4':{n:'硫酸镁',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Mg</text><circle cx="50" cy="25" r="14" fill="#ffe066" stroke="#cc9900"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">SO₄</text></svg>'},
+'FeCl2':{n:'氯化亚铁',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#a29bfe" stroke="#5f4d8a"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Fe</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">Cl₂</text></svg>'},
+'FeSO4':{n:'硫酸亚铁',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#a29bfe" stroke="#5f4d8a"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Fe</text><circle cx="50" cy="25" r="14" fill="#ffe066" stroke="#cc9900"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold">SO₄</text></svg>'},
+'H2':{n:'氢气',c:'g',s:'<svg width="38" height="36" viewBox="0 0 50 50"><circle cx="16" cy="25" r="10" fill="#ffd700" stroke="#b8860b"/><text x="16" y="29" text-anchor="middle" font-size="11" font-weight="bold">H</text><circle cx="34" cy="25" r="10" fill="#ffd700" stroke="#b8860b"/><text x="34" y="29" text-anchor="middle" font-size="11" font-weight="bold">H</text></svg>'},
+'H2CO3':{n:'碳酸',c:'acid',s:'<svg width="66" height="52" viewBox="0 0 90 70"><line x1="38" y1="35" x2="38" y2="18" stroke="#999" stroke-width="1.5"/><line x1="30" y1="35" x2="16" y2="50" stroke="#999" stroke-width="1.5"/><line x1="46" y1="35" x2="60" y2="50" stroke="#999" stroke-width="1.5"/><line x1="8" y1="58" x2="16" y2="58" stroke="#999" stroke-width="1.5"/><line x1="60" y1="58" x2="68" y2="58" stroke="#999" stroke-width="1.5"/><circle cx="38" cy="35" r="10" fill="#2d3436" stroke="#000" stroke-width="2"/><text x="38" y="39" text-anchor="middle" font-size="10" font-weight="bold" fill="white">C</text><circle cx="38" cy="12" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="38" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="16" cy="58" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="16" y="62" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="60" cy="58" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="60" y="62" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="5" cy="58" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="5" y="62" text-anchor="middle" font-size="8" font-weight="bold" fill="#5d4e00">H</text><circle cx="73" cy="58" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="73" y="62" text-anchor="middle" font-size="8" font-weight="bold" fill="#5d4e00">H</text></svg>'},
+'H3PO4':{n:'磷酸',c:'acid',s:'<svg width="72" height="72" viewBox="0 0 100 100"><line x1="50" y1="38" x2="50" y2="22" stroke="#999" stroke-width="1.5"/><line x1="38" y1="50" x2="22" y2="50" stroke="#999" stroke-width="1.5"/><line x1="62" y1="50" x2="78" y2="50" stroke="#999" stroke-width="1.5"/><line x1="50" y1="62" x2="50" y2="78" stroke="#999" stroke-width="1.5"/><line x1="50" y1="12" x2="50" y2="6" stroke="#999" stroke-width="1.5"/><line x1="12" y1="50" x2="6" y2="50" stroke="#999" stroke-width="1.5"/><line x1="88" y1="50" x2="94" y2="50" stroke="#999" stroke-width="1.5"/><circle cx="50" cy="50" r="12" fill="#ff7675" stroke="#d63031" stroke-width="2"/><text x="50" y="55" text-anchor="middle" font-size="11" font-weight="bold" fill="white">P</text><circle cx="50" cy="18" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="22" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="18" cy="50" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="18" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="82" cy="50" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="82" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="50" cy="82" r="8" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="86" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="50" cy="6" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="50" y="10" text-anchor="middle" font-size="8" font-weight="bold" fill="#5d4e00">H</text><circle cx="5" cy="50" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="5" y="54" text-anchor="middle" font-size="8" font-weight="bold" fill="#5d4e00">H</text><circle cx="95" cy="50" r="6" fill="#ffd700" stroke="#b8860b" stroke-width="1.5"/><text x="95" y="54" text-anchor="middle" font-size="8" font-weight="bold" fill="#5d4e00">H</text></svg>'},
+'Al(OH)3':{n:'氢氧化铝',c:'base',s:'<svg width="64" height="56" viewBox="0 0 90 70"><circle cx="20" cy="35" r="13" fill="#dfe6e9" stroke="#34495e" stroke-width="2"/><text x="20" y="39" text-anchor="middle" font-size="10" font-weight="bold">Al</text><circle cx="50" cy="14" r="10" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="50" y="18" text-anchor="middle" font-size="8" font-weight="bold" fill="#fff">OH</text><circle cx="72" cy="35" r="10" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="72" y="39" text-anchor="middle" font-size="8" font-weight="bold" fill="#fff">OH</text><circle cx="50" cy="56" r="10" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="50" y="60" text-anchor="middle" font-size="8" font-weight="bold" fill="#fff">OH</text></svg>'},
+'Mg(OH)2':{n:'氢氧化镁',c:'base',s:'<svg width="58" height="48" viewBox="0 0 80 60"><circle cx="20" cy="30" r="13" fill="#dfe6e9" stroke="#636e72" stroke-width="2"/><text x="20" y="34" text-anchor="middle" font-size="10" font-weight="bold">Mg</text><circle cx="52" cy="18" r="11" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="52" y="22" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">OH</text><circle cx="52" cy="42" r="11" fill="#74b9ff" stroke="#0984e3" stroke-width="2"/><text x="52" y="46" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">OH</text></svg>'},
+'NaNO3':{n:'硝酸钠',c:'p',s:'<svg width="56" height="40" viewBox="0 0 78 50"><circle cx="18" cy="25" r="13" fill="#a29bfe" stroke="#6c5ce7"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Na</text><circle cx="50" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="50" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">NO₃</text></svg>'},
+'KNO3':{n:'硝酸钾',c:'p',s:'<svg width="56" height="40" viewBox="0 0 78 50"><circle cx="18" cy="25" r="13" fill="#fd79a8" stroke="#e84393"/><text x="18" y="29" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">K</text><circle cx="50" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="50" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">NO₃</text></svg>'},
+'Ca(NO3)2':{n:'硝酸钙',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#55efc4" stroke="#00b894"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Ca</text><circle cx="56" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(NO₃)₂</text></svg>'},
+'Zn(NO3)2':{n:'硝酸锌',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#b2bec3" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Zn</text><circle cx="56" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(NO₃)₂</text></svg>'},
+'Mg(NO3)2':{n:'硝酸镁',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Mg</text><circle cx="56" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(NO₃)₂</text></svg>'},
+'Fe(NO3)2':{n:'硝酸亚铁',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#a29bfe" stroke="#5f4d8a"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">Fe</text><circle cx="56" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(NO₃)₂</text></svg>'},
+'AlCl3':{n:'氯化铝',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#34495e"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Al</text><circle cx="50" cy="25" r="14" fill="#7ed957" stroke="#3a8e1f"/><text x="50" y="29" text-anchor="middle" font-size="9" font-weight="bold">Cl₃</text></svg>'},
+'Al2(SO4)3':{n:'硫酸铝',c:'p',s:'<svg width="68" height="40" viewBox="0 0 90 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#34495e"/><text x="18" y="29" text-anchor="middle" font-size="9" font-weight="bold">Al₂</text><circle cx="60" cy="25" r="14" fill="#ffe066" stroke="#cc9900"/><text x="60" y="29" text-anchor="middle" font-size="9" font-weight="bold">(SO₄)₃</text></svg>'},
+'Al(NO3)3':{n:'硝酸铝',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#34495e"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Al</text><circle cx="56" cy="25" r="14" fill="#74b9ff" stroke="#0984e3"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(NO₃)₃</text></svg>'},
+'Na3PO4':{n:'磷酸钠',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="14" cy="25" r="11" fill="#a29bfe" stroke="#6c5ce7"/><text x="14" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">Na₃</text><circle cx="56" cy="25" r="14" fill="#ff7675" stroke="#d63031"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">PO₄</text></svg>'},
+'Ca3(PO4)2':{n:'磷酸钙',c:'p',s:'<svg width="68" height="40" viewBox="0 0 90 50"><circle cx="14" cy="25" r="11" fill="#55efc4" stroke="#00b894"/><text x="14" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">Ca₃</text><circle cx="60" cy="25" r="14" fill="#ff7675" stroke="#d63031"/><text x="60" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">(PO₄)₂</text></svg>'},
+'MgCO3':{n:'碳酸镁',c:'p',s:'<svg width="56" height="40" viewBox="0 0 78 50"><circle cx="18" cy="25" r="13" fill="#dfe6e9" stroke="#636e72"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold">Mg</text><circle cx="54" cy="25" r="14" fill="#fdcb6e" stroke="#e17055"/><text x="54" y="29" text-anchor="middle" font-size="9" font-weight="bold">CO₃</text></svg>'},
+'Na2O':{n:'氧化钠',c:'oxide',s:'<svg width="56" height="42" viewBox="0 0 75 55"><line x1="18" y1="27" x2="32" y2="27" stroke="#999" stroke-width="1.5"/><line x1="46" y1="27" x2="57" y2="27" stroke="#999" stroke-width="1.5"/><circle cx="12" cy="27" r="11" fill="#a29bfe" stroke="#6c5ce7" stroke-width="2"/><text x="12" y="31" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Na</text><circle cx="39" cy="27" r="11" fill="#ff7675" stroke="#d63031" stroke-width="2"/><text x="39" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="white">O</text><circle cx="63" cy="27" r="11" fill="#a29bfe" stroke="#6c5ce7" stroke-width="2"/><text x="63" y="31" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Na</text></svg>'},
+'CuO':{n:'氧化铜',c:'oxide',s:'<svg width="48" height="42" viewBox="0 0 65 55"><line x1="26" y1="27" x2="42" y2="27" stroke="#999" stroke-width="1.5"/><circle cx="22" cy="27" r="14" fill="#e17055" stroke="#a34328" stroke-width="2"/><text x="22" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Cu</text><circle cx="50" cy="27" r="10" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="white">O</text></svg>'},
+'Fe2O3':{n:'氧化铁',c:'oxide',s:'<svg width="72" height="56" viewBox="0 0 100 75"><line x1="28" y1="38" x2="44" y2="28" stroke="#999" stroke-width="1.5"/><line x1="72" y1="38" x2="56" y2="28" stroke="#999" stroke-width="1.5"/><line x1="28" y1="38" x2="44" y2="52" stroke="#999" stroke-width="1.5"/><line x1="72" y1="38" x2="56" y2="52" stroke="#999" stroke-width="1.5"/><circle cx="22" cy="38" r="13" fill="#a29bfe" stroke="#5f4d8a" stroke-width="2"/><text x="22" y="42" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Fe</text><circle cx="78" cy="38" r="13" fill="#a29bfe" stroke="#5f4d8a" stroke-width="2"/><text x="78" y="42" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Fe</text><circle cx="50" cy="22" r="9" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="26" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="50" cy="58" r="9" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="62" text-anchor="middle" font-size="9" font-weight="bold" fill="white">O</text><circle cx="50" cy="8" r="7" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="12" text-anchor="middle" font-size="8" font-weight="bold" fill="white">O</text></svg>'},
+'CaO':{n:'氧化钙',c:'oxide',s:'<svg width="50" height="42" viewBox="0 0 68 55"><line x1="28" y1="27" x2="42" y2="27" stroke="#999" stroke-width="1.5"/><circle cx="23" cy="27" r="14" fill="#55efc4" stroke="#00b894" stroke-width="2"/><text x="23" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Ca</text><circle cx="51" cy="27" r="10" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="51" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="white">O</text></svg>'},
+'MgO':{n:'氧化镁',c:'oxide',s:'<svg width="48" height="42" viewBox="0 0 65 55"><line x1="26" y1="27" x2="42" y2="27" stroke="#999" stroke-width="1.5"/><circle cx="21" cy="27" r="14" fill="#dfe6e9" stroke="#636e72" stroke-width="2"/><text x="21" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="#2d3436">Mg</text><circle cx="50" cy="27" r="10" fill="#ff7675" stroke="#d63031" stroke-width="1.5"/><text x="50" y="31" text-anchor="middle" font-size="10" font-weight="bold" fill="white">O</text></svg>'},
+'CuCl2':{n:'氯化铜',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#0984e3" stroke="#003366" stroke-width="2"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Cu</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f" stroke-width="2"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a4d05">Cl₂</text></svg>'},
+'FeCl3':{n:'氯化铁',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#e17055" stroke="#a34328" stroke-width="2"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Fe</text><circle cx="50" cy="25" r="13" fill="#7ed957" stroke="#3a8e1f" stroke-width="2"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a4d05">Cl₃</text></svg>'},
+'Fe2(SO4)3':{n:'硫酸铁',c:'p',s:'<svg width="64" height="40" viewBox="0 0 86 50"><circle cx="18" cy="25" r="13" fill="#e17055" stroke="#a34328" stroke-width="2"/><text x="18" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Fe₂</text><circle cx="56" cy="25" r="14" fill="#ffe066" stroke="#cc9900" stroke-width="2"/><text x="56" y="29" text-anchor="middle" font-size="9" font-weight="bold" fill="#5d4e00">(SO₄)₃</text></svg>'},
+'CuSO4':{n:'硫酸铜',c:'p',s:'<svg width="50" height="40" viewBox="0 0 70 50"><circle cx="18" cy="25" r="13" fill="#0984e3" stroke="#003366" stroke-width="2"/><text x="18" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="white">Cu</text><circle cx="50" cy="25" r="14" fill="#ffe066" stroke="#cc9900" stroke-width="2"/><text x="50" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#5d4e00">SO₄</text></svg>'},
+'CO2':{n:'二氧化碳',c:'g',s:'<svg width="50" height="36" viewBox="0 0 70 50"><circle cx="35" cy="25" r="11" fill="#2d3436"/><text x="35" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">C</text><circle cx="14" cy="25" r="9" fill="#ff7675" stroke="#d63031"/><text x="14" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">O</text><circle cx="56" cy="25" r="9" fill="#ff7675" stroke="#d63031"/><text x="56" y="29" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">O</text></svg>'}
+};
+
+const R=[
+{r:['HCl','NaOH'],p:[['NaCl',1],['H2O',1]],t:'🤝 中和反应',cl:'#9b59b6',e:'HCl + NaOH → NaCl + H2O',x:'🤝 经典中和反应！H⁺和OH⁻结合成水，剩下Na⁺和Cl⁻形成食盐。生活应用：胃药中和胃酸就是这个原理。'},
+{r:['H2SO4','NaOH'],p:[['Na2SO4',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2SO4 + 2NaOH → Na2SO4 + 2H2O',x:'🤝 中和反应！硫酸有2个H⁺，需要2个NaOH配对。注意系数：1硫酸+2氢氧化钠→1硫酸钠+2水。这就是方程式要"配平"的原因。'},
+{r:['HCl','KOH'],p:[['KCl',1],['H2O',1]],t:'🤝 中和反应',cl:'#9b59b6',e:'HCl + KOH → KCl + H2O',x:'🤝 中和反应！KOH是强碱，规律和NaOH一样：H⁺ + OH⁻ → H₂O。生成的KCl是氯化钾，常用作低钠盐。'},
+{r:['HCl','Ca(OH)2'],p:[['CaCl2',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'2HCl + Ca(OH)2 → CaCl2 + 2H2O',x:'🤝 中和反应！熟石灰有2个OH⁻，所以需要2个HCl。这就是为什么墙壁刷的石灰水遇到酸雨会被腐蚀。'},
+{r:['H2SO4','Ca(OH)2'],p:[['CaSO4',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2SO4 + Ca(OH)2 → CaSO4 + 2H2O',x:'🤝 工业应用！用便宜的石灰乳中和工厂排出的硫酸废水，保护环境。生成的硫酸钙就是石膏。'},
+{r:['HCl','Zn'],p:[['ZnCl2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HCl + Zn → ZnCl2 + H2↑',x:'⚡ 置换反应！锌比氢活泼，把H⁺"踢出来"自己进去。冒大量氢气泡(H₂↑)，这是经典的实验室制氢方法。'},
+{r:['HCl','Mg'],p:[['MgCl2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HCl + Mg → MgCl2 + H2↑',x:'⚡ 置换反应！镁是非常活泼的金属，反应剧烈，会快速冒氢气并发热。'},
+{r:['HCl','Fe'],p:[['FeCl2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HCl + Fe → FeCl2 + H2↑',x:'⚡ 置换反应！⚠️ 注意：生成的是氯化亚铁(FeCl₂，浅绿色)，不是FeCl₃！这就是为什么铁制品遇酸会被腐蚀。'},
+{r:['H2SO4','Zn'],p:[['ZnSO4',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'H2SO4 + Zn → ZnSO4 + H2↑',x:'⚡ 置换反应！稀硫酸+锌，是实验室制取氢气的最常用方法。气泡比HCl+Zn更平稳易控制。'},
+{r:['H2SO4','Mg'],p:[['MgSO4',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'H2SO4 + Mg → MgSO4 + H2↑',x:'⚡ 置换反应！生成硫酸镁（泻盐主要成分）和氢气。'},
+{r:['H2SO4','Fe'],p:[['FeSO4',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'H2SO4 + Fe → FeSO4 + H2↑',x:'⚡ 置换反应！生成硫酸亚铁（+2价）和氢气。硫酸亚铁是常见的补铁药物原料。'},
+{r:['HCl','Cu'],p:[],t:'🚫 不反应',cl:'#7f8c8d',e:'HCl + Cu → 不反应',x:'🚫 铜排在氢的后面，不够活泼，无法置换H⁺。\n\n📚 金属活动性顺序：\nK Ca Na Mg Al Zn Fe Sn Pb (H) Cu Hg Ag Pt Au\n\n💡 规则：氢前面的金属能和酸反应，后面的不能！这就是为什么铜锅能盛装醋。'},
+{r:['H2SO4','Cu'],p:[],t:'🚫 不反应',cl:'#7f8c8d',e:'H2SO4 + Cu → 不反应',x:'🚫 铜排在氢后面，不能和稀硫酸反应。注意：浓硫酸有强氧化性能反应（高中知识），但稀硫酸不行！'},
+{r:['HCl','Na2CO3'],p:[['NaCl',2],['H2O',1],['CO2',1]],t:'🌀 复分解反应',cl:'#f39c12',e:'2HCl + Na2CO3 → 2NaCl + H2O + CO2↑',x:'🌀 复分解反应！酸+碳酸盐 → 盐+水+CO₂。冒大量气泡。生活应用：用小苏打发面就是利用这个原理——遇酸产生CO₂让面团蓬松。'},
+{r:['HCl','CaCO3'],p:[['CaCl2',1],['H2O',1],['CO2',1]],t:'🌀 复分解反应',cl:'#f39c12',e:'2HCl + CaCO3 → CaCl2 + H2O + CO2↑',x:'🌀 复分解反应！碳酸钙是石灰石、鸡蛋壳、贝壳的主要成分。这就是为什么把鸡蛋壳泡在白醋里会冒泡——醋酸+CaCO₃→CO₂！酸雨腐蚀大理石建筑也是此反应。'},
+{r:['H2SO4','Na2CO3'],p:[['Na2SO4',1],['H2O',1],['CO2',1]],t:'🌀 复分解反应',cl:'#f39c12',e:'H2SO4 + Na2CO3 → Na2SO4 + H2O + CO2↑',x:'🌀 复分解反应！硫酸+碳酸钠也产生CO₂。所有"酸+碳酸盐"都遵循这规律：盐+水+CO₂↑。'},
+{r:['HCl','石蕊'],p:[],t:'🌈 显色反应',cl:'#e74c3c',e:'紫色石蕊 + 酸 → 变红色',x:'🎨 石蕊遇酸变红！记忆口诀："酸红碱蓝石蕊变"——酸让石蕊脸红，碱让石蕊忧郁变蓝。',v:'red'},
+{r:['H2SO4','石蕊'],p:[],t:'🌈 显色反应',cl:'#e74c3c',e:'紫色石蕊 + 酸 → 变红色',x:'🎨 任何酸都能让石蕊变红！硫酸也不例外。石蕊试纸是检测酸碱的常用工具。',v:'red'},
+{r:['HNO3','石蕊'],p:[],t:'🌈 显色反应',cl:'#e74c3c',e:'紫色石蕊 + 酸 → 变红色',x:'🎨 硝酸也是酸，让石蕊变红。',v:'red'},
+//峇株吧辖华仁中学蔡逸众制作
+{r:['NaOH','石蕊'],p:[],t:'🌈 显色反应',cl:'#3498db',e:'紫色石蕊 + 碱 → 变蓝色',x:'🎨 石蕊遇碱变蓝！蓝色是碱的"标志色"。看到石蕊变蓝，就说明溶液是碱性的。',v:'blue'},
+{r:['KOH','石蕊'],p:[],t:'🌈 显色反应',cl:'#3498db',e:'紫色石蕊 + 碱 → 变蓝色',x:'🎨 KOH也是强碱，同样让石蕊变蓝。所有碱都有这个特性。',v:'blue'},
+{r:['Ca(OH)2','石蕊'],p:[],t:'🌈 显色反应',cl:'#3498db',e:'紫色石蕊 + 碱 → 变蓝色',x:'🎨 熟石灰（澄清石灰水）也是碱性的，让石蕊变蓝。',v:'blue'},
+{r:['HCl','酚酞'],p:[],t:'🌈 显色反应',cl:'#bdc3c7',e:'酚酞 + 酸 → 保持无色',x:'🎨 酚酞遇酸不变色！酚酞很"挑剔"——只在碱性环境下变红，遇酸或中性它就装作无色。所以它常用来检测碱。',v:'clear'},
+{r:['H2SO4','酚酞'],p:[],t:'🌈 显色反应',cl:'#bdc3c7',e:'酚酞 + 酸 → 保持无色',x:'🎨 酚酞遇酸保持无色，对所有酸都是这样。',v:'clear'},
+{r:['NaOH','酚酞'],p:[],t:'🌈 显色反应',cl:'#e84393',e:'酚酞 + 碱 → 变红色',x:'🎨 酚酞遇碱变红！⚠️ 注意：酚酞和石蕊的"红"完全相反方向！\n• 酚酞遇碱变红，遇酸无色\n• 石蕊遇酸变红，遇碱变蓝',v:'pink'},
+{r:['KOH','酚酞'],p:[],t:'🌈 显色反应',cl:'#e84393',e:'酚酞 + 碱 → 变红色',x:'🎨 KOH也让酚酞变红，因为它是碱。',v:'pink'},
+{r:['Ca(OH)2','酚酞'],p:[],t:'🌈 显色反应',cl:'#e84393',e:'酚酞 + 碱 → 变红色',x:'🎨 澄清石灰水也是碱，让酚酞变红。实验室常用酚酞来检测Ca(OH)₂。',v:'pink'}
+,
+
+// ========== HNO3 + 碱（中和反应）==========
+{r:['HNO3','NaOH'],p:[['NaNO3',1],['H2O',1]],t:'🤝 中和反应',cl:'#9b59b6',e:'HNO3 + NaOH → NaNO3 + H2O',x:'🤝 中和反应！硝酸+氢氧化钠生成硝酸钠和水。硝酸钠是常见化肥（钠硝石）。'},
+{r:['HNO3','KOH'],p:[['KNO3',1],['H2O',1]],t:'🤝 中和反应',cl:'#9b59b6',e:'HNO3 + KOH → KNO3 + H2O',x:'🤝 中和反应！生成的KNO3（硝酸钾）是重要的复合肥料，也是黑火药的原料之一。'},
+{r:['HNO3','Ca(OH)2'],p:[['Ca(NO3)2',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'2HNO3 + Ca(OH)2 → Ca(NO3)2 + 2H2O',x:'🤝 中和反应！注意系数：2HNO3配Ca(OH)2。生成的硝酸钙是优质氮肥和钙肥。'},
+{r:['HNO3','Mg(OH)2'],p:[['Mg(NO3)2',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'2HNO3 + Mg(OH)2 → Mg(NO3)2 + 2H2O',x:'🤝 中和反应！氢氧化镁是常见胃药"胃舒平"的成分，可中和过多胃酸。'},
+{r:['HNO3','Al(OH)3'],p:[['Al(NO3)3',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'3HNO3 + Al(OH)3 → Al(NO3)3 + 3H2O',x:'🤝 中和反应！氢氧化铝是另一种常见胃药成分，遇酸生成铝盐和水。注意系数：3配1。'},
+
+// ========== HNO3 + 活泼金属（教学简化版）==========
+{r:['HNO3','Zn'],p:[['Zn(NO3)2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HNO3 + Zn → Zn(NO3)2 + H2↑',x:'⚡ 置换反应（教学简化）！锌比氢活泼，可置换出氢气。⚠️ 注意：稀硝酸与金属的真实反应较复杂（高中会学到生成NO/NO2），初中阶段简化为生成H2来理解置换反应原理。'},
+{r:['HNO3','Mg'],p:[['Mg(NO3)2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HNO3 + Mg → Mg(NO3)2 + H2↑',x:'⚡ 置换反应（教学简化）！镁是活泼金属，反应剧烈。⚠️ 真实情况下硝酸有强氧化性，反应比这复杂，但初中阶段先这样理解。'},
+{r:['HNO3','Fe'],p:[['Fe(NO3)2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2HNO3 + Fe → Fe(NO3)2 + H2↑',x:'⚡ 置换反应（教学简化）！铁置换出氢气，生成硝酸亚铁(+2价)。'},
+{r:['HNO3','Cu'],p:[],t:'🚫 不反应',cl:'#7f8c8d',e:'稀HNO3 + Cu → 不反应（按金属活动性）',x:'🚫 按照金属活动性顺序，铜在氢之后，不能从酸中置换氢气。⚠️ 高中知识：浓硝酸/稀硝酸与铜会发生氧化还原反应（生成NO2或NO），但这超出初中范围。'},
+
+// ========== HNO3 + 碳酸盐 ==========
+{r:['HNO3','Na2CO3'],p:[['NaNO3',2],['H2O',1],['CO2',1]],t:'🌀 复分解反应',cl:'#f39c12',e:'2HNO3 + Na2CO3 → 2NaNO3 + H2O + CO2↑',x:'🌀 复分解反应！酸+碳酸盐 → 盐+水+CO2，无论什么酸都遵循这个规律。'},
+{r:['HNO3','CaCO3'],p:[['Ca(NO3)2',1],['H2O',1],['CO2',1]],t:'🌀 复分解反应',cl:'#f39c12',e:'2HNO3 + CaCO3 → Ca(NO3)2 + H2O + CO2↑',x:'🌀 复分解反应！这就是为什么酸雨（含硝酸）会腐蚀大理石、汉白玉建筑（碳酸钙）。'},
+
+// ========== HNO3 + 指示剂 ==========
+{r:['HNO3','酚酞'],p:[],t:'🌈 显色反应',cl:'#bdc3c7',e:'酚酞 + 酸 → 保持无色',x:'🎨 酚酞遇酸不变色！硝酸是酸，所以保持无色。',v:'clear'},
+
+// ========== Mg(OH)2 系列反应 ==========
+{r:['HCl','Mg(OH)2'],p:[['MgCl2',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'2HCl + Mg(OH)2 → MgCl2 + 2H2O',x:'🤝 中和反应！氢氧化镁是温和的胃药（如"胃舒平"），中和盐酸（胃酸）保护胃。'},
+{r:['H2SO4','Mg(OH)2'],p:[['MgSO4',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2SO4 + Mg(OH)2 → MgSO4 + 2H2O',x:'🤝 中和反应！生成的硫酸镁就是"泻盐"的主要成分。'},
+{r:['Mg(OH)2','酚酞'],p:[],t:'🌈 显色反应',cl:'#e84393',e:'酚酞 + 碱 → 变红色',x:'🎨 氢氧化镁是碱，让酚酞变红。但因为它是难溶碱，颜色会比较浅。',v:'pink'},
+{r:['Mg(OH)2','石蕊'],p:[],t:'🌈 显色反应',cl:'#3498db',e:'紫色石蕊 + 碱 → 变蓝色',x:'🎨 Mg(OH)2也是碱，让石蕊变蓝。',v:'blue'},
+
+// ========== Al(OH)3 系列反应 ==========
+{r:['HCl','Al(OH)3'],p:[['AlCl3',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'3HCl + Al(OH)3 → AlCl3 + 3H2O',x:'🤝 中和反应！氢氧化铝是著名的胃药成分（如"复方氢氧化铝片"）。注意系数：3HCl配1Al(OH)3，因为铝有3个OH。'},
+{r:['H2SO4','Al(OH)3'],p:[['Al2(SO4)3',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'3H2SO4 + 2Al(OH)3 → Al2(SO4)3 + 6H2O',x:'🤝 中和反应！生成的硫酸铝是常见的净水剂。注意配平比较复杂。'},
+{r:['Al(OH)3','酚酞'],p:[],t:'🌈 显色反应',cl:'#e84393',e:'酚酞 + 碱 → 变红色（较浅）',x:'🎨 氢氧化铝是难溶弱碱，让酚酞变浅红色。',v:'pink'},
+{r:['Al(OH)3','石蕊'],p:[],t:'🌈 显色反应',cl:'#3498db',e:'紫色石蕊 + 碱 → 变蓝色',x:'🎨 Al(OH)3也是碱，让石蕊变蓝。',v:'blue'},
+
+// ========== H2CO3（碳酸）系列 ==========
+{r:['H2CO3','NaOH'],p:[['Na2CO3',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2CO3 + 2NaOH → Na2CO3 + 2H2O',x:'🤝 中和反应！碳酸虽然弱，但也能和强碱反应。这就是为什么碳酸饮料会和小苏打中和。'},
+{r:['H2CO3','KOH'],p:[['Na2CO3',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2CO3 + 2KOH → K2CO3 + 2H2O',x:'🤝 中和反应！生成的K2CO3（碳酸钾）是常见的化工原料。'},
+{r:['H2CO3','Ca(OH)2'],p:[['CaCO3',1],['H2O',2]],t:'🤝 中和反应',cl:'#9b59b6',e:'H2CO3 + Ca(OH)2 → CaCO3↓ + 2H2O',x:'🤝 经典反应！这就是为什么向澄清石灰水中通CO2会变浑浊（生成不溶的CaCO3）！实验室检测CO2的常用方法。'},
+{r:['H2CO3','石蕊'],p:[],t:'🌈 显色反应',cl:'#e74c3c',e:'紫色石蕊 + 酸 → 变红色',x:'🎨 碳酸是弱酸，但也能让石蕊变红（颜色较浅）。可乐为什么是酸性？因为含碳酸。',v:'red'},
+{r:['H2CO3','酚酞'],p:[],t:'🌈 显色反应',cl:'#bdc3c7',e:'酚酞 + 酸 → 保持无色',x:'🎨 碳酸遇酚酞不变色。',v:'clear'},
+
+// ========== H3PO4（磷酸）系列 ==========
+{r:['H3PO4','NaOH'],p:[['Na3PO4',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'H3PO4 + 3NaOH → Na3PO4 + 3H2O',x:'🤝 中和反应！磷酸有3个H，需要3个NaOH来配对。生成的磷酸钠用于洗涤剂、水处理。'},
+{r:['H3PO4','KOH'],p:[['Na3PO4',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'H3PO4 + 3KOH → K3PO4 + 3H2O',x:'🤝 中和反应！磷酸钾是优质磷钾复合肥。'},
+{r:['H3PO4','Ca(OH)2'],p:[['Ca3(PO4)2',1],['H2O',3]],t:'🤝 中和反应',cl:'#9b59b6',e:'2H3PO4 + 3Ca(OH)2 → Ca3(PO4)2 + 6H2O',x:'🤝 中和反应！生成的Ca3(PO4)2（磷酸钙）是骨头和牙齿的主要成分！配平复杂：2:3:1:6。'},
+{r:['H3PO4','Mg'],p:[['Mg(NO3)2',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2H3PO4 + 3Mg → Mg3(PO4)2 + 3H2↑',x:'⚡ 置换反应！磷酸+活泼金属也产生氢气。可乐（含磷酸）能溶解小铁钉就是这个原理。'},
+{r:['H3PO4','Zn'],p:[['ZnSO4',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'2H3PO4 + 3Zn → Zn3(PO4)2 + 3H2↑',x:'⚡ 置换反应！锌+磷酸生成磷酸锌和氢气。磷酸锌常用于防锈涂料。'},
+{r:['H3PO4','石蕊'],p:[],t:'🌈 显色反应',cl:'#e74c3c',e:'紫色石蕊 + 酸 → 变红色',x:'🎨 磷酸也是酸，让石蕊变红。可乐含磷酸，所以是酸性饮料。',v:'red'},
+{r:['H3PO4','酚酞'],p:[],t:'🌈 显色反应',cl:'#bdc3c7',e:'酚酞 + 酸 → 保持无色',x:'🎨 磷酸遇酚酞不变色。',v:'clear'},
+
+// ========== H2CO3 + 金属（碳酸是弱酸，反应弱）==========
+{r:['H2CO3','Mg'],p:[['MgCO3',1],['H2',1]],t:'⚡ 置换反应',cl:'#e74c3c',e:'H2CO3 + Mg → MgCO3 + H2↑',x:'⚡ 置换反应（弱反应）！碳酸是弱酸，与镁反应较慢，但仍能产生少量氢气。'}
+//Made by ecchua79
+,
+// ========== 金属氧化物 + 酸 ==========
+{r:['CuO','HCl'],p:[['CuCl2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#0984e3',e:'CuO + 2HCl → CuCl2 + H2O',x:'⚗️ 碱性氧化物与酸反应！黑色的CuO溶于盐酸，溶液变成蓝绿色（CuCl₂溶液）。生活应用：铜制品表面的黑色氧化层可以用盐酸清洗。规律：碱性氧化物+酸 → 盐+水',v:'teal'},
+{r:['CuO','H2SO4'],p:[['CuSO4',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#0984e3',e:'CuO + H2SO4 → CuSO4 + H2O',x:'⚗️ CuO溶于硫酸，生成蓝色的硫酸铜溶液（波尔多液的主要成分！农业上用来防治植物病害）。溶液颜色从黑色变成蓝色，视觉效果非常直观。',v:'teal'},
+{r:['CuO','HNO3'],p:[['Cu(NO3)2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#0984e3',e:'CuO + 2HNO3 → Cu(NO3)2 + H2O',x:'⚗️ CuO溶于硝酸，生成硝酸铜（蓝色）和水。规律不变：碱性氧化物+酸 → 盐+水。',v:'teal'},
+{r:['Fe2O3','HCl'],p:[['FeCl3',2],['H2O',3]],t:'⚗️ 碱性氧化物+酸',cl:'#e17055',e:'Fe2O3 + 6HCl → 2FeCl3 + 3H2O',x:'⚗️ 铁锈（Fe₂O₃）溶于盐酸！红棕色铁锈消失，溶液变成黄棕色（FeCl₃溶液）。这就是工业上除铁锈的原理——用盐酸清洗铁制品。注意配平：1:6→2:3',v:'amber'},
+{r:['Fe2O3','H2SO4'],p:[['Fe2(SO4)3',1],['H2O',3]],t:'⚗️ 碱性氧化物+酸',cl:'#e17055',e:'Fe2O3 + 3H2SO4 → Fe2(SO4)3 + 3H2O',x:'⚗️ 铁锈溶于硫酸，生成硫酸铁（黄棕色）。工业上除锈、电镀前处理都用到这个反应。注意：生成的是硫酸铁(+3价)，不是硫酸亚铁。',v:'amber'},
+{r:['Fe2O3','HNO3'],p:[['Fe(NO3)3',2],['H2O',3]],t:'⚗️ 碱性氧化物+酸',cl:'#e17055',e:'Fe2O3 + 6HNO3 → 2Fe(NO3)3 + 3H2O',x:'⚗️ 氧化铁溶于硝酸，生成硝酸铁和水。同样是碱性氧化物+酸的规律。',v:'amber'},
+{r:['CaO','HCl'],p:[['CaCl2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#16a085',e:'CaO + 2HCl → CaCl2 + 2H2O',x:'⚗️ 氧化钙（生石灰）溶于盐酸！注意：CaO遇水会先生成Ca(OH)₂（放大量热），Ca(OH)₂再和酸反应。工业上常用石灰石（CaCO₃）加热分解得到CaO。'},
+{r:['CaO','H2SO4'],p:[['CaSO4',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#16a085',e:'CaO + H2SO4 → CaSO4 + H2O',x:'⚗️ CaO溶于硫酸生成硫酸钙（石膏）。有趣的是CaSO₄微溶，会在CaO表面形成保护层，阻碍进一步反应。'},
+{r:['CaO','H2O'],p:[['Ca(OH)2',1]],t:'🌊 氧化物+水',cl:'#e67e22',e:'CaO + H2O → Ca(OH)2 （放热！）',x:'🌊 著名的放热反应！生石灰遇水生成熟石灰，同时放出大量热。这就是为什么石灰包遇水会发烫。生成的Ca(OH)₂就是粉刷墙壁的石灰水原料。',v:'steam'},
+{r:['MgO','HCl'],p:[['MgCl2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#00b894',e:'MgO + 2HCl → MgCl2 + 2H2O',x:'⚗️ 氧化镁溶于盐酸，生成氯化镁和水。MgO是常见的碱性氧化物，也是耐火材料的重要成分（熔点极高）。'},
+{r:['MgO','H2SO4'],p:[['MgSO4',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#00b894',e:'MgO + H2SO4 → MgSO4 + H2O',x:'⚗️ 氧化镁溶于硫酸，生成硫酸镁（泻盐）。所有碱性氧化物+酸的规律都一样：碱性氧化物 + 酸 → 盐 + 水。'},
+{r:['MgO','HNO3'],p:[['Mg(NO3)2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#00b894',e:'MgO + 2HNO3 → Mg(NO3)2 + H2O',x:'⚗️ 碱性氧化物+酸规律的体现。生成硝酸镁和水。'}
+,
+// ========== 氧化物 + 水 ==========
+{r:['CaO','H2O'],p:[['Ca(OH)2',1]],t:'🌊 氧化物+水',cl:'#e67e22',e:'CaO + H2O → Ca(OH)2',
+x:'🌊 著名的放热反应！生石灰(CaO)遇水生成熟石灰Ca(OH)₂，同时放出大量热——石灰包遇水会发烫就是这个原因！工程建筑上常用"消石灰"（Ca(OH)₂）来稳固土壤。注意：CaO和水不是"溶解"而是真正的化学反应！',v:'steam'},
+{r:['Na2O','H2O'],p:[['NaOH',2]],t:'🌊 氧化物+水',cl:'#9b59b6',e:'Na2O + H2O → 2NaOH',
+x:'🌊 氧化钠遇水生成氢氧化钠（烧碱），反应也会放热。注意系数：1个Na₂O + 1个H₂O → 2个NaOH。这类反应叫"碱性氧化物+水→碱"，是氧化物的重要性质。',v:'blue'},
+
+// ========== 氧化物 + 酸（CaO补充）==========
+{r:['CaO','HNO3'],p:[['Ca(NO3)2',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#16a085',e:'CaO + 2HNO3 → Ca(NO3)2 + H2O',
+x:'⚗️ 碱性氧化物+酸 → 盐+水。生成硝酸钙（优质氮肥和钙肥）。'},
+
+// ========== Na₂O + 酸 ==========
+{r:['Na2O','HCl'],p:[['NaCl',2],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#9b59b6',e:'Na2O + 2HCl → 2NaCl + H2O',
+x:'⚗️ 碱性氧化物+酸 → 盐+水！氧化钠溶于盐酸生成食盐和水。规律：所有碱性氧化物都遵循"氧化物+酸→盐+水"。'},
+{r:['Na2O','H2SO4'],p:[['Na2SO4',1],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#9b59b6',e:'Na2O + H2SO4 → Na2SO4 + H2O',
+x:'⚗️ 碱性氧化物+酸 → 盐+水。生成硫酸钠和水。'},
+{r:['Na2O','HNO3'],p:[['NaNO3',2],['H2O',1]],t:'⚗️ 碱性氧化物+酸',cl:'#9b59b6',e:'Na2O + 2HNO3 → 2NaNO3 + H2O',
+x:'⚗️ 碱性氧化物+酸 → 盐+水。生成硝酸钠（钠硝石，重要化工原料）。'}
+];
+
+let S={sel:[],rc:0};
+
+function fmt(k){return k.replace(/(\d+)/g,'<sub>$1</sub>')}
+function fmtT(k){const sub={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};return k.replace(/(\d)/g,d=>sub[d]||d)}
+
+function tab(el,c){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  shelf(c);
+}
+
+function shelf(c){
+  const g=document.getElementById('grid');g.innerHTML='';
+  Object.entries(P).forEach(([k,p])=>{
+    if(p.c!==c)return;
+    const b=document.createElement('div');
+    b.className='rb '+c;
+    b.innerHTML='<div style="height:32px;display:flex;align-items:center;justify-content:center">'+p.s+'</div><div class="f">'+fmt(k)+'</div><div class="n">'+p.n+'</div>';
+    b.onclick=()=>add(k);
+    g.appendChild(b);
+  });
+}
+
+function add(k){
+  if(S.sel.length>=3){log('⚠️ 最多选3种','lw');return}
+  if(P[k].c==='indicator'&&S.sel.some(s=>P[s].c==='indicator')){log('⚠️ 一次只能加一种指示剂','lw');return}
+  if(S.sel.includes(k)){log('⚠️ 已经在烧杯里了','lw');return}
+  S.sel.push(k);
+//华仁中学蔡逸众制作
+  spawn(k,P[k].c==='indicator'?1:3);
+  upd();
+  log('➕ 加入: '+P[k].n+' ('+fmtT(k)+')','li');
+  document.getElementById('tip').style.display='none';
+  if(S.sel.length>=2)document.getElementById('rbtn').disabled=false;
+}
+
+function spawn(k,n){
+  const bk=document.getElementById('beaker');
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='mol app';e.dataset.k=k;e.innerHTML=P[k].s;
+      const w=bk.offsetWidth,h=bk.offsetHeight;
+      e.style.left=(25+Math.random()*(w-90))+'px';
+      e.style.top=(50+Math.random()*(h-110))+'px';
+      e.style.animationDelay=(Math.random()*2)+'s';
+      bk.appendChild(e);
+    },i*150);
+  }
+}
+
+function upd(){
+  const p=document.getElementById('pills');p.innerHTML='';
+  if(!S.sel.length){p.innerHTML='<span style="color:#95a5a6;font-size:11px">（还未选择）</span>';return}
+  S.sel.forEach(k=>{
+    const e=document.createElement('div');e.className='pill';e.innerHTML=fmt(k);p.appendChild(e);
+  });
+}
+
+function clr(){
+  S.sel=[];
+  document.querySelectorAll('.mol').forEach(e=>e.remove());
+  upd();
+  document.getElementById('rbtn').disabled=true;
+  document.getElementById('eqbox').classList.remove('show');
+  document.getElementById('beaker').style.background='linear-gradient(180deg,rgba(173,216,230,0.3),rgba(135,206,235,0.5))';
+  document.getElementById('tip').style.display='block';
+  log('🔄 已清空','li');
+}
+
+function wash(){clr();log('🧹 烧杯已清洗','li')}
+
+function react(){
+  if(S.sel.length<2){log('⚠️ 至少需要2种粒子','lw');return}
+  const rx=find(S.sel);
+  if(!rx){log('🚫 这些粒子不会反应','lw');showFail();return}
+  S.rc++;log('⚡ [反应#'+S.rc+'] '+rx.t,'ls');
+  anim(rx);
+}
+
+function find(sel){
+  const ss=[...sel].sort();
+  for(const r of R){
+    const sr=[...r.r].sort();
+    if(ss.length===sr.length&&ss.every((v,i)=>v===sr[i]))return r;
+  }
+  return null;
+}
+
+//峇株吧辖蔡逸众制作
+function anim(rx){
+  const bk=document.getElementById('beaker');
+  const cx=bk.offsetWidth/2,cy=bk.offsetHeight/2;
+  document.querySelectorAll('.mol').forEach(e=>{
+    const fx=cx-e.offsetLeft-e.offsetWidth/2;
+    const fy=cy-e.offsetTop-e.offsetHeight/2;
+    e.style.setProperty('--fx',fx+'px');
+    e.style.setProperty('--fy',fy+'px');
+    e.classList.add('fly');
+  });
+  setTimeout(()=>{
+    const f=document.createElement('div');f.className='flash';
+    f.style.left=(cx-50)+'px';f.style.top=(cy-50)+'px';
+    bk.appendChild(f);setTimeout(()=>f.remove(),800);
+    document.querySelectorAll('.mol').forEach(e=>{e.classList.remove('fly');e.classList.add('exp')});
+  },800);
+  setTimeout(()=>{
+    document.querySelectorAll('.mol').forEach(e=>e.remove());
+    if(rx.v){
+      color(rx.v);
+      const ind=S.sel.find(s=>P[s].c==='indicator');
+      const ab=S.sel.find(s=>P[s].c!=='indicator');
+      if(ind)spawnP(ind,2);
+      if(ab)spawnP(ab,2);
+    }
+    if(rx.p&&rx.p.length){
+      rx.p.forEach((pi,i)=>{
+        for(let c=0;c<pi[1];c++){
+          setTimeout(()=>spawnP(pi[0],1),i*150+c*120);
+        }
+      });
+    }
+    showEq(rx);
+    // 特殊效果：steam（放热反应冒蒸气）
+    if(rx.v==='steam'){
+      const bk=document.getElementById('beaker');
+      for(let i=0;i<8;i++){
+        setTimeout(()=>{
+          const s=document.createElement('div');
+          s.style.cssText='position:absolute;font-size:20px;pointer-events:none;animation:bup 2.5s ease-out forwards;opacity:0.7;';
+          s.innerText='💨';
+          s.style.left=(30+Math.random()*(bk.offsetWidth-60))+'px';
+          s.style.bottom='30px';
+          bk.appendChild(s);
+          setTimeout(()=>s.remove(),2500);
+        },i*200);
+      }
+    }
+  },1400);
+}
+
+function spawnP(k,n){
+  const bk=document.getElementById('beaker');
+  const p=P[k];if(!p)return;
+  for(let i=0;i<n;i++){
+    const e=document.createElement('div');
+    e.className='mol app';e.dataset.k=k;e.innerHTML=p.s;
+    const w=bk.offsetWidth,h=bk.offsetHeight;
+    const x=30+Math.random()*(w-100);
+    e.style.left=x+'px';
+    e.style.top=(60+Math.random()*(h-130))+'px';
+    e.style.animationDelay=(Math.random()*2)+'s';
+    bk.appendChild(e);
+    if(p.c==='g'){
+      setTimeout(()=>{
+//Made by ecchua79
+        e.style.transition='all 2s ease-out';
+        e.style.top='-60px';e.style.opacity='0';
+        for(let b=0;b<3;b++){
+          setTimeout(()=>{
+            const bu=document.createElement('div');bu.className='bub';bu.innerText='○';
+            bu.style.left=(x+Math.random()*30-10)+'px';bu.style.bottom='20px';
+            bk.appendChild(bu);setTimeout(()=>bu.remove(),2000);
+          },b*250);
+        }
+        setTimeout(()=>e.remove(),2000);
+      },1000);
+    }
+  }
+}
+
+function color(v){
+  const cm={
+    'red':'linear-gradient(180deg,rgba(255,99,99,0.4),rgba(231,76,60,0.7))',
+    'blue':'linear-gradient(180deg,rgba(116,185,255,0.5),rgba(52,152,219,0.8))',
+    'pink':'linear-gradient(180deg,rgba(253,121,168,0.5),rgba(232,67,147,0.8))',
+    'clear':'linear-gradient(180deg,rgba(220,220,220,0.3),rgba(189,195,199,0.5))',
+    'teal':'linear-gradient(180deg,rgba(0,180,180,0.4),rgba(9,132,227,0.75))',
+    'amber':'linear-gradient(180deg,rgba(215,150,50,0.4),rgba(190,100,20,0.7))',
+    'steam':'linear-gradient(180deg,rgba(255,255,255,0.5),rgba(200,230,255,0.6))'
+  };
+  document.getElementById('beaker').style.background=cm[v];
+}
+
+function showEq(rx){
+  const b=document.getElementById('eqbox');
+  document.getElementById('eqt').innerText=rx.t;
+  document.getElementById('eqt').style.background=rx.cl;
+  let f=rx.e.replace(/([A-Za-z\)])(\d+)/g,'$1<sub>$2</sub>')
+    .replace(/→/g,'<span class="eq-a">→</span>')
+    .replace(/↑/g,'<span style="color:#3498db;font-weight:bold">↑</span>');
+  document.getElementById('eqf').innerHTML=f;
+  document.getElementById('eqe').innerHTML=rx.x.replace(/\n/g,'<br>');
+  b.classList.add('show');
+//峇株吧辖华仁中学蔡逸众制作
+}
+
+function showFail(){
+  document.querySelectorAll('.mol').forEach(e=>{
+    e.style.animation='shake 0.5s';
+    setTimeout(()=>{e.style.animation='mf 4s ease-in-out infinite'},500);
+  });
+  const b=document.getElementById('eqbox');
+  document.getElementById('eqt').innerText='🚫 不反应';
+  document.getElementById('eqt').style.background='#7f8c8d';
+  document.getElementById('eqf').innerHTML='😶 这些物质之间没有反应';
+  document.getElementById('eqe').innerHTML='💡 试试这些组合：<br>• <strong>酸+碱</strong> = 中和反应（如HCl+NaOH）<br>• <strong>酸+活泼金属</strong>(Zn/Mg/Fe) = 置换反应<br>• <strong>酸+碳酸盐</strong>(Na₂CO₃/CaCO₃) = 复分解反应<br>• <strong>酸/碱+指示剂</strong> = 显色反应<br><br>⚠️ 注意：铜(Cu)排在H后面，不能和稀酸反应！';
+  b.classList.add('show');
+}
+
+function hint(){
+  const t=['🤝 试试 HCl + NaOH，看经典中和反应','⚡ 试试 HCl + Zn，看冒氢气泡','🌀 试试 HCl + Na₂CO₃，看冒CO₂','🎨 试试 NaOH + 酚酞，看溶液变红','🚫 试试 HCl + Cu，验证铜不反应','🌊 试试 H₂SO₄ + NaOH，注意系数','🥚 试试 HCl + CaCO₃（鸡蛋壳成分）','🌈 试试 HCl + 石蕊，看石蕊变红','⚡ 试试 H₂SO₄ + Mg，看剧烈反应','🤝 试试 HCl + Ca(OH)₂，注意配平','🔥 试试 CaO + 水，看放热冒蒸气！','🌊 试试 Na₂O + 水，生成烧碱','🧪 试试 Fe₂O₃ + HCl，看铁锈溶解变黄棕','💙 试试 CuO + H₂SO₄，看溶液变蓝（波尔多液！）'];
+  log('💡 [建议] '+t[Math.floor(Math.random()*t.length)],'lw');
+}
+
+//华仁中学蔡逸众制作
+function log(m,c){
+  const l=document.getElementById('log');
+  const d=document.createElement('div');
+  d.className=c||'';
+  d.innerText='['+new Date().toLocaleTimeString('zh-CN',{hour12:false})+'] '+m;
+//峇株吧辖蔡逸众制作
+  l.insertBefore(d,l.firstChild);
+  while(l.children.length>10)l.removeChild(l.lastChild);
+}
+
+shelf('acid');
+</script>
+</body>
+</html>
