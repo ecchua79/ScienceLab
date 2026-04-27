@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>气体星球挑战赛 v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  :root {
+    --bg: #0f0c29;
+    --surface: rgba(255,255,255,0.06);
+    --surface-hover: rgba(255,255,255,0.12);
+    --border: rgba(255,255,255,0.12);
+    --text: #f0f0f0;
+    --text-muted: rgba(240,240,240,0.55);
+    --blue: #4fc3f7;
+    --green: #69f0ae;
+    --red: #ff5252;
+    --yellow: #ffd740;
+    --purple: #ce93d8;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    color: var(--text);
+  }
+
+  /* ---- Starfield ---- */
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .star {
+    position: absolute; background: white; border-radius: 50%;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0.2; } 50% { opacity: 1; }
+  }
+
+  /* ---- Main card ---- */
+  #app {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 560px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .screen { animation: fadeUp 0.4s ease both; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(18px); } to { opacity:1; transform:none; } }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-block; cursor: pointer; border: none; outline: none;
+    font-family: 'Nunito', sans-serif; font-weight: 800; letter-spacing: 0.3px;
+    border-radius: 50px; padding: 13px 32px; font-size: 1rem;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), #1976d2);
+    color: #fff; box-shadow: 0 4px 20px rgba(79,195,247,0.35);
+  }
+  .btn-secondary {
+    background: var(--surface-hover); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(79,195,247,0.4); }
+  .btn:active { transform: scale(0.97); }
+
+  /* ---- Start Screen ---- */
+  #start-screen { text-align: center; }
+  .game-icon { font-size: 72px; margin-bottom: 12px; display: block; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  #start-screen h1 { font-size: 1.9rem; font-weight: 900; color: var(--blue); margin-bottom: 6px; }
+  #start-screen p { color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+  .rules-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 24px; text-align: left;
+  }
+  .rule-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    font-size: 0.85rem; color: var(--text-muted);
+  }
+  .rule-card strong { display: block; color: var(--text); font-size: 1rem; margin-bottom: 2px; }
+
+  /* ---- Status Bar ---- */
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .lives-display { color: var(--red); }
+  .score-display { color: var(--yellow); }
+  .timer-display { color: var(--blue); }
+
+  /* ---- Combo Badge ---- */
+  #combo-badge {
+    text-align: center; height: 32px; line-height: 32px;
+    font-weight: 900; font-size: 1rem; color: var(--yellow);
+    transition: all 0.3s;
+  }
+  .combo-pop { animation: comboPop 0.4s ease; }
+  @keyframes comboPop {
+    0%{transform:scale(0.7)} 60%{transform:scale(1.25)} 100%{transform:scale(1)}
+  }
+
+  /* ---- Progress Bar ---- */
+  .progress-wrap {
+    background: var(--surface); border-radius: 50px;
+    height: 6px; margin-bottom: 16px; overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple));
+    border-radius: 50px; transition: width 0.4s ease;
+  }
+
+  /* ---- Level Badge ---- */
+  #level-badge {
+    display: inline-block; background: var(--purple);
+    color: #1a0033; font-size: 0.75rem; font-weight: 800;
+    border-radius: 50px; padding: 3px 12px; margin-bottom: 10px;
+  }
+
+  /* ---- Question ---- */
+  .question-text {
+    font-size: 1.15rem; font-weight: 700; line-height: 1.5;
+    margin-bottom: 20px; min-height: 56px;
+    color: var(--text);
+  }
+
+  /* ---- Options ---- */
+  .options-grid { display: grid; gap: 10px; }
+  .opt {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px;
+    cursor: pointer; text-align: left; font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem; font-weight: 600; color: var(--text);
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .opt:hover:not(.disabled) { background: var(--surface-hover); border-color: var(--blue); transform: translateX(4px); }
+  .opt.correct { background: rgba(105,240,174,0.18) !important; border-color: var(--green) !important; color: var(--green) !important; }
+  .opt.wrong   { background: rgba(255,82,82,0.18) !important;  border-color: var(--red) !important;   color: var(--red) !important; }
+  .opt.disabled { cursor: not-allowed; }
+  .opt-label {
+    min-width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-hover); display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 800; flex-shrink: 0;
+  }
+
+  /* ---- Feedback Box ---- */
+  #feedback {
+    margin-top: 14px; padding: 12px 16px; border-radius: var(--radius);
+    font-size: 0.88rem; line-height: 1.5; min-height: 54px;
+    border: 1px solid transparent; opacity: 0; transition: opacity 0.3s;
+  }
+  #feedback.show { opacity: 1; }
+  #feedback.ok { background: rgba(105,240,174,0.12); border-color: var(--green); color: var(--green); }
+  #feedback.err { background: rgba(255,82,82,0.12); border-color: var(--red); color: #ff8a80; }
+
+  /* ---- Floating Score Popup ---- */
+  .score-popup {
+    position: fixed; font-size: 1.5rem; font-weight: 900;
+    color: var(--yellow); pointer-events: none; z-index: 999;
+    animation: scoreFloat 1.2s ease forwards;
+  }
+  @keyframes scoreFloat {
+    0%{opacity:1;transform:translateY(0) scale(1)}
+    100%{opacity:0;transform:translateY(-80px) scale(1.3)}
+  }
+
+  /* ---- Result Screen ---- */
+  #result-screen { text-align: center; }
+  .result-icon { font-size: 64px; margin-bottom: 8px; display: block; }
+  #result-screen h1 { font-size: 1.8rem; font-weight: 900; margin-bottom: 6px; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin: 20px 0;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 8px;
+  }
+  .stat-card .val { font-size: 1.6rem; font-weight: 900; }
+  .stat-card .lbl { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  .achievements { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .badge {
+    background: linear-gradient(135deg, var(--yellow), #ff9800);
+    color: #3e2000; font-size: 0.78rem; font-weight: 800;
+    border-radius: 50px; padding: 4px 14px;
+  }
+
+  /* ---- Name Input ---- */
+  .name-form { margin-bottom: 16px; }
+  .name-form input {
+    width: 100%; padding: 13px 16px; border-radius: var(--radius);
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text); font-family: 'Nunito', sans-serif; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s; margin-bottom: 10px;
+  }
+  .name-form input:focus { border-color: var(--blue); }
+  .name-form input::placeholder { color: var(--text-muted); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  /* ---- Certificate ---- */
+  #cert-screen { display: none; text-align: center; }
+  #cert-canvas { border-radius: 12px; max-width: 100%; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 400px) {
+    #app { padding: 20px 16px; }
+    .rules-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .stat-card .val { font-size: 1.2rem; }
+    #start-screen h1 { font-size: 1.5rem; }
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="stars" id="stars"></div>
+
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="screen">
+    <span class="game-icon">🌬️</span>
+    <h1>气体星球挑战赛</h1>
+    <p>15道题 · 三关闯关 · 连击奖励<br>挑战你对气体知识的掌握！</p>
+    <div class="rules-grid">
+      <div class="rule-card"><strong>❤️ 3条命</strong>答错扣一命，清空连击</div>
+      <div class="rule-card"><strong>⭐ 计分</strong>基础10分 + 速度加成</div>
+      <div class="rule-card"><strong>🔥 连击</strong>连对有额外奖励分</div>
+      <div class="rule-card"><strong>📈 三关</strong>难度逐渐提升</div>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()">🚀 开始挑战</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen hidden">
+    <div class="status-bar">
+      <div class="lives-display">❤️ <span id="lives-count">3</span></div>
+      <div class="timer-display">⏱️ <span id="timer-val">0</span>s</div>
+      <div class="score-display">⭐ <span id="score-count">0</span></div>
+    </div>
+    <div id="combo-badge"></div>
+    <div class="progress-wrap"><div id="progress-bar" style="width:0%"></div></div>
+    <div id="level-badge">Level 1 · 基础关</div>
+    <div class="question-text" id="question-text">加载中…</div>
+    <div class="options-grid" id="options-grid"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="result-screen" class="screen hidden">
+    <span class="result-icon" id="result-icon">🎉</span>
+    <h1 id="result-title">挑战完成！</h1>
+    <p id="result-sub" style="color:var(--text-muted);margin-bottom:4px;"></p>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="val" id="st-score" style="color:var(--yellow)">0</div>
+        <div class="lbl">总分</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="st-time" style="color:var(--blue)">0s</div>
+        <div class="lbl">用时</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="st-acc" style="color:var(--green)">0%</div>
+        <div class="lbl">正确率</div>
+      </div>
+    </div>
+    <div class="achievements" id="achievements"></div>
+    <div class="name-form">
+      <input type="text" id="student-name" maxlength="20" placeholder="✏️ 输入你的姓名，领取证书…">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generateCert()">🏆 生成证书</button>
+        <button class="btn btn-secondary" onclick="location.reload()">🔁 再战一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE SCREEN -->
+  <div id="cert-screen">
+    <canvas id="cert-canvas"></canvas>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="downloadCert()">⬇️ 下载证书</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🏠 回首页</button>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<script>
+/* ===================== DATA ===================== */
+const LEVELS = [
+  { label: 'Level 1 · 基础关', timeLimit: 20 },
+  { label: 'Level 2 · 进阶关', timeLimit: 15 },
+  { label: 'Level 3 · 终极关', timeLimit: 10 },
+];
+
+const ALL_QUESTIONS = [
+  // ---- Level 1: Basic (5q) ----
+  {
+    level: 1,
+    q: '在标准状况下，以下哪种描述正确表达了氧气的密度？',
+    opts: ['比空气轻，往上飘', '和空气完全一样', '比空气略重（1.429 vs 1.29 kg/m³）', '只有空气密度的一半'],
+    ans: '比空气略重（1.429 vs 1.29 kg/m³）',
+    hint: '正因为氧气比空气重，才用向上排空气法收集它。',
+    explain: '✅ 氧气密度≈1.429 kg/m³，空气≈1.29 kg/m³，所以实验室收集氧气时用「向上排空气法」——重的气体往下沉。'
+  },
+  {
+    level: 1,
+    q: '空气中体积占比最大的气体是？',
+    opts: ['氧气（21%）', '二氧化碳（0.04%）', '氮气（78%）', '水蒸气'],
+    ans: '氮气（78%）',
+    hint: '它极稳定，不参与大多数反应，因此用来给食品包装袋充气防腐。',
+    explain: '✅ 氮气占78%，氧气占21%，其余是稀有气体、CO₂等。记忆口诀：「七八氮、二一氧」。'
+  },
+  {
+    level: 1,
+    q: '二氧化碳通入澄清石灰水，最直观的现象是？',
+    opts: ['溶液变蓝色', '溶液变浑浊', '产生大量气泡', '没有任何变化'],
+    ans: '溶液变浑浊',
+    hint: '生成了不溶于水的固体颗粒，让液体看起来不透明。',
+    explain: '✅ CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O，碳酸钙是白色沉淀，所以石灰水变浑浊——这是检验CO₂的标准方法！'
+  },
+  {
+    level: 1,
+    q: '将带余烬（没有明火但还有红点）的木枝伸入集气瓶，木枝复燃，说明瓶内充满的是？',
+    opts: ['氮气', '二氧化碳', '氢气', '氧气'],
+    ans: '氧气',
+    hint: '这是鉴别该气体最经典的实验操作。',
+    explain: '✅ 氧气助燃性强，使带火星的木条复燃。这正是检验氧气是否收集满的标准做法。'
+  },
+  {
+    level: 1,
+    q: '氢气在空气中燃烧，产生的火焰颜色是？',
+    opts: ['耀眼白色', '淡蓝色', '橘红色', '翠绿色'],
+    ans: '淡蓝色',
+    hint: '跟酒精灯的火焰颜色比较，你会发现都偏蓝。',
+    explain: '✅ 纯净氢气燃烧火焰呈淡蓝色，且产物只有水（H₂ + O₂ → H₂O），非常清洁！'
+  },
+  // ---- Level 2: Intermediate (5q) ----
+  {
+    level: 2,
+    q: '关于催化剂（如二氧化锰），下列说法哪个是正确的？',
+    opts: [
+      '催化剂在反应中被消耗掉',
+      '催化剂能改变反应速率，反应前后质量和化学性质不变',
+      '没有催化剂，反应绝对不会发生',
+      '催化剂会让反应放出更多热量'
+    ],
+    ans: '催化剂能改变反应速率，反应前后质量和化学性质不变',
+    hint: '可以把催化剂想成「婚介所」——撮合了反应，但自己不变。',
+    explain: '✅ 催化剂的核心定义：改变速率（加快或减慢），但反应前后自身质量与化学性质不变。不是消耗品！'
+  },
+  {
+    level: 2,
+    q: '下列方法中，属于「工业制法」而非「实验室制法」的是？',
+    opts: [
+      '加热高锰酸钾制取氧气',
+      '双氧水加二氧化锰制取氧气',
+      '将液态空气分馏（利用沸点差异）制取氧气',
+      '加热氯酸钾和二氧化锰制取氧气'
+    ],
+    ans: '将液态空气分馏（利用沸点差异）制取氧气',
+    hint: '注意区分「实验室」与「工厂大规模生产」的方式。',
+    explain: '✅ 液态空气分馏利用氮气和氧气沸点不同（物理变化），是工业大量制备氧气的方法。实验室用的是化学分解法。'
+  },
+  {
+    level: 2,
+    q: '干冰（固态CO₂）常用于人工降雨和舞台烟雾，主要利用的是它的哪种性质？',
+    opts: [
+      '能与云层发生化学反应',
+      '密度极小，能长时间漂浮',
+      '升华时大量吸热，使周围温度骤降',
+      '本身含有大量水分'
+    ],
+    ans: '升华时大量吸热，使周围温度骤降',
+    hint: '固体直接变成气体叫「升华」，这个过程要吸收大量热量。',
+    explain: '✅ 干冰升华（固→气，跳过液态）吸收大量热，使周围水蒸气凝结成水滴或冰晶，形成降雨或烟雾效果。'
+  },
+  {
+    level: 2,
+    q: '检验氢气纯度时，用拇指堵住试管口收集气体，然后靠近火焰移开拇指点火。听到「噗」的轻声，说明……',
+    opts: [
+      '氢气不纯，混有大量空气',
+      '氢气已经纯净，可以安全点燃',
+      '试管里什么气体都没有',
+      '氢气太少，无法点燃'
+    ],
+    ans: '氢气已经纯净，可以安全点燃',
+    hint: '轻声「噗」vs 尖锐爆鸣声——声音大小告诉你是否安全。',
+    explain: '✅ 轻声「噗」= 纯净氢气，可以继续实验。若听到尖锐爆鸣声，说明混有空气，会有爆炸危险，需要重新收集！'
+  },
+  {
+    level: 2,
+    q: '臭氧层主要位于地球大气的哪一层？它的主要功能是？',
+    opts: [
+      '对流层；过滤灰尘和细菌',
+      '平流层；吸收大部分紫外线，保护生物',
+      '热层；阻挡太阳风',
+      '散逸层；维持地球引力'
+    ],
+    ans: '平流层；吸收大部分紫外线，保护生物',
+    hint: '没有这层保护，皮肤癌发病率会大幅升高。',
+    explain: '✅ 臭氧层在平流层（距地面约15–35 km），能吸收约97–99%的紫外线，是地球生命的「防晒霜」。'
+  },
+  // ---- Level 3: Advanced (5q) ----
+  {
+    level: 3,
+    q: '氟氯碳化合物（CFCs，俗称"氟利昂"）被认为是破坏臭氧层的主要元凶，原因是？',
+    opts: [
+      'CFCs能直接加热大气层',
+      'CFCs释放出氯原子，氯原子会与臭氧（O₃）反应将其分解',
+      'CFCs比臭氧重，会把臭氧压碎',
+      'CFCs让太阳辐射增强'
+    ],
+    ans: 'CFCs释放出氯原子，氯原子会与臭氧（O₃）反应将其分解',
+    hint: '一个氯原子可以连续破坏上万个臭氧分子！',
+    explain: '✅ CFCs在平流层被紫外线分解，释放氯自由基（Cl·）。Cl·能催化臭氧分解：Cl· + O₃ → ClO· + O₂，且Cl·最终再生，可以持续破坏，1个Cl·能破坏约10万个O₃！'
+  },
+  {
+    level: 3,
+    q: '以下关于氧气的叙述，哪个是错误的？',
+    opts: [
+      '氧气本身不燃烧，但能支持其他物质燃烧（助燃性）',
+      '氧气在标准状况下是无色无味的气体',
+      '氧气是一种可燃气体，与火花接触会爆炸',
+      '氧气能与大多数金属在加热条件下反应'
+    ],
+    ans: '氧气是一种可燃气体，与火花接触会爆炸',
+    hint: '注意区分「助燃」和「可燃」——它们是两个不同概念！',
+    explain: '✅ 氧气本身不燃烧，它是「助燃剂」而非「可燃物」。混淆这两点是最常见的错误！爆炸需要可燃气体+助燃剂同时存在。'
+  },
+  {
+    level: 3,
+    q: '工业上常用氮气给食品包装袋充气，以下哪个理由最准确？',
+    opts: [
+      '氮气便宜，任何气体都可以用',
+      '氮气化学性质不活泼，能防止食品被氧化或被细菌污染',
+      '氮气能让食品保持原来的颜色',
+      '氮气会杀死细菌'
+    ],
+    ans: '氮气化学性质不活泼，能防止食品被氧化或被细菌污染',
+    hint: '关键词是「化学性质不活泼」——它不跟食品发生反应。',
+    explain: '✅ 氮气常温下极稳定，不与食品中的脂肪、蛋白质反应，也不支持细菌有氧呼吸，兼具物理隔离和化学惰性两大优点。'
+  },
+  {
+    level: 3,
+    q: '在实验室制取气体时，下列安全操作描述中，哪项是错误的？',
+    opts: [
+      '点酒精灯前，先检查装置气密性',
+      '加热固体时，试管口应略微向下倾斜',
+      '实验结束时，先撤酒精灯，再把导管从水槽中取出',
+      '先熄灭酒精灯，再收集最后一瓶气体'
+    ],
+    ans: '先熄灭酒精灯，再收集最后一瓶气体',
+    hint: '想想：熄灭酒精灯后，管内气体会怎么变化？',
+    explain: '✅ 熄灯后装置降温，气压降低，水槽的水会倒流进试管（「倒吸」），可能导致试管炸裂。正确做法：先撤导管离开水槽，再熄灯。'
+  },
+  {
+    level: 3,
+    q: '温室效应加剧的主要原因是？',
+    opts: [
+      '臭氧层被破坏，更多热量进入大气',
+      '大气中CO₂等温室气体浓度升高，导致地球散热减慢',
+      '地球距太阳越来越近',
+      '火山爆发增多，释放大量热量'
+    ],
+    ans: '大气中CO₂等温室气体浓度升高，导致地球散热减慢',
+    hint: '温室气体就像地球的「棉被」，越厚，热量越难散发出去。',
+    explain: '✅ CO₂、CH₄、水蒸气等温室气体能吸收地球辐射的红外线，阻止热量散失到宇宙，导致全球气温上升。工业化后化石燃料大量燃烧是CO₂增加的主因。'
+  }
+];
+
+/* ===================== STATE ===================== */
+let questions = [];
+let idx = 0, score = 0, lives = 3, combo = 0, timer = 0;
+let timerInterval, questionTimer, qStart;
+let totalAnswered = 0, totalCorrect = 0;
+let win = false;
+
+/* ===================== UTILS ===================== */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function $(id){ return document.getElementById(id); }
+
+function showScreen(id) {
+  ['start-screen','game-screen','result-screen','cert-screen'].forEach(s => {
+    const el = document.getElementById(s);
+    if(el) el.classList.add('hidden');
+  });
+  const target = $(id);
+  if(target) {
+    target.classList.remove('hidden');
+    target.style.display = '';
+    target.classList.add('screen');
+    void target.offsetWidth;
+  }
+}
+
+/* Stars */
+(function(){
+  const s = $('stars');
+  for(let i=0;i<80;i++){
+    const d = document.createElement('div');
+    const sz = Math.random()*2.5+0.5;
+    d.className='star';
+    d.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-duration:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s;`;
+    s.appendChild(d);
+  }
+})();
+
+/* ===================== GAME LOGIC ===================== */
+function startGame() {
+  // Build per-level shuffled bank
+  const l1 = shuffle(ALL_QUESTIONS.filter(q=>q.level===1));
+  const l2 = shuffle(ALL_QUESTIONS.filter(q=>q.level===2));
+  const l3 = shuffle(ALL_QUESTIONS.filter(q=>q.level===3));
+  questions = [...l1, ...l2, ...l3]; // all 15
+
+  idx=0; score=0; lives=3; combo=0; timer=0; totalAnswered=0; totalCorrect=0; win=false;
+
+  showScreen('game-screen');
+  startGlobalTimer();
+  showQuestion();
+}
+
+function startGlobalTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{ timer++; $('timer-val').textContent=timer; }, 1000);
+}
+
+function getLevelInfo(qIdx){
+  if(qIdx<5) return LEVELS[0];
+  if(qIdx<10) return LEVELS[1];
+  return LEVELS[2];
+}
+
+function showQuestion(){
+  if(idx >= questions.length){ endGame(true); return; }
+
+  const q = questions[idx];
+  const info = getLevelInfo(idx);
+  const total = questions.length;
+
+  $('level-badge').textContent = info.label;
+  $('progress-bar').style.width = `${(idx/total)*100}%`;
+  $('question-text').textContent = `Q${idx+1}. ${q.q}`;
+  $('lives-count').textContent = lives;
+  $('score-count').textContent = score;
+
+  const grid = $('options-grid');
+  grid.innerHTML='';
+  const labels = ['A','B','C','D'];
+  shuffle(q.opts).forEach((opt,i)=>{
+    const div = document.createElement('div');
+    div.className='opt';
+    div.innerHTML=`<span class="opt-label">${labels[i]}</span>${opt}`;
+    div.onclick=()=>checkAnswer(opt, div, q);
+    grid.appendChild(div);
+  });
+
+  const fb = $('feedback');
+  fb.className='';
+  fb.textContent='';
+
+  // Per-question countdown (visual only, not penalizing)
+  qStart = Date.now();
+  if(questionTimer) clearTimeout(questionTimer);
+}
+
+function checkAnswer(selected, el, q){
+  // Disable all options
+  document.querySelectorAll('.opt').forEach(o=>{
+    o.classList.add('disabled');
+    o.onclick=null;
+  });
+
+  const elapsed = (Date.now()-qStart)/1000;
+  const info = getLevelInfo(idx);
+  totalAnswered++;
+
+  if(selected===q.ans){
+    el.classList.add('correct');
+    totalCorrect++;
+    combo++;
+
+    // Score: 10 base + speed bonus (faster = more) + combo bonus
+    const speedBonus = Math.max(0, Math.round((info.timeLimit - elapsed)*0.5));
+    const comboBonus = combo>=3 ? (combo>=5 ? 5 : 3) : 0;
+    const gained = 10 + speedBonus + comboBonus;
+    score += gained;
+    $('score-count').textContent = score;
+
+    updateCombo();
+    showScorePopup(`+${gained}`, el);
+    showFeedback(true, q.explain);
+  } else {
+    el.classList.add('wrong');
+    // Highlight correct
+    document.querySelectorAll('.opt').forEach(o=>{
+      if(o.textContent.includes(q.ans)) o.classList.add('correct');
+    });
+    lives--;
+    combo=0;
+    updateCombo();
+    $('lives-count').textContent = lives;
+    showFeedback(false, q.hint);
+    if(lives<=0){ setTimeout(()=>endGame(false),2200); return; }
+  }
+
+  idx++;
+  setTimeout(showQuestion, 2400);
+}
+
+function updateCombo(){
+  const el = $('combo-badge');
+  if(combo>=2){
+    el.textContent = `🔥 ${combo}连击！${combo>=5?'超级':''}加成 +${combo>=5?5:combo>=3?3:0}分`;
+    el.classList.remove('combo-pop');
+    void el.offsetWidth;
+    el.classList.add('combo-pop');
+  } else {
+    el.textContent='';
+  }
+}
+
+function showFeedback(ok, text){
+  const el=$('feedback');
+  el.className = ok ? 'show ok' : 'show err';
+  el.textContent = text;
+}
+
+function showScorePopup(text, refEl){
+  const rect = refEl.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className='score-popup';
+  pop.style.left = `${rect.left + rect.width/2 - 30}px`;
+  pop.style.top  = `${rect.top + window.scrollY - 10}px`;
+  pop.textContent = text;
+  document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(),1300);
+}
+
+function endGame(success){
+  clearInterval(timerInterval);
+  win = success;
+
+  $('result-icon').textContent = success ? '🎉' : '💀';
+  $('result-title').textContent = success ? '太棒了！全部通关！' : '挑战失败，别灰心！';
+  $('result-sub').textContent = success
+    ? '你征服了气体星球的三大关卡！'
+    : `你已答到第 ${idx+1} 题，再多练习就能通关！`;
+
+  $('st-score').textContent = score;
+  $('st-time').textContent = timer+'s';
+  const acc = totalAnswered ? Math.round(totalCorrect/totalAnswered*100) : 0;
+  $('st-acc').textContent = acc+'%';
+
+  // Achievements
+  const ach = [];
+  if(acc===100) ach.push('🏅 满分达人');
+  if(timer<60) ach.push('⚡ 极速王');
+  if(combo>=5) ach.push('🔥 连击大师');
+  if(score>=200) ach.push('👑 200分王者');
+  if(lives===3) ach.push('🛡️ 不死之身');
+  const achEl=$('achievements');
+  achEl.innerHTML = ach.length
+    ? ach.map(a=>`<span class="badge">${a}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:0.85rem;">继续努力，下次可以解锁成就！</span>';
+
+  showScreen('result-screen');
+}
+
+/* ===================== CERTIFICATE ===================== */
+function generateCert(){
+  const name = $('student-name').value.trim();
+  if(!name){ $('student-name').focus(); $('student-name').placeholder='⚠️ 请先输入姓名！'; return; }
+
+  const acc = totalAnswered ? Math.round(totalCorrect/totalAnswered*100) : 0;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  let praise = '继续加油！';
+  if(score>=180) praise = '卓越表现！Outstanding！';
+  else if(score>=130) praise = '非常出色！Excellent！';
+  else if(score>=80)  praise = '表现良好！Good Job！';
+
+  const canvas = $('cert-canvas');
+  const W=680, H=480;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // BG
+  const grd=ctx.createLinearGradient(0,0,W,H);
+  grd.addColorStop(0,'#0f0c29'); grd.addColorStop(0.5,'#302b63'); grd.addColorStop(1,'#24243e');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+
+  // Stars on cert
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  for(let i=0;i<40;i++){
+    const x=Math.random()*W, y=Math.random()*H, r=Math.random()*1.5+0.3;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+
+  // Border
+  ctx.strokeStyle='rgba(79,195,247,0.6)'; ctx.lineWidth=3;
+  roundRect(ctx,10,10,W-20,H-20,16); ctx.stroke();
+  ctx.strokeStyle='rgba(206,147,216,0.4)'; ctx.lineWidth=1;
+  roundRect(ctx,18,18,W-36,H-36,12); ctx.stroke();
+
+  // Corner decorations
+  drawCorner(ctx,20,20,1,1);
+  drawCorner(ctx,W-20,20,-1,1);
+  drawCorner(ctx,20,H-20,1,-1);
+  drawCorner(ctx,W-20,H-20,-1,-1);
+
+  // Title
+  ctx.font='bold 14px Nunito, sans-serif';
+  ctx.fillStyle='rgba(206,147,216,0.9)';
+  ctx.textAlign='center';
+  ctx.fillText('🌬️ 气体星球挑战赛', W/2, 60);
+
+  ctx.font='bold 32px Georgia, serif';
+  ctx.fillStyle='#4fc3f7';
+  ctx.fillText('荣 誉 证 书', W/2, 105);
+
+  ctx.font='16px Nunito, sans-serif';
+  ctx.fillStyle='rgba(240,240,240,0.7)';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT', W/2, 128);
+
+  // Divider
+  ctx.strokeStyle='rgba(79,195,247,0.3)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(60,145); ctx.lineTo(W-60,145); ctx.stroke();
+
+  // Body
+  ctx.font='16px Nunito, sans-serif';
+  ctx.fillStyle='rgba(240,240,240,0.8)';
+  ctx.fillText('兹证明同学', W/2, 180);
+
+  ctx.font='bold 36px Nunito, sans-serif';
+  ctx.fillStyle='#ffd740';
+  ctx.fillText(name, W/2, 228);
+
+  // Underline for name
+  const nw=ctx.measureText(name).width;
+  ctx.strokeStyle='rgba(255,215,64,0.5)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2-10,235); ctx.lineTo(W/2+nw/2+10,235); ctx.stroke();
+
+  ctx.font='15px Nunito, sans-serif';
+  ctx.fillStyle='rgba(240,240,240,0.8)';
+  ctx.fillText('在《初二科学·第7章气体》知识挑战赛中表现优异', W/2, 268);
+
+  // Stats row
+  const stats=[['🏆 总分', score+'分'],['⏱️ 用时', timer+'秒'],['✅ 正确率', acc+'%']];
+  const blockW=160, startX=(W-blockW*3)/2+blockW/2;
+  stats.forEach(([lbl,val],i)=>{
+    const bx=startX+i*blockW;
+    ctx.fillStyle='rgba(255,255,255,0.07)';
+    roundRect(ctx,bx-68,285,136,62,10); ctx.fill();
+    ctx.font='bold 22px Nunito, sans-serif';
+    ctx.fillStyle='#69f0ae';
+    ctx.fillText(val,bx,318);
+    ctx.font='12px Nunito, sans-serif';
+    ctx.fillStyle='rgba(240,240,240,0.5)';
+    ctx.fillText(lbl,bx,340);
+  });
+
+  // Praise
+  ctx.font='bold 18px Nunito, sans-serif';
+  ctx.fillStyle='#ce93d8';
+  ctx.fillText(praise, W/2, 382);
+
+  // Date
+  ctx.font='13px Nunito, sans-serif';
+  ctx.fillStyle='rgba(240,240,240,0.45)';
+  ctx.fillText(`${dateStr} ${timeStr}`, W/2, 432);
+
+  $('result-screen').classList.add('hidden');
+  $('cert-screen').style.display='block';
+  $('cert-screen').classList.remove('hidden');
+}
+
+function downloadCert(){
+  const link=document.createElement('a');
+  link.download='气体星球挑战赛证书.png';
+  link.href=$('cert-canvas').toDataURL('image/png');
+  link.click();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function drawCorner(ctx,x,y,dx,dy){
+  const L=24;
+  ctx.strokeStyle='rgba(79,195,247,0.7)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x,y+dy*L); ctx.lineTo(x,y); ctx.lineTo(x+dx*L,y); ctx.stroke();
+}
+</script>
+</body>
+</html>
