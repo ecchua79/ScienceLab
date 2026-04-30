@@ -905,14 +905,87 @@ function restartCurrentLevel(){
   showPage('pgGame');
   startLevel(lvIdx);
 }
-function proceedNext(){
-  if(lvIdx===2){showPage('pgWarning');}
-  else if(lvIdx===3){showPage('pgWarning2');}
-  else{startLevel(lvIdx+1);}
-    // 强制重置数据，防止多次游玩导致分数和关卡累加
+// --- 全局状态补充 ---
+let totalGameStartTime = 0; // 记录整个游戏（从第一关开始）的起点
+let lvIdx = 0; // 当前关卡索引 (0-4 代表 1-5关)
+let lvResults = []; // 存储每关结果
+
+// 1. 修改：开始游戏函数
+function startGame() {
+    const nameInput = document.getElementById('playerNameInput');
+    if(nameInput && !nameInput.value.trim()){
+        alert('请输入你的姓名！');
+        return;
+    }
+    
+    // 重置所有全局数据
     gameState.score = 0;
     gameState.currentLevel = 1;
     gameState.isGameOver = false;
+    lvIdx = 0;
+    lvResults = [];
+    
+    // 🏆 修复时间逻辑：在这里记录总起点
+    totalGameStartTime = Date.now(); 
+    
+    closeLeaderboard();
+    showPage('pgGame');
+    startLevel(0); // 从第一关开始
+    console.log("游戏全新开始：数据已重置，总计时器启动");
+}
+
+// 2. 修改：回到主菜单/彻底重玩
+function restartAll() {
+    if(watchdogIv) clearInterval(watchdogIv);
+    if(timerIv) clearInterval(timerIv);
+    
+    // 隐藏证书
+    const cert = document.getElementById('certBg');
+    if(cert) cert.classList.remove('show');
+    
+    showPage('pgSplash');
+}
+
+// 3. 修改：当前关卡失败重玩 (时间不应该重置为0)
+function restartCurrentLevel() {
+    // 移除本关可能已经产生的半成品结果
+    if(lvResults.length > 0) lvResults.pop();
+    
+    showPage('pgGame');
+    startLevel(lvIdx);
+    // 注意：这里不要重置 totalGameStartTime，否则时间会变短
+}
+
+// 4. 修改：进入下一关逻辑
+function proceedNext() {
+    // 🏆 关键修复：不要在这里重置 gameState.score 和 currentLevel！
+    // 这里的逻辑应该是判断是否继续，或者是否到达终点
+    
+    if(lvIdx === 2) { 
+        showPage('pgWarning'); 
+    } else if(lvIdx === 3) { 
+        showPage('pgWarning2'); 
+    } else if(lvIdx >= 4) {
+        // 如果已经是最后一关(索引4是第5关)
+        showGameEnd(true); 
+    } else {
+        // 正常进入下一关
+        lvIdx++; 
+        gameState.currentLevel = lvIdx + 1;
+        startLevel(lvIdx);
+    }
+}
+
+// 5. 计时器显示建议：
+// 在你的计时器更新函数里，请使用 totalGameStartTime 来计算
+function updateTimerDisplay() {
+    if(!totalGameStartTime) return;
+    const now = Date.now();
+    // 计算从点击“开始游戏”那一刻起到现在的总秒数
+    const diff = ((now - totalGameStartTime) / 1000).toFixed(1);
+    const timerElement = document.getElementById('timerDisplay');
+    if(timerElement) timerElement.innerText = diff + "s";
+}
     
     // 其他初始化逻辑...
     console.log("游戏已重置：分数归零，从第一关开始");
