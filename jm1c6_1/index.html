@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💧 水分子三态模拟 | Water Molecule Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+  /*峇株吧辖华仁中学蔡逸众制作*/
+
+  :root {
+    --solid-color: #4fc3f7;
+    --liquid-color: #69f0ae;
+    --gas-color: #ff6e6e;
+    --bg-dark: #050a12;
+    --panel-bg: rgba(8, 20, 40, 0.85);
+    --border-glow: rgba(79, 195, 247, 0.3);
+    --text-main: #e0f7fa;
+    --text-dim: #607d8b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--text-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #canvas-container {
+    position: absolute;
+    inset: 0;
+  }
+
+  canvas { display: block; }
+
+  /* ── THERMOMETER PANEL ── */
+  #thermo-panel {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .temp-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  #thermo-svg-wrap {
+    position: relative;
+    width: 44px;
+    height: 320px; /*峇株吧辖蔡逸众制作*/
+  }
+
+  #thermo-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  #temp-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.3;
+    color: #fff;
+    text-shadow: 0 0 12px currentColor;
+  }
+
+  #temp-value {
+    font-size: 20px;
+    font-weight: 900;
+    display: block;
+  }
+
+  #phase-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    text-align: center;
+    transition: all 0.5s ease;
+  }
+
+  /* ── DRAG HINT ── */
+  #drag-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+    animation: fadeInOut 3s ease-in-out infinite;
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ── INFO PANEL (draggable, collapsible) ── */
+  #info-panel {
+    position: fixed;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 162px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    z-index: 20;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    /* transform overridden by JS once dragged */
+  }
+
+  #info-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: grab;
+    user-select: none;
+  }
+  #info-panel-header:active { cursor: grabbing; }
+
+  #info-panel h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  #info-toggle-btn {
+    background: none;
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 11px;
+    width: 20px; height: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  #info-toggle-btn:hover { border-color: #4fc3f7; color: #4fc3f7; }
+
+  #info-panel-body {
+    padding: 0 14px 14px;
+    overflow: hidden; /*华仁中学蔡逸众制作*/
+    transition: max-height 0.35s ease, opacity 0.3s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+
+  #info-panel.collapsed #info-panel-body {
+    max-height: 0;
+    opacity: 0;
+    padding-bottom: 0;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+
+  .info-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .info-label { color: var(--text-dim); flex: 1; margin: 0 6px; }
+  .info-val { font-family: 'Orbitron', monospace; font-size: 10px; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin: 12px 0;
+  }
+
+  .phase-desc {
+    font-size: 11px;
+    line-height: 1.6;
+    color: #90a4ae;
+    transition: color 0.5s;
+  }
+
+  /* ── TITLE ── */
+  #title-bar {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  #title-bar h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(79, 195, 247, 0.8);
+  }
+
+  #title-bar p {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-top: 4px;
+  }
+
+  /* ── TEMP SLIDER (hidden, for dragging) ── */
+  #temp-slider {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    cursor: ns-resize;
+    z-index: 20;
+  }
+
+  /* ── PHASE TRANSITION FLASH ── */
+  #flash-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  /* ── KEYBOARD HINT ── */
+  #kb-hint {
+    position: absolute;
+    bottom: 20px;
+    right: 18px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    z-index: 10;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 9px;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container">
+  <canvas id="webgl-canvas"></canvas>
+</div>
+
+<div id="flash-overlay"></div>
+
+<div id="title-bar">
+  <h1>💧 WATER MOLECULE</h1>
+  <p>THREE STATES OF MATTER SIMULATION</p>
+  <p style="font-size:9px;color:#0d1f30;letter-spacing:1px;margin-top:3px;font-family:monospace;">峇株吧辖华仁中学蔡逸众制作 &nbsp;|&nbsp; Made by ecchua79</p>
+</div>
+<!--华仁中学蔡逸众制作-->
+
+<!-- THERMOMETER -->
+<!--Made by ecchua79-->
+<div id="thermo-panel">
+  <div class="temp-label">°C</div>
+  <div id="thermo-svg-wrap">
+    <svg id="thermo-svg" viewBox="0 0 44 320">
+      <!--
+        Range: -50°C (y=270) → 150°C (y=10)
+        Track height = 260px, each 50° = 65px
+        y positions: 150°C=10, 100°C=75, 50°C=140, 0°C=205, -50°C=270
+      -->
+      <!-- Defs -->
+      <defs>
+        <linearGradient id="mercuryGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff6e6e" id="merc-stop1"/>
+          <stop offset="100%" stop-color="#4fc3f7" id="merc-stop2"/>
+        </linearGradient>
+        <radialGradient id="bulbGrad" cx="40%" cy="35%">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#4fc3f7" id="bulb-stop"/>
+        </radialGradient>
+      </defs>
+      <!-- Background track -->
+      <rect x="18" y="10" width="8" height="260" rx="4"
+            fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+      <!-- Phase zone: solid  (y=205 → y=270, 65px) -->
+      <rect x="18" y="205" width="8" height="65" rx="0"
+            fill="rgba(79,195,247,0.18)" id="zone-solid"/>
+      <!-- Phase zone: liquid (y=75  → y=205, 130px) -->
+      <rect x="18" y="75"  width="8" height="130" rx="0"
+            fill="rgba(105,240,174,0.14)" id="zone-liquid"/>
+      <!-- Phase zone: gas    (y=10  → y=75,  65px) -->
+      <rect x="18" y="10"  width="8" height="65"  rx="0"
+            fill="rgba(255,110,110,0.14)" id="zone-gas"/>
+      <!-- Phase boundary lines -->
+      <line x1="16" y1="75"  x2="28" y2="75"  stroke="#ff9e9e" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="16" y1="205" x2="28" y2="205" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="2,2"/>
+      <!-- Mercury fill (grows upward from y=270) -->
+      <rect x="19.5" y="205" width="5" height="65" rx="2.5" id="mercury-fill" fill="url(#mercuryGrad)"/>
+      <!-- Tick marks + labels (every 50°) -->
+      <g font-family="monospace" font-size="7.5" fill="#607d8b">
+        <!-- 150°C -->
+        <line x1="13" y1="10"  x2="18" y2="10"  stroke="#ff6e6e" stroke-width="1"/>
+        <text x="11" y="13"  text-anchor="end" fill="#ff6e6e">150</text>
+        <!-- 100°C (boiling) -->
+        <line x1="11" y1="75"  x2="18" y2="75"  stroke="#ff9e9e" stroke-width="1.4"/>
+        <text x="9"  y="78"  text-anchor="end" fill="#ffaa88">100</text>
+        <!-- 50°C -->
+        <line x1="13" y1="140" x2="18" y2="140" stroke="#607d8b" stroke-width="1"/>
+        <text x="11" y="143" text-anchor="end">50</text>
+        <!-- 0°C (melting) -->
+        <line x1="11" y1="205" x2="18" y2="205" stroke="#4fc3f7" stroke-width="1.4"/>
+        <text x="9"  y="208" text-anchor="end" fill="#4fc3f7">0</text>
+        <!-- -50°C -->
+        <line x1="13" y1="270" x2="18" y2="270" stroke="#607d8b" stroke-width="1"/>
+        <text x="11" y="273" text-anchor="end">-50</text>
+      </g>
+      <!-- Bulb -->
+      <circle cx="22" cy="285" r="10" fill="url(#bulbGrad)"
+              stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+    </svg>
+    <!-- Invisible drag area -->
+    <div id="temp-slider"></div>
+  </div>
+  <div id="temp-display">
+    <span id="temp-value">20°C</span>
+  </div>
+  <div id="phase-badge" style="color: var(--liquid-color); border-color: var(--liquid-color);">液态</div>
+</div>
+
+<!-- INFO PANEL -->
+<!--峇株吧辖蔡逸众制作-->
+<div id="info-panel">
+  <div id="info-panel-header" onclick="toggleInfoPanel()">
+    <h3>粒子状态</h3>
+    <button id="info-toggle-btn" title="展开/收起">−</button>
+  </div>
+  <div id="info-panel-body">
+    <div class="info-row">
+      <div class="info-dot" style="background:#4fc3f7; box-shadow:0 0 6px #4fc3f7;"></div>
+      <span class="info-label">固态粒子</span>
+      <span class="info-val" id="cnt-solid">0</span>
+    </div>
+    <div class="info-row">
+      <div class="info-dot" style="background:#69f0ae; box-shadow:0 0 6px #69f0ae;"></div>
+      <span class="info-label">液态粒子</span>
+      <span class="info-val" id="cnt-liquid">0</span>
+    </div>
+    <div class="info-row">
+      <div class="info-dot" style="background:#ff6e6e; box-shadow:0 0 6px #ff6e6e;"></div>
+      <span class="info-label">气态粒子</span>
+      <span class="info-val" id="cnt-gas">0</span>
+    </div>
+    <hr class="divider">
+    <p class="phase-desc" id="phase-desc">
+      液态水分子自由流动，互相吸引但不固定位置。
+    </p>
+  </div>
+</div>
+
+<!-- DRAG HINT -->
+<div id="drag-hint">
+  <span>🖱️</span>
+  <span>拖拽温度计 调节温度</span>
+</div>
+
+<!-- KEYBOARD HINT -->
+<div id="kb-hint">
+  <span><kbd>↑</kbd><kbd>↓</kbd> 调温 &nbsp; <kbd>drag</kbd> 旋转画面</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════
+//  WATER MOLECULE 3D SIMULATION
+// ══════════════════════════════════════════
+
+const canvas = document.getElementById('webgl-canvas');
+//峇株吧辖华仁中学蔡逸众制作
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050a12);
+scene.fog = new THREE.FogExp2(0x050a12, 0.015);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 4, 22);
+camera.lookAt(0, 0, 0);
+
+// ── LIGHTING ──
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(ambientLight);
+
+const pointLight1 = new THREE.PointLight(0x4fc3f7, 2, 40);
+pointLight1.position.set(-8, 8, 8);
+scene.add(pointLight1);
+
+const pointLight2 = new THREE.PointLight(0x69f0ae, 1.5, 40);
+pointLight2.position.set(8, -4, 8);
+scene.add(pointLight2);
+
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+rimLight.position.set(0, 10, -10);
+scene.add(rimLight);
+
+// ── BOX DIMENSIONS ──
+//Made by ecchua79
+const BOX_W = 10, BOX_H = 10, BOX_D = 10;
+const BOX_HALF_W = BOX_W / 2, BOX_HALF_H = BOX_H / 2, BOX_HALF_D = BOX_D / 2;
+
+// ── WIREFRAME BOX ──
+const boxGeo = new THREE.BoxGeometry(BOX_W, BOX_H, BOX_D);
+const edgesGeo = new THREE.EdgesGeometry(boxGeo);
+const edgesMat = new THREE.LineBasicMaterial({
+  color: 0x4fc3f7,
+  transparent: true,
+  opacity: 0.25
+});
+const boxEdges = new THREE.LineSegments(edgesGeo, edgesMat);
+scene.add(boxEdges);
+
+// Semi-transparent box faces
+const boxMat = new THREE.MeshPhysicalMaterial({
+  color: 0x4fc3f7,
+  transparent: true,
+  opacity: 0.03,
+  roughness: 0,
+  metalness: 0,
+  transmission: 0.9,
+  side: THREE.BackSide
+});
+const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+scene.add(boxMesh);
+
+// ── GRID FLOOR ──
+const gridHelper = new THREE.GridHelper(BOX_W, 10, 0x1a2a3a, 0x0d1a2a);
+gridHelper.position.y = -BOX_HALF_H;
+scene.add(gridHelper);
+
+// ── PARTICLE SYSTEM ──
+const N_PARTICLES = 60;
+const particles = [];
+
+// Solid state grid layout (bottom 1/3)
+function getSolidGridPos(i) {
+  const cols = 5, rows = 4, layers = 3;
+  const col = i % cols;
+  const row = Math.floor(i / cols) % rows;
+  const layer = Math.floor(i / (cols * rows)) % layers;
+  return new THREE.Vector3(
+    (col - (cols-1)/2) * 1.8,
+    -BOX_HALF_H + 0.8 + layer * 1.2,
+    (row - (rows-1)/2) * 1.8
+  );
+}
+
+// Particle geometry (sphere)
+const particleGeo = new THREE.SphereGeometry(0.38, 12, 12);
+
+// Colors
+const COL_SOLID   = new THREE.Color(0x4fc3f7);
+const COL_LIQUID  = new THREE.Color(0x69f0ae);
+const COL_GAS     = new THREE.Color(0xff6e6e);
+
+// State enum
+const STATE = { SOLID: 'solid', LIQUID: 'liquid', GAS: 'gas' };
+
+for (let i = 0; i < N_PARTICLES; i++) {
+  //华仁中学蔡逸众制作
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: COL_SOLID.clone(),
+    emissive: COL_SOLID.clone(),
+    emissiveIntensity: 0.4,
+    roughness: 0.1,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.9,
+  });
+
+  const mesh = new THREE.Mesh(particleGeo, mat);
+  const gPos = getSolidGridPos(i);
+  mesh.position.copy(gPos);
+  scene.add(mesh);
+
+  // Velocity for liquid/gas
+  const vel = new THREE.Vector3(
+    (Math.random()-0.5)*0.04,
+    (Math.random()-0.5)*0.04,
+    (Math.random()-0.5)*0.04
+  );
+
+  particles.push({
+    mesh,
+    vel,
+    solidPos: gPos.clone(),
+    state: STATE.SOLID,
+    // vibration phase
+    phase: Math.random() * Math.PI * 2,
+    phaseY: Math.random() * Math.PI * 2,
+    phaseZ: Math.random() * Math.PI * 2,
+    // for transition timing
+    transitionProgress: 0,
+    transitionTarget: null,
+    isMelting: false,
+    isBoiling: false,
+    meltDelay: i * 18,  // ms stagger
+    boilDelay: i * 15,
+  });
+}
+
+// ── ORBIT CONTROLS (manual) ──
+let isDragging = false;
+let prevMouse = { x: 0, y: 0 };
+let rotX = 0.1, rotY = 0;
+const pivotGroup = new THREE.Group();
+scene.add(pivotGroup);
+
+// Add static scene objects to pivot
+pivotGroup.add(boxEdges);
+pivotGroup.add(boxMesh);
+pivotGroup.add(gridHelper);
+particles.forEach(p => pivotGroup.add(p.mesh));
+
+// ── BONDS (solid state) ──
+const bonds = [];
+const bondMat = new THREE.LineBasicMaterial({
+  color: 0x4fc3f7,
+  transparent: true,
+  opacity: 0.3
+});
+
+function createBonds() {
+  bonds.forEach(b => { pivotGroup.remove(b.line); b.line.geometry.dispose(); });
+  bonds.length = 0;
+
+  const threshold = 2.2;
+  for (let i = 0; i < N_PARTICLES; i++) {
+    for (let j = i+1; j < N_PARTICLES; j++) {
+      const dist = particles[i].solidPos.distanceTo(particles[j].solidPos);
+      if (dist < threshold) {
+        const posArr = new Float32Array(6);
+        const a = particles[i].solidPos, b2 = particles[j].solidPos;
+        posArr[0]=a.x; posArr[1]=a.y; posArr[2]=a.z;
+        posArr[3]=b2.x; posArr[4]=b2.y; posArr[5]=b2.z;
+        const posAttr = new THREE.BufferAttribute(posArr, 3);
+        posAttr.setUsage(THREE.DynamicDrawUsage);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', posAttr);
+        const line = new THREE.Line(geo, bondMat.clone());
+        pivotGroup.add(line);
+        bonds.push({ line, i, j, posAttr });
+      }
+    }
+  }
+}
+createBonds();
+
+canvas.addEventListener('mousedown', e => {
+  if (e.target === canvas) { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; }
+});
+canvas.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - prevMouse.x;
+  const dy = e.clientY - prevMouse.y;
+  rotY += dx * 0.008;
+  rotX += dy * 0.008;
+  rotX = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, rotX));
+  prevMouse = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  isDragging = true;
+  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+});
+canvas.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  const dx = e.touches[0].clientX - prevMouse.x;
+  const dy = e.touches[0].clientY - prevMouse.y;
+  rotY += dx * 0.008;
+  rotX += dy * 0.008;
+  rotX = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, rotX));
+  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', () => isDragging = false);
+
+// ── INFO PANEL: DRAGGABLE + COLLAPSIBLE ──
+(function() {
+  const panel  = document.getElementById('info-panel');
+  const header = document.getElementById('info-panel-header');
+  const btn    = document.getElementById('info-toggle-btn');
+
+  // Initialise position from CSS (right:18, vertically centred)
+  // We switch to left/top once the user drags
+  let posX = window.innerWidth - 18 - panel.offsetWidth;
+  let posY = (window.innerHeight - panel.offsetHeight) / 2;
+  let pinned = false; // true after first drag
+
+  function applyPos() {
+    panel.style.right    = 'auto';
+    panel.style.top      = posY + 'px';
+    panel.style.left     = posX + 'px';
+    panel.style.transform = 'none';
+  }
+
+  // ── Collapse / expand (click on btn only) ──
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('collapsed');
+    btn.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+  });
+
+  // ── Drag ──
+  let dragging = false;
+  let dragOffX = 0, dragOffY = 0;
+
+  function onDragStart(cx, cy) {
+    if (!pinned) {
+      // Materialise current position before first drag
+      posX = window.innerWidth - 18 - panel.offsetWidth;
+      posY = (window.innerHeight - panel.offsetHeight) / 2;
+      applyPos();
+      pinned = true;
+    }
+    dragging  = true;
+    dragOffX  = cx - posX;
+    dragOffY  = cy - posY;
+    panel.style.transition = 'none';
+  }
+
+  function onDragMove(cx, cy) {
+    if (!dragging) return;
+    posX = cx - dragOffX;
+    posY = cy - dragOffY;
+    // Keep inside viewport
+    posX = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  posX));
+    posY = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, posY));
+    applyPos();
+  }
+
+  function onDragEnd() { dragging = false; }
+
+  // Mouse
+  header.addEventListener('mousedown', e => {
+    if (e.target === btn) return;
+    e.preventDefault();
+    onDragStart(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', e => onDragMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup',   onDragEnd);
+
+  // Touch
+  header.addEventListener('touchstart', e => {
+    if (e.target === btn) return;
+    onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('touchend', onDragEnd);
+})();
+
+// Keep toggleInfoPanel as no-op for any residual calls
+function toggleInfoPanel() {}
+
+// ── TEMPERATURE CONTROL ──
+let temperature = 20; // °C
+const T_MIN = -50, T_MAX = 150;
+
+const thermoWrap = document.getElementById('thermo-svg-wrap');
+let thermoDragging = false;
+
+// SVG track: y=10 → 150°C (top),  y=270 → -50°C (bottom)
+// Each 50° = 65px.  Formula: svgY = 10 + (150 - t) / 200 * 260
+// Inverse:  t = 150 - (svgY - 10) / 260 * 200
+function tempFromY(clientY) {
+  const rect = thermoWrap.getBoundingClientRect();
+  const svgY = (clientY - rect.top) / rect.height * 320; // map to viewBox coords
+  const t = 150 - (svgY - 10) / 260 * 200;
+  return Math.max(T_MIN, Math.min(T_MAX, t));
+}
+
+document.getElementById('temp-slider').addEventListener('mousedown', e => {
+  thermoDragging = true;
+  temperature = tempFromY(e.clientY);
+});
+window.addEventListener('mousemove', e => {
+  if (!thermoDragging) return;
+  temperature = tempFromY(e.clientY);
+});
+window.addEventListener('mouseup', () => thermoDragging = false);
+
+document.getElementById('temp-slider').addEventListener('touchstart', e => {
+  thermoDragging = true;
+  temperature = tempFromY(e.touches[0].clientY);
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (!thermoDragging) return;
+  temperature = tempFromY(e.touches[0].clientY);
+}, { passive: true });
+window.addEventListener('touchend', () => thermoDragging = false);
+
+// Keyboard control
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp')   temperature = Math.min(T_MAX, temperature + 5);
+  if (e.key === 'ArrowDown') temperature = Math.max(T_MIN, temperature - 5);
+});
+
+// ── UPDATE THERMOMETER UI ──
+function updateThermoUI(t) {
+  //峇株吧辖蔡逸众制作
+  // SVG: y=10 → 150°C,  y=270 → -50°C,  track height=260px, range=200°
+  // mercuryTop = 10 + (150 - t) / 200 * 260
+  // mercury fills from mercuryTop down to y=270 (the bulb neck)
+  const mercTop    = 10 + (150 - t) / 200 * 260;
+  const mercHeight = 270 - mercTop;
+
+  const fill = document.getElementById('mercury-fill');
+  fill.setAttribute('y',      Math.min(mercTop, 270));
+  fill.setAttribute('height', Math.max(4, mercHeight));
+
+  // Bulb + mercury color by phase
+  let col;
+  if (t < 0)        col = '#4fc3f7';
+  else if (t < 100) col = '#69f0ae';
+  else              col = '#ff6e6e';
+
+  document.getElementById('merc-stop1').setAttribute('stop-color', col);
+  document.getElementById('merc-stop2').setAttribute('stop-color', col);
+  document.getElementById('bulb-stop').setAttribute('stop-color', col);
+
+  document.getElementById('temp-value').textContent = t.toFixed(1) + '°C';
+
+  const badge = document.getElementById('phase-badge');
+  const desc  = document.getElementById('phase-desc');
+
+  // meltT: 0 at t≤0, 1 at t≥5  (transition window)
+  const meltT = Math.max(0, Math.min(1, t / 5));
+  // boilT: 0 at t≤100, 1 at t≥105
+  const boilT = Math.max(0, Math.min(1, (t - 100) / 5));
+
+  if (t < 0) {
+    badge.textContent = '固态 ICE';
+    badge.style.color = '#4fc3f7';
+    badge.style.borderColor = '#4fc3f7';
+    desc.textContent = '冰的分子被氢键锁定，只能原位震动。温度越低，震动越弱。';
+  } else if (meltT > 0 && meltT < 1) {
+    badge.textContent = '固液共存';
+    badge.style.color = '#aaffdd';
+    badge.style.borderColor = '#aaffdd';
+    desc.textContent = '熔点附近！固态和液态共存，冰正在融化成水。';
+  } else if (boilT > 0 && boilT < 1) {
+    badge.textContent = '液气共存';
+    badge.style.color = '#ffaa88';
+    badge.style.borderColor = '#ffaa88';
+    desc.textContent = '沸点附近！液态和气态共存，水正在变成水蒸气。';
+  } else if (t >= 105) {
+    badge.textContent = '气态 STEAM';
+    badge.style.color = '#ff6e6e';
+    badge.style.borderColor = '#ff6e6e';
+    desc.textContent = '水蒸气！分子高速乱飞，几乎不互相吸引，充满整个空间。';
+  } else {
+    badge.textContent = '液态 WATER';
+    badge.style.color = '#69f0ae';
+    badge.style.borderColor = '#69f0ae';
+    desc.textContent = '水分子自由流动，互相吸引但无固定位置，温度越高越活跃。';
+  }
+}
+
+// ── PARTICLE STATE LOGIC ──
+// Track melt/boil progress (0..1)
+
+// ── PARTICLE UPDATE ──
+// Use elapsed time from THREE.Clock for vibration (never accumulates per-particle)
+function updateParticles(dt, t) {
+  const elapsed = clock3.elapsedTime;
+
+  const meltT = Math.max(0, Math.min(1, t / 5));
+  const boilT = Math.max(0, Math.min(1, (t - 100) / 5));
+
+  const solidCount = Math.max(0, Math.round(N_PARTICLES * (1 - meltT)));
+  const gasCount   = Math.max(0, Math.round(N_PARTICLES * boilT));
+
+  let sCount = 0, lCount = 0, gCount = 0;
+
+  // Vibration: weak at -50°C, strong near 0°C
+  const coldFrac = t < 0 ? Math.max(0, Math.min(1, (t - T_MIN) / (0 - T_MIN))) : 1;
+  const vibAmp   = 0.02 + coldFrac * 0.10;
+  const vibSpeed = 3 + coldFrac * 6;
+
+  // ── ICE FLOATS ON WATER ──
+  // Liquid fills from the bottom upward.  Ice block floats on top of the liquid.
+  // solidGridBottom: y of the lowest solid particle in its original grid
+  const solidGridBottom = -BOX_HALF_H + 0.8;
+  // How far up does the liquid layer reach?
+  // At meltT=0 (all solid): liquid surface = solidGridBottom (no liquid)
+  // At meltT=1 (all liquid): liquid fills bottom 55% of box
+  const liquidSurface = solidGridBottom + meltT * BOX_H * 0.50;
+  // Ice block sits just above liquid surface (density < water → floats)
+  const floatOffset = meltT > 0 ? Math.max(0, (liquidSurface + 0.25) - solidGridBottom) : 0;
+  // Liquid yMax: up to the liquid surface (doesn't intrude into ice zone)
+  const liquidYMax = Math.min(liquidSurface, BOX_HALF_H - 0.4);
+
+  particles.forEach((p, i) => {
+    const mesh = p.mesh;
+
+    let targetState;
+    if (i < solidCount)                       targetState = STATE.SOLID;
+    else if (i >= N_PARTICLES - gasCount)     targetState = STATE.GAS;
+    else                                      targetState = STATE.LIQUID;
+
+    if (targetState === STATE.SOLID) {
+      p.state = STATE.SOLID;
+      // Float the solid block upward as meltT increases
+      const floatY = p.solidPos.y + floatOffset;
+      mesh.position.set(
+        p.solidPos.x + Math.sin(elapsed * vibSpeed + p.phase)  * vibAmp,
+        floatY        + Math.sin(elapsed * vibSpeed + p.phaseY) * vibAmp * 0.5,
+        p.solidPos.z  + Math.sin(elapsed * vibSpeed + p.phaseZ) * vibAmp
+      );
+      mesh.material.color.copy(COL_SOLID);
+      mesh.material.emissive.copy(COL_SOLID);
+      mesh.material.emissiveIntensity = 0.25 + 0.15 * coldFrac;
+      sCount++;
+
+    } else if (targetState === STATE.LIQUID) {
+      p.state = STATE.LIQUID;
+      mesh.material.color.copy(COL_LIQUID);
+      mesh.material.emissive.copy(COL_LIQUID);
+
+      const speed = 0.03 + (t / 100) * 0.08;
+      mesh.material.emissiveIntensity = 0.25 + speed * 2;
+
+      if (p.vel.lengthSq() < 0.0001) {
+        p.vel.set(
+          (Math.random()-0.5) * speed * 2,
+          (Math.random()-0.5) * speed * 2,
+          (Math.random()-0.5) * speed * 2
+        );
+      }
+      const vl = p.vel.length();
+      if (vl > 0) p.vel.multiplyScalar(speed / vl);
+
+      mesh.position.add(p.vel);
+
+      // Liquid stays BELOW floating ice block
+      if (mesh.position.x >  BOX_HALF_W - 0.4) { mesh.position.x =  BOX_HALF_W - 0.4; p.vel.x *= -1; }
+      if (mesh.position.x < -BOX_HALF_W + 0.4) { mesh.position.x = -BOX_HALF_W + 0.4; p.vel.x *= -1; }
+      if (mesh.position.y > liquidYMax)          { mesh.position.y = liquidYMax;         p.vel.y *= -1; }
+      if (mesh.position.y < -BOX_HALF_H + 0.4) { mesh.position.y = -BOX_HALF_H + 0.4; p.vel.y *= -1; }
+      if (mesh.position.z >  BOX_HALF_D - 0.4) { mesh.position.z =  BOX_HALF_D - 0.4; p.vel.z *= -1; }
+      if (mesh.position.z < -BOX_HALF_D + 0.4) { mesh.position.z = -BOX_HALF_D + 0.4; p.vel.z *= -1; }
+      lCount++;
+
+    } else { // GAS
+      p.state = STATE.GAS;
+      mesh.material.color.copy(COL_GAS);
+      mesh.material.emissive.copy(COL_GAS);
+
+      const speed = 0.08 + Math.max(0, (t - 100)) / 50 * 0.06;
+      mesh.material.emissiveIntensity = 0.4 + 0.2 * Math.sin(elapsed * 8 + p.phase);
+
+      if (p.vel.lengthSq() < 0.001) {
+        p.vel.set(
+          (Math.random()-0.5) * speed * 2,
+          (Math.random()-0.5) * speed * 2,
+          (Math.random()-0.5) * speed * 2
+        );
+      }
+      const vl2 = p.vel.length();
+      if (vl2 > 0) p.vel.multiplyScalar(speed / vl2);
+
+      mesh.position.add(p.vel);
+
+      if (mesh.position.x >  BOX_HALF_W - 0.4) { mesh.position.x =  BOX_HALF_W - 0.4; p.vel.x *= -1; }
+      if (mesh.position.x < -BOX_HALF_W + 0.4) { mesh.position.x = -BOX_HALF_W + 0.4; p.vel.x *= -1; }
+      if (mesh.position.y >  BOX_HALF_H - 0.4) { mesh.position.y =  BOX_HALF_H - 0.4; p.vel.y *= -1; }
+      if (mesh.position.y < -BOX_HALF_H + 0.4) { mesh.position.y = -BOX_HALF_H + 0.4; p.vel.y *= -1; }
+      if (mesh.position.z >  BOX_HALF_D - 0.4) { mesh.position.z =  BOX_HALF_D - 0.4; p.vel.z *= -1; }
+      if (mesh.position.z < -BOX_HALF_D + 0.4) { mesh.position.z = -BOX_HALF_D + 0.4; p.vel.z *= -1; }
+      gCount++;
+    }
+  });
+
+  document.getElementById('cnt-solid').textContent  = sCount;
+  document.getElementById('cnt-liquid').textContent = lCount;
+  document.getElementById('cnt-gas').textContent    = gCount;
+
+  // Update bonds — direct BufferAttribute update, zero GC
+  bonds.forEach(({ line, i, j, posAttr }) => {
+    const bothSolid = particles[i].state === STATE.SOLID && particles[j].state === STATE.SOLID;
+    line.visible = bothSolid;
+    if (bothSolid) {
+      const a = particles[i].mesh.position;
+      const b = particles[j].mesh.position;
+      posAttr.setXYZ(0, a.x, a.y, a.z);
+      posAttr.setXYZ(1, b.x, b.y, b.z);
+      posAttr.needsUpdate = true;
+    }
+  });
+}
+
+// ── GLOW PARTICLES (background atmosphere) ──
+const glowGeo = new THREE.BufferGeometry();
+const glowPositions = new Float32Array(300 * 3);
+for (let i = 0; i < 300; i++) {
+  glowPositions[i*3]   = (Math.random()-0.5)*60;
+  glowPositions[i*3+1] = (Math.random()-0.5)*40;
+  glowPositions[i*3+2] = (Math.random()-0.5)*60 - 30;
+}
+glowGeo.setAttribute('position', new THREE.BufferAttribute(glowPositions, 3));
+const glowMat = new THREE.PointsMaterial({
+  color: 0x4fc3f7,
+  size: 0.08,
+  transparent: true,
+  opacity: 0.15,
+  sizeAttenuation: true
+});
+const glowStars = new THREE.Points(glowGeo, glowMat);
+scene.add(glowStars);
+
+// ── RENDER LOOP ──
+//Made by ecchua79
+const clock3 = new THREE.Clock();
+let frameCount = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock3.getDelta();
+  frameCount++;
+
+  // Smooth rotation
+  pivotGroup.rotation.y += (rotY - pivotGroup.rotation.y) * 0.08;
+  pivotGroup.rotation.x += (rotX - pivotGroup.rotation.x) * 0.08;
+
+  // Auto rotate when not dragging
+  if (!isDragging && !thermoDragging) {
+    rotY += 0.003;
+  }
+
+  // Update particles every frame
+  updateParticles(dt, temperature);
+
+  // Update thermometer
+  if (frameCount % 3 === 0) {
+    updateThermoUI(temperature);
+
+    // Dynamic lighting color
+    const tFrac = (temperature - T_MIN) / (T_MAX - T_MIN);
+    pointLight1.color.lerpColors(COL_SOLID, COL_GAS, tFrac);
+    pointLight1.intensity = 1.5 + tFrac * 2;
+  }
+
+  // Glow star drift
+  glowStars.rotation.y += 0.0002;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ── RESIZE ──
+//峇株吧辖华仁中学蔡逸众制作
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ── INITIAL STATE ──
+updateThermoUI(temperature);
+</script>
+</body>
+</html>
