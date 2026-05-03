@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>欧姆定律探险 · 完整版</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+:root{
+  --bg:#090f16;--s1:#0e1620;--s2:#131d2a;--s3:#182336;
+  --border:#1e2d3d;--border2:#253a4a;
+  --cyan:#00d4ff;--green:#00e676;--amber:#ffb700;--red:#ff4757;--purple:#b388ff;--orange:#ff6f3c;
+  --text:#dde8f0;--muted:#4a6a7a;
+  --mono:'Share Tech Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;user-select:none;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,212,255,.012) 3px,rgba(0,212,255,.012) 4px);pointer-events:none;z-index:9998;}
+
+/* ══ GLOBAL HEADER ══ */
+#g-header{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 20px;background:var(--s1);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:100;
+}
+.g-logo{display:flex;align-items:center;gap:8px;font-size:.95rem;font-weight:900;}
+.g-logo-icon{width:30px;height:30px;background:var(--cyan);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#000;}
+.g-logo em{color:var(--cyan);font-style:normal;}
+.g-lv-tabs{display:flex;gap:6px;margin-left:4px;}
+.lv-tab{
+  font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;
+  background:var(--s2);border:1px solid var(--border2);color:var(--muted);
+  cursor:default;transition:.2s;letter-spacing:.5px;
+}
+.lv-tab.active{background:var(--cyan);color:#000;border-color:var(--cyan);}
+.lv-tab.done{background:rgba(0,230,118,.15);color:var(--green);border-color:var(--green);}
+.g-hud{display:flex;gap:8px;margin-left:auto;}
+.hud-pill{
+  font-family:var(--mono);font-size:.78rem;
+  background:var(--s2);border:1px solid var(--border2);
+  border-radius:6px;padding:4px 12px;display:flex;align-items:center;gap:5px;
+}
+.hud-v{font-weight:700;}
+.hud-v.score{color:var(--amber);}
+.hud-v.timer{color:var(--cyan);}
+.hud-v.life{color:var(--red);}
+
+/* progress bar */
+#g-prog{height:3px;background:var(--border);flex-shrink:0;}
+#g-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--orange));transition:width .5s ease;}
+
+/* ══ SCREEN SYSTEM ══ */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
+.workspace{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+
+/* ══ TRANSITION OVERLAY ══ */
+#transition{
+  position:fixed;inset:0;background:var(--bg);z-index:9000;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+#transition.show{opacity:1;pointer-events:all;}
+.tr-badge{font-size:3rem;}
+.tr-title{font-size:1.5rem;font-weight:900;color:var(--cyan);}
+.tr-sub{font-size:.95rem;color:var(--muted);}
+
+/* ══ TOAST ══ */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--s2);border:1px solid var(--border2);border-radius:8px;
+  padding:9px 20px;font-size:.85rem;font-weight:600;
+  opacity:0;transition:.3s;z-index:9500;pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{border-color:var(--green);color:var(--green);}
+#toast.fail{border-color:var(--red);color:var(--red);}
+#toast.info{border-color:var(--cyan);color:var(--cyan);}
+
+/* ══ PARTICLES ══ */
+.p{position:fixed;pointer-events:none;border-radius:50%;animation:pp .8s ease-out forwards;}
+@keyframes pp{to{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}
+
+/* ══════════════════════════════
+   LEVEL 1 — CIRCUIT BUILDER
+══════════════════════════════ */
+/* toolbars */
+.toolbar,.controlbar{
+  display:flex;align-items:center;gap:8px;padding:7px 14px;
+  background:var(--s2);border-bottom:1px solid var(--border);
+  flex-shrink:0;overflow-x:auto;
+}
+.toolbar{background:var(--s1);border-bottom:2px solid var(--border);}
+.toolbar-label,.ctrl-label{font-size:.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
+.toolbar-sep,.ctrl-sep{width:1px;height:28px;background:var(--border);flex-shrink:0;margin:0 3px;}
+.comp-item{
+  background:var(--s2);border:1px solid var(--border2);border-radius:9px;
+  padding:6px 12px;display:flex;flex-direction:row;align-items:center;gap:7px;
+  cursor:grab;transition:.15s;flex-shrink:0;white-space:nowrap;
+}
+.comp-item:hover{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,212,255,.2);}
+.comp-item:active{cursor:grabbing;}
+.comp-icon{font-size:1.1rem;}
+.comp-label{font-size:.78rem;color:var(--text);}
+.comp-label small{color:var(--muted);display:block;font-size:.65rem;}
+.comp-count{background:var(--cyan);color:#000;font-size:.58rem;font-weight:900;border-radius:8px;padding:1px 6px;}
+.comp-item *{pointer-events:none;}
+
+/* controlbar pills */
+.chk-pill{
+  display:flex;align-items:center;gap:5px;
+  background:var(--s1);border:1px solid var(--border2);border-radius:7px;
+  padding:4px 10px;font-size:.72rem;color:var(--muted);flex-shrink:0;white-space:nowrap;transition:.2s;
+}
+.chk-pill.done{border-color:var(--green);color:var(--green);}
+.chk-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:.2s;}
+.chk-pill.done .chk-dot{background:var(--green);box-shadow:0 0 5px var(--green);}
+.meter-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s1);border:1px solid var(--border2);border-radius:7px;
+  padding:4px 10px;flex-shrink:0;transition:.2s;
+}
+.meter-pill.active{border-color:var(--cyan);}
+.meter-pill .ms{font-size:.8rem;font-weight:900;font-style:italic;color:var(--muted);}
+.meter-pill.active .ms{color:var(--cyan);}
+.meter-pill .mv{font-size:.82rem;font-weight:700;color:var(--text);min-width:44px;font-variant-numeric:tabular-nums;}
+.meter-pill .ml{font-size:.62rem;color:var(--muted);}
+
+/* canvas */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 30% 40%,rgba(0,212,255,.04) 0%,transparent 60%),var(--bg);}
+.canvas-wrap::before{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(0,212,255,.1) 1px,transparent 1px);
+  background-size:30px 30px;pointer-events:none;}
+#main-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
+#comp-layer{position:absolute;inset:0;z-index:3;}
+
+/* placed components */
+.placed{position:absolute;width:92px;height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:move;z-index:4;}
+.placed .comp-body{
+  width:84px;height:64px;background:var(--s2);border:2px solid var(--border2);border-radius:11px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  position:relative;transition:border-color .2s,box-shadow .2s;pointer-events:all;
+}
+.placed:hover .comp-body,.placed.selected .comp-body{border-color:var(--cyan);box-shadow:0 0 14px rgba(0,212,255,.3);}
+.placed .comp-body .icon{font-size:1.25rem;}
+.placed .comp-body .lbl{font-size:.6rem;color:var(--muted);}
+.placed .comp-body .val{font-size:.68rem;font-weight:700;color:var(--cyan);}
+.port{position:absolute;width:13px;height:13px;background:var(--s2);border:2px solid var(--border2);border-radius:50%;cursor:crosshair;z-index:10;transition:.15s;pointer-events:all;}
+.port:hover,.port.active{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 7px rgba(0,212,255,.6);transform:scale(1.3);}
+.port.connected{background:var(--green);border-color:var(--green);}
+.port-L{left:-6px;top:50%;transform:translateY(-50%);}
+.port-R{right:-6px;top:50%;transform:translateY(-50%);}
+.port-L.connected,.port-R.connected{transform:translateY(-50%) scale(1);}
+.del-btn{position:absolute;top:-7px;right:-7px;width:16px;height:16px;background:var(--red);color:#fff;border:none;border-radius:50%;font-size:.6rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:20;line-height:1;}
+.placed:hover .del-btn,.placed.selected .del-btn{display:flex;}
+.switch-btn{width:38px;height:15px;background:var(--border2);border-radius:8px;position:relative;cursor:pointer;border:none;transition:.2s;margin-top:2px;}
+.switch-btn::after{content:'';position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:1px;left:1px;transition:.2s;}
+.switch-btn.on{background:var(--green);}
+.switch-btn.on::after{left:24px;}
+.wire-path{stroke:var(--cyan);stroke-width:2.5;fill:none;stroke-linecap:round;}
+.wire-path.live{stroke:var(--green);filter:drop-shadow(0 0 4px rgba(0,230,118,.7));animation:flowWire 1s linear infinite;stroke-dasharray:8 4;}
+@keyframes flowWire{to{stroke-dashoffset:-12;}}
+.wire-preview{stroke:rgba(0,212,255,.45);stroke-width:2;fill:none;stroke-dasharray:5 4;}
+.bulb-on .comp-body{border-color:#ffd54f!important;box-shadow:0 0 28px rgba(255,213,79,.5),0 0 56px rgba(255,213,79,.2)!important;animation:bulbPulse 1.2s ease-in-out infinite;}
+@keyframes bulbPulse{0%,100%{box-shadow:0 0 18px rgba(255,213,79,.4),0 0 44px rgba(255,213,79,.15);}50%{box-shadow:0 0 36px rgba(255,213,79,.7),0 0 72px rgba(255,213,79,.3);}}
+
+/* lv1 action buttons */
+.btn-power{background:linear-gradient(135deg,#1a2d1a,#1e3a1e);border:2px solid var(--border2);border-radius:7px;padding:5px 14px;color:var(--muted);font-size:.78rem;font-weight:700;font-family:'Noto Sans SC',sans-serif;cursor:not-allowed;transition:.2s;white-space:nowrap;flex-shrink:0;}
+.btn-power.ready{background:linear-gradient(135deg,#003d1a,#00521f);border-color:var(--green);color:var(--green);cursor:pointer;box-shadow:0 0 10px rgba(0,230,118,.2);}
+.btn-power.ready:hover{box-shadow:0 0 18px rgba(0,230,118,.4);}
+.btn-power.powered{background:linear-gradient(135deg,#3d3300,#524500);border-color:#ffd54f;color:#ffd54f;box-shadow:0 0 10px rgba(255,213,79,.2);cursor:pointer;}
+.btn-reset{background:none;border:1px solid var(--border2);border-radius:7px;padding:5px 11px;color:var(--muted);font-size:.75rem;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0;}
+.btn-reset:hover{border-color:var(--red);color:var(--red);}
+.sc-flash{display:none;position:fixed;inset:0;background:rgba(255,71,87,.22);z-index:9800;pointer-events:none;animation:scFlash .4s;}
+@keyframes scFlash{0%,100%{opacity:0;}30%,70%{opacity:1;}50%{opacity:.5;}}
+
+/* ══════════════════════════════
+   LEVEL 2 — OHM DETECTIVE
+══════════════════════════════ */
+#lv2 .case-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:14px 20px 0;box-shadow:0 6px 24px rgba(0,0,0,.4);}
+#lv2 .case-header{background:linear-gradient(135deg,#131d2a,#172336);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:10px;}
+#lv2 .case-num{background:var(--amber);color:#000;font-size:.68rem;font-weight:900;padding:2px 9px;border-radius:20px;letter-spacing:1px;}
+#lv2 .case-title-el{font-size:1rem;font-weight:700;}
+#lv2 .case-badge{margin-left:auto;font-size:.72rem;color:var(--muted);background:var(--s2);padding:3px 10px;border-radius:16px;border:1px solid var(--border);}
+#lv2 .scene{padding:14px 20px 10px;border-bottom:1px solid var(--border);}
+#lv2 .scene-text{font-size:.9rem;line-height:1.8;color:#a8bcc8;background:rgba(255,183,0,.05);border-left:3px solid var(--amber);padding:10px 14px;border-radius:0 7px 7px 0;}
+#lv2 .scene-text strong{color:var(--cyan);}
+#lv2 .circuit-area{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--s2);display:flex;justify-content:center;min-height:160px;align-items:center;}
+#lv2 .clues{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;}
+#lv2 .clue{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:9px 15px;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:110px;flex:1;}
+#lv2 .clue.known{border-color:var(--cyan);}
+#lv2 .clue.unknown{border-style:dashed;}
+#lv2 .clue-sym{font-size:1.35rem;font-weight:900;font-style:italic;}
+#lv2 .clue.known .clue-sym{color:var(--cyan);}
+#lv2 .clue.unknown .clue-sym{color:var(--muted);}
+#lv2 .clue-name{font-size:.68rem;color:var(--muted);letter-spacing:1px;}
+#lv2 .clue-val{font-size:1rem;font-weight:700;}
+#lv2 .clue.known .clue-val{color:var(--text);}
+#lv2 .clue.unknown .clue-val{color:var(--muted);}
+#lv2 .clue-unit{font-size:.75rem;color:var(--muted);}
+#lv2 .answer-section{padding:16px 20px;}
+#lv2 .answer-label{font-size:.78rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;}
+#lv2 .answer-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+#lv2 .unknown-sym{color:var(--amber);font-style:italic;font-size:1.1rem;}
+#lv2 .answer-input-wrap{display:flex;align-items:center;gap:7px;background:var(--bg);border:2px solid var(--border);border-radius:9px;padding:6px 12px;transition:border-color .2s;flex:1;min-width:140px;}
+#lv2 .answer-input-wrap:focus-within{border-color:var(--amber);}
+#lv2 .answer-input-wrap.correct{border-color:var(--green);background:rgba(0,230,118,.07);}
+#lv2 .answer-input-wrap.wrong{border-color:var(--red);background:rgba(255,71,87,.07);animation:shake .3s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#lv2 input[type="number"]{background:none;border:none;outline:none;color:var(--text);font-size:1.05rem;font-weight:700;font-family:var(--mono);width:80px;}
+#lv2 input[type="number"]::-webkit-inner-spin-button{display:none;}
+#lv2 .answer-unit{color:var(--muted);font-size:.85rem;white-space:nowrap;}
+.btn-submit,.btn-confirm-lv2{background:var(--amber);color:#000;border:none;padding:9px 22px;border-radius:9px;font-size:.88rem;font-weight:900;cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:.15s;white-space:nowrap;}
+.btn-submit:hover,.btn-confirm-lv2:hover{background:#ffd040;transform:translateY(-1px);}
+.btn-submit:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;transform:none;}
+#lv2 .feedback{margin-top:12px;padding:10px 14px;border-radius:9px;font-size:.88rem;line-height:1.6;display:none;}
+#lv2 .feedback.show{display:block;}
+#lv2 .feedback.correct-fb{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.35);color:#56d364;}
+#lv2 .feedback.wrong-fb{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.28);color:var(--red);}
+#lv2 .feedback.hint-fb{background:rgba(179,136,255,.08);border:1px solid rgba(179,136,255,.28);color:var(--purple);}
+#lv2 .hint-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.8rem;cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:.2s;margin-top:8px;}
+#lv2 .hint-btn:hover{border-color:var(--amber);color:var(--amber);}
+.btn-next-q{background:var(--green);color:#000;border:none;padding:9px 22px;border-radius:9px;font-size:.88rem;font-weight:900;cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:.15s;display:none;margin-top:10px;}
+.btn-next-q:hover{background:#33ff99;transform:translateY(-1px);}
+#lv2 .formula-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 18px;margin:10px 20px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+#lv2 .formula-card h3{font-size:.7rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;width:100%;margin-bottom:4px;}
+#lv2 .formula-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:110px;}
+#lv2 .formula-eq{font-size:1rem;font-weight:700;font-style:italic;color:var(--amber);}
+#lv2 .formula-desc{font-size:.7rem;color:var(--muted);margin-top:2px;}
+#lv2 .q-dots{display:flex;gap:5px;margin:10px 20px 0;}
+#lv2 .q-dot{width:26px;height:26px;border-radius:50%;background:var(--s2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--muted);transition:.2s;}
+#lv2 .q-dot.done{background:var(--green);border-color:var(--green);color:#000;}
+#lv2 .q-dot.wrong-dot{background:var(--red);border-color:var(--red);color:#fff;}
+#lv2 .q-dot.active{border-color:var(--amber);color:var(--amber);}
+#lv2 .lv2-scroll{overflow-y:auto;flex:1;}
+
+/* ══════════════════════════════
+   LEVEL 3 — ENGINEER CHALLENGE
+══════════════════════════════ */
+#lv3 .controlbar3{display:flex;align-items:center;gap:7px;padding:6px 14px;background:var(--s2);border-bottom:2px solid var(--border);flex-shrink:0;overflow-x:auto;overflow-y:visible;}
+.r-dropdown-wrap{position:relative;flex-shrink:0;}
+.r-dropdown-btn{display:flex;align-items:center;gap:7px;background:var(--s1);border:1px solid var(--border2);border-radius:7px;padding:5px 12px;font-family:var(--mono);font-size:.78rem;color:var(--text);cursor:pointer;transition:.15s;white-space:nowrap;min-width:148px;}
+.r-dropdown-btn:hover{border-color:var(--amber);}
+.r-dropdown-btn.has-pick{border-color:var(--cyan);color:var(--cyan);}
+.r-dropdown-btn .arrow{margin-left:auto;transition:.2s;display:inline-block;}
+.r-dropdown-btn.open .arrow{transform:rotate(180deg);}
+.r-dropdown-menu{position:fixed;min-width:240px;background:var(--s1);border:1px solid var(--border2);border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.6);z-index:2000;overflow:hidden;display:none;flex-direction:column;}
+.r-dropdown-menu.open{display:flex;}
+.r-menu-header{padding:7px 13px;font-size:.63rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--s2);}
+.r-option{display:flex;align-items:center;gap:9px;padding:8px 13px;cursor:pointer;transition:.15s;border-bottom:1px solid var(--border);}
+.r-option:last-child{border-bottom:none;}
+.r-option:hover{background:rgba(255,183,0,.07);}
+.r-option.selected{background:rgba(0,212,255,.08);}
+.r-option.correct-pick{background:rgba(0,230,118,.1);}
+.r-option.wrong-pick{background:rgba(255,71,87,.07);}
+.r-option.disabled{opacity:.4;pointer-events:none;}
+.r-opt-ohm{font-family:var(--mono);font-size:.88rem;font-weight:700;flex:1;}
+.r-opt-i{font-family:var(--mono);font-size:.72rem;color:var(--muted);}
+.r-opt-check{font-size:.88rem;color:var(--cyan);opacity:0;transition:.15s;}
+.r-option.selected .r-opt-check{opacity:1;}
+.r-option.correct-pick .r-opt-check{opacity:1;color:var(--green);}
+.r-option.wrong-pick .r-opt-check{opacity:1;color:var(--red);}
+.selected-tags{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+.sel-tag{font-family:var(--mono);font-size:.72rem;background:rgba(0,212,255,.1);border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;padding:2px 9px;}
+.calc-inline{font-family:var(--mono);font-size:.75rem;color:var(--muted);white-space:nowrap;flex-shrink:0;background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:4px 11px;max-width:320px;overflow:hidden;text-overflow:ellipsis;}
+.calc-inline .hl-ok{color:var(--green);}
+.calc-inline .hl-r{color:var(--amber);}
+.calc-inline .hl-fail{color:var(--red);}
+.feedback-bar{font-size:.78rem;padding:4px 11px;border-radius:6px;white-space:nowrap;flex-shrink:0;display:none;}
+.feedback-bar.show{display:block;}
+.feedback-bar.ok{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.28);color:var(--green);}
+.feedback-bar.fail{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.24);color:var(--red);}
+.feedback-bar.hint{background:rgba(179,136,255,.08);border:1px solid rgba(179,136,255,.24);color:var(--purple);}
+.btn-confirm-lv3{background:linear-gradient(135deg,#1a2800,#243800);border:2px solid var(--border2);border-radius:7px;padding:5px 16px;color:var(--muted);font-size:.78rem;font-weight:700;font-family:'Noto Sans SC',sans-serif;cursor:not-allowed;transition:.2s;white-space:nowrap;flex-shrink:0;}
+.btn-confirm-lv3.ready{border-color:var(--amber);color:var(--amber);cursor:pointer;background:linear-gradient(135deg,#2a1e00,#3a2800);box-shadow:0 0 10px rgba(255,183,0,.18);}
+.btn-confirm-lv3.ready:hover{box-shadow:0 0 18px rgba(255,183,0,.32);}
+.btn-next-lv3{background:var(--green);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:.78rem;font-weight:900;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0;display:none;}
+.btn-next-lv3:hover{background:#33ff99;}
+.btn-hint-lv3{background:none;border:1px solid var(--border2);border-radius:7px;padding:5px 12px;color:var(--muted);font-size:.75rem;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0;}
+.btn-hint-lv3:hover{border-color:var(--purple);color:var(--purple);}
+.btn-hint-lv3:disabled{opacity:.4;cursor:not-allowed;}
+#lv3 .mission{background:linear-gradient(135deg,var(--s2),var(--s3));border:1px solid var(--border2);border-left:3px solid var(--amber);border-radius:8px;padding:13px 17px;flex-shrink:0;}
+#lv3 .mission-top{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+#lv3 .mission-num{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+#lv3 .mission-diff{margin-left:auto;font-size:.72rem;color:var(--muted);font-family:var(--mono);}
+#lv3 .mission-title{font-size:.98rem;font-weight:900;margin-bottom:5px;color:var(--amber);}
+#lv3 .mission-desc{font-size:.84rem;line-height:1.7;color:#9ab0bc;}
+#lv3 .mission-desc strong{color:var(--cyan);}
+#lv3 .target-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+#lv3 .target-chip{font-family:var(--mono);background:var(--s1);border:1px solid var(--border2);border-radius:5px;padding:5px 12px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+#lv3 .target-chip .tc-label{font-size:.62rem;color:var(--muted);letter-spacing:1px;}
+#lv3 .target-chip .tc-val{font-size:1rem;font-weight:700;color:var(--amber);}
+#lv3 .target-chip.given{border-color:var(--cyan);}
+#lv3 .target-chip.given .tc-val{color:var(--cyan);}
+#lv3 .target-chip.goal{border-color:var(--amber);box-shadow:0 0 8px rgba(255,183,0,.14);}
+#lv3 .circuit-frame{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;min-height:0;}
+#lv3 .circuit-frame svg{max-width:100%;max-height:100%;}
+#lv3 .circuit-result{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.3rem;font-weight:700;border-radius:9px;opacity:0;pointer-events:none;transition:.3s;}
+#lv3 .circuit-result.show{opacity:1;}
+#lv3 .circuit-result.ok{background:rgba(0,230,118,.12);color:var(--green);}
+#lv3 .circuit-result.fail{background:rgba(255,71,87,.1);color:var(--red);}
+#lv3 .lv3-body{display:flex;flex-direction:column;padding:13px 18px 12px;gap:11px;overflow:hidden;flex:1;}
+
+/* ══════════════════════════════
+   WIN / CERTIFICATE SCREEN
+══════════════════════════════ */
+#screen-win{background:radial-gradient(ellipse at 50% 30%,rgba(255,183,0,.07) 0%,transparent 65%),var(--bg);}
+.win-content{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:20px;overflow-y:auto;}
+.win-box{background:var(--s1);border:1px solid var(--amber);border-radius:18px;padding:32px 40px;text-align:center;box-shadow:0 0 60px rgba(255,183,0,.18);max-width:560px;width:100%;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+.win-trophy{font-size:3.2rem;margin-bottom:8px;}
+.win-title{font-size:1.5rem;font-weight:900;color:var(--amber);margin-bottom:5px;}
+.win-sub{color:var(--muted);font-size:.88rem;margin-bottom:20px;line-height:1.6;}
+.win-stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px;}
+.win-stat{background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:11px 16px;text-align:center;flex:1;}
+.win-stat-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--amber);}
+.win-stat-lbl{font-size:.68rem;color:var(--muted);margin-top:2px;}
+
+/* certificate input */
+.cert-section{background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:18px;text-align:center;width:100%;max-width:560px;}
+.cert-section h3{font-size:.8rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.name-row{display:flex;gap:10px;align-items:center;justify-content:center;}
+.name-input{background:var(--s1);border:2px solid var(--border2);border-radius:8px;padding:8px 16px;color:var(--text);font-size:1rem;font-family:'Noto Sans SC',sans-serif;outline:none;transition:.2s;flex:1;max-width:240px;}
+.name-input:focus{border-color:var(--amber);}
+.btn-gen-cert{background:var(--amber);color:#000;border:none;border-radius:8px;padding:9px 20px;font-size:.9rem;font-weight:900;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;white-space:nowrap;}
+.btn-gen-cert:hover{background:#ffd040;}
+#cert-canvas{display:none;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:100%;}
+.btn-dl{background:var(--green);color:#000;border:none;border-radius:8px;padding:9px 22px;font-size:.9rem;font-weight:900;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;display:none;margin-top:10px;}
+.btn-dl:hover{background:#33ff99;}
+.btn-replay{background:none;border:1px solid var(--border2);color:var(--muted);border-radius:8px;padding:8px 18px;font-size:.85rem;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:.15s;margin-top:6px;}
+.btn-replay:hover{border-color:var(--cyan);color:var(--cyan);}
+</style>
+</head>
+<body>
+
+<div class="sc-flash" id="scFlash"></div>
+<div id="toast"></div>
+
+<!-- GLOBAL HEADER -->
+<div id="g-header">
+  <div class="g-logo">
+    <div class="g-logo-icon">⚡</div>
+    <span>欧姆定律<em>探险</em></span>
+  </div>
+  <div class="g-lv-tabs">
+    <div class="lv-tab active" id="tab1">第一关</div>
+    <div class="lv-tab" id="tab2">第二关</div>
+    <div class="lv-tab" id="tab3">第三关</div>
+  </div>
+  <div class="g-hud">
+    <div class="hud-pill">🏆 <span class="hud-v score" id="g-score">0</span></div>
+    <div class="hud-pill">⏱ <span class="hud-v timer" id="g-timer">0:00</span></div>
+    <div class="hud-pill">❤️ <span class="hud-v life" id="g-life">❤️❤️❤️</span></div>
+  </div>
+</div>
+<div id="g-prog"><div id="g-prog-fill" style="width:0%"></div></div>
+
+<!-- ══════════════ LEVEL 1 ══════════════ -->
+<div class="screen active" id="lv1">
+  <div class="workspace">
+    <!-- toolbar row 1: components -->
+    <div class="toolbar" id="lv1-toolbar">
+      <span class="toolbar-label">元件库</span>
+      <div class="comp-item" id="ci-battery" draggable="true" data-type="battery">
+        <span class="comp-icon">🔋</span>
+        <span class="comp-label">电池<small>9 V</small></span>
+        <span class="comp-count" id="cnt-battery">1</span>
+      </div>
+      <div class="comp-item" id="ci-r30" draggable="true" data-type="r30">
+        <span class="comp-icon">⬛</span>
+        <span class="comp-label">电阻<small>30 Ω</small></span>
+        <span class="comp-count" id="cnt-r30">2</span>
+      </div>
+      <div class="comp-item" id="ci-r60" draggable="true" data-type="r60">
+        <span class="comp-icon">🟫</span>
+        <span class="comp-label">电阻<small>60 Ω</small></span>
+        <span class="comp-count" id="cnt-r60">2</span>
+      </div>
+      <div class="comp-item" id="ci-bulb" draggable="true" data-type="bulb">
+        <span class="comp-icon">💡</span>
+        <span class="comp-label">灯泡</span>
+        <span class="comp-count" id="cnt-bulb">2</span>
+      </div>
+      <div class="comp-item" id="ci-switch" draggable="true" data-type="switch">
+        <span class="comp-icon">🔘</span>
+        <span class="comp-label">开关</span>
+        <span class="comp-count" id="cnt-switch">1</span>
+      </div>
+      <div class="toolbar-sep"></div>
+      <span style="font-size:.75rem;color:var(--muted);flex-shrink:0;">🎯 点击元件放置 或 拖拽到指定位置</span>
+    </div>
+    <!-- toolbar row 2: meters + checklist + buttons -->
+    <div class="controlbar" id="lv1-controlbar">
+      <span class="ctrl-label">仪表</span>
+      <div class="meter-pill" id="mp-v"><span class="ms">V</span><div><div class="mv" id="mv-val">—</div><div class="ml">电压</div></div></div>
+      <div class="meter-pill" id="mp-i"><span class="ms">I</span><div><div class="mv" id="mi-val">—</div><div class="ml">电流</div></div></div>
+      <div class="meter-pill" id="mp-r"><span class="ms">R</span><div><div class="mv" id="mr-val">—</div><div class="ml">电阻</div></div></div>
+      <div class="ctrl-sep"></div>
+      <span class="ctrl-label">清单</span>
+      <div class="chk-pill" id="chk-battery"><div class="chk-dot"></div>电池</div>
+      <div class="chk-pill" id="chk-bulb"><div class="chk-dot"></div>灯泡</div>
+      <div class="chk-pill" id="chk-resistor"><div class="chk-dot"></div>电阻</div>
+      <div class="chk-pill" id="chk-switch"><div class="chk-dot"></div>开关</div>
+      <div class="chk-pill" id="chk-wired"><div class="chk-dot"></div>连线</div>
+      <div class="chk-pill" id="chk-loop"><div class="chk-dot"></div>回路</div>
+      <div class="ctrl-sep"></div>
+      <button class="btn-power" id="btn-power" onclick="lv1_togglePower()">⚡ 通电</button>
+      <button class="btn-reset" onclick="lv1_reset()">🔄 重来</button>
+      <button id="btn-lv1-next" style="display:none;background:var(--green);color:#000;border:none;border-radius:7px;padding:5px 16px;font-size:.82rem;font-weight:900;font-family:'Noto Sans SC',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;" onclick="lv1_goNext()">进入第二关 →</button>
+    </div>
+    <!-- canvas -->
+    <div class="canvas-wrap" id="lv1-canvas"
+      ondragover="ev_dragover(event)" ondrop="ev_drop(event)">
+      <svg id="main-svg" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;">
+        <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)" opacity=".8"/></marker></defs>
+        <g id="wire-group"></g>
+        <line id="wire-preview-line" class="wire-preview" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
+      </svg>
+      <div id="comp-layer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ LEVEL 2 ══════════════ -->
+<div class="screen" id="lv2">
+  <div class="lv2-scroll">
+    <div id="lv2-q-dots" class="q-dots" style="display:flex;gap:5px;margin:10px 20px 0;"></div>
+    <div class="formula-card" style="margin:10px 20px 0;">
+      <h3>🧮 侦探工具箱 — 欧姆定律</h3>
+      <div class="formula-item"><div class="formula-eq">I = V ÷ R</div><div class="formula-desc">已知V和R，求I</div></div>
+      <div class="formula-item"><div class="formula-eq">V = I × R</div><div class="formula-desc">已知I和R，求V</div></div>
+      <div class="formula-item"><div class="formula-eq">R = V ÷ I</div><div class="formula-desc">已知V和I，求R</div></div>
+    </div>
+    <div class="case-card" id="lv2-case" style="margin:10px 20px 14px;">
+      <div class="case-header">
+        <div class="case-num" id="lv2-case-num">案件 01</div>
+        <div class="case-title-el" id="lv2-case-title">查明电流</div>
+        <div class="case-badge" id="lv2-case-badge">难度：⭐</div>
+      </div>
+      <div class="scene"><div class="scene-text" id="lv2-scene"></div></div>
+      <div class="circuit-area"><svg id="lv2-svg" width="440" height="150" viewBox="0 0 440 150"></svg></div>
+      <div class="clues" id="lv2-clues"></div>
+      <div class="answer-section">
+        <div class="answer-label">🔍 你的推理结论</div>
+        <div class="answer-row">
+          <span>未知量 <span class="unknown-sym" id="lv2-unknown-sym">I</span> =</span>
+          <div class="answer-input-wrap" id="lv2-input-wrap">
+            <input type="number" id="lv2-ans-input" placeholder="输入答案" step="any" min="0">
+            <span class="answer-unit" id="lv2-ans-unit">A</span>
+          </div>
+          <button class="btn-submit" id="lv2-btn-submit" onclick="lv2_submit()">确认推理</button>
+        </div>
+        <div>
+          <button class="hint-btn" id="lv2-hint-btn" onclick="lv2_hint()">💡 需要提示？</button>
+        </div>
+        <div class="feedback" id="lv2-feedback"></div>
+        <button class="btn-next-q" id="lv2-btn-next" onclick="lv2_next()">下一案件 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ LEVEL 3 ══════════════ -->
+<div class="screen" id="lv3">
+  <div class="controlbar3" id="lv3-controlbar">
+    <span class="ctrl-label">选择电阻</span>
+    <div class="r-dropdown-wrap" id="r-dropdown-wrap">
+      <div class="r-dropdown-btn" id="r-dropdown-btn" onclick="lv3_toggleDropdown()">
+        <span id="r-dropdown-label">⬛ 点击选择电阻…</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="r-dropdown-menu" id="r-dropdown-menu">
+        <div class="r-menu-header" id="r-menu-header">可用电阻</div>
+      </div>
+    </div>
+    <div class="selected-tags" id="selected-tags"></div>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">推算</span>
+    <div class="calc-inline" id="calc-inline">等待选择…</div>
+    <div class="ctrl-sep"></div>
+    <div class="feedback-bar" id="lv3-fb"></div>
+    <button class="btn-confirm-lv3" id="lv3-btn-confirm" onclick="lv3_confirm()">✔ 确认方案</button>
+    <button class="btn-next-lv3" id="lv3-btn-next" onclick="lv3_next()">下一关 →</button>
+    <button class="btn-hint-lv3" id="lv3-btn-hint" onclick="lv3_hint()">💡 提示</button>
+  </div>
+  <div class="lv3-body">
+    <div class="mission" id="lv3-mission">
+      <div class="mission-top">
+        <span class="mission-num" id="lv3-m-num">关卡 01</span>
+        <span class="mission-diff" id="lv3-m-diff">⭐ 基础</span>
+      </div>
+      <div class="mission-title" id="lv3-m-title"></div>
+      <div class="mission-desc" id="lv3-m-desc"></div>
+      <div class="target-row" id="lv3-target-row"></div>
+    </div>
+    <div class="circuit-frame">
+      <svg id="lv3-svg" width="680" height="240" viewBox="0 0 680 240"></svg>
+      <div class="circuit-result" id="lv3-ckt-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ WIN SCREEN ══════════════ -->
+<div class="screen" id="screen-win">
+  <div class="win-content">
+    <div class="win-box">
+      <div class="win-trophy">🏆</div>
+      <div class="win-title">恭喜完成全部三关！</div>
+      <div class="win-sub">你已经掌握欧姆定律的核心概念：<br>组装电路、推理计算、反推参数——全部完成！</div>
+      <div class="win-stats">
+        <div class="win-stat"><div class="win-stat-val" id="ws-score">0</div><div class="win-stat-lbl">总得分</div></div>
+        <div class="win-stat"><div class="win-stat-val" id="ws-time">0:00</div><div class="win-stat-lbl">完成用时</div></div>
+        <div class="win-stat"><div class="win-stat-val" id="ws-correct">0</div><div class="win-stat-lbl">答对题数</div></div>
+      </div>
+      <button class="btn-replay" onclick="replayGame()">🔄 重新挑战</button>
+    </div>
+    <div class="cert-section">
+      <h3>🎓 生成专属证书</h3>
+      <div id="cert-input-area">
+      <div class="name-row">
+        <input class="name-input" id="name-input" type="text" placeholder="输入你的姓名…" maxlength="20">
+        <button class="btn-gen-cert" onclick="generateCert()">生成证书</button>
+      </div>
+      </div>
+      <div style="margin-top:14px;">
+        <canvas id="cert-canvas" width="600" height="850"></canvas>
+        <br>
+        <a id="cert-dl" download="欧姆定律证书.png">
+          <button class="btn-dl" id="btn-dl">⬇ 下载证书</button>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  GLOBAL STATE
+// ══════════════════════════════════════════════════════
+const G = {
+  score: 0,
+  lives: 3,
+  correctCount: 0,
+  startTime: Date.now(),
+  timerInterval: null,
+  currentScreen: 'lv1'
+};
+
+function addScore(pts){
+  G.score += pts;
+  document.getElementById('g-score').textContent = G.score;
+}
+function loseLife(){
+  G.lives = Math.max(0, G.lives - 1);
+  updateLifeHUD();
+}
+function updateLifeHUD(){
+  document.getElementById('g-life').textContent =
+    '❤️'.repeat(G.lives) + '🖤'.repeat(3 - G.lives);
+}
+function startTimer(){
+  G.startTime = Date.now();
+  clearInterval(G.timerInterval);
+  G.timerInterval = setInterval(()=>{
+    const s = Math.floor((Date.now()-G.startTime)/1000);
+    const m = Math.floor(s/60);
+    document.getElementById('g-timer').textContent = m+':'+(s%60<10?'0':'')+(s%60);
+  }, 500);
+}
+function getElapsed(){
+  return Math.floor((Date.now()-G.startTime)/1000);
+}
+
+// progress bar: 3 levels × steps
+function setProgress(pct){ document.getElementById('g-prog-fill').style.width = pct+'%'; }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  G.currentScreen = id;
+  // tabs
+  ['tab1','tab2','tab3'].forEach((t,i)=>{
+    const el = document.getElementById(t);
+    el.classList.remove('active');
+    if('lv'+(i+1)===id) el.classList.add('active');
+  });
+}
+
+function markTabDone(n){
+  const el = document.getElementById('tab'+n);
+  el.classList.remove('active');
+  el.classList.add('done');
+  el.textContent = ['第一关 ✓','第二关 ✓','第三关 ✓'][n-1];
+}
+
+let toastT;
+function showToast(msg, type='info'){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show '+type;
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>t.className='', 2200);
+}
+
+function spawnParticles(cx, cy){
+  cx = cx||window.innerWidth/2; cy = cy||window.innerHeight/2;
+  const cols=['#ffb700','#00e676','#00d4ff','#b388ff','#ff6f3c'];
+  for(let i=0;i<26;i++){
+    const p=document.createElement('div');
+    p.className='p';
+    const s=5+Math.random()*10;
+    p.style.cssText=`width:${s}px;height:${s}px;background:${cols[i%cols.length]};left:${cx}px;top:${cy}px;--tx:${(Math.random()-.5)*360}px;--ty:${-80-Math.random()*220}px;`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),860);
+  }
+}
+
+function transitionToLevel(nextId, badgeEmoji, title, sub, fn){
+  const ov = document.getElementById('transition');
+  ov.querySelector('.tr-badge').textContent = badgeEmoji;
+  ov.querySelector('.tr-title').textContent = title;
+//Made by ecchua79
+  ov.querySelector('.tr-sub').textContent = sub;
+  ov.classList.add('show');
+  setTimeout(()=>{
+    showScreen(nextId);
+    if(fn) fn();
+    setTimeout(()=>ov.classList.remove('show'), 700);
+  }, 1400);
+}
+
+// ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  LEVEL 1 — CIRCUIT BUILDER
+// ══════════════════════════════════════════════════════
+const LV1_COUNTS = {battery:1, r30:2, r60:2, bulb:2, switch:1};
+let lv1 = {
+  components:[], wires:[], wireId:0, compId:0,
+  counts:{...LV1_COUNTS},
+  wiringFrom:null, powered:false, won:false
+};
+const COMP_INFO = {
+  battery:{icon:'🔋',label:'电池', ohm:0,  val:'9 V',  color:'#58a6ff'},
+  r30:    {icon:'⬛',label:'电阻', ohm:30, val:'30 Ω', color:'#00e676'},
+  r60:    {icon:'🟫',label:'电阻', ohm:60, val:'60 Ω', color:'#ff9f43'},
+  bulb:   {icon:'💡',label:'灯泡', ohm:0,  val:'',     color:'#ffd54f'},
+  switch: {icon:'🔘',label:'开关', ohm:0,  val:'断开', color:'#ce93d8'},
+};
+// 点击放置的固定格子（左侧两列，共8格）
+const LV1_SLOTS=[[30,20],[30,130],[30,240],[30,350],[160,20],[160,130],[160,240],[160,350]];
+let lv1_slotIdx=0;
+
+document.querySelectorAll('.comp-item').forEach(el=>{
+  el.addEventListener('dragstart',e=>{
+    if(el.classList.contains('depleted')){e.preventDefault();return;}
+    e.dataTransfer.setData('text/plain',el.dataset.type);
+    e.dataTransfer.effectAllowed='copy';
+  });
+  el.addEventListener('click',()=>{
+    if(el.classList.contains('depleted')) return;
+    if(G.currentScreen!=='lv1') return;
+    const [x,y]=LV1_SLOTS[lv1_slotIdx%LV1_SLOTS.length];
+    lv1_slotIdx++;
+    lv1_placeComponent(el.dataset.type,x,y);
+  });
+});
+function ev_dragover(e){e.preventDefault();e.dataTransfer.dropEffect='copy';}
+function ev_drop(e){
+  e.preventDefault();
+  const type=e.dataTransfer.getData('text/plain');
+  if(!type||lv1.counts[type]<=0) return;
+  const canvas=document.getElementById('lv1-canvas');
+  const rect=canvas.getBoundingClientRect();
+  lv1_placeComponent(type,e.clientX-rect.left-44,e.clientY-rect.top-34);
+}
+
+function lv1_placeComponent(type,x,y){
+  if(lv1.counts[type]<=0) return;
+  lv1.counts[type]--;
+  lv1_updateCounts();
+  const id='c'+(++lv1.compId);
+  const info=COMP_INFO[type];
+  const div=document.createElement('div');
+  div.className='placed'; div.id=id; div.dataset.type=type;
+  div.style.left=Math.max(0,x)+'px';
+  div.style.top=Math.max(0,y)+'px';
+  const body=document.createElement('div');
+  body.className='comp-body';
+  const iconEl=document.createElement('div'); iconEl.className='icon'; iconEl.textContent=info.icon;
+  const lblEl=document.createElement('div'); lblEl.className='lbl'; lblEl.textContent=info.label;
+  body.appendChild(iconEl); body.appendChild(lblEl);
+  if(info.val){
+    const valEl=document.createElement('div');
+    valEl.className='val'; valEl.id=id+'-val';
+    valEl.style.color=info.color; valEl.textContent=info.val;
+    body.appendChild(valEl);
+  }
+  if(type==='switch'){
+    const sw=document.createElement('button');
+    sw.className='switch-btn'; sw.id=id+'-sw';
+    sw.addEventListener('click',e2=>{e2.stopPropagation();lv1_toggleSwitch(id);});
+    body.appendChild(sw);
+    const v=document.getElementById(id+'-val');
+    if(v) v.textContent='断开';
+  }
+  body.appendChild(lv1_makePort(id,'L'));
+  body.appendChild(lv1_makePort(id,'R'));
+  const del=document.createElement('button');
+  del.className='del-btn'; del.textContent='×';
+  del.addEventListener('click',e2=>{e2.stopPropagation();lv1_deleteComp(id);});
+  body.appendChild(del);
+  div.appendChild(body);
+  document.getElementById('comp-layer').appendChild(div);
+
+  // 拖动（每个元件独立闭包）
+  let ox=0,oy=0,sx=0,sy=0,dragging=false;
+  div.addEventListener('mousedown',e=>{
+    const t=e.target;
+    if(t.classList.contains('port')||t.classList.contains('del-btn')||t.classList.contains('switch-btn')) return;
+    dragging=true;
+    ox=parseInt(div.style.left)||0; oy=parseInt(div.style.top)||0;
+    sx=e.clientX; sy=e.clientY;
+    div.style.zIndex=100; e.preventDefault();
+  });
+  const onMove=e=>{
+    if(!dragging) return;
+    div.style.left=Math.max(0,ox+e.clientX-sx)+'px';
+    div.style.top=Math.max(0,oy+e.clientY-sy)+'px';
+    const c=lv1.components.find(c=>c.id===id);
+    if(c){c.x=parseInt(div.style.left);c.y=parseInt(div.style.top);}
+    lv1_redrawWires();
+  };
+  const onUp=()=>{if(dragging){dragging=false;div.style.zIndex='';}};
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+
+  lv1.components.push({id,type,ohm:info.ohm,switchOn:false});
+  lv1_updateChecklist(); lv1_analyseCircuit();
+}
+
+function lv1_makePort(cid,side){
+  const p=document.createElement('div');
+  p.className='port port-'+side; p.dataset.comp=cid; p.dataset.port=side;
+  p.addEventListener('click',e=>{e.stopPropagation();lv1_startWire(cid,side,e);});
+  return p;
+}
+function lv1_getPortCenter(cid,port){
+  const el=document.getElementById(cid); if(!el) return{x:0,y:0};
+//峇株吧辖蔡逸众制作
+  const canvas=document.getElementById('lv1-canvas').getBoundingClientRect();
+  const pEl=el.querySelector('.port-'+port); if(!pEl) return{x:0,y:0};
+  const r=pEl.getBoundingClientRect();
+  return{x:r.left+r.width/2-canvas.left,y:r.top+r.height/2-canvas.top};
+}
+function lv1_startWire(cid,port,e){
+  e.stopPropagation(); if(lv1.powered) return;
+  if(lv1.wiringFrom){
+    // 第二次点击：完成连线
+    if(lv1.wiringFrom.cid===cid&&lv1.wiringFrom.port===port){
+      lv1_cancelWire(); return; // 点同一接口取消
+    }
+    if(lv1.wiringFrom.cid===cid){showToast('请选另一个元件的接口','fail');return;}
+    // 检查是否重复连线（同两个接口之间）
+    const dup=lv1.wires.find(w=>
+      (w.fromId===lv1.wiringFrom.cid&&w.fromPort===lv1.wiringFrom.port&&w.toId===cid&&w.toPort===port)||
+      (w.fromId===cid&&w.fromPort===port&&w.toId===lv1.wiringFrom.cid&&w.toPort===lv1.wiringFrom.port));
+    if(dup){showToast('这两个接口已经连接了','fail');lv1_cancelWire();return;}
+    lv1_addWire(lv1.wiringFrom.cid,lv1.wiringFrom.port,cid,port);
+    lv1_cancelWire(); return;
+  }
+  // 第一次点击：选起点（允许已有导线的接口再连新线，支持并联）
+  const pos=lv1_getPortCenter(cid,port);
+  lv1.wiringFrom={cid,port};
+  document.querySelectorAll('.port').forEach(p=>p.classList.remove('active'));
+  document.getElementById(cid)?.querySelector('.port-'+port)?.classList.add('active');
+  const prev=document.getElementById('wire-preview-line');
+  prev.style.display='block';
+  prev.setAttribute('x1',pos.x); prev.setAttribute('y1',pos.y);
+  prev.setAttribute('x2',pos.x); prev.setAttribute('y2',pos.y);
+  showToast('已选起点，点击另一接口连线（可并联）','info');
+}
+function lv1_cancelWire(){
+  lv1.wiringFrom=null;
+  document.getElementById('wire-preview-line').style.display='none';
+  document.querySelectorAll('.port').forEach(p=>p.classList.remove('active'));
+}
+document.getElementById('lv1-canvas').addEventListener('click',e=>{
+  if(!lv1.wiringFrom||e.target.classList.contains('port')) return;
+  lv1_cancelWire();
+});
+document.addEventListener('mousemove',e=>{
+  if(!lv1.wiringFrom) return;
+  const c=document.getElementById('lv1-canvas').getBoundingClientRect();
+  const prev=document.getElementById('wire-preview-line');
+  prev.setAttribute('x2',e.clientX-c.left); prev.setAttribute('y2',e.clientY-c.top);
+});
+function lv1_addWire(fromId,fromPort,toId,toPort){
+  const dup=lv1.wires.find(w=>
+    (w.fromId===fromId&&w.fromPort===fromPort&&w.toId===toId&&w.toPort===toPort)||
+    (w.fromId===toId&&w.fromPort===toPort&&w.toId===fromId&&w.toPort===fromPort));
+  if(dup){showToast('已连接','fail');return;}
+  const id='w'+(++lv1.wireId);
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('class','wire-path'); path.id=id+'-path';
+  path.style.pointerEvents='stroke'; path.style.cursor='pointer';
+  path.addEventListener('click',()=>lv1_deleteWire(id));
+  document.getElementById('wire-group').appendChild(path);
+  lv1.wires.push({id,fromId,fromPort,toId,toPort,el:path});
+  lv1_updatePortStates(); lv1_redrawWires();
+  lv1_updateChecklist(); lv1_analyseCircuit();
+  showToast('导线已连接，点击导线可删除','info');
+}
+function lv1_redrawWires(){
+  const live=lv1.powered&&lv1_isLoop();
+  lv1.wires.forEach(w=>{
+    const a=lv1_getPortCenter(w.fromId,w.fromPort);
+    const b=lv1_getPortCenter(w.toId,w.toPort);
+    const mx=(a.x+b.x)/2;
+    w.el.setAttribute('d',`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x},${b.y}`);
+    w.el.classList.toggle('live',live);
+  });
+}
+function lv1_deleteWire(id){
+  if(lv1.powered){showToast('请先断电再修改','fail');return;}
+  const idx=lv1.wires.findIndex(w=>w.id===id); if(idx<0) return;
+  lv1.wires[idx].el.remove(); lv1.wires.splice(idx,1);
+  lv1_updatePortStates(); lv1_updateChecklist(); lv1_analyseCircuit();
+}
+function lv1_updatePortStates(){
+  document.querySelectorAll('.port').forEach(p=>p.classList.remove('connected'));
+  lv1.wires.forEach(w=>{
+    document.getElementById(w.fromId)?.querySelector('.port-'+w.fromPort)?.classList.add('connected');
+    document.getElementById(w.toId)?.querySelector('.port-'+w.toPort)?.classList.add('connected');
+  });
+}
+function lv1_toggleSwitch(id){
+  if(lv1.powered) return;
+  const comp=lv1.components.find(c=>c.id===id); if(!comp) return;
+  comp.switchOn=!comp.switchOn;
+  document.getElementById(id+'-sw')?.classList.toggle('on',comp.switchOn);
+  const v=document.getElementById(id+'-val');
+  if(v) v.textContent=comp.switchOn?'闭合':'断开';
+  lv1_analyseCircuit();
+}
+
+// ── 电路图分析 ──
+function lv1_buildAdj(){
+  const adj={};
+  lv1.components.forEach(c=>adj[c.id]=new Set());
+  lv1.wires.forEach(w=>{
+    if(adj[w.fromId]&&adj[w.toId]){adj[w.fromId].add(w.toId);adj[w.toId].add(w.fromId);}
+  });
+  return adj;
+}
+function lv1_allConnected(){
+  if(lv1.components.length<2) return false;
+  const adj=lv1_buildAdj();
+  const visited=new Set(); const q=[lv1.components[0].id];
+  while(q.length){const c=q.shift();if(visited.has(c))continue;visited.add(c);adj[c].forEach(n=>q.push(n));}
+  return lv1.components.every(c=>visited.has(c.id));
+}
+function lv1_isLoop(){
+  const bat=lv1.components.find(c=>c.type==='battery');
+  const hasBulb=lv1.components.some(c=>c.type==='bulb');
+  const hasR=lv1.components.some(c=>c.type==='r30'||c.type==='r60');
+  const switches=lv1.components.filter(c=>c.type==='switch');
+  if(!bat||!hasBulb||!hasR) return false;
+  if(switches.length>0&&!switches.every(s=>s.switchOn)) return false;
+  if(!lv1_allConnected()) return false;
+  return lv1_buildAdj()[bat.id].size>=2;
+}
+function lv1_analyseCircuit(){
+  const btn=document.getElementById('btn-power');
+  if(!lv1_isLoop()){
+    btn.classList.remove('ready');
+    lv1_updateCheck('chk-loop',false);
+    lv1_updateChecklist();
+    return;
+  }
+  btn.classList.add('ready');
+  lv1_updateCheck('chk-loop',true);
+  lv1_updateChecklist();
+  if(lv1.powered) lv1_computeAndShow();
+}
+//Made by ecchua79
+function lv1_computeAndShow(){
+  const V=9;
+  const resistors=lv1.components.filter(c=>c.type==='r30'||c.type==='r60');
+  const bulbs=lv1.components.filter(c=>c.type==='bulb');
+  if(!resistors.length) return;
+
+  // 串联/并联判断：若任何非电池节点度数>2，视为有并联节点
+  const adj=lv1_buildAdj();
+  let mode='series';
+  for(const c of lv1.components){
+    if(c.type==='battery') continue;
+    if(adj[c.id].size>2){mode='parallel';break;}
+  }
+
+  let I_total, infoText;
+  if(mode==='series'){
+    const totalR=resistors.reduce((s,r)=>s+r.ohm,0);
+    I_total=V/totalR;
+    infoText='串联  R总='+totalR+'Ω  I='+I_total.toFixed(2)+'A';
+    resistors.forEach(r=>{
+      const v=document.getElementById(r.id+'-val');
+      if(v) v.textContent=r.ohm+'Ω  '+I_total.toFixed(2)+'A';
+    });
+    bulbs.forEach(b=>{
+      const v=document.getElementById(b.id+'-val');
+      if(v){v.textContent='I='+I_total.toFixed(2)+'A';v.style.color='#ffd54f';}
+    });
+  } else {
+    const currents=resistors.map(r=>V/r.ohm);
+    I_total=currents.reduce((s,i)=>s+i,0);
+    const Rpar=(V/I_total).toFixed(1);
+    infoText='并联  R并='+Rpar+'Ω  I总='+I_total.toFixed(2)+'A';
+    resistors.forEach((r,i)=>{
+      const v=document.getElementById(r.id+'-val');
+      if(v) v.textContent=r.ohm+'Ω  '+currents[i].toFixed(2)+'A';
+    });
+    bulbs.forEach(b=>{
+      const v=document.getElementById(b.id+'-val');
+      if(v){v.textContent='I总='+I_total.toFixed(2)+'A';v.style.color='#ffd54f';}
+    });
+  }
+  document.getElementById('mv-val').textContent=V+' V';
+  document.getElementById('mi-val').textContent=I_total.toFixed(2)+' A';
+  document.getElementById('mr-val').textContent=(V/I_total).toFixed(1)+' Ω';
+  ['mp-v','mp-i','mp-r'].forEach(id=>document.getElementById(id).classList.add('active'));
+  showToast('⚡ '+infoText,'ok');
+}
+
+function lv1_updateCheck(id,done){const el=document.getElementById(id);if(el)el.classList.toggle('done',done);}
+function lv1_updateChecklist(){
+  const types=lv1.components.map(c=>c.type);
+  lv1_updateCheck('chk-battery',types.includes('battery'));
+  lv1_updateCheck('chk-bulb',types.includes('bulb'));
+  lv1_updateCheck('chk-resistor',types.some(t=>t==='r30'||t==='r60'));
+//峇株吧辖蔡逸众制作
+  lv1_updateCheck('chk-switch',types.includes('switch'));
+  lv1_updateCheck('chk-wired',lv1.wires.length>=2);
+}
+function lv1_updateCounts(){
+  Object.keys(lv1.counts).forEach(type=>{
+    const cnt=document.getElementById('cnt-'+type);
+    const ci=document.getElementById('ci-'+type);
+    if(cnt) cnt.textContent=lv1.counts[type];
+    if(ci) ci.classList.toggle('depleted',lv1.counts[type]<=0);
+  });
+}
+function lv1_deleteComp(id){
+  if(lv1.powered){showToast('请先断电','fail');return;}
+  lv1.wires.filter(w=>w.fromId===id||w.toId===id).forEach(w=>w.el.remove());
+  lv1.wires=lv1.wires.filter(w=>w.fromId!==id&&w.toId!==id);
+  document.getElementById(id)?.remove();
+  const comp=lv1.components.find(c=>c.id===id);
+  if(comp){lv1.counts[comp.type]++;lv1.components=lv1.components.filter(c=>c.id!==id);lv1_updateCounts();}
+  lv1_updatePortStates(); lv1_updateChecklist(); lv1_analyseCircuit();
+}
+function lv1_lightBulbs(on){
+  lv1.components.filter(c=>c.type==='bulb').forEach(c=>document.getElementById(c.id)?.classList.toggle('bulb-on',on));
+}
+function lv1_togglePower(){
+  if(!lv1.powered&&!lv1_isLoop()){showToast('电路还没接好！','fail');return;}
+  lv1.powered=!lv1.powered;
+  const btn=document.getElementById('btn-power');
+  if(lv1.powered){
+    btn.classList.remove('ready'); btn.classList.add('powered'); btn.textContent='⛔ 断电';
+    lv1_redrawWires(); lv1_lightBulbs(true); lv1_computeAndShow();
+    if(!lv1.won){
+      lv1.won=true; addScore(200); G.correctCount++; setProgress(33);
+      setTimeout(()=>{
+        spawnParticles();
+        document.getElementById('btn-lv1-next').style.display='block';
+        showToast('🎉 第一关完成！按「进入第二关」继续','ok');
+      },600);
+    }
+  } else {
+    btn.classList.remove('powered'); btn.textContent='⚡ 通电';
+    if(lv1_isLoop()) btn.classList.add('ready');
+    lv1_redrawWires(); lv1_lightBulbs(false);
+    // 恢复元件原始标签
+    lv1.components.forEach(c=>{
+      const v=document.getElementById(c.id+'-val'); if(!v) return;
+      if(c.type==='bulb') v.textContent='';
+      else if(c.type!=='switch') v.textContent=COMP_INFO[c.type].val;
+    });
+    ['mp-v','mp-i','mp-r'].forEach(id=>document.getElementById(id).classList.remove('active'));
+    document.getElementById('mv-val').textContent='—';
+    document.getElementById('mi-val').textContent='—';
+    document.getElementById('mr-val').textContent='—';
+  }
+}
+function lv1_goNext(){
+  transitionToLevel('lv2','🔍','第二关：欧姆侦探','运用欧姆定律，推理出未知量！',()=>{
+    markTabDone(1); lv2_load(0); setProgress(34);
+  });
+}
+function lv1_reset(){
+  lv1.powered=false; lv1.won=false; lv1_slotIdx=0;
+  lv1.components.forEach(c=>document.getElementById(c.id)?.remove());
+  lv1.components=[]; lv1.wires.forEach(w=>w.el.remove()); lv1.wires=[];
+  Object.assign(lv1.counts,LV1_COUNTS); lv1_updateCounts();
+  lv1_updateChecklist(); lv1_analyseCircuit(); lv1_lightBulbs(false);
+  document.getElementById('btn-lv1-next').style.display='none';
+  const btn=document.getElementById('btn-power');
+//华仁中学蔡逸众制作
+  btn.className='btn-power'; btn.textContent='⚡ 通电';
+  ['mp-v','mp-i','mp-r'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('mv-val').textContent='—';
+  document.getElementById('mi-val').textContent='—';
+  document.getElementById('mr-val').textContent='—';
+  showToast('已重置','info');
+}
+// touch drag for mobile
+document.querySelectorAll('.comp-item').forEach(item=>{
+  item.addEventListener('touchstart',e=>{
+    if(item.classList.contains('depleted')) return;
+    const t=e.touches[0];
+    const ghost=item.cloneNode(true);
+    ghost.style.cssText=`position:fixed;left:${t.clientX-44}px;top:${t.clientY-34}px;opacity:.8;z-index:9000;pointer-events:none;width:88px;`;
+    ghost.id='drag-ghost'; document.body.appendChild(ghost);
+    function onMove(e2){const t2=e2.touches[0];ghost.style.left=t2.clientX-44+'px';ghost.style.top=t2.clientY-34+'px';}
+    function onEnd(e2){
+      const t2=e2.changedTouches[0]; ghost.remove();
+      const canvas=document.getElementById('lv1-canvas');
+      const rect=canvas.getBoundingClientRect();
+      if(t2.clientX>=rect.left&&t2.clientX<=rect.right&&t2.clientY>=rect.top&&t2.clientY<=rect.bottom)
+        lv1_placeComponent(item.dataset.type,t2.clientX-rect.left-44,t2.clientY-rect.top-34);
+      document.removeEventListener('touchmove',onMove);
+      document.removeEventListener('touchend',onEnd);
+    }
+    document.addEventListener('touchmove',onMove,{passive:true});
+    document.addEventListener('touchend',onEnd);
+  });
+});
+
+// ══════════════════════════════════════════════════════
+//  LEVEL 2 — OHM DETECTIVE
+// ══════════════════════════════════════════════════════
+const LV2_QUESTIONS=[
+  {id:1,title:'查明电流',badge:'难度：⭐',scene:'实验室的灯泡突然变暗！电源电压 <strong>12 V</strong>，串联电阻 <strong>60 Ω</strong>。请算出回路电流！',type:'series-simple',given:{V:12,R:60},unknown:'I',answer:0.2,unit:'A',tolerance:.005,hint:'用公式 I = V ÷ R，代入已知值。',explanation:'I = 12 ÷ 60 = 0.2 A。'},
+  {id:2,title:'还原电压',badge:'难度：⭐',scene:'未知电压的电池，电阻 <strong>30 Ω</strong>，电流计显示 <strong>0.5 A</strong>。电源电压是多少？',type:'series-simple',given:{R:30,I:.5},unknown:'V',answer:15,unit:'V',tolerance:.1,hint:'用公式 V = I × R，把已知电流和电阻相乘。',explanation:'V = 0.5 × 30 = 15 V。'},
+  {id:3,title:'寻找电阻',badge:'难度：⭐⭐',scene:'某元件标签脱落。两端电压 <strong>9 V</strong>，通过电流 <strong>0.3 A</strong>。电阻是多少？',type:'series-simple',given:{V:9,I:.3},unknown:'R',answer:30,unit:'Ω',tolerance:.5,hint:'用公式 R = V ÷ I，把电压除以电流。',explanation:'R = 9 ÷ 0.3 = 30 Ω。'},
+  {id:4,title:'串联电路电流',badge:'难度：⭐⭐',scene:'串联电路：<strong>R₁ = 20 Ω</strong>，<strong>R₂ = 30 Ω</strong>，电源 <strong>10 V</strong>。回路电流是多少？',type:'series-two',given:{V:10,R1:20,R2:30},unknown:'I',answer:.2,unit:'A',tolerance:.005,hint:'串联先求总电阻 R总 = R₁ + R₂，再用 I = V ÷ R总。',explanation:'R总 = 50 Ω，I = 10 ÷ 50 = 0.2 A。'},
+  {id:5,title:'并联支路电流',badge:'难度：⭐⭐⭐',scene:'并联电路，电源 <strong>6 V</strong>，R₁ = <strong>12 Ω</strong>，R₂ = <strong>24 Ω</strong>。支路2的电流是多少？',type:'parallel',given:{V:6,R1:12,R2:24},unknown:'I2',answer:.25,unit:'A',tolerance:.005,hint:'并联各支路电压相同，直接用 I₂ = V ÷ R₂。',explanation:'I₂ = 6 ÷ 24 = 0.25 A。'},
+  {id:6,title:'终极挑战',badge:'难度：⭐⭐⭐',scene:'并联电路电源 <strong>12 V</strong>，R₁ = <strong>6 Ω</strong>，R₂ = <strong>12 Ω</strong>。总电流（干路电流）是多少？',type:'parallel',given:{V:12,R1:6,R2:12},unknown:'I_total',answer:3,unit:'A',tolerance:.05,hint:'I总 = I₁ + I₂，分别算 I₁ = V÷R₁，I₂ = V÷R₂，再相加。',explanation:'I₁=2A，I₂=1A，I总=3A。'}
+];
+
+let lv2State={qIndex:0,hintUsed:[],wrongCount:[],dotStatus:[],hintShown:false};
+
+function lv2_load(idx){
+  lv2State.qIndex=idx;
+  lv2State.hintUsed=Array(LV2_QUESTIONS.length).fill(false);
+  lv2State.wrongCount=Array(LV2_QUESTIONS.length).fill(0);
+  lv2State.dotStatus=Array(LV2_QUESTIONS.length).fill('pending');
+  lv2_loadQuestion(idx);
+}
+
+function lv2_loadQuestion(idx){
+  const q=LV2_QUESTIONS[idx];
+  document.getElementById('lv2-case-num').textContent='案件 '+String(q.id).padStart(2,'0');
+  document.getElementById('lv2-case-title').textContent=q.title;
+  document.getElementById('lv2-case-badge').textContent=q.badge;
+  document.getElementById('lv2-scene').innerHTML=q.scene;
+  document.getElementById('lv2-unknown-sym').textContent=q.unknown.replace('_total','总').replace('I2','I₂');
+  document.getElementById('lv2-ans-unit').textContent=q.unit;
+  document.getElementById('lv2-ans-input').value='';
+  document.getElementById('lv2-ans-input').disabled=false;
+  const iw=document.getElementById('lv2-input-wrap');
+//华仁中学蔡逸众制作
+  iw.classList.remove('correct','wrong');
+  const fb=document.getElementById('lv2-feedback');
+  fb.className='feedback'; fb.textContent='';
+  document.getElementById('lv2-btn-next').style.display='none';
+  document.getElementById('lv2-btn-submit').disabled=false;
+  document.getElementById('lv2-hint-btn').disabled=lv2State.hintUsed[idx];
+  document.getElementById('lv2-hint-btn').textContent=lv2State.hintUsed[idx]?'已使用提示':'💡 需要提示？';
+  lv2_drawCircuit(q);
+  lv2_buildClues(q);
+  lv2_buildDots(idx);
+  setProgress(34 + (idx/LV2_QUESTIONS.length)*33);
+  setTimeout(()=>document.getElementById('lv2-ans-input').focus(),100);
+}
+
+function lv2_buildDots(curIdx){
+  const wrap=document.getElementById('lv2-q-dots');
+  wrap.innerHTML='';
+  LV2_QUESTIONS.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='q-dot'+(i===curIdx?' active':'');
+    if(lv2State.dotStatus[i]==='correct') d.classList.add('done');
+    if(lv2State.dotStatus[i]==='wrong') d.classList.add('wrong-dot');
+    d.textContent=i+1;
+    wrap.appendChild(d);
+  });
+}
+
+function lv2_buildClues(q){
+  const area=document.getElementById('lv2-clues'); area.innerHTML='';
+  const allVars=[{sym:'V',name:'电压',unit:'V'},{sym:'I',name:'电流',unit:'A'},{sym:'R',name:'电阻',unit:'Ω'}];
+  if(q.type==='series-two'){
+    [{sym:'V',name:'电源电压',val:q.given.V,unit:'V',known:true},{sym:'R₁',name:'电阻1',val:q.given.R1,unit:'Ω',known:true},{sym:'R₂',name:'电阻2',val:q.given.R2,unit:'Ω',known:true},{sym:'I',name:'回路电流',val:'?',unit:'A',known:false}].forEach(c=>lv2_makeClue(area,c));
+    return;
+  }
+  if(q.type==='parallel'){
+    if(q.unknown==='I2')[{sym:'V',name:'电源电压',val:q.given.V,unit:'V',known:true},{sym:'R₁',name:'支路1电阻',val:q.given.R1,unit:'Ω',known:true},{sym:'R₂',name:'支路2电阻',val:q.given.R2,unit:'Ω',known:true},{sym:'I₂',name:'支路2电流',val:'?',unit:'A',known:false}].forEach(c=>lv2_makeClue(area,c));
+    else [{sym:'V',name:'电源电压',val:q.given.V,unit:'V',known:true},{sym:'R₁',name:'支路1电阻',val:q.given.R1,unit:'Ω',known:true},{sym:'R₂',name:'支路2电阻',val:q.given.R2,unit:'Ω',known:true},{sym:'I总',name:'干路总电流',val:'?',unit:'A',known:false}].forEach(c=>lv2_makeClue(area,c));
+    return;
+  }
+  allVars.forEach(v=>{
+    const isUnknown=q.unknown===v.sym;
+    lv2_makeClue(area,{sym:v.sym,name:v.name,val:isUnknown?'?':(q.given[v.sym]??'?'),unit:v.unit,known:!isUnknown});
+  });
+}
+
+function lv2_makeClue(area,c){
+  const div=document.createElement('div');
+  div.className='clue '+(c.known?'known':'unknown');
+  div.innerHTML=`<div class="clue-sym">${c.sym}</div><div class="clue-name">${c.name}</div><div class="clue-val">${c.known?c.val:'?'} <span class="clue-unit">${c.unit}</span></div>`;
+  area.appendChild(div);
+}
+
+function lv2_drawCircuit(q){
+  const svg=document.getElementById('lv2-svg');
+  svg.innerHTML='';
+  const W=440,H=150;
+  function el(tag,attrs,txt){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.textContent=txt;svg.appendChild(e);return e;}
+  function wire(x1,y1,x2,y2){el('line',{x1,y1,x2,y2,stroke:'#4a6a7a','stroke-width':2.5,'stroke-linecap':'round'});}
+  function lbl(x,y,t,col,sz){el('text',{x,y,fill:col||'#7a9aaa','font-size':sz||11,'font-family':'Share Tech Mono,monospace','text-anchor':'middle','dominant-baseline':'middle'},t);}
+//华仁中学蔡逸众制作
+  function battery(x,y,v){el('rect',{x:x-18,y:y-20,width:36,height:40,rx:4,fill:'#0d1a2a',stroke:'#00d4ff','stroke-width':1.5});el('line',{x1:x-7,y1:y-9,x2:x-7,y2:y+9,stroke:'#00d4ff','stroke-width':3.5,'stroke-linecap':'round'});el('line',{x1:x+4,y1:y-5,x2:x+4,y2:y+5,stroke:'#4a6a7a','stroke-width':2,'stroke-linecap':'round'});lbl(x,y+28,'V='+v+'V','#00d4ff',10);}
+  function resistor(x,y,lv,col){el('rect',{x:x-22,y:y-12,width:44,height:24,rx:4,fill:'#111820',stroke:col||'#4a6a7a','stroke-width':1.5});const pts=[[x-16,y],[x-10,y-7],[x-4,y+7],[x+2,y-7],[x+8,y+7],[x+14,y-7],[x+20,y]];const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M'+pts.map(p=>p.join(',')).join(' L'));path.setAttribute('stroke',col||'#4a6a7a');path.setAttribute('stroke-width',1.8);path.setAttribute('fill','none');svg.appendChild(path);lbl(x,y+22,lv,col||'#7a9aaa',10);}
+
+  if(q.type==='series-simple'){
+    const top=45,bot=115,left=40,right=400;
+    wire(left,top,right,top);wire(left,bot,right,bot);wire(left,top,left,bot);wire(right,top,right,bot);
+    battery(left,(top+bot)/2,q.given.V||'?');
+    resistor(210,top,(q.given.R?'R='+q.given.R+'Ω':'R=?'),(q.unknown==='R'?'#ffb700':null));
+    el('circle',{cx:340,cy:top,r:14,fill:'#0d1a2a',stroke:(q.given.I?'#ffd54f':'#4a6a7a'),'stroke-width':1.5});
+    el('text',{x:340,y:top+1,fill:q.given.I?'#ffd54f':'#4a6a7a','font-size':12,'text-anchor':'middle','dominant-baseline':'middle'},'💡');
+    lbl(right+26,(top+bot)/2,q.unknown==='I'?'I=?':'I='+q.given.I+'A',q.unknown==='I'?'#ffb700':'#7a9aaa',10);
+  } else if(q.type==='series-two'){
+    const top=45,bot=115,left=35,right=405;
+    wire(left,top,right,top);wire(left,bot,right,bot);wire(left,top,left,bot);wire(right,top,right,bot);
+    battery(left,(top+bot)/2,q.given.V);
+    resistor(175,top,'R₁='+q.given.R1+'Ω',null);
+    resistor(325,top,'R₂='+q.given.R2+'Ω',null);
+    lbl(right+26,(top+bot)/2,'I=?','#ffb700',10);
+  } else if(q.type==='parallel'){
+    const top=20,bot=140,left=50,mid=240,right=410;
+    const cy=(top+bot)/2;
+    // 三条纵线
+    wire(left,top,left,bot);
+    wire(mid,top,mid,bot);
+    wire(right,top,right,bot);
+    // 上下横线贯穿
+    wire(left,top,right,top);
+    wire(left,bot,right,bot);
+    // 电池在左纵线
+    battery(left,cy,q.given.V);
+    // R1 在中间纵线
+    resistor(mid,cy,'R₁='+q.given.R1+'Ω',null);
+    lbl(mid,cy+26, q.unknown==='I2'
+      ? 'I₁='+(q.given.V/q.given.R1).toFixed(2)+'A'
+      : 'I₁='+(q.given.V/q.given.R1).toFixed(2)+'A',
+      '#7a9aaa',10);
+    // R2 在右纵线
+    resistor(right,cy,'R₂='+q.given.R2+'Ω',null);
+    lbl(right,cy+26, q.unknown==='I2'?'I₂=?':'I₂='+(q.given.V/q.given.R2).toFixed(2)+'A',
+      q.unknown==='I2'?'#ffb700':'#7a9aaa',10);
+    if(q.unknown==='I_total') lbl(left-30,cy,'I总=?','#ffb700',10);
+  }
+}
+
+function lv2_submit(){
+  const q=LV2_QUESTIONS[lv2State.qIndex];
+  const raw=document.getElementById('lv2-ans-input').value.trim();
+  if(raw==='') return;
+  const val=parseFloat(raw);
+  const iw=document.getElementById('lv2-input-wrap');
+  const fb=document.getElementById('lv2-feedback');
+  if(Math.abs(val-q.answer)<=q.tolerance){
+    iw.classList.add('correct');
+    const pts=lv2State.hintUsed[lv2State.qIndex]?60:100;
+    addScore(pts); G.correctCount++;
+    lv2State.dotStatus[lv2State.qIndex]='correct';
+    fb.className='feedback correct-fb show';
+    fb.innerHTML=`✅ 正确！+${pts}分<br><small style="color:#4a8a5a">${q.explanation}</small>`;
+    document.getElementById('lv2-btn-submit').disabled=true;
+    document.getElementById('lv2-ans-input').disabled=true;
+    document.getElementById('lv2-btn-next').style.display='block';
+    spawnParticles();
+  } else {
+    iw.classList.add('wrong');
+    loseLife();
+    lv2State.wrongCount[lv2State.qIndex]++;
+    if(G.lives>0){
+      fb.className='feedback wrong-fb show';
+      fb.textContent='❌ 还不对！再想想。（生命剩余：'+G.lives+'）';
+      setTimeout(()=>iw.classList.remove('wrong'),400);
+    } else {
+      G.lives=3; updateLifeHUD();
+      lv2State.dotStatus[lv2State.qIndex]='wrong';
+      fb.className='feedback wrong-fb show';
+      fb.innerHTML=`💀 正确答案是 <strong>${q.answer} ${q.unit}</strong><br><small>${q.explanation}</small>`;
+      document.getElementById('lv2-btn-submit').disabled=true;
+      document.getElementById('lv2-ans-input').disabled=true;
+      document.getElementById('lv2-btn-next').style.display='block';
+    }
+  }
+}
+
+document.getElementById('lv2-ans-input').addEventListener('keydown',e=>{if(e.key==='Enter')lv2_submit();});
+
+function lv2_hint(){
+  const idx=lv2State.qIndex; if(lv2State.hintUsed[idx]) return;
+  lv2State.hintUsed[idx]=true;
+  const fb=document.getElementById('lv2-feedback');
+  fb.className='feedback hint-fb show';
+  fb.innerHTML='💡 <strong>提示：</strong>'+LV2_QUESTIONS[idx].hint;
+  document.getElementById('lv2-hint-btn').disabled=true;
+  document.getElementById('lv2-hint-btn').textContent='已使用提示';
+}
+
+function lv2_next(){
+  const next=lv2State.qIndex+1;
+  if(next>=LV2_QUESTIONS.length){
+    setProgress(67);
+    transitionToLevel('lv3','⚙️','第三关：工程师挑战','用欧姆定律反推参数，解决实际工程问题！',()=>{
+      markTabDone(2);
+      lv3_load(0);
+    });
+  } else {
+    lv2State.qIndex=next;
+    lv2_loadQuestion(next);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  LEVEL 3 — ENGINEER CHALLENGE
+// ══════════════════════════════════════════════════════
+const LV3_LEVELS=[
+  {num:'01',diff:'⭐ 基础',title:'调节台灯亮度',desc:'台灯电路使用 <strong>9 V</strong> 电池。工程师要求灯泡电流恰好为 <strong>0.3 A</strong>，这样亮度最适合阅读。请选择正确的电阻！',type:'series',V:9,targetI:.3,targetKey:'I',choices:[10,20,30,50,100],answer:30,hint:'用公式 R = V ÷ I，把电压除以目标电流。',explanation:'R = 9 ÷ 0.3 = 30 Ω。'},
+  {num:'02',diff:'⭐ 基础',title:'手电筒省电模式',desc:'手电筒电池 <strong>6 V</strong>，为省电电流不能超过 <strong>0.1 A</strong>，需恰好满足的电阻。',type:'series',V:6,targetI:.1,targetKey:'I',choices:[20,40,60,80,100],answer:60,hint:'R = V ÷ I = 6 ÷ 0.1。',explanation:'R = 6 ÷ 0.1 = 60 Ω。'},
+  {num:'03',diff:'⭐⭐ 进阶',title:'信号灯电压分配',desc:'总电压 <strong>12 V</strong>，串联固定电阻 <strong>R₁ = 40 Ω</strong>。要让 R₂ 两端电压恰好为 <strong>4 V</strong>，请选 R₂！',type:'series2',V:12,R1:40,targetV2:4,targetKey:'V2',choices:[10,15,20,25,30],answer:20,hint:'4/12 = R₂/(40+R₂)，解出 R₂。',explanation:'R₂ = 20 Ω，V₂ = 4 V。'},
+  {num:'04',diff:'⭐⭐ 进阶',title:'并联支路电流分配',desc:'并联电路 <strong>12 V</strong>，R₁ = <strong>6 Ω</strong>（I₁=2A）。要使总电流达到 <strong>4 A</strong>，请选 R₂！',type:'parallel',V:12,R1:6,I1:2,targetItotal:4,targetKey:'Itotal',choices:[4,6,10,12,24],answer:6,hint:'I₂ = 4 - 2 = 2A，R₂ = V ÷ I₂ = 12 ÷ 2。',explanation:'R₂ = 6 Ω，I₂ = 2A，总电流 = 4A。'},
+  {num:'05',diff:'⭐⭐⭐ 挑战',title:'保险丝保护方案',desc:'工厂电路 <strong>24 V</strong>，保险丝最大电流 <strong>0.4 A</strong>。选出所有能保护保险丝的电阻！（可多选）',type:'series-multi',V:24,maxI:.4,targetKey:'multi',choices:[40,50,60,80,100],answers:[60,80,100],hint:'R_min = V ÷ I_max = 24 ÷ 0.4 = 60 Ω，选所有 ≥ 60Ω 的电阻。',explanation:'R ≥ 60 Ω 都可以（60、80、100）。'}
+];
+
+let lv3State={lvIdx:0,selected:new Set(),answered:false,hintShown:false};
+
+function lv3_load(idx){
+  lv3State.lvIdx=idx; lv3State.selected=new Set(); lv3State.answered=false; lv3State.hintShown=false;
+  const lv=LV3_LEVELS[idx];
+  document.getElementById('lv3-m-num').textContent='关卡 '+lv.num;
+  document.getElementById('lv3-m-diff').textContent=lv.diff;
+  document.getElementById('lv3-m-title').textContent=lv.title;
+  document.getElementById('lv3-m-desc').innerHTML=lv.desc;
+  lv3_buildTargets(lv);
+  lv3_buildDropdown(lv);
+  lv3_drawCircuit(lv);
+  document.getElementById('lv3-fb').className='feedback-bar';
+  document.getElementById('lv3-fb').textContent='';
+  document.getElementById('lv3-btn-next').style.display='none';
+  document.getElementById('lv3-btn-confirm').style.display='block';
+  document.getElementById('lv3-btn-confirm').className='btn-confirm-lv3';
+  document.getElementById('lv3-btn-hint').disabled=false;
+  document.getElementById('lv3-btn-hint').textContent='💡 提示';
+  document.getElementById('lv3-ckt-result').className='circuit-result';
+  document.getElementById('calc-inline').innerHTML='等待选择…';
+  document.getElementById('r-dropdown-label').textContent='⬛ 点击选择电阻…';
+//Made by ecchua79
+  document.getElementById('r-dropdown-btn').classList.remove('has-pick','open');
+  document.getElementById('r-dropdown-menu').classList.remove('open');
+  document.getElementById('selected-tags').innerHTML='';
+  setProgress(67 + (idx/LV3_LEVELS.length)*33);
+}
+
+function lv3_buildTargets(lv){
+  const row=document.getElementById('lv3-target-row'); row.innerHTML='';
+  const chip=(label,val,cls)=>{const d=document.createElement('div');d.className='target-chip '+(cls||'');d.innerHTML=`<span class="tc-label">${label}</span><span class="tc-val">${val}</span>`;row.appendChild(d);};
+  if(lv.type==='series'){chip('电源电压',lv.V+' V','given');chip('🎯 目标电流',lv.targetI+' A','goal');chip('需要R =','? Ω','');}
+  else if(lv.type==='series2'){chip('总电压',lv.V+' V','given');chip('R₁',lv.R1+' Ω','given');chip('🎯 R₂两端电压',lv.targetV2+' V','goal');chip('需要R₂ =','? Ω','');}
+  else if(lv.type==='parallel'){chip('电源电压',lv.V+' V','given');chip('R₁',lv.R1+' Ω','given');chip('I₁',lv.I1+' A','given');chip('🎯 目标总电流',lv.targetItotal+' A','goal');chip('需要R₂ =','? Ω','');}
+  else if(lv.type==='series-multi'){chip('电源电压',lv.V+' V','given');chip('🎯 最大电流','≤'+lv.maxI+' A','goal');chip('选R ≥','? Ω','');}
+}
+
+function lv3_buildDropdown(lv){
+  const menu=document.getElementById('r-dropdown-menu');
+  menu.querySelectorAll('.r-option').forEach(o=>o.remove());
+  const isMulti=lv.targetKey==='multi';
+  document.getElementById('r-menu-header').textContent=isMulti?'⬛ 可用电阻（多选）':'⬛ 可用电阻（单选）';
+  lv.choices.forEach(ohm=>{
+    const opt=document.createElement('div'); opt.className='r-option'; opt.dataset.ohm=ohm;
+    const previewI=lv.V?(lv.V/ohm).toFixed(2)+' A':'';
+    opt.innerHTML=`<span class="r-opt-ohm">⬛ ${ohm} Ω</span><span class="r-opt-i">${previewI?'I≈'+previewI:''}</span><span class="r-opt-check">✓</span>`;
+    opt.addEventListener('click',e=>{e.stopPropagation();lv3_selectResistor(opt,ohm,lv,isMulti);if(!isMulti){document.getElementById('r-dropdown-menu').classList.remove('open');document.getElementById('r-dropdown-btn').classList.remove('open');}});
+    menu.appendChild(opt);
+  });
+}
+
+function lv3_toggleDropdown(){
+  if(lv3State.answered) return;
+  const btn=document.getElementById('r-dropdown-btn');
+  const menu=document.getElementById('r-dropdown-menu');
+  const isOpen=menu.classList.contains('open');
+  if(isOpen){
+    menu.classList.remove('open');
+    btn.classList.remove('open');
+  } else {
+    // position fixed relative to button
+    const r=btn.getBoundingClientRect();
+    menu.style.top=(r.bottom+4)+'px';
+    menu.style.left=r.left+'px';
+    menu.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+document.addEventListener('click',e=>{
+  if(!document.getElementById('r-dropdown-wrap').contains(e.target)){
+    document.getElementById('r-dropdown-menu').classList.remove('open');
+    document.getElementById('r-dropdown-btn').classList.remove('open');
+  }
+});
+
+function lv3_selectResistor(optEl,ohm,lv,isMulti){
+  if(lv3State.answered) return;
+  if(isMulti){optEl.classList.toggle('selected');if(lv3State.selected.has(ohm))lv3State.selected.delete(ohm);else lv3State.selected.add(ohm);}
+  else{document.querySelectorAll('.r-option').forEach(o=>o.classList.remove('selected'));lv3State.selected.clear();optEl.classList.add('selected');lv3State.selected.add(ohm);}
+  const btn=document.getElementById('r-dropdown-btn');
+  const lbl=document.getElementById('r-dropdown-label');
+  if(lv3State.selected.size===0){lbl.textContent='⬛ 点击选择电阻…';btn.classList.remove('has-pick');}
+  else if(!isMulti){lbl.textContent='⬛ '+ohm+' Ω';btn.classList.add('has-pick');}
+  else{lbl.textContent='⬛ 已选'+lv3State.selected.size+'个';btn.classList.add('has-pick');}
+  const tags=document.getElementById('selected-tags'); tags.innerHTML='';
+  if(isMulti)[...lv3State.selected].forEach(v=>{const t=document.createElement('div');t.className='sel-tag';t.textContent=v+'Ω';tags.appendChild(t);});
+  lv3_updateCalc(lv, isMulti?[...lv3State.selected]:ohm);
+  document.getElementById('lv3-btn-confirm').classList.toggle('ready',lv3State.selected.size>0);
+}
+
+function lv3_updateCalc(lv,pick){
+  const el=document.getElementById('calc-inline');
+  if(!pick||(Array.isArray(pick)&&pick.length===0)){el.innerHTML='等待选择…';return;}
+  let s='';
+  if(lv.type==='series'){const R=Array.isArray(pick)?pick[0]:pick;const I=(lv.V/R).toFixed(3);const ok=Math.abs(parseFloat(I)-lv.targetI)<.001;s=`I=${lv.V}÷<span class="hl-r">${R}</span>=<span class="${ok?'hl-ok':'hl-fail'}">${I}A</span> ${ok?'✔':'目标'+lv.targetI+'A'}`;}
+  else if(lv.type==='series2'){const R2=Array.isArray(pick)?pick[0]:pick;const I=(lv.V/(lv.R1+R2)).toFixed(3);const V2=(parseFloat(I)*R2).toFixed(2);const ok=Math.abs(parseFloat(V2)-lv.targetV2)<.05;s=`V₂=${I}×<span class="hl-r">${R2}</span>=<span class="${ok?'hl-ok':'hl-fail'}">${V2}V</span> ${ok?'✔':'目标'+lv.targetV2+'V'}`;}
+  else if(lv.type==='parallel'){const R2=Array.isArray(pick)?pick[0]:pick;const I2=(lv.V/R2).toFixed(3);const It=(lv.I1+parseFloat(I2)).toFixed(3);const ok=Math.abs(parseFloat(It)-lv.targetItotal)<.01;s=`I总=${lv.I1}+${I2}=<span class="${ok?'hl-ok':'hl-fail'}">${It}A</span> ${ok?'✔':'目标'+lv.targetItotal+'A'}`;}
+  else if(lv.type==='series-multi'){const picks=Array.isArray(pick)?pick:[pick];s=picks.map(R=>{const I=(lv.V/R).toFixed(2);const ok=parseFloat(I)<=lv.maxI+.001;return `${R}Ω→<span class="${ok?'hl-ok':'hl-fail'}">${I}A</span>`;}).join('  ');}
+  el.innerHTML=s||'等待选择…';
+}
+
+function lv3_confirm(){
+  if(lv3State.answered) return;
+  if(lv3State.selected.size===0){showToast('请先选择电阻！','fail');return;}
+//峇株吧辖华仁中学蔡逸众制作
+  const lv=LV3_LEVELS[lv3State.lvIdx]; lv3State.answered=true;
+  let correct=false;
+  if(lv.targetKey==='multi'){const ans=new Set(lv.answers);correct=[...lv3State.selected].every(v=>ans.has(v))&&[...ans].every(v=>lv3State.selected.has(v));}
+  else correct=lv3State.selected.has(lv.answer);
+  document.querySelectorAll('.r-option').forEach(opt=>{
+    const ohm=parseInt(opt.dataset.ohm); opt.classList.add('disabled');
+    const isAns=lv.targetKey==='multi'?(lv.answers||[]).includes(ohm):(ohm===lv.answer);
+    if(isAns) opt.classList.add('correct-pick');
+    if(lv3State.selected.has(ohm)&&!isAns) opt.classList.add('wrong-pick');
+  });
+  document.getElementById('r-dropdown-menu').classList.add('open');
+  document.getElementById('r-dropdown-btn').classList.add('open');
+  const fb=document.getElementById('lv3-fb');
+  const cktRes=document.getElementById('lv3-ckt-result');
+  if(correct){
+    const pts=lv3State.hintShown?60:100; addScore(pts); G.correctCount++;
+    fb.className='feedback-bar ok show'; fb.textContent='✅ 正确！+'+pts+'分';
+    cktRes.className='circuit-result ok show'; cktRes.textContent='⚡ 电路达标！';
+    spawnParticles();
+  } else {
+    const ans=lv.targetKey==='multi'?(lv.answers||[]).join('Ω、')+'Ω':(lv.answer+'Ω');
+    fb.className='feedback-bar fail show'; fb.textContent='❌ 不对！正确：'+ans;
+    cktRes.className='circuit-result fail show'; cktRes.textContent='✘ 未达标';
+  }
+  document.getElementById('lv3-btn-confirm').style.display='none';
+  document.getElementById('lv3-btn-next').style.display='block';
+  document.getElementById('lv3-btn-hint').disabled=true;
+  lv3_drawCircuit(lv, correct);
+}
+
+function lv3_hint(){
+  if(lv3State.hintShown||lv3State.answered) return;
+  lv3State.hintShown=true;
+  const fb=document.getElementById('lv3-fb');
+  fb.className='feedback-bar hint show';
+  fb.textContent='💡 '+LV3_LEVELS[lv3State.lvIdx].hint;
+  document.getElementById('lv3-btn-hint').disabled=true;
+  document.getElementById('lv3-btn-hint').textContent='已用提示';
+}
+
+function lv3_next(){
+  const next=lv3State.lvIdx+1;
+  if(next>=LV3_LEVELS.length){
+    clearInterval(G.timerInterval);
+    setProgress(100);
+    markTabDone(3);
+    setTimeout(()=>showWinScreen(), 600);
+  } else {
+    lv3_load(next);
+  }
+}
+
+function lv3_drawCircuit(lv, powered){
+  const svg=document.getElementById('lv3-svg'); svg.innerHTML='';
+  const wc=powered===true?'#00e676':powered===false?'#ff4757':'#4a6a7a';
+  function el(tag,attrs,txt){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(txt!==undefined)e.textContent=txt;svg.appendChild(e);return e;}
+  function wire(x1,y1,x2,y2){el('line',{x1,y1,x2,y2,stroke:wc,'stroke-width':2.5,'stroke-linecap':'round','stroke-dasharray':powered===true?'none':'5 3'});}
+  function lbl(x,y,t,col,sz){el('text',{x,y,fill:col||'#7a9aaa','font-size':sz||11,'font-family':'Share Tech Mono,monospace','text-anchor':'middle','dominant-baseline':'middle'},t);}
+  function battery(x,y,v){el('rect',{x:x-18,y:y-22,width:36,height:44,rx:4,fill:'#0d1a2a',stroke:'#00d4ff','stroke-width':1.5});el('line',{x1:x-7,y1:y-10,x2:x-7,y2:y+10,stroke:'#00d4ff','stroke-width':3.5,'stroke-linecap':'round'});el('line',{x1:x+5,y1:y-6,x2:x+5,y2:y+6,stroke:'#4a6a7a','stroke-width':2,'stroke-linecap':'round'});lbl(x,y+30,'V='+v+'V','#00d4ff',10);}
+  function resistor(x,y,lv2,highlight){const col=highlight==='answer'?'#00e676':highlight==='selected'?'#ffb700':'#4a6a7a';el('rect',{x:x-24,y:y-13,width:48,height:26,rx:4,fill:'#111820',stroke:col,'stroke-width':highlight?2:1.5});const pts=[[x-18,y],[x-12,y-7],[x-6,y+7],[x,y-7],[x+6,y+7],[x+12,y-7],[x+18,y]];const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M'+pts.map(p=>p.join(',')).join(' L'));path.setAttribute('stroke',col);path.setAttribute('stroke-width',1.8);path.setAttribute('fill','none');svg.appendChild(path);lbl(x,y+24,lv2,col,10);}
+
+  const pick=[...lv3State.selected];
+  const p=pick.length>0?pick[0]:null;
+  if(lv.type==='series'){
+    const top=60,bot=185,left=55,right=460;
+    wire(left,top,right,top);wire(left,bot,right,bot);wire(left,top,left,bot);wire(right,top,right,bot);
+    battery(left,(top+bot)/2,lv.V);
+    resistor(240,top,p?(p+'Ω'):'R=?',lv3State.answered&&p===lv.answer?'answer':p?'selected':null);
+    el('circle',{cx:380,cy:top,r:16,fill:'#0d1a2a',stroke:powered===true?'#ffd54f':'#4a6a7a','stroke-width':1.8,style:powered===true?'filter:drop-shadow(0 0 8px rgba(255,213,79,.6))':''});
+    el('text',{x:380,y:top+1,fill:powered===true?'#ffd54f':'#4a6a7a','font-size':13,'text-anchor':'middle','dominant-baseline':'middle'},'💡');
+  } else if(lv.type==='series2'){
+    const top=60,bot=185,left=55,right=460;
+    wire(left,top,right,top);wire(left,bot,right,bot);wire(left,top,left,bot);wire(right,top,right,bot);
+    battery(left,(top+bot)/2,lv.V);
+    resistor(205,top,'R₁='+lv.R1+'Ω',null);
+    resistor(360,top,p?('R₂='+p+'Ω'):'R₂=?',lv3State.answered&&p===lv.answer?'answer':p?'selected':null);
+    if(p){const V2=((lv.V/(lv.R1+p))*p).toFixed(1);const ok=Math.abs(parseFloat(V2)-lv.targetV2)<.05;lbl(360,top-26,'V₂='+V2+'V',ok?'#00e676':'#ff4757',10);}
+  } else if(lv.type==='parallel'){
+    const top=30,bot=210,left=55,mid=260,right=470;
+    const cy=(top+bot)/2;
+    // 三条纵线
+//峇株吧辖蔡逸众制作
+    wire(left,top,left,bot);
+    wire(mid,top,mid,bot);
+    wire(right,top,right,bot);
+    // 上下两条横线
+    wire(left,top,right,top);
+    wire(left,bot,right,bot);
+    // 电池在左纵线中间
+    battery(left,cy,lv.V);
+    // R2 在中间纵线中间
+    resistor(mid,cy,p?('R₂='+p+'Ω'):'R₂=?',lv3State.answered&&p===lv.answer?'answer':p?'selected':null);
+    if(p){const I2=(lv.V/p).toFixed(2);lbl(mid,cy+36,'I₂='+I2+' A','#ffb700',10);}
+    // R1 在右纵线中间
+    resistor(right,cy,'R₁='+lv.R1+'Ω',null);
+    lbl(right,cy+36,'I₁='+lv.I1+' A','#7a9aaa',10);
+    // 总电流标注
+    lbl(right+30,cy,'I总','#7a9aaa',10);
+  } else if(lv.type==='series-multi'){
+    const top=60,bot=185,left=55,right=460;
+    wire(left,top,right,top);wire(left,bot,right,bot);wire(left,top,left,bot);wire(right,top,right,bot);
+    battery(left,(top+bot)/2,lv.V);
+    // 只画一个代表性电阻
+    if(pick.length===0){
+      resistor(270,top,'R=?',null);
+    } else {
+      const rep=pick[0];
+      const isOk=(lv.V/rep)<=lv.maxI+.001;
+      const col=lv3State.answered?(isOk?'answer':'wrong'):'selected';
+      resistor(270,top,rep+'Ω',col);
+      if(pick.length>1) lbl(270,top-24,'已选'+pick.length+'个','#ffb700',10);
+    }
+    el('rect',{x:390,y:top-11,width:28,height:22,rx:3,fill:'#0d1a2a',stroke:powered===false?'#ff4757':'#4a6a7a','stroke-width':1.5});
+    lbl(404,top,'保险丝',powered===false?'#ff4757':'#4a6a7a',8);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  WIN + CERTIFICATE
+// ══════════════════════════════════════════════════════
+function showWinScreen(){
+  showScreen('screen-win');
+  const elapsed=getElapsed();
+  const m=Math.floor(elapsed/60); const s=elapsed%60;
+  document.getElementById('ws-score').textContent=G.score;
+  document.getElementById('ws-time').textContent=m+':'+(s<10?'0':'')+s;
+  document.getElementById('ws-correct').textContent=G.correctCount;
+  spawnParticles(window.innerWidth/2, window.innerHeight/3);
+}
+
+function replayGame(){
+  G.score=0;G.lives=3;G.correctCount=0;
+  document.getElementById('g-score').textContent=0;
+  updateLifeHUD();
+  setProgress(0);
+  ['tab1','tab2','tab3'].forEach((t,i)=>{
+    const el=document.getElementById(t);
+    el.classList.remove('done','active');
+    el.textContent=['第一关','第二关','第三关'][i];
+  });
+  document.getElementById('tab1').classList.add('active');
+  lv1_reset(); lv1.won=false;
+  showScreen('lv1');
+  startTimer();
+}
+
+function generateCert(){
+  const name=document.getElementById('name-input').value.trim();
+  if(!name){showToast('请先输入姓名！','fail');return;}
+  const canvas=document.getElementById('cert-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=600,H=850;
+
+  // background
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#07090d'); bg.addColorStop(.5,'#0d1620'); bg.addColorStop(1,'#07090d');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // grid dots
+  ctx.fillStyle='rgba(0,212,255,0.06)';
+  for(let x=20;x<W;x+=28) for(let y=20;y<H;y+=28){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();}
+
+  // outer border
+//峇株吧辖华仁中学蔡逸众制作
+  ctx.strokeStyle='#ffb700'; ctx.lineWidth=3;
+  roundRect(ctx,18,18,W-36,H-36,16); ctx.stroke();
+  ctx.strokeStyle='rgba(255,183,0,0.3)'; ctx.lineWidth=1;
+  roundRect(ctx,26,26,W-52,H-52,12); ctx.stroke();
+
+  // corner ornaments
+  const corners=[[40,40],[W-40,40],[40,H-40],[W-40,H-40]];
+  corners.forEach(([cx,cy])=>{
+    ctx.strokeStyle='#ffb700'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#ffb700'; ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
+  });
+
+  // top decoration line
+  ctx.strokeStyle='rgba(255,183,0,0.4)'; ctx.lineWidth=1;
+  ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(60,90); ctx.lineTo(W-60,90); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(60,H-90); ctx.lineTo(W-60,H-90); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // icon
+  ctx.font='54px serif'; ctx.textAlign='center';
+  ctx.fillText('⚡',W/2,148);
+
+  // glow behind icon
+  const grd=ctx.createRadialGradient(W/2,128,10,W/2,128,80);
+  grd.addColorStop(0,'rgba(255,183,0,0.18)'); grd.addColorStop(1,'rgba(255,183,0,0)');
+  ctx.fillStyle=grd; ctx.fillRect(W/2-80,68,160,120);
+
+  // title
+  ctx.fillStyle='#ffb700';
+  ctx.font='bold 28px Noto Sans SC, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('欧姆定律探险',W/2,200);
+  ctx.font='16px Noto Sans SC, sans-serif'; ctx.fillStyle='rgba(255,183,0,0.6)';
+  ctx.fillText('OHMS LAW ADVENTURE',W/2,226);
+
+  // divider
+  const div=ctx.createLinearGradient(80,0,W-80,0);
+  div.addColorStop(0,'rgba(255,183,0,0)'); div.addColorStop(.5,'rgba(255,183,0,0.5)'); div.addColorStop(1,'rgba(255,183,0,0)');
+  ctx.strokeStyle=div; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(80,248); ctx.lineTo(W-80,248); ctx.stroke();
+
+  // awarded text
+  ctx.fillStyle='rgba(170,195,210,0.7)'; ctx.font='14px Noto Sans SC, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('此证书颁发给',W/2,288);
+
+  // name
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 38px Noto Sans SC, sans-serif'; ctx.textAlign='center';
+  ctx.shadowColor='rgba(0,212,255,0.4)'; ctx.shadowBlur=18;
+  ctx.fillText(name,W/2,346); ctx.shadowBlur=0;
+
+  // name underline
+  const ul=ctx.createLinearGradient(160,0,W-160,0);
+  ul.addColorStop(0,'rgba(0,212,255,0)'); ul.addColorStop(.5,'rgba(0,212,255,0.6)'); ul.addColorStop(1,'rgba(0,212,255,0)');
+  ctx.strokeStyle=ul; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(160,360); ctx.lineTo(W-160,360); ctx.stroke();
+
+  // achievement text
+  ctx.fillStyle='rgba(170,195,210,0.75)'; ctx.font='14px Noto Sans SC, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('已成功完成全部三关挑战，掌握以下核心技能：',W/2,398);
+
+  // skills
+  const skills=[['⚡','电路组装','拖拽元件构建完整回路'],['🔍','欧姆推理','根据已知量反推未知量'],['⚙️','工程挑战','反推电路参数解决实际问题']];
+  skills.forEach(([icon,skill,desc],i)=>{
+    const y=450+i*78;
+    // card bg
+    ctx.fillStyle='rgba(14,22,32,0.8)';
+    roundRect(ctx,70,y-28,W-140,62,8); ctx.fill();
+    ctx.strokeStyle='rgba(0,212,255,0.2)'; ctx.lineWidth=1;
+    roundRect(ctx,70,y-28,W-140,62,8); ctx.stroke();
+    ctx.font='22px serif'; ctx.textAlign='left'; ctx.fillStyle='#ffb700';
+    ctx.fillText(icon,96,y+10);
+    ctx.font='bold 16px Noto Sans SC, sans-serif'; ctx.fillStyle='#dde8f0';
+    ctx.fillText(skill,132,y+5);
+    ctx.font='13px Noto Sans SC, sans-serif'; ctx.fillStyle='rgba(170,195,210,0.7)';
+    ctx.fillText(desc,132,y+26);
+    ctx.textAlign='right'; ctx.fillStyle='rgba(0,230,118,0.8)';
+    ctx.font='bold 14px Noto Sans SC, sans-serif';
+    ctx.fillText('✓ 完成',W-90,y+10);
+  });
+
+  // stats
+  const elapsed=getElapsed(); const em=Math.floor(elapsed/60); const es=elapsed%60;
+  const statsY=700;
+  ctx.fillStyle='rgba(10,18,26,0.8)';
+  roundRect(ctx,70,statsY,W-140,80,10); ctx.fill();
+  ctx.strokeStyle='rgba(255,183,0,0.2)'; ctx.lineWidth=1;
+  roundRect(ctx,70,statsY,W-140,80,10); ctx.stroke();
+
+  const statItems=[['🏆 总得分',String(G.score),'分'],['⏱ 完成用时',em+'分'+es+'秒',''],['✅ 答对题数',String(G.correctCount),'题']];
+  statItems.forEach(([label,val,unit],i)=>{
+    const x=115+i*154;
+    ctx.textAlign='center';
+//峇株吧辖华仁中学蔡逸众制作
+    ctx.fillStyle='rgba(170,195,210,0.6)'; ctx.font='11px Noto Sans SC, sans-serif';
+    ctx.fillText(label,x,statsY+24);
+    ctx.fillStyle='#ffb700'; ctx.font='bold 20px Noto Sans SC, sans-serif';
+    ctx.fillText(val+unit,x,statsY+56);
+  });
+
+  // date
+  const now=new Date();
+  const dateStr=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  ctx.fillStyle='rgba(120,155,170,0.6)'; ctx.font='12px Noto Sans SC, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('颁发日期：'+dateStr,W/2,H-55);
+  ctx.fillStyle='rgba(0,212,255,0.4)'; ctx.font='11px Noto Sans SC, sans-serif';
+  ctx.fillText('欧姆定律探险 · 完整版',W/2,H-36);
+
+  // hide input area after generating
+  document.getElementById('cert-input-area').style.display='none';
+  // show canvas and download
+  canvas.style.display='block';
+  const dl=document.getElementById('cert-dl');
+  dl.href=canvas.toDataURL('image/png');
+  document.getElementById('btn-dl').style.display='inline-block';
+  showToast('证书已生成！点击下载保存','ok');
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+// ── INIT ──
+startTimer();
+lv1_updateChecklist();
+showToast('🎓 从顶部拖入元件，点击接口连线，再按通电！','info');
+</script>
+
+<!-- Transition overlay (must be last) -->
+<div id="transition">
+  <div class="tr-badge"></div>
+  <div class="tr-title"></div>
+  <div class="tr-sub"></div>
+</div>
+<div style="position:fixed;bottom:2px;right:8px;font-size:9px;color:#0f1620;pointer-events:none;z-index:1;letter-spacing:0.5px;opacity:0.35;user-select:none;">峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79</div>
+</body>
+</html>
