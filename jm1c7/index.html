@@ -245,6 +245,15 @@ h1.game-title {
   transition: all 0.15s; user-select: none;
 }
 .sort-item:hover { border-color: var(--primary); background: rgba(0,229,255,0.08); }
+.sort-item.dragging { opacity: 0.45; border-color: var(--warn); background: rgba(255,234,0,0.08); }
+.sort-arrows { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.sort-arrow-btn {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  color: var(--muted); border-radius: 4px; width: 26px; height: 22px;
+  font-size: 11px; cursor: pointer; line-height: 1; transition: 0.12s;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.sort-arrow-btn:hover { background: rgba(0,229,255,0.2); color: var(--primary); border-color: var(--primary); }
 .sort-item.dragging { opacity: 0.4; }
 .sort-item .drag-handle { color: var(--muted); font-size: 18px; }
 .sort-check-btn { margin-bottom: 14px; }
@@ -969,24 +978,84 @@ function buildSort(q,area){
 
 function renderSortItems(list, items, order){
   list.innerHTML='';
-  order.forEach((origIdx,pos)=>{
-    const item=document.createElement('div'); item.className='sort-item';
-    item.draggable=true; item.dataset.pos=pos; item.dataset.orig=origIdx;
-    item.innerHTML=`<span class="drag-handle">☰</span><span>${items[origIdx]}</span>`;
-    // Drag events
-    item.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain',pos); item.classList.add('dragging'); });
-    item.addEventListener('dragend',()=>item.classList.remove('dragging'));
-    item.addEventListener('dragover',e=>e.preventDefault());
-    item.addEventListener('drop',e=>{
-      e.preventDefault();
-      const fromPos=parseInt(e.dataTransfer.getData('text/plain'));
-      const toPos=parseInt(item.dataset.pos);
-      if(fromPos!==toPos){
-        [state.sortOrder[fromPos],state.sortOrder[toPos]]=[state.sortOrder[toPos],state.sortOrder[fromPos]];
+  order.forEach((origIdx, pos)=>{
+    const item = document.createElement('div');
+    item.className = 'sort-item';
+    item.dataset.pos = pos;
+    item.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <span style="flex:1">${items[origIdx]}</span>
+      <span class="sort-arrows">
+        <button class="sort-arrow-btn" data-pos="${pos}" data-dir="-1" title="上移">▲</button>
+        <button class="sort-arrow-btn" data-pos="${pos}" data-dir="1"  title="下移">▼</button>
+      </span>`;
+
+    // ── Arrow button clicks ──
+    item.querySelectorAll('.sort-arrow-btn').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        const p   = parseInt(btn.dataset.pos);
+        const dir = parseInt(btn.dataset.dir);
+        const np  = p + dir;
+        if(np < 0 || np >= state.sortOrder.length) return;
+        [state.sortOrder[p], state.sortOrder[np]] = [state.sortOrder[np], state.sortOrder[p]];
         renderSortItems(list, quizData[state.level].items, state.sortOrder);
+      });
+    });
+
+    list.appendChild(item);
+  });
+
+  // ── Pointer-based drag (works on touch + mouse) ──
+  let dragEl=null, dragPos=-1, placeholder=null;
+
+  list.querySelectorAll('.sort-item').forEach(item=>{
+    item.addEventListener('pointerdown', e=>{
+      // Only start drag on the handle or the item body (not arrow buttons)
+      if(e.target.classList.contains('sort-arrow-btn')) return;
+      e.preventDefault();
+      dragEl  = item;
+      dragPos = parseInt(item.dataset.pos);
+      item.setPointerCapture(e.pointerId);
+      item.classList.add('dragging');
+      item.style.opacity = '0.45';
+    });
+
+    item.addEventListener('pointermove', e=>{
+      if(!dragEl || dragEl !== item) return;
+      e.preventDefault();
+      // Find which item we're hovering over
+      const all = [...list.querySelectorAll('.sort-item:not(.dragging)')];
+      let hoveredPos = -1;
+      all.forEach(other=>{
+        const r = other.getBoundingClientRect();
+        const midY = r.top + r.height / 2;
+        if(e.clientY >= r.top && e.clientY <= r.bottom){
+          hoveredPos = parseInt(other.dataset.pos);
+        }
+      });
+      if(hoveredPos !== -1 && hoveredPos !== dragPos){
+        [state.sortOrder[dragPos], state.sortOrder[hoveredPos]] =
+          [state.sortOrder[hoveredPos], state.sortOrder[dragPos]];
+        dragPos = hoveredPos;
+        renderSortItems(list, quizData[state.level].items, state.sortOrder);
+        // Re-attach drag state to new element at same position
+        const newEl = list.querySelector(`.sort-item[data-pos="${dragPos}"]`);
+        if(newEl){ newEl.classList.add('dragging'); newEl.style.opacity='0.45'; dragEl=newEl; }
       }
     });
-    list.appendChild(item);
+
+    item.addEventListener('pointerup', e=>{
+      if(!dragEl) return;
+      dragEl.classList.remove('dragging');
+      dragEl.style.opacity = '';
+      dragEl = null; dragPos = -1;
+    });
+
+    item.addEventListener('pointercancel', ()=>{
+      if(dragEl){ dragEl.classList.remove('dragging'); dragEl.style.opacity=''; }
+      dragEl=null; dragPos=-1;
+    });
   });
 }
 
