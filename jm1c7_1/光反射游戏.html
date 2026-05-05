@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光的反射定律 · 互动游戏</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Orbitron:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a;--panel:#0f1628;--border:#1e2d4a;
+  --accent:#00d4ff;--accent2:#ff6b35;--gold:#ffd700;
+  --green:#00ff88;--text:#c8d8f0;--dim:#4a6080;
+}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 35% 65%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 72% 22%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 78%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 22% 82%,rgba(0,212,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 92% 42%,rgba(0,212,255,.18) 0%,transparent 100%)}
+header{width:100%;max-width:960px;padding:18px 24px 8px;display:flex;align-items:center;gap:16px;position:relative;z-index:1}
+.logo{font-family:'Orbitron',monospace;font-size:12px;color:var(--accent);letter-spacing:3px;opacity:.7}
+h1{font-size:clamp(18px,4vw,26px);font-weight:900;
+  background:linear-gradient(135deg,var(--accent),#fff,var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.main-layout{display:flex;gap:16px;width:100%;max-width:960px;padding:0 16px 20px;position:relative;z-index:1;flex-wrap:wrap}
+.canvas-wrap{flex:1;min-width:300px;background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;position:relative;
+  box-shadow:0 0 40px rgba(0,212,255,.07),inset 0 1px 0 rgba(255,255,255,.05)}
+canvas{display:block;cursor:crosshair;width:100%;height:auto}
+.canvas-label{position:absolute;top:12px;left:16px;font-size:10px;letter-spacing:2px;
+  color:var(--dim);font-family:'Orbitron',monospace;text-transform:uppercase}
+.side-panel{width:220px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.card-title{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;
+  font-family:'Orbitron',monospace;margin-bottom:10px}
+.angle-display{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.angle-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.angle-box.hl{border-color:var(--green);background:rgba(0,255,136,.05)}
+.angle-label{font-size:10px;color:var(--dim);margin-bottom:3px}
+.angle-value{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--accent)}
+.angle-box.hl .angle-value{color:var(--green)}
+.angle-unit{font-size:10px;color:var(--dim)}
+.eq-badge{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px;
+  border-radius:8px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);
+  font-size:11px;color:var(--green);font-weight:700;margin-top:8px}
+.eq-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 7px var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.6)}}
+.law-box{background:rgba(0,0,0,.2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:9px 11px;font-size:12px;line-height:1.75;color:var(--text)}
+.law-box b{color:var(--gold)}
+.mode-group{display:flex;flex-direction:column;gap:5px}
+.mbtn{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;
+  color:var(--dim);font-size:12px;font-family:'Noto Sans SC',sans-serif;cursor:pointer;
+  text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px}
+.mbtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.05)}
+.mbtn.active{border-color:var(--accent);background:rgba(0,212,255,.12);color:#fff}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.tog-row:last-child{border-bottom:none}
+.tog-label{font-size:12px;color:var(--text)}
+.tog{width:36px;height:20px;background:rgba(0,0,0,.4);border:1px solid var(--border);
+  border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:rgba(0,212,255,.3);border-color:var(--accent)}
+.tog::after{content:'';position:absolute;width:14px;height:14px;background:var(--dim);
+  border-radius:50%;top:2px;left:2px;transition:all .2s}
+.tog.on::after{left:18px;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.score-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.score-val{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--gold);
+  text-shadow:0 0 12px rgba(255,215,0,.4)}
+.lv-badge{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent2);
+  background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.3);border-radius:20px;padding:3px 9px}
+.ch-msg{font-size:12px;color:var(--gold);margin-top:5px;min-height:16px}
+.mirror-info{font-size:11px;color:var(--accent2);margin-top:3px;min-height:14px}
+.ch-bar{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-top:6px}
+.ch-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .35s ease}
+#next-btn{display:none;width:100%;padding:9px;margin-top:8px;
+  background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,212,255,.15));
+  border:1px solid var(--green);border-radius:8px;color:var(--green);
+  font-size:13px;font-weight:700;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:all .2s}
+#next-btn:hover{background:linear-gradient(135deg,rgba(0,255,136,.28),rgba(0,212,255,.28))}
+#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-60px);
+  background:var(--panel);border:1px solid var(--green);color:var(--green);
+  padding:9px 22px;border-radius:30px;font-weight:700;font-size:13px;z-index:100;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 18px rgba(0,255,136,.28);white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.legend{width:100%;max-width:960px;padding:0 16px 16px;position:relative;z-index:1}
+.legend-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:12px 18px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:9px;font-size:12px}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Physics Lab</div>
+    <h1>光的反射定律</h1>
+  </div>
+</header>
+
+<div class="main-layout">
+  <div class="canvas-wrap">
+    <div class="canvas-label">实验台</div>
+    <canvas id="c" width="620" height="460"></canvas>
+  </div>
+
+  <div class="side-panel">
+    <div class="card">
+      <div class="card-title">角度读数</div>
+      <div class="angle-display">
+        <div class="angle-box">
+          <div class="angle-label">入射角 θ₁</div>
+          <div class="angle-value" id="inc-val">0</div>
+          <div class="angle-unit">°</div>
+        </div>
+        <div class="angle-box hl">
+          <div class="angle-label">反射角 θ₂</div>
+          <div class="angle-value" id="ref-val">0</div>
+          <div class="angle-unit">°</div>
+        </div>
+      </div>
+      <div class="eq-badge"><div class="eq-dot"></div>θ₁ = θ₂ &nbsp;✓ 反射定律成立</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">反射定律</div>
+      <div class="law-box">
+        入射角<b>等于</b>反射角<br>
+        入射光、法线、反射光<b>同平面</b><br>
+        法线在两光线<b>之间</b>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">模式</div>
+      <div class="mode-group">
+        <button class="mbtn active" id="btn-free" onclick="setMode('free')">🔦 自由探索</button>
+        <button class="mbtn" id="btn-ch" onclick="setMode('challenge')">🎯 挑战模式</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">显示选项</div>
+      <div class="tog-row"><span class="tog-label">法线</span><div class="tog on" id="tog-normal" onclick="togOpt('normal')"></div></div>
+      <div class="tog-row"><span class="tog-label">角度弧线</span><div class="tog on" id="tog-arcs" onclick="togOpt('arcs')"></div></div>
+      <div class="tog-row"><span class="tog-label">角度标注</span><div class="tog on" id="tog-labels" onclick="togOpt('labels')"></div></div>
+      <div class="tog-row"><span class="tog-label">反射光线</span><div class="tog on" id="tog-reflected" onclick="togOpt('reflected')"></div></div>
+      <div class="tog-row"><span class="tog-label">光束宽度</span><div class="tog" id="tog-beam" onclick="togOpt('beam')"></div></div>
+    </div>
+
+    <div class="card" id="score-card" style="display:none">
+      <div class="card-title">挑战进度</div>
+      <div class="score-row">
+        <span class="score-val" id="score-disp">0</span>
+        <span class="lv-badge" id="lv-disp">第 1 关</span>
+      </div>
+      <div class="ch-msg" id="ch-msg">将入射角调到目标！</div>
+      <div class="mirror-info" id="mirror-info"></div>
+      <div class="ch-bar"><div class="ch-fill" id="ch-fill" style="width:0%"></div></div>
+      <button id="next-btn" onclick="nextQ()">下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-card">
+    <div class="leg-item"><div class="leg-dot" style="background:#ffee44;box-shadow:0 0 6px #ffee44"></div><span>入射光线</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#00d4ff;box-shadow:0 0 6px #00d4ff"></div><span>反射光线</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.45)"></div><span>法线（虚线）</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7899bb"></div><span>镜面</span></div>
+    <div class="leg-item" style="margin-left:auto;color:var(--dim);font-size:11px">💡 拖动光源改变入射角</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DESIGN:
+//  • Hit point is FIXED = mirrorCentre. Never moves.
+//  • Normal is FIXED = perpendicular to mirror at hit. Never moves.
+//  • User drags the light source (src) to change the incident angle.
+//  • Incident ray  = src → hit
+//  • Reflected ray = mirror-image of incident ray about the normal, from hit
+// ══════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let mode = 'free';
+let opts = {normal:true, arcs:true, labels:true, reflected:true, beam:false};
+
+// Fixed hit point (centre of mirror)
+const HIT = {x: W/2, y: 310};
+const MIRROR_HALF = 210;
+
+// Mirror tilt (radians). 0 = horizontal mirror, normal points straight up.
+let mirrorTilt = 0;
+
+// Light source — user drags this
+let src = {x: 180, y: 120};
+let dragging = false;
+
+// Challenge
+let score=0, level=1, tolerance=5;
+let targetAngle=null, answered=false;
+
+// ──────────────────────────────────────────────────────
+//  GEOMETRY  — all functions use fixed HIT and mirrorTilt
+// ──────────────────────────────────────────────────────
+
+// Unit vector along mirror surface
+function getTangent() {
+  return {x: Math.cos(mirrorTilt), y: Math.sin(mirrorTilt)};
+}
+
+// Unit normal to mirror, pointing "upward" (front face).
+// Tangent = (cos t, sin t). Normal = tangent rotated 90° CW in canvas = (sin t, -cos t).
+// Check: tilt=0 → normal=(0,-1) which is UP in canvas (y axis points down). ✓
+function getNormal() {
+  return {x: Math.sin(mirrorTilt), y: -Math.cos(mirrorTilt)};
+}
+
+// Angle of incidence in degrees (0–90), measured from normal at HIT.
+function incDeg() {
+  const n = getNormal();
+  // Vector from HIT toward src
+  const vx = src.x - HIT.x, vy = src.y - HIT.y;
+  const len = Math.hypot(vx, vy);
+  if (len < 1) return 0;
+  const cosA = (vx*n.x + vy*n.y) / len;
+  return Math.round(Math.acos(Math.min(1, Math.max(-1, cosA))) * 180/Math.PI);
+}
+
+// Reflected ray unit direction from HIT (away from mirror, same side as src)
+function getRefDir() {
+  const n = getNormal();
+  // Incident direction: src → HIT (unit)
+  const ix = HIT.x - src.x, iy = HIT.y - src.y;
+  const len = Math.hypot(ix, iy);
+  const inx = ix/len, iny = iy/len;
+  // r = i - 2(i·n)n
+  const dot = inx*n.x + iny*n.y;
+  return {x: inx - 2*dot*n.x, y: iny - 2*dot*n.y};
+}
+
+// ──────────────────────────────────────────────────────
+//  MAIN DRAW
+// ──────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+
+  const n   = getNormal();
+  const deg = incDeg();
+
+  drawMirror(n);
+  if (opts.normal)    drawNormal(n);
+                      drawIncident();
+  if (opts.reflected) drawReflected(n);
+  if (mode==='challenge' && targetAngle!==null) drawTarget(n);
+  if (opts.arcs||opts.labels) drawAngles(n, deg);
+
+  document.getElementById('inc-val').textContent = deg;
+  document.getElementById('ref-val').textContent = deg;
+
+  if (mode==='challenge' && targetAngle!==null && !answered) checkChallenge(deg);
+}
+
+// ── Grid ──
+function drawGrid() {
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+
+// ── Mirror ──
+function drawMirror(n) {
+  const t  = getTangent();
+  const bn = {x:-n.x, y:-n.y};
+  const p1 = {x:HIT.x - t.x*MIRROR_HALF, y:HIT.y - t.y*MIRROR_HALF};
+  const p2 = {x:HIT.x + t.x*MIRROR_HALF, y:HIT.y + t.y*MIRROR_HALF};
+
+  // Hatching on back face
+  ctx.save();
+  ctx.strokeStyle='rgba(100,140,180,.22)'; ctx.lineWidth=1;
+  for(let s=0; s<=2*MIRROR_HALF; s+=14){
+    const fx=p1.x+t.x*s, fy=p1.y+t.y*s;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(fx + bn.x*11 + t.x*(-8), fy + bn.y*11 + t.y*(-8));
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Mirror body
+  ctx.save();
+  const gr=ctx.createLinearGradient(p1.x,p1.y,p2.x,p2.y);
+  gr.addColorStop(0,'#2a3a55'); gr.addColorStop(.5,'#7899bb'); gr.addColorStop(1,'#2a3a55');
+  ctx.beginPath();
+  ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+  ctx.lineTo(p2.x+bn.x*7,p2.y+bn.y*7); ctx.lineTo(p1.x+bn.x*7,p1.y+bn.y*7);
+  ctx.closePath(); ctx.fillStyle=gr; ctx.fill(); ctx.restore();
+
+  // Reflective edge
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+  ctx.strokeStyle='#cce0ff'; ctx.lineWidth=2.5;
+  ctx.shadowColor='rgba(200,230,255,.5)'; ctx.shadowBlur=5;
+  ctx.stroke(); ctx.restore();
+
+  // Label
+  ctx.fillStyle='rgba(180,210,255,.45)'; ctx.font='11px Noto Sans SC';
+  ctx.fillText('平面镜', p1.x + n.x*20 + t.x*4, p1.y + n.y*20 + t.y*4);
+}
+
+// ── Normal ──
+// Dashed line through HIT: extends 130 in +n direction, 60 in -n direction.
+function drawNormal(n) {
+  ctx.save();
+  ctx.setLineDash([6,5]);
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(HIT.x + n.x*130, HIT.y + n.y*130);
+  ctx.lineTo(HIT.x - n.x*60,  HIT.y - n.y*60);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.38)'; ctx.font='11px Noto Sans SC';
+  ctx.fillText('法线 N', HIT.x + n.x*134 - 12, HIT.y + n.y*134 + 4);
+  ctx.restore();
+}
+
+// ── Incident ray: src → HIT ──
+function drawIncident() {
+  const dx=HIT.x-src.x, dy=HIT.y-src.y, len=Math.hypot(dx,dy);
+
+  if (opts.beam) {
+    const perp={x:-dy/len*9, y:dx/len*9};
+    const gr=ctx.createLinearGradient(src.x,src.y,HIT.x,HIT.y);
+    gr.addColorStop(0,'rgba(255,238,68,.55)'); gr.addColorStop(1,'rgba(255,238,68,.08)');
+    ctx.beginPath();
+    ctx.moveTo(src.x+perp.x,src.y+perp.y); ctx.lineTo(HIT.x+perp.x,HIT.y+perp.y);
+    ctx.lineTo(HIT.x-perp.x,HIT.y-perp.y); ctx.lineTo(src.x-perp.x,src.y-perp.y);
+    ctx.fillStyle=gr; ctx.fill();
+  }
+
+  ctx.save();
+  ctx.strokeStyle='#ffee44'; ctx.lineWidth=2.5;
+  ctx.shadowColor='#ffee44'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(HIT.x,HIT.y); ctx.stroke();
+  drawArrow(src.x+dx*.5, src.y+dy*.5, Math.atan2(dy,dx), '#ffee44');
+
+  // Source dot glow
+  const sg=ctx.createRadialGradient(src.x,src.y,0,src.x,src.y,12);
+  sg.addColorStop(0,'rgba(255,238,68,.9)'); sg.addColorStop(1,'rgba(255,238,68,0)');
+  ctx.beginPath(); ctx.arc(src.x,src.y,12,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+  ctx.beginPath(); ctx.arc(src.x,src.y,5,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.shadowBlur=14; ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle='rgba(255,238,68,.85)'; ctx.font='bold 11px Noto Sans SC';
+  ctx.fillText('入射光线', src.x+9, src.y-10);
+}
+
+// ── Reflected ray: HIT → outward ──
+function drawReflected(n) {
+  const rd=getRefDir();
+  const L=190;
+  const ex=HIT.x+rd.x*L, ey=HIT.y+rd.y*L;
+
+  if (opts.beam) {
+    const perp={x:-rd.y*9, y:rd.x*9};
+    const gr=ctx.createLinearGradient(HIT.x,HIT.y,ex,ey);
+    gr.addColorStop(0,'rgba(0,212,255,.4)'); gr.addColorStop(1,'rgba(0,212,255,0)');
+    ctx.beginPath();
+    ctx.moveTo(HIT.x+perp.x,HIT.y+perp.y); ctx.lineTo(ex+perp.x,ey+perp.y);
+    ctx.lineTo(ex-perp.x,ey-perp.y); ctx.lineTo(HIT.x-perp.x,HIT.y-perp.y);
+    ctx.fillStyle=gr; ctx.fill();
+  }
+
+  ctx.save();
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=2.5;
+  ctx.shadowColor='#00d4ff'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(HIT.x,HIT.y); ctx.lineTo(ex,ey); ctx.stroke();
+  drawArrow(HIT.x+rd.x*L*.5, HIT.y+rd.y*L*.5, Math.atan2(rd.y,rd.x), '#00d4ff');
+  ctx.restore();
+
+  ctx.fillStyle='rgba(0,212,255,.85)'; ctx.font='bold 11px Noto Sans SC';
+  ctx.fillText('反射光线', ex-8, ey-10);
+}
+
+// ── Angles ──
+// normalAngle = canvas direction of normal vector n
+// incAngle    = canvas direction from HIT toward src  (= vector HIT→src)
+// refAngle    = canvas direction of reflected ray from HIT
+//
+// Arc for incident: sweeps from normalAngle to incAngle (short arc)
+// Arc for reflected: sweeps from normalAngle to refAngle (short arc)
+// Label placed at the arc midpoint angle, radius R+20 from HIT
+function drawAngles(n, deg) {
+  const R = 52;
+  const rd = getRefDir();
+
+  // Canvas angles
+  const normalAngle = Math.atan2(n.y, n.x);
+  const incAngle    = Math.atan2(src.y - HIT.y, src.x - HIT.x);
+  const refAngle    = Math.atan2(rd.y, rd.x);
+
+  function shortArc(a1, a2, color) {
+    let diff = a2 - a1;
+    while (diff >  Math.PI) diff -= 2*Math.PI;
+    while (diff < -Math.PI) diff += 2*Math.PI;
+    // diff is now the shortest signed angular distance from a1 to a2
+    if (Math.abs(diff) < 0.015) return a1; // skip near-zero arcs
+    if (opts.arcs) {
+      ctx.save();
+      ctx.strokeStyle=color; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.arc(HIT.x, HIT.y, R, a1, a1+diff, diff<0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    return a1 + diff/2; // midpoint canvas angle of this arc
+  }
+
+  const incMid = shortArc(normalAngle, incAngle, 'rgba(255,238,68,.85)');
+  const refMid = shortArc(normalAngle, refAngle, 'rgba(0,212,255,.85)');
+
+  if (opts.labels && deg > 2) {
+    const LR = R + 20;
+    ctx.font='bold 13px Orbitron, monospace';
+    ctx.fillStyle='rgba(255,238,68,.97)';
+    ctx.fillText(`${deg}°`, HIT.x+Math.cos(incMid)*LR-10, HIT.y+Math.sin(incMid)*LR+5);
+    ctx.fillStyle='rgba(0,212,255,.97)';
+    ctx.fillText(`${deg}°`, HIT.x+Math.cos(refMid)*LR-10, HIT.y+Math.sin(refMid)*LR+5);
+  }
+}
+
+// ── Challenge target ──
+// Show a glowing ring where the reflected ray SHOULD land at targetAngle.
+// Side (left/right of normal) tracks the current src position.
+function drawTarget(n) {
+  const t    = getTangent();
+  const ds   = {x:src.x-HIT.x, y:src.y-HIT.y};
+  const side = Math.sign(ds.x*t.x + ds.y*t.y) || 1;
+  const tRad = targetAngle * Math.PI/180;
+  // Reflected ray direction at targetAngle: n*cos - t*side*sin
+  const rx = n.x*Math.cos(tRad) - t.x*side*Math.sin(tRad);
+  const ry = n.y*Math.cos(tRad) - t.y*side*Math.sin(tRad);
+  const tx = HIT.x + rx*185, ty = HIT.y + ry*185;
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(tx,ty,22,0,Math.PI*2);
+  const tg=ctx.createRadialGradient(tx,ty,3,tx,ty,22);
+  tg.addColorStop(0,'rgba(255,107,53,.65)');
+  tg.addColorStop(.6,'rgba(255,107,53,.2)');
+  tg.addColorStop(1,'rgba(255,107,53,0)');
+  ctx.fillStyle=tg; ctx.fill();
+  ctx.beginPath(); ctx.arc(tx,ty,22,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,107,53,.8)'; ctx.lineWidth=2;
+  ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(tx,ty,5,0,Math.PI*2);
+  ctx.fillStyle='#ff6b35'; ctx.shadowColor='#ff6b35'; ctx.shadowBlur=12; ctx.fill();
+  ctx.fillStyle='rgba(255,107,53,.92)'; ctx.font='bold 10px Noto Sans SC'; ctx.shadowBlur=0;
+  ctx.fillText('目标', tx-12, ty-28);
+  ctx.fillText(`θ=${targetAngle}°`, tx-18, ty+36);
+  ctx.restore();
+}
+
+// ── Arrow helper ──
+function drawArrow(x, y, angle, color) {
+  const s=8;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(angle);
+  ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=5;
+  ctx.beginPath(); ctx.moveTo(s,0); ctx.lineTo(-s*.6,-s*.5); ctx.lineTo(-s*.6,s*.5);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+// ──────────────────────────────────────────────────────
+//  CHALLENGE
+// ──────────────────────────────────────────────────────
+const TILT_POOL = [0,0,15,-15,30,-30,20,-20,10,-10];
+
+function newQ() {
+  answered = false;
+  document.getElementById('next-btn').style.display='none';
+
+  const td = level<=2 ? 0 : TILT_POOL[Math.floor(Math.random()*TILT_POOL.length)];
+  mirrorTilt = td * Math.PI/180;
+
+  // Reset src to a neutral position on the left, front side of mirror
+  const n = getNormal();
+  src = {x: HIT.x - 140, y: HIT.y + n.y*(-150)};
+  // Make sure it's in front
+  src = clampToFront(src);
+
+  document.getElementById('mirror-info').textContent =
+    td===0 ? '' : `镜面倾斜 ${td>0?'+':''}${td}°`;
+  targetAngle = Math.round(10 + Math.random()*68);
+  document.getElementById('ch-msg').textContent = `将入射角调到 ${targetAngle}°！`;
+  document.getElementById('ch-fill').style.width='0%';
+  draw();
+}
+
+function checkChallenge(deg) {
+  const diff = Math.abs(deg - targetAngle);
+  document.getElementById('ch-fill').style.width = Math.max(0,100-diff*4)+'%';
+  if (diff <= tolerance) {
+    answered = true;
+    const pts = Math.max(5, 15-level);
+    score += pts;
+    document.getElementById('score-disp').textContent = score;
+    document.getElementById('ch-msg').textContent = `✓ 正确！入射角 = ${deg}°`;
+    document.getElementById('next-btn').style.display='block';
+    showToast(`🎉 +${pts} 分！`);
+    draw();
+  }
+}
+
+function nextQ() {
+  level++;
+  tolerance = Math.max(2, 5-Math.floor(level/3));
+  document.getElementById('lv-disp').textContent=`第 ${level} 关`;
+  newQ();
+}
+
+// ──────────────────────────────────────────────────────
+//  MODE / TOGGLES
+// ──────────────────────────────────────────────────────
+function setMode(m) {
+  mode=m;
+  document.getElementById('btn-free').className='mbtn'+(m==='free'?' active':'');
+  document.getElementById('btn-ch').className='mbtn'+(m==='challenge'?' active':'');
+  document.getElementById('score-card').style.display=m==='challenge'?'block':'none';
+  if (m==='challenge') {
+    score=0; level=1; tolerance=5; mirrorTilt=0;
+    document.getElementById('score-disp').textContent=0;
+    document.getElementById('lv-disp').textContent='第 1 关';
+    newQ();
+  } else {
+    mirrorTilt=0; targetAngle=null; answered=false;
+    document.getElementById('next-btn').style.display='none';
+    draw();
+  }
+}
+
+function togOpt(k) {
+  opts[k]=!opts[k];
+  document.getElementById('tog-'+k).className='tog'+(opts[k]?' on':'');
+  draw();
+}
+
+// ──────────────────────────────────────────────────────
+//  TOAST
+// ──────────────────────────────────────────────────────
+let toastT;
+function showToast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show';
+  clearTimeout(toastT); toastT=setTimeout(()=>{el.className='';},2200);
+}
+
+// ──────────────────────────────────────────────────────
+//  INPUT
+// ──────────────────────────────────────────────────────
+function getPos(e) {
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width, sy=H/r.height;
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return {x:cx*sx, y:cy*sy};
+}
+
+function nearSrc(p){ return Math.hypot(p.x-src.x, p.y-src.y)<22; }
+
+// Keep src on the front (normal) side of the mirror, at least 25px away
+function clampToFront(p) {
+  const n  = getNormal();
+  const ds = {x:p.x-HIT.x, y:p.y-HIT.y};
+  const d  = ds.x*n.x + ds.y*n.y;
+  if (d < 25) {
+    return {x: p.x + n.x*(25-d), y: p.y + n.y*(25-d)};
+  }
+  return p;
+}
+
+canvas.addEventListener('mousedown', e=>{ if(nearSrc(getPos(e))) dragging=true; });
+canvas.addEventListener('mousemove', e=>{
+  const p=getPos(e);
+  if (!dragging){ canvas.style.cursor=nearSrc(p)?'grab':'crosshair'; return; }
+  const raw={x:Math.max(10,Math.min(W-10,p.x)), y:Math.max(10,Math.min(H-10,p.y))};
+  const c=clampToFront(raw);
+  src.x=c.x; src.y=c.y; draw();
+});
+canvas.addEventListener('mouseup', ()=>dragging=false);
+canvas.addEventListener('mouseleave', ()=>dragging=false);
+canvas.addEventListener('touchstart', e=>{e.preventDefault(); if(nearSrc(getPos(e))) dragging=true;},{passive:false});
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault(); if(!dragging)return;
+  const p=getPos(e);
+  const raw={x:Math.max(10,Math.min(W-10,p.x)), y:Math.max(10,Math.min(H-10,p.y))};
+  const c=clampToFront(raw);
+  src.x=c.x; src.y=c.y; draw();
+},{passive:false});
+canvas.addEventListener('touchend', ()=>dragging=false);
+
+// ── Start ──
+draw();
+showToast('💡 拖动光源改变入射角');
+</script>
+</body>
+</html>
