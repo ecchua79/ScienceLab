@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>光线守护者：反射与折射的大冒险</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
+
+:root {
+  --primary: #00e5ff;
+  --secondary: #7c4dff;
+  --bg: #0a0a18;
+  --panel: rgba(16,16,36,0.95);
+  --correct: #00e676;
+  --wrong: #ff1744;
+  --warn: #ffea00;
+  --text: #e8eaf6;
+  --muted: #7986cb;
+  --border: rgba(0,229,255,0.3);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  position: relative;
+  padding: 16px 0 32px;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(124,77,255,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,229,255,0.12) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.star {
+  position: absolute; background: white; border-radius: 50%;
+  animation: twinkle var(--dur, 3s) infinite alternate;
+}
+@keyframes twinkle { from { opacity: 0.1; } to { opacity: 0.8; } }
+
+/* ── Screens ── */
+.screen {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 620px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 0 40px rgba(0,229,255,0.15), 0 0 80px rgba(124,77,255,0.1);
+  margin: 0 16px;
+  display: none;
+}
+.screen.active { display: block; }
+
+/* ── Start ── */
+.logo-wrap { text-align: center; margin-bottom: 24px; }
+.logo-icon { font-size: 56px; display: block; margin-bottom: 8px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+h1.game-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(18px,5vw,26px);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1.3; margin-bottom: 6px;
+}
+.tagline { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+.rules-box {
+  background: rgba(0,229,255,0.06); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-bottom: 24px;
+}
+.rules-box h3 { color: var(--primary); font-size: 14px; margin-bottom: 10px; }
+.rule-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; font-size: 13px; color: #b0bec5; line-height: 1.4; }
+.rule-icon { font-size: 16px; flex-shrink: 0; }
+
+/* ── Intro Section ── */
+.intro-section { margin-bottom: 22px; }
+.intro-divider {
+  display: flex; align-items: center; gap: 10px; margin: 18px 0 14px;
+}
+.intro-divider span { font-size: 11px; color: var(--muted); white-space: nowrap; letter-spacing: 1px; text-transform: uppercase; }
+.intro-divider::before, .intro-divider::after {
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1);
+}
+.intro-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.intro-card-title {
+  font-size: 12px; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 9px;
+  display: flex; align-items: center; gap: 7px;
+}
+.intro-card p { font-size: 13px; color: #90a4ae; line-height: 1.7; }
+.intro-card p b { color: #cfd8dc; }
+.chapter-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chapter-tag {
+  font-size: 11px; padding: 3px 10px; border-radius: 12px;
+  background: rgba(124,77,255,0.18); border: 1px solid rgba(124,77,255,0.3);
+  color: #ce93d8;
+}
+.highlight-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 4px;
+}
+.highlight-cell {
+  background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 8px; padding: 10px 8px; text-align: center;
+}
+.highlight-cell .hc-num {
+  font-family: 'Orbitron', sans-serif; font-size: 20px;
+  color: var(--primary); font-weight: 900; display: block;
+}
+.highlight-cell .hc-lbl { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+
+/* ── Cover watermark ── */
+.cover-watermark {
+  text-align: center; margin-top: 20px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  font-size: 10px; color: rgba(255,255,255,0.1);
+  letter-spacing: 0.5px; user-select: none; pointer-events: none;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  display: block; width: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #000; font-weight: 900; font-size: 16px; font-family: 'Orbitron', sans-serif;
+  border: none; border-radius: 50px; padding: 14px;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 1px;
+}
+.btn-primary:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0,229,255,0.5); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary {
+  display: block; width: 100%;
+  background: transparent; color: var(--muted); font-size: 14px;
+  border: 1px solid var(--muted); border-radius: 50px; padding: 10px 20px;
+  cursor: pointer; transition: 0.15s; margin-top: 10px; text-align: center;
+}
+.btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── HUD ── */
+.hud { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.hud-left { display: flex; gap: 14px; align-items: center; }
+.hp-display { display: flex; gap: 4px; }
+.heart { font-size: 20px; transition: transform 0.3s; }
+.heart.lost { filter: grayscale(1); opacity: 0.3; transform: scale(0.8); }
+.score-display { font-family: 'Orbitron', sans-serif; font-size: 15px; color: var(--warn); }
+.level-badge { font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.05); border-radius: 20px; padding: 4px 10px; }
+
+/* ── Progress & Timer ── */
+.progress-track { width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; margin-bottom: 16px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--secondary), var(--primary)); border-radius: 3px; transition: width 0.4s ease; }
+
+.timer-wrap { margin-bottom: 16px; }
+.timer-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.timer-track { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.timer-fill { height: 100%; background: var(--correct); border-radius: 4px; transition: width 0.05s linear, background 0.3s; }
+.timer-fill.warn { background: var(--warn); }
+.timer-fill.danger { background: var(--wrong); }
+
+/* ── Combo ── */
+.combo-banner {
+  text-align: center; font-family: 'Orbitron', sans-serif;
+  font-size: 14px; color: var(--warn); height: 22px; margin-bottom: 8px;
+}
+
+/* ── Question Card ── */
+.question-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 18px; margin-bottom: 16px;
+}
+.q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.q-category { font-size: 11px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+.q-type-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: rgba(124,77,255,0.25); color: #ce93d8; border: 1px solid rgba(124,77,255,0.3);
+}
+.q-text { font-size: 16px; line-height: 1.6; font-weight: 700; }
+.q-difficulty { display: flex; gap: 3px; margin-top: 8px; }
+.diff-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+.diff-dot.active { background: var(--warn); }
+
+/* ── Visual Canvas ── */
+.visual-wrap { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.1); display: none; }
+.visual-wrap canvas { display: block; width: 100%; }
+
+/* ── Options: MCQ ── */
+.options-grid { display: grid; gap: 9px; margin-bottom: 14px; }
+.opt-btn {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text); padding: 13px 16px; border-radius: 10px; cursor: pointer;
+  transition: all 0.15s; font-size: 14px; text-align: left;
+  display: flex; align-items: flex-start; gap: 10px; line-height: 1.4;
+  font-family: 'Noto Sans SC', sans-serif; width: 100%;
+}
+.opt-label {
+  width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+}
+.opt-btn:hover:not(:disabled) { border-color: var(--primary); background: rgba(0,229,255,0.08); transform: translateX(4px); }
+.opt-btn.correct { border-color: var(--correct); background: rgba(0,230,118,0.12); animation: pulse-green 0.4s ease; }
+.opt-btn.wrong { border-color: var(--wrong); background: rgba(255,23,68,0.12); animation: shake 0.3s ease; }
+.opt-btn.reveal { border-color: var(--correct); background: rgba(0,230,118,0.06); }
+.opt-btn:disabled { cursor: default; }
+
+/* ── Options: True/False ── */
+.tf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.tf-btn {
+  padding: 18px; border-radius: 14px; font-size: 22px; font-weight: 900;
+  border: 2px solid rgba(255,255,255,0.15); cursor: pointer; transition: all 0.15s;
+  text-align: center; font-family: 'Orbitron', sans-serif; background: rgba(255,255,255,0.05); color: var(--text);
+}
+.tf-btn:hover:not(:disabled) { transform: scale(1.04); }
+.tf-btn.tf-true:hover:not(:disabled) { border-color: var(--correct); background: rgba(0,230,118,0.12); }
+.tf-btn.tf-false:hover:not(:disabled) { border-color: var(--wrong); background: rgba(255,23,68,0.12); }
+.tf-btn.correct { border-color: var(--correct); background: rgba(0,230,118,0.2); animation: pulse-green 0.4s ease; }
+.tf-btn.wrong { border-color: var(--wrong); background: rgba(255,23,68,0.2); animation: shake 0.3s ease; }
+.tf-btn.reveal { border-color: var(--correct); background: rgba(0,230,118,0.08); }
+.tf-btn:disabled { cursor: default; }
+
+/* ── Options: Order/Sort ── */
+.sort-area { margin-bottom: 14px; }
+.sort-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.sort-items { display: flex; flex-direction: column; gap: 6px; }
+.sort-item {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px; padding: 10px 14px; cursor: grab;
+  display: flex; align-items: center; gap: 10px; font-size: 14px;
+  transition: all 0.15s; user-select: none;
+}
+.sort-item:hover { border-color: var(--primary); background: rgba(0,229,255,0.08); }
+.sort-item.dragging { opacity: 0.4; }
+.sort-item .drag-handle { color: var(--muted); font-size: 18px; }
+.sort-check-btn { margin-bottom: 14px; }
+
+/* ── Options: Fill-blank ── */
+.fill-area { margin-bottom: 14px; }
+.fill-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fill-blank {
+  background: rgba(255,255,255,0.08); border: 2px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 15px;
+  color: var(--text); font-family: 'Noto Sans SC', sans-serif;
+  outline: none; width: 180px; transition: border-color 0.2s;
+}
+.fill-blank:focus { border-color: var(--primary); }
+.fill-blank.correct { border-color: var(--correct); background: rgba(0,230,118,0.1); }
+.fill-blank.wrong { border-color: var(--wrong); background: rgba(255,23,68,0.1); }
+.fill-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.fill-chip {
+  background: rgba(124,77,255,0.2); border: 1px solid rgba(124,77,255,0.4);
+  border-radius: 20px; padding: 5px 13px; font-size: 13px; cursor: pointer;
+  color: #ce93d8; transition: 0.15s;
+}
+.fill-chip:hover:not(:disabled) { background: rgba(124,77,255,0.4); color: #fff; }
+.fill-chip:disabled { cursor: default; opacity: 0.5; }
+
+/* ── Canvas Challenge ── */
+.canvas-challenge-wrap { margin-bottom: 14px; }
+.chal-canvas-container {
+  width: 100%; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(0,229,255,0.2); background: #06060f;
+  position: relative; margin-bottom: 10px;
+}
+.chal-canvas-container canvas { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: none; }
+.chal-hud {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; margin-bottom: 8px;
+}
+.chal-angle-box {
+  flex: 1; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 10px; text-align: center;
+}
+.chal-angle-box .chal-lbl { font-size: 10px; color: var(--muted); display: block; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+.chal-angle-box .chal-val { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: var(--primary); display: block; }
+.chal-angle-box.target-box .chal-val { color: #ff6b35; }
+.chal-angle-box.match-box .chal-val { color: var(--correct); animation: pulse-green 0.5s ease; }
+.chal-progress-track {
+  width: 100%; height: 10px; background: rgba(255,255,255,0.06);
+  border-radius: 5px; overflow: hidden; margin-bottom: 8px;
+}
+.chal-progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--wrong), var(--warn), var(--correct));
+  border-radius: 5px; width: 0%; transition: width 0.2s ease;
+}
+.chal-hint { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 6px; }
+.chal-confirm-btn {
+  width: 100%; background: linear-gradient(135deg, #ff6b35, #ff9a00);
+  color: #000; font-weight: 900; font-size: 15px; font-family: 'Orbitron', sans-serif;
+  border: none; border-radius: 50px; padding: 12px; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 1px;
+  opacity: 0.4;
+}
+.chal-confirm-btn.ready { opacity: 1; }
+.chal-confirm-btn.ready:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(255,107,53,0.5); }
+
+@keyframes pulse-green { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 16px rgba(0,230,118,0.5)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+/* ── Explanation ── */
+.explanation-box {
+  background: rgba(0,229,255,0.06); border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0; padding: 14px;
+  font-size: 13px; line-height: 1.6; color: #b0bec5;
+  display: none; animation: slideIn 0.3s ease; margin-bottom: 10px;
+}
+.explanation-box strong { color: var(--primary); }
+@keyframes slideIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Points Pop ── */
+.points-pop {
+  position: fixed; pointer-events: none;
+  font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
+  color: var(--warn); text-shadow: 0 0 10px var(--warn); z-index: 999;
+  animation: popUp 1s ease forwards;
+}
+@keyframes popUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(1.4)} }
+
+/* ── Result ── */
+.result-header { text-align: center; margin-bottom: 20px; }
+.result-icon { font-size: 60px; display: block; margin-bottom: 10px; }
+.result-title { font-family: 'Orbitron', sans-serif; font-size: 22px; color: var(--primary); }
+.result-sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; text-align: center; }
+.stat-val { font-family: 'Orbitron', sans-serif; font-size: 22px; color: var(--primary); font-weight: 900; }
+.stat-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.achievements { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.badge { background: rgba(124,77,255,0.2); border: 1px solid rgba(124,77,255,0.4); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: #ce93d8; display: flex; align-items: center; gap: 5px; }
+
+/* ── Name Input ── */
+.name-section { margin-bottom: 16px; }
+.name-section label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 7px; }
+.name-input {
+  width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+  font-size: 15px; font-family: 'Noto Sans SC', sans-serif; outline: none; transition: border-color 0.2s;
+}
+.name-input:focus { border-color: var(--primary); }
+
+/* ── Certificate Preview ── */
+#cert-canvas { display: none; }
+.cert-preview-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 14px; display: none; }
+.cert-preview-wrap img { width: 100%; display: block; }
+.btn-group { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Flash overlay ── */
+.flash-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0; transition: opacity 0.1s; }
+.flash-overlay.correct { background: rgba(0,230,118,0.2); }
+.flash-overlay.wrong { background: rgba(255,23,68,0.2); }
+.flash-overlay.active { opacity: 1; }
+
+@media (max-width: 400px) {
+  .screen { padding: 20px 16px; margin: 0 8px; }
+  .q-text { font-size: 15px; }
+  .opt-btn { font-size: 13px; padding: 11px 13px; }
+  .tf-btn { font-size: 18px; padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="flash-overlay" id="flash"></div>
+<canvas id="cert-canvas"></canvas>
+
+<!-- ══════════ START ══════════ -->
+<div class="screen active" id="start-screen">
+  <div class="logo-wrap">
+    <span class="logo-icon">🔦</span>
+    <h1 class="game-title">光线守护者<br>反射与折射的大冒险</h1>
+    <p class="tagline">初一科学 · 第7章《光的现象》互动闯关游戏</p>
+  </div>
+
+  <div class="intro-section">
+    <div class="highlight-row">
+      <div class="highlight-cell"><span class="hc-num">20</span><span class="hc-lbl">关卡题目</span></div>
+      <div class="highlight-cell"><span class="hc-num">4</span><span class="hc-lbl">题型种类</span></div>
+      <div class="highlight-cell"><span class="hc-num">🏆</span><span class="hc-lbl">电子证书</span></div>
+    </div>
+
+    <div class="intro-divider"><span>📘 游戏简介</span></div>
+
+    <div class="intro-card">
+      <div class="intro-card-title">🎮 这是什么游戏？</div>
+      <p>这是一款专为<b>初一科学考试备考</b>设计的互动闯关游戏。游戏将课本知识变成有趣的关卡挑战，帮助你在"玩"中复习第7章的核心考点。每答对一题，你对光学的理解就加深一分！答错也不要紧——游戏会立刻给出<b>知识点解释</b>，帮你真正学懂，而不只是死记答案。</p>
+    </div>
+
+    <div class="intro-card">
+      <div class="intro-card-title">📚 涵盖哪些知识点？</div>
+      <p>游戏完整覆盖第7章四大单元的核心考点：</p>
+      <div class="chapter-tags">
+        <span class="chapter-tag">💡 光的直线传播</span>
+        <span class="chapter-tag">🚀 光速与介质</span>
+        <span class="chapter-tag">🪞 反射定律</span>
+        <span class="chapter-tag">🌊 光的折射</span>
+        <span class="chapter-tag">🔁 全反射与光纤</span>
+        <span class="chapter-tag">🔍 凸/凹透镜</span>
+        <span class="chapter-tag">🌈 色散与三原色</span>
+        <span class="chapter-tag">🎨 物体的颜色</span>
+        <span class="chapter-tag">🚗 各类镜子应用</span>
+        <span class="chapter-tag">🖼️ 实像与虚像</span>
+      </div>
+    </div>
+
+    <div class="intro-card">
+      <div class="intro-card-title">🧩 四种题型，告别死板！</div>
+      <p>
+        ✅ <b>选择题</b> — 四选一，选项每次随机打乱，防止背位置<br>
+        ✅ <b>判断题</b> — 辨别正误，锻炼概念精准度<br>
+        ✅ <b>填空题</b> — 点击词条填入空格，强化关键术语<br>
+        ✅ <b>排序题</b> — 拖拽调整顺序，加深逻辑理解<br>
+        ✅ <b>实验操作题</b> — 拖动光源调整角度，亲手验证反射定律！
+      </p>
+    </div>
+
+    <div class="intro-card">
+      <div class="intro-card-title">⚡ 得分与连击机制</div>
+      <p>
+        基础分 <b>100分/题</b>，答题越快，<b>速度加分</b>越高（最多+100）。<br>
+        连续答对触发 <b>🔥 Combo 连击</b>，每多连一击加 +20，最高 5x！<br>
+        全程通关后可生成并<b>下载专属电子证书</b>留念。
+      </p>
+    </div>
+
+    <div class="intro-divider"><span>📖 游戏规则</span></div>
+
+    <div class="rules-box" style="margin-bottom:0;">
+      <div class="rule-item"><span class="rule-icon">❤️</span><span>你有 <b>3 颗生命</b>，答错或超时各消耗一颗</span></div>
+      <div class="rule-item"><span class="rule-icon">⏱️</span><span>每题限时 <b>20秒</b>，剩余时间越多速度分越高</span></div>
+      <div class="rule-item"><span class="rule-icon">🔥</span><span>连续答对触发 <b>Combo 加成</b>，最高 5x 奖励！</span></div>
+      <div class="rule-item"><span class="rule-icon">📖</span><span>答错不扣分，但会显示<b>知识点解释</b>帮你弄懂</span></div>
+      <div class="rule-item"><span class="rule-icon">🔬</span><span>后5关为<b>互动实验题</b>：拖动光源，亲手命中目标角度</span></div>
+      <div class="rule-item"><span class="rule-icon">🏆</span><span>通关后输入姓名，生成并<b>下载专属竖式证书</b></span></div>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="startGame()">⚡ 开始冒险（共25关）</button>
+
+  <div class="cover-watermark">峇株吧辖华仁中学蔡逸众制作</div>
+</div>
+
+<!-- ══════════ GAME ══════════ -->
+<div class="screen" id="game-screen">
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hp-display" id="hp-display"></div>
+      <div class="score-display">⭐ <span id="score-val">0</span></div>
+    </div>
+    <div class="level-badge">关卡 <span id="level-val">1</span> / 25</div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="timer-wrap" id="timer-wrap">
+    <div class="timer-label"><span>剩余时间</span><span id="timer-text">20s</span></div>
+    <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+  </div>
+  <div class="combo-banner" id="combo-banner">&nbsp;</div>
+
+  <div class="question-card">
+    <div class="q-meta">
+      <div class="q-category" id="q-category">光学基础</div>
+      <div class="q-type-badge" id="q-type-badge">选择题</div>
+    </div>
+    <div class="q-text" id="q-text">加载中...</div>
+    <div class="q-difficulty" id="q-diff"></div>
+  </div>
+
+  <div class="visual-wrap" id="visual-wrap"><canvas id="game-canvas" height="160"></canvas></div>
+  <div id="interact-area"></div>
+  <div class="explanation-box" id="exp-box"></div>
+  <button class="btn-primary" id="next-btn" style="display:none;" onclick="nextQuestion()">下一关 →</button>
+</div>
+
+<!-- ══════════ RESULT ══════════ -->
+<div class="screen" id="result-screen">
+  <div class="result-header">
+    <span class="result-icon" id="result-icon">🎉</span>
+    <div class="result-title" id="result-title">挑战完成！</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="r-score">0</div><div class="stat-lbl">最终得分</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-correct">0/25</div><div class="stat-lbl">答对题数</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-time">0s</div><div class="stat-lbl">总用时</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-combo">0</div><div class="stat-lbl">最高 Combo</div></div>
+  </div>
+  <div class="achievements" id="achievements"></div>
+
+  <div id="cert-input-section">
+    <div class="name-section">
+      <label>输入你的名字，领取专属证书 🏅</label>
+      <input class="name-input" id="player-name" type="text" placeholder="例如：小明" maxlength="12">
+    </div>
+    <button class="btn-primary" onclick="generateCert()">🎓 生成专属证书</button>
+  </div>
+
+  <div class="btn-group" style="margin-top:14px;">
+    <div class="cert-preview-wrap" id="cert-preview-wrap"><img id="cert-img" src="" alt="certificate"></div>
+    <button class="btn-primary" id="download-btn" style="display:none; background:linear-gradient(135deg,#00e676,#00acc1);" onclick="downloadCert()">⬇️ 下载证书 (PNG)</button>
+    <button class="btn-secondary" onclick="location.reload()">🔄 重新挑战，刷更高分！</button>
+  </div>
+</div>
+
+<script>
+// ══ STARS ══
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div'); s.className='star';
+    const sz=Math.random()*2+0.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--dur:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s;opacity:0.3;`;
+    c.appendChild(s);
+  }
+})();
+
+//峇株吧辖华仁中学蔡逸众制作
+
+// ══════════════════════════════════════════
+//  QUIZ DATA  — 20 questions, varied types
+//  Types: 'mcq' | 'tf' | 'sort' | 'fill'
+// ══════════════════════════════════════════
+const quizData = [
+
+  // ── Original 10 (MCQ) ──────────────────────────
+  {
+    type:'mcq', category:'光的直线传播', difficulty:1,
+    q:'皮影戏和日食月食都是因为光的同一个特性产生的。这个特性是什么？',
+    options:['光会拐弯绕过障碍物','光沿直线传播','光发生了反射','光的颜色分散'],
+    ans:1,
+    exp:'在均匀介质中，光沿<strong>直线</strong>传播。遇到不透明物体后面就会出现阴影——皮影戏、日食月食都是这个原理！'
+  },
+  {
+    type:'mcq', category:'光的速度', difficulty:1,
+    q:'真空中光速约为多少？太阳光从太阳到达地球大约需要多长时间？',
+    options:['光速约 340 m/s，需要1天','光速约 3×10⁸ m/s，需要约 500 秒','光速约 300 km/s，需要1小时','光速是无限大，瞬间到达'],
+    ans:1,
+    exp:'真空中光速约 <strong>3×10⁸ m/s</strong>。太阳距地球约1.5亿千米，所以阳光约需 <strong>500秒（约8分钟）</strong>才能到达地球。'
+  },
+  {
+    type:'mcq', category:'反射定律', difficulty:2, visual:true,
+    q:'如图所示，一束激光以 45° 入射角射到平面镜（虚线为法线）。根据反射定律，反射角是多少度？',
+    options:['30°','60°','45°','90°'],
+    ans:2,
+    exp:'反射定律核心：<strong>入射角 = 反射角</strong>！入射角是入射光线与法线（垂直镜面的虚线）的夹角。入射角45° → 反射角也是45°。'
+  },
+  {
+    type:'mcq', category:'漫反射', difficulty:1,
+    q:'教室里的同学无论坐在哪个角落，都能看清黑板且不觉得刺眼。这是因为黑板发生了什么？',
+    options:['镜面反射，光线有规律地反射','黑板把所有光都吸收了','漫反射，光线向四面八方散射','折射，光线穿过了黑板'],
+    ans:2,
+    exp:'黑板表面粗糙，光打上去会<strong>不规则地向四面八方反射</strong>（漫反射）。每个方向都有光，各角度都能看清，也不会刺眼。'
+  },
+  {
+    type:'mcq', category:'平面镜成像', difficulty:2,
+    q:'救护车前方"AMBULANS"是反写的，司机通过后视镜看到的才是正的。这利用了平面镜成像的哪个特点？',
+    options:['平面镜会放大图像','平面镜像左右互换（横向翻转）','平面镜成实像可投影','平面镜改变了光的颜色'],
+    ans:1,
+    exp:'平面镜成像<strong>左右互换</strong>！救护车字反写，经过后视镜一翻转就变成正常的「AMBULANS」了。平面镜成的是<strong>等大、正立的虚像</strong>。'
+  },
+  {
+    type:'mcq', category:'凸面镜与凹面镜', difficulty:2,
+    q:'山路急弯处安装的大圆镜，能让司机看到对面来车，扩大视野。这种镜子是什么类型？',
+    options:['凹面镜，可以聚光增亮','平面镜，成像最清晰','凸面镜，发散光线扩大视野','凸透镜，放大对面物体'],
+    ans:2,
+    exp:'<strong>凸面镜</strong>（向外凸起的镜子）能发散光线，形成比实际范围更宽的视野（广角效果）。凹面镜则聚光，如探照灯和凹面化妆镜。'
+  },
+  {
+    type:'mcq', category:'光的折射', difficulty:3,
+    q:'游泳时，你看到泳池底部比实际要浅。造成这种视觉错觉的原因是什么？',
+    options:['水有放大功能','光线在水面发生全反射','光从水进入空气时方向改变（折射）产生错觉','眼睛里进了水造成模糊'],
+    ans:2,
+    exp:'光从<strong>水中斜射入空气</strong>时，传播方向会发生偏折（折射）。大脑默认光是直线传播的，所以以为池底比实际位置高，看起来变浅了。跳水前一定要确认真实深度！'
+  },
+  {
+    type:'mcq', category:'凸透镜聚光', difficulty:2,
+    q:'野外求生，没有打火机，如何利用太阳光生火？',
+    options:['用平面镜直接照射','用凹透镜散射聚热','用凸透镜（放大镜）将光聚焦于一点','用毛玻璃均匀散射'],
+    ans:2,
+    exp:'<strong>凸透镜</strong>（中间厚两边薄）能将平行光线会聚到<strong>焦点</strong>。太阳光聚集在焦点处，能量高度集中，足以点燃纸或木头！'
+  },
+  {
+    type:'mcq', category:'全反射', difficulty:3,
+    q:'光导纤维（光纤）传输网络信号时，光在里面是如何传播的？',
+    options:['直直穿过透明材料','利用全反射在光纤内部不断反射传播','利用漫反射均匀散射','靠光纤内部的电场传输'],
+    ans:1,
+    exp:'当光从光密介质射入光疏介质，且入射角足够大时，光会<strong>完全反射回去</strong>，这叫<strong>全反射</strong>。光纤利用全反射让光在纤维内部高速传输，损耗极小！'
+  },
+  {
+    type:'mcq', category:'物体的颜色', difficulty:3,
+    q:'树叶大多是绿色的。从科学角度：我们为什么看到它是绿色的？',
+    options:['叶子能自己发出绿色光','叶子反射绿光，吸收其余颜色的光','太阳光本身是绿色的','叶子让绿光发生了折射'],
+    ans:1,
+    exp:'不透明物体的颜色由它<strong>反射的光</strong>决定。绿叶含大量叶绿素，强烈反射绿光，同时吸收红光和蓝光（用于光合作用）。所以我们看到它是绿色的！'
+  },
+
+  // ── New 10 (Varied Types) ───────────────────────
+
+  //峇株吧辖蔡逸众制作
+
+  // Q11 — 判断题 T/F
+  {
+    type:'tf', category:'光的本质', difficulty:1,
+    q:'【判断题】光是一种物质，就像水和空气一样，可以被装入瓶子里保存。',
+    tfAns: false,
+    exp:'<strong>错误！</strong>光不是物质，而是一种<strong>能量形式</strong>。它无法被装在瓶子里，一旦没有光源就消失了。'
+  },
+
+  // Q12 — 判断题 T/F
+  {
+    type:'tf', category:'光速比较', difficulty:2,
+    q:'【判断题】光在玻璃中的速度比在水中更快，因为玻璃看起来更透明。',
+    tfAns: false,
+    exp:'<strong>错误！</strong>介质越密，光速越慢。光速大小：<strong>真空 > 水（¾c）> 玻璃（⅔c）</strong>。玻璃中光速反而比水中更慢！'
+  },
+
+  // Q13 — 判断题 T/F
+  {
+    type:'tf', category:'光路可逆', difficulty:2,
+    q:'【判断题】光的传播具有可逆性：沿着反射光的方向射入镜面，光会原路返回，从原来入射的方向射出。',
+    tfAns: true,
+    exp:'<strong>正确！</strong>这就是<strong>光路可逆原理</strong>。例如你在镜子里能看到某人，那个人也能通过镜子看到你，原理就在这里。'
+  },
+
+  // Q14 — 填空题 fill
+  {
+    type:'fill', category:'反射定律', difficulty:2,
+    q:'【填空题】根据光的反射定律，三线同面是指入射线、反射线和 ▢ 在同一平面内；两角相等是指入射角等于 ▢。',
+    blanks:['法线','反射角'],
+    choices:['折射角','法线','入射线','反射角','界面','光轴'],
+    exp:'反射定律三要素：①三线同面（入射线、反射线、<strong>法线</strong>）；②两线分居（分别在法线两侧）；③两角相等（入射角 = <strong>反射角</strong>）。'
+  },
+
+  // Q15 — 填空题 fill
+  {
+    type:'fill', category:'透镜类型', difficulty:2,
+    q:'【填空题】中间厚两边薄的镜片是 ▢ 透镜，对光有汇聚作用，可用作放大镜；中间薄两边厚的是 ▢ 透镜，对光有发散作用，近视眼镜会用到它。',
+    blanks:['凸','凹'],
+    choices:['凸','凹','平','球面','散光'],
+    exp:'<strong>凸透镜</strong>（中厚）聚光，如放大镜、远视镜；<strong>凹透镜</strong>（中薄）散光，如近视镜。可以用手触摸中心厚度来区分！'
+  },
+
+  // Q16 — MCQ（颜色与光谱）
+  {
+    type:'mcq', category:'光的色散', difficulty:2,
+    q:'白光通过三棱镜后被分解成七种颜色（色散）。以下哪个选项正确描述了光谱的排列顺序（从偏折最小到最大）？',
+    options:['紫→靛→蓝→绿→黄→橙→红','红→橙→黄→绿→蓝→靛→紫','绿→黄→蓝→红→橙→紫→靛','白→黄→橙→红→蓝→靛→紫'],
+    ans:1,
+    exp:'彩虹颜色顺序：<strong>红橙黄绿蓝靛紫</strong>（可用"红橙黄绿蓝靛紫"来记忆）。红光偏折最小，紫光偏折最大。'
+  },
+
+  // Q17 — MCQ（三原色）
+  {
+    type:'mcq', category:'光的三原色', difficulty:2,
+    q:'光的三原色是红、绿、蓝（RGB）。如果将红光和绿光重叠混合，会得到什么颜色？',
+    options:['紫色','白色','黄色','橙色'],
+    ans:2,
+    exp:'光的三原色混合：红+绿=<strong>黄色</strong>；红+蓝=洋红；绿+蓝=青色；红+绿+蓝=<strong>白色</strong>。这与颜料混色（减色法）不同！'
+  },
+
+  // Q18 — MCQ（虚像与实像）
+  {
+    type:'mcq', category:'实像与虚像', difficulty:3,
+    q:'以下哪种情况产生的是"实像"（能投射在屏幕上的像）？',
+    options:['照镜子时看到自己的脸（平面镜）','用凹透镜看书（凹透镜成像）','用投影仪将画面投射到幕布上（凸透镜成像）','在水中看水底石头（折射）'],
+    ans:2,
+    exp:'<strong>实像</strong>是光线实际汇聚成的，可以投影在屏幕上，如投影仪、照相机成像。<strong>虚像</strong>不能投影，如平面镜和凹透镜成的像。区别关键：能不能投在屏幕上！'
+  },
+
+  // Q19 — 排序题 sort
+  {
+    type:'sort', category:'光速大小比较', difficulty:2,
+    q:'【排序题】请将以下介质中光速从"最快"到"最慢"拖拽排列（拖动调整顺序，然后点击确认）：',
+    items:['真空中','水中（约¾c）','玻璃中（约⅔c）'],
+    correctOrder:[0,1,2],
+    exp:'光速从快到慢：<strong>真空 > 水 > 玻璃</strong>。介质越密，光速越慢。真空光速约 3×10⁸ m/s，水中约为真空的¾，玻璃中约为⅔。'
+  },
+
+  // Q20 — MCQ（透明物体颜色）
+  {
+    type:'mcq', category:'物体的颜色', difficulty:3,
+    q:'在暗室里，只有红色灯光照射。此时你看到一件本来是蓝色的衬衫，它会呈现什么颜色？',
+    options:['蓝色，因为本来就是蓝色的','红色，因为灯光是红色的','白色，因为混合了颜色','黑色，因为蓝色衬衫吸收红光，没有光反射出来'],
+    ans:3,
+    exp:'<strong>透明/不透明物体的颜色由反射（或透过）的光决定。</strong>蓝色衬衫在白光下反射蓝光。但红灯光中没有蓝光，蓝色衬衫会吸收红光，几乎没有光反射出来，所以看起来是<strong>黑色</strong>！'
+  },
+
+  // ── Canvas Reflection Challenges (Q21–Q25) ─────
+  {
+    type:'canvas', category:'反射定律实验', difficulty:2,
+    q:'🎯 拖动黄色光源，使入射角精确达到 30°，让光线命中橙色目标区！',
+    targetAngle: 30, tolerance: 6,
+    exp:'入射角 = 反射角 = <strong>30°</strong>。记住角度从法线（垂直镜面的虚线）算起，不是从镜面算起！'
+  },
+  {
+    type:'canvas', category:'反射定律实验', difficulty:2,
+    q:'🎯 拖动光源，使入射角精确达到 45°，将光线反射到目标位置！',
+    targetAngle: 45, tolerance: 5,
+    exp:'入射角 45° = 反射角 45°。当入射角为 45° 时，入射光线与反射光线之间夹角恰好是 <strong>90°</strong>，互相垂直！'
+  },
+  {
+    type:'canvas', category:'反射定律实验', difficulty:3,
+    q:'🎯 挑战进阶！拖动光源，使入射角达到 60°，精准命中目标！',
+    targetAngle: 60, tolerance: 5,
+    exp:'入射角 60° = 反射角 60°。入射角越大，说明光线越"贴着"镜面入射。注意：<strong>法线始终垂直于镜面</strong>，这是量角的基准。'
+  },
+  {
+    type:'canvas', category:'反射定律实验', difficulty:1,
+    q:'🎯 最简单的挑战：使入射角恰好达到 0°，让光线沿法线方向垂直射向镜面！',
+    targetAngle: 0, tolerance: 7,
+    exp:'当入射角 = 0° 时，光线沿法线方向<strong>垂直入射</strong>，反射光线原路返回（反射角也是 0°）。这是光垂直入射的特殊情况！'
+  },
+  {
+    type:'canvas', category:'反射定律实验', difficulty:3,
+    q:'🎯 终极反射挑战！使入射角精准达到 75°，考验你对角度的掌握！',
+    targetAngle: 75, tolerance: 4,
+    exp:'入射角 75° 时，光线几乎"贴着"镜面入射，反射角同样为 <strong>75°</strong>。这验证了反射定律在任何角度都成立！容差缩小到 ±4°，需要更精准！'
+  }
+];
+
+//华仁中学蔡逸众制作
+
+// ══ GAME STATE ══
+let state = {};
+let timerInterval = null;
+const TOTAL_TIME = 20;
+const TOTAL_Q = quizData.length;
+
+function resetState() {
+  state = {
+    level:0, score:0, hp:3, combo:0, maxCombo:0,
+    correctCount:0, answered:false,
+    startTime:Date.now(), questionStartTime:Date.now(),
+    shuffledOptions:[], shuffledAns:0,
+    timerValue:TOTAL_TIME, elapsed:0,
+    // sort state
+    sortOrder:[], sortLocked:false
+  };
+}
+
+function $(id){ return document.getElementById(id); }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function flashScreen(type){
+  const el=$('flash');
+  el.className=`flash-overlay ${type} active`;
+  setTimeout(()=>el.classList.remove('active'),200);
+}
+
+function showPoints(pts,x,y){
+  const el=document.createElement('div');
+  el.className='points-pop'; el.textContent=`+${pts}`;
+  el.style.cssText=`left:${x}px;top:${y}px;`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1000);
+}
+
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function stopTimer(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+}
+
+// ══ MIRROR VISUAL ══
+function drawMirrorScene(){
+  const canvas=$('game-canvas');
+  const W=canvas.offsetWidth||560;
+  canvas.width=W; canvas.height=160;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,160);
+  ctx.fillStyle='#080818'; ctx.fillRect(0,0,W,160);
+  const mx=W/2, my=128;
+  const grad=ctx.createLinearGradient(W*0.1,my,W*0.9,my);
+  grad.addColorStop(0,'transparent'); grad.addColorStop(0.3,'#b0bec5');
+  grad.addColorStop(0.7,'#b0bec5'); grad.addColorStop(1,'transparent');
+  ctx.strokeStyle=grad; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(W*0.1,my); ctx.lineTo(W*0.9,my); ctx.stroke();
+  ctx.setLineDash([5,5]); ctx.strokeStyle='#ffea00'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(mx,my-110); ctx.lineTo(mx,my+20); ctx.stroke();
+  ctx.setLineDash([]);
+  const ang=45*Math.PI/180, len=110;
+  const ix=mx-Math.sin(ang)*len, iy=my-Math.cos(ang)*len;
+  ctx.strokeStyle='#ff5252'; ctx.lineWidth=2.5; ctx.shadowColor='#ff5252'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(mx,my); ctx.stroke();
+  const rx=mx+Math.sin(ang)*len, ry=my-Math.cos(ang)*len;
+  ctx.strokeStyle='#40c4ff'; ctx.shadowColor='#40c4ff';
+  ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(rx,ry); ctx.stroke();
+  ctx.shadowBlur=0;
+  const arrowAng=Math.atan2(ry-my,rx-mx);
+  ctx.fillStyle='#40c4ff';
+  ctx.beginPath(); ctx.moveTo(rx,ry);
+  ctx.lineTo(rx-10*Math.cos(arrowAng-0.4),ry-10*Math.sin(arrowAng-0.4));
+  ctx.lineTo(rx-10*Math.cos(arrowAng+0.4),ry-10*Math.sin(arrowAng+0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ffea00'; ctx.font='bold 13px Noto Sans SC';
+  ctx.fillText('入射角 45°',mx-90,my-50);
+  ctx.fillStyle='#40c4ff'; ctx.fillText('反射角 = ?°',mx+14,my-50);
+  ctx.fillStyle='rgba(255,234,0,0.7)'; ctx.font='11px Noto Sans SC';
+  ctx.fillText('法线',mx+4,my-118);
+  ctx.fillStyle='#e0e0e0'; ctx.font='12px Noto Sans SC';
+  ctx.fillText('镜面',W*0.88+2,my-8);
+}
+
+
+// ══ GAME START ══
+function startGame(){
+  resetState();
+  showScreen('game-screen');
+  renderHP();
+  loadQuestion();
+}
+
+function renderHP(){
+  const hp=$('hp-display'); hp.innerHTML='';
+  for(let i=0;i<3;i++){
+    const h=document.createElement('span');
+    h.className='heart'+(i>=state.hp?' lost':'');
+    h.textContent='❤️'; hp.appendChild(h);
+  }
+}
+
+// ══ LOAD QUESTION ══
+function loadQuestion(){
+  stopTimer();
+  state.answered=false; state.timerValue=TOTAL_TIME;
+  state.questionStartTime=Date.now();
+  $('exp-box').style.display='none';
+  $('next-btn').style.display='none';
+  $('combo-banner').textContent='\u00a0';
+
+  const q=quizData[state.level];
+  $('level-val').textContent=state.level+1;
+  $('progress-fill').style.width=`${(state.level/TOTAL_Q)*100}%`;
+  $('q-category').textContent=q.category;
+  $('q-text').textContent=q.q;
+
+  // Type badge
+  const typeName={mcq:'选择题',tf:'判断题',sort:'排序题',fill:'填空题',canvas:'实验操作题'};
+  $('q-type-badge').textContent=typeName[q.type]||'选择题';
+
+  // Difficulty dots
+  const diff=$('q-diff'); diff.innerHTML='';
+  for(let i=0;i<3;i++){
+    const d=document.createElement('div');
+    d.className='diff-dot'+(i<q.difficulty?' active':'');
+    diff.appendChild(d);
+  }
+
+  // Visual
+  const vw=$('visual-wrap');
+  if(q.visual){ vw.style.display='block'; setTimeout(drawMirrorScene,50); }
+  else { vw.style.display='none'; }
+
+  // Hide timer for canvas (no time pressure)
+  $('timer-wrap').style.display = q.type==='canvas' ? 'none' : 'block';
+
+  // Build interaction area
+  const area=$('interact-area');
+  area.innerHTML='';
+
+  if(q.type==='mcq') buildMCQ(q,area);
+  else if(q.type==='tf') buildTF(q,area);
+  else if(q.type==='sort') buildSort(q,area);
+  else if(q.type==='fill') buildFill(q,area);
+  else if(q.type==='canvas') { buildCanvas(q,area); stopTimer(); return; } // no countdown for canvas
+
+  updateTimerDisplay(TOTAL_TIME);
+  timerInterval=setInterval(tickTimer,100);
+}
+
+// ── Build MCQ ──
+function buildMCQ(q,area){
+  const indices=shuffleArray([0,1,2,3]);
+  state.shuffledOptions=indices.map(i=>q.options[i]);
+  state.shuffledAns=indices.indexOf(q.ans);
+  const labels=['A','B','C','D'];
+  const grid=document.createElement('div'); grid.className='options-grid';
+  state.shuffledOptions.forEach((opt,i)=>{
+    const btn=document.createElement('button'); btn.className='opt-btn';
+    btn.innerHTML=`<span class="opt-label">${labels[i]}</span><span>${opt}</span>`;
+    btn.onclick=(e)=>checkMCQ(i,btn,e);
+    grid.appendChild(btn);
+  });
+  area.appendChild(grid);
+}
+
+function checkMCQ(idx,btnEl,event){
+  if(state.answered) return;
+  stopTimer(); state.answered=true;
+  const buttons=document.querySelectorAll('.opt-btn');
+  buttons.forEach(b=>b.disabled=true);
+  const isCorrect=idx===state.shuffledAns;
+  if(isCorrect){ btnEl.classList.add('correct'); handleCorrect(event); }
+  else { btnEl.classList.add('wrong'); buttons[state.shuffledAns].classList.add('correct'); handleWrong(); }
+  showExp(quizData[state.level].exp);
+}
+
+// ── Build T/F ──
+function buildTF(q,area){
+  const grid=document.createElement('div'); grid.className='tf-grid';
+  const btnT=document.createElement('button'); btnT.className='tf-btn tf-true';
+  btnT.innerHTML='✅<br><span style="font-size:13px;font-family:Noto Sans SC">正确 True</span>';
+  const btnF=document.createElement('button'); btnF.className='tf-btn tf-false';
+  btnF.innerHTML='❌<br><span style="font-size:13px;font-family:Noto Sans SC">错误 False</span>';
+  btnT.onclick=(e)=>checkTF(true,btnT,btnF,e);
+  btnF.onclick=(e)=>checkTF(false,btnF,btnT,e);
+  grid.appendChild(btnT); grid.appendChild(btnF);
+  area.appendChild(grid);
+}
+
+
+function checkTF(userAns,clickedBtn,otherBtn,event){
+  if(state.answered) return;
+  stopTimer(); state.answered=true;
+  clickedBtn.disabled=true; otherBtn.disabled=true;
+  const isCorrect=userAns===quizData[state.level].tfAns;
+  if(isCorrect){ clickedBtn.classList.add('correct'); handleCorrect(event); }
+  else { clickedBtn.classList.add('wrong'); otherBtn.classList.add('reveal'); handleWrong(); }
+  showExp(quizData[state.level].exp);
+}
+
+// ── Build Sort ──
+function buildSort(q,area){
+  state.sortOrder=[...Array(q.items.length).keys()];
+  const wrap=document.createElement('div'); wrap.className='sort-area';
+  const lbl=document.createElement('div'); lbl.className='sort-label';
+  lbl.textContent='⬆️ 最快  →  拖拽排序  →  最慢 ⬇️';
+  const list=document.createElement('div'); list.className='sort-items'; list.id='sort-list';
+  renderSortItems(list, q.items, state.sortOrder);
+  const checkBtn=document.createElement('button');
+  checkBtn.className='btn-primary sort-check-btn'; checkBtn.style.marginBottom='14px';
+  checkBtn.textContent='✅ 确认顺序';
+  checkBtn.onclick=()=>checkSort(q,checkBtn);
+  wrap.appendChild(lbl); wrap.appendChild(list); wrap.appendChild(checkBtn);
+  area.appendChild(wrap);
+}
+
+function renderSortItems(list, items, order){
+  list.innerHTML='';
+  order.forEach((origIdx,pos)=>{
+    const item=document.createElement('div'); item.className='sort-item';
+    item.draggable=true; item.dataset.pos=pos; item.dataset.orig=origIdx;
+    item.innerHTML=`<span class="drag-handle">☰</span><span>${items[origIdx]}</span>`;
+    // Drag events
+    item.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain',pos); item.classList.add('dragging'); });
+    item.addEventListener('dragend',()=>item.classList.remove('dragging'));
+    item.addEventListener('dragover',e=>e.preventDefault());
+    item.addEventListener('drop',e=>{
+      e.preventDefault();
+      const fromPos=parseInt(e.dataTransfer.getData('text/plain'));
+      const toPos=parseInt(item.dataset.pos);
+      if(fromPos!==toPos){
+        [state.sortOrder[fromPos],state.sortOrder[toPos]]=[state.sortOrder[toPos],state.sortOrder[fromPos]];
+        renderSortItems(list, quizData[state.level].items, state.sortOrder);
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function checkSort(q,btn){
+  if(state.answered) return;
+  stopTimer(); state.answered=true; btn.disabled=true;
+  const isCorrect=state.sortOrder.every((v,i)=>v===q.correctOrder[i]);
+  // Color items
+  document.querySelectorAll('.sort-item').forEach((item,i)=>{
+    item.style.borderColor=isCorrect?'var(--correct)':'var(--wrong)';
+    item.style.background=isCorrect?'rgba(0,230,118,0.12)':'rgba(255,23,68,0.12)';
+  });
+  if(isCorrect) handleCorrect(null);
+  else handleWrong();
+  showExp(q.exp);
+}
+
+
+// ── Build Fill ──
+function buildFill(q,area){
+  const wrap=document.createElement('div'); wrap.className='fill-area';
+  const inputs=[];
+  // Build display with blanks
+  const display=document.createElement('div'); display.className='fill-input-row';
+  q.blanks.forEach((b,i)=>{
+    const inp=document.createElement('input');
+    inp.className='fill-blank'; inp.type='text';
+    inp.placeholder=`填空 ${i+1}`; inp.dataset.idx=i;
+    inp.setAttribute('autocomplete','off');
+    inputs.push(inp); display.appendChild(inp);
+    if(i<q.blanks.length-1){
+      const sep=document.createElement('span');
+      sep.style.cssText='font-size:20px;color:var(--muted);'; sep.textContent='·';
+      display.appendChild(sep);
+    }
+  });
+  // Chip choices
+  const chipsWrap=document.createElement('div'); chipsWrap.className='fill-choices';
+  chipsWrap.innerHTML='<span style="font-size:12px;color:var(--muted);width:100%;display:block;margin-bottom:2px;">点击词语填入下一个空格：</span>';
+  q.choices.forEach(ch=>{
+    const chip=document.createElement('button'); chip.className='fill-chip'; chip.textContent=ch;
+    chip.onclick=()=>{
+      // Fill next empty input
+      const nextEmpty=inputs.find(inp=>inp.value==='');
+      if(nextEmpty) nextEmpty.value=ch;
+    };
+    chipsWrap.appendChild(chip);
+  });
+  // Confirm button
+  const confirmBtn=document.createElement('button');
+  confirmBtn.className='btn-primary'; confirmBtn.style.marginTop='10px';
+  confirmBtn.textContent='✅ 确认答案';
+  confirmBtn.onclick=()=>checkFill(q,inputs,confirmBtn);
+  wrap.appendChild(display); wrap.appendChild(chipsWrap); wrap.appendChild(confirmBtn);
+  area.appendChild(wrap);
+}
+
+function checkFill(q,inputs,btn){
+  if(state.answered) return;
+  stopTimer(); state.answered=true; btn.disabled=true;
+  let allCorrect=true;
+  inputs.forEach((inp,i)=>{
+    const userVal=inp.value.trim();
+    const correct=q.blanks[i];
+    if(userVal===correct){ inp.classList.add('correct'); }
+    else { inp.classList.add('wrong'); inp.value=correct; allCorrect=false; }
+    inp.disabled=true;
+  });
+  document.querySelectorAll('.fill-chip').forEach(c=>c.disabled=true);
+  if(allCorrect) handleCorrect(null);
+  else handleWrong();
+  showExp(q.exp);
+}
+
+
+// ── Build Canvas Reflection Challenge ──
+function buildCanvas(q, area) {
+  const wrap = document.createElement('div');
+  wrap.className = 'canvas-challenge-wrap';
+
+  // HUD row: current angle | target angle
+  const hud = document.createElement('div'); hud.className = 'chal-hud';
+  hud.innerHTML = `
+    <div class="chal-angle-box" id="chal-cur-box">
+      <span class="chal-lbl">当前入射角</span>
+      <span class="chal-val" id="chal-cur-val">—°</span>
+    </div>
+    <div style="font-size:22px;color:var(--muted);">→</div>
+    <div class="chal-angle-box target-box">
+      <span class="chal-lbl">目标角度</span>
+      <span class="chal-val">${q.targetAngle}°</span>
+    </div>`;
+  wrap.appendChild(hud);
+
+  // Accuracy bar
+  const barWrap = document.createElement('div'); barWrap.className = 'chal-progress-track';
+  const barFill = document.createElement('div'); barFill.className = 'chal-progress-fill'; barFill.id = 'chal-bar';
+  barWrap.appendChild(barFill); wrap.appendChild(barWrap);
+
+  // Hint
+  const hint = document.createElement('div'); hint.className = 'chal-hint';
+  hint.id = 'chal-hint'; hint.textContent = '拖动黄色光源，调整入射角度';
+  wrap.appendChild(hint);
+
+  // Canvas
+  const canvasWrap = document.createElement('div'); canvasWrap.className = 'chal-canvas-container';
+  const cv = document.createElement('canvas');
+  const CW = 480, CH = 300;
+  cv.width = CW; cv.height = CH;
+  canvasWrap.appendChild(cv); wrap.appendChild(canvasWrap);
+
+  // Confirm button
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'chal-confirm-btn'; confirmBtn.id = 'chal-confirm';
+  confirmBtn.textContent = `🎯 调整到目标角度后点击确认`;
+  confirmBtn.onclick = () => confirmCanvas(q, confirmBtn);
+  wrap.appendChild(confirmBtn);
+
+  area.appendChild(wrap);
+
+  // ── Canvas drawing engine ──
+  const ctx = cv.getContext('2d');
+  const MX = CW / 2, MY = 210; // mirror center Y
+  let src = { x: CW * 0.28, y: 80 };
+  let dragging = false;
+  let currentAngle = 0;
+
+  function getAngle() {
+    const dx = src.x - MX, dy = src.y - MY;
+    const deg = Math.round(Math.atan2(Math.abs(dx), -dy) * 180 / Math.PI);
+    return Math.max(0, Math.min(89, deg));
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, CW, CH);
+
+    // Dark background
+    ctx.fillStyle = '#06060f';
+    ctx.fillRect(0, 0, CW, CH);
+
+    // Grid dots
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    for (let gx = 20; gx < CW; gx += 30)
+      for (let gy = 20; gy < CH; gy += 30) {
+        ctx.beginPath(); ctx.arc(gx, gy, 1, 0, Math.PI * 2); ctx.fill();
+      }
+
+    // Mirror surface
+    const mg = ctx.createLinearGradient(CW * 0.05, MY, CW * 0.95, MY);
+    mg.addColorStop(0, 'transparent');
+    mg.addColorStop(0.2, '#b0bec5'); mg.addColorStop(0.8, '#b0bec5');
+    mg.addColorStop(1, 'transparent');
+    ctx.strokeStyle = mg; ctx.lineWidth = 5;
+    ctx.shadowColor = 'rgba(176,190,197,0.4)'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.moveTo(CW * 0.05, MY); ctx.lineTo(CW * 0.95, MY); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Mirror hatching
+    ctx.strokeStyle = 'rgba(100,120,140,0.3)'; ctx.lineWidth = 1;
+    for (let hx = CW * 0.05; hx < CW * 0.95; hx += 18) {
+      ctx.beginPath(); ctx.moveTo(hx, MY); ctx.lineTo(hx - 8, MY + 12); ctx.stroke();
+    }
+
+    // Normal line (dashed)
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = 'rgba(255,234,0,0.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(MX, MY - 130); ctx.lineTo(MX, MY + 30); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,234,0,0.6)'; ctx.font = 'bold 10px Orbitron, monospace';
+    ctx.textAlign = 'center'; ctx.fillText('法线', MX, MY - 135);
+
+    // Compute hit point on mirror
+    const t = (MY - src.y) / (MY - src.y || 1);
+    const hitX = src.x + (MX - src.x) * ((MY - src.y) / Math.max(1, (MY - src.y)));
+    const hit = { x: src.x + (MX - src.x) * ((MY - src.y) / Math.max(0.001, MY - src.y)), y: MY };
+
+    // Actual hit X: parametric from src to a point straight below src
+    const hit2 = { x: src.x, y: MY }; // vertical hit for simplicity
+    // Use angle from src to mirror center
+    const realHit = { x: MX + (src.x - MX) * 0, y: MY };
+    // Actually: ray from src straight down hits MY at src.x
+    const hx2 = src.x, hy2 = MY;
+
+    // Incident ray: src → hit point (directly below or angled)
+    // For accurate reflection: compute where ray from src hits mirror
+    // Mirror is horizontal at y=MY, ray goes from src downward
+    // Hit point X = src.x (straight down), or we go to mirror center
+    // Let's always use mirror center as hit point for clean visuals
+    const hitPt = { x: MX, y: MY };
+
+    // Incident ray
+    ctx.save();
+    ctx.strokeStyle = '#ffee44'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#ffee44'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(src.x, src.y); ctx.lineTo(hitPt.x, hitPt.y); ctx.stroke();
+    // Arrow midpoint
+    const imx = (src.x + hitPt.x) / 2, imy = (src.y + hitPt.y) / 2;
+    const iang = Math.atan2(hitPt.y - src.y, hitPt.x - src.x);
+    drawChalArrow(ctx, imx, imy, iang, '#ffee44');
+    ctx.restore();
+
+    // Reflected ray
+    const dx = hitPt.x - src.x, dy_in = hitPt.y - src.y;
+    const len = Math.sqrt(dx * dx + dy_in * dy_in);
+    const rdx = dx / len, rdy = -dy_in / len;
+    const refLen = 160;
+    const ex = hitPt.x + rdx * refLen, ey = hitPt.y + rdy * refLen;
+
+    ctx.save();
+    ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(hitPt.x, hitPt.y); ctx.lineTo(ex, ey); ctx.stroke();
+    const rang = Math.atan2(rdy, rdx);
+    drawChalArrow(ctx, hitPt.x + rdx * refLen * 0.5, hitPt.y + rdy * refLen * 0.5, rang, '#00d4ff');
+    ctx.restore();
+
+    // Beam glow (incident)
+    const beamG = ctx.createLinearGradient(src.x, src.y, hitPt.x, hitPt.y);
+    beamG.addColorStop(0, 'rgba(255,238,68,0.0)');
+    beamG.addColorStop(1, 'rgba(255,238,68,0.15)');
+    ctx.save(); ctx.strokeStyle = beamG; ctx.lineWidth = 14; ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(src.x, src.y); ctx.lineTo(hitPt.x, hitPt.y); ctx.stroke();
+    ctx.restore();
+
+    // Angle arcs
+    const arcR = 55;
+    const incAngle = Math.atan2(src.y - MY, src.x - MX); // from hit toward src
+    const normAngle = -Math.PI / 2; // up
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,238,68,0.7)'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(hitPt.x, hitPt.y, arcR, Math.min(incAngle, normAngle), Math.max(incAngle, normAngle));
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,212,255,0.7)'; ctx.lineWidth = 2;
+    const refAngle = Math.atan2(-dy_in, dx);
+    ctx.beginPath();
+    ctx.arc(hitPt.x, hitPt.y, arcR, Math.min(refAngle, normAngle), Math.max(refAngle, normAngle));
+    ctx.stroke();
+    ctx.restore();
+
+    // Angle labels
+    const deg = getAngle();
+    currentAngle = deg;
+    const midInc = (incAngle + normAngle) / 2;
+    const midRef = (refAngle + normAngle) / 2;
+
+    ctx.fillStyle = 'rgba(255,238,68,0.95)';
+    ctx.font = 'bold 14px Orbitron, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(deg + '°', hitPt.x + Math.cos(midInc) * 72, hitPt.y + Math.sin(midInc) * 72);
+    ctx.fillStyle = 'rgba(0,212,255,0.95)';
+    ctx.fillText(deg + '°', hitPt.x + Math.cos(midRef) * 72, hitPt.y + Math.sin(midRef) * 72);
+
+    // Target zone
+    const tRad = q.targetAngle * Math.PI / 180;
+    const sign = src.x < MX ? 1 : -1;
+    const tx = MX + sign * Math.sin(tRad) * 155;
+    const ty = MY - Math.cos(tRad) * 155;
+
+    const diff = Math.abs(deg - q.targetAngle);
+    const isClose = diff <= q.tolerance;
+
+    ctx.save();
+    ctx.beginPath(); ctx.arc(tx, ty, 20, 0, Math.PI * 2);
+    const tgrad = ctx.createRadialGradient(tx, ty, 2, tx, ty, 20);
+    tgrad.addColorStop(0, isClose ? 'rgba(0,230,118,0.7)' : 'rgba(255,107,53,0.6)');
+    tgrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = tgrad; ctx.fill();
+    ctx.beginPath(); ctx.arc(tx, ty, 20, 0, Math.PI * 2);
+    ctx.strokeStyle = isClose ? 'rgba(0,230,118,0.9)' : 'rgba(255,107,53,0.8)';
+    ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI * 2);
+    ctx.fillStyle = isClose ? '#00e676' : '#ff6b35';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = isClose ? 'rgba(0,230,118,0.95)' : 'rgba(255,107,53,0.9)';
+    ctx.font = 'bold 10px Noto Sans SC'; ctx.textAlign = 'center';
+    ctx.fillText('目标', tx, ty - 25);
+    ctx.fillText(q.targetAngle + '°', tx, ty + 33);
+    ctx.restore();
+
+    // Light source dot
+    ctx.save();
+    ctx.beginPath(); ctx.arc(src.x, src.y, 12, 0, Math.PI * 2);
+    const sg = ctx.createRadialGradient(src.x, src.y, 0, src.x, src.y, 12);
+    sg.addColorStop(0, 'rgba(255,238,68,0.95)'); sg.addColorStop(1, 'rgba(255,238,68,0)');
+    ctx.fillStyle = sg; ctx.fill();
+    ctx.beginPath(); ctx.arc(src.x, src.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.shadowColor = '#ffee44'; ctx.shadowBlur = 15; ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,238,68,0.8)'; ctx.font = 'bold 10px Noto Sans SC';
+    ctx.textAlign = 'left'; ctx.fillText('光源', src.x + 10, src.y - 8);
+
+    // Labels
+    ctx.fillStyle = 'rgba(255,238,68,0.7)'; ctx.font = '10px Noto Sans SC';
+    ctx.textAlign = 'right'; ctx.fillText('入射光线', hitPt.x - 12, (src.y + hitPt.y) / 2 - 6);
+    ctx.fillStyle = 'rgba(0,212,255,0.7)'; ctx.textAlign = 'left';
+    ctx.fillText('反射光线', hitPt.x + 12, (hitPt.y + ey) / 2 - 6);
+
+    // Update HUD
+    const curValEl = document.getElementById('chal-cur-val');
+    const curBoxEl = document.getElementById('chal-cur-box');
+    if (curValEl) {
+      curValEl.textContent = deg + '°';
+      curBoxEl.className = 'chal-angle-box' + (isClose ? ' match-box' : '');
+    }
+
+    // Update progress bar
+    const accuracy = Math.max(0, 100 - diff * (100 / (q.tolerance * 3)));
+    const barEl = document.getElementById('chal-bar');
+    if (barEl) barEl.style.width = accuracy + '%';
+
+    // Update hint & confirm button
+    const hintEl = document.getElementById('chal-hint');
+    const btnEl = document.getElementById('chal-confirm');
+    if (hintEl) {
+      if (isClose) {
+        hintEl.textContent = `✅ 完美！误差 ${diff}°，在容差 ±${q.tolerance}° 内！点击确认！`;
+        hintEl.style.color = 'var(--correct)';
+      } else {
+        hintEl.textContent = `还差 ${diff}°，目标是 ${q.targetAngle}°，继续调整…`;
+        hintEl.style.color = 'var(--muted)';
+      }
+    }
+    if (btnEl) {
+      btnEl.className = 'chal-confirm-btn' + (isClose ? ' ready' : '');
+      btnEl.disabled = !isClose;
+    }
+  }
+
+  function drawChalArrow(ctx, x, y, angle, color) {
+    const sz = 8;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(sz, 0); ctx.lineTo(-sz * 0.6, -sz * 0.5); ctx.lineTo(-sz * 0.6, sz * 0.5);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+
+  function getPos(e) {
+    const rect = cv.getBoundingClientRect();
+    const scaleX = CW / rect.width, scaleY = CH / rect.height;
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: cx * scaleX, y: cy * scaleY };
+  }
+
+  function hitSrc(p) { return Math.hypot(p.x - src.x, p.y - src.y) < 22; }
+
+  cv.addEventListener('mousedown', e => { if (hitSrc(getPos(e))) dragging = true; });
+  cv.addEventListener('mousemove', e => {
+    const p = getPos(e);
+    cv.style.cursor = hitSrc(p) ? 'grab' : 'crosshair';
+    if (!dragging) return;
+    src.x = Math.max(30, Math.min(CW - 30, p.x));
+    src.y = Math.max(20, Math.min(MY - 15, p.y));
+    drawScene();
+  });
+  cv.addEventListener('mouseup', () => dragging = false);
+  cv.addEventListener('mouseleave', () => dragging = false);
+  cv.addEventListener('touchstart', e => { e.preventDefault(); if (hitSrc(getPos(e))) dragging = true; }, { passive: false });
+  cv.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!dragging) return;
+    const p = getPos(e);
+    src.x = Math.max(30, Math.min(CW - 30, p.x));
+    src.y = Math.max(20, Math.min(MY - 15, p.y));
+    drawScene();
+  }, { passive: false });
+  cv.addEventListener('touchend', () => dragging = false);
+
+  drawScene();
+}
+
+function confirmCanvas(q, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  btn.disabled = true;
+  // Canvas challenges always reward full 150 points (no timer)
+  flashScreen('correct');
+  state.combo++; state.maxCombo = Math.max(state.maxCombo, state.combo); state.correctCount++;
+  const comboBonus = state.combo > 1 ? state.combo * 20 : 0;
+  const pts = 150 + comboBonus;
+  state.score += pts; $('score-val').textContent = state.score;
+  showPoints(pts, window.innerWidth / 2, window.innerHeight / 2 - 60);
+  if (state.combo >= 2) {
+    const labels = ['','','🔥 2连击！','⚡ 3连击！','💥 4连击！','🌟 5连击！MAX！'];
+    $('combo-banner').textContent = labels[Math.min(state.combo, 5)] || `🌟 ${state.combo}x Combo！`;
+  }
+  showExp(q.exp);
+  $('next-btn').style.display = 'block';
+  $('next-btn').textContent = state.level + 1 >= quizData.length ? '查看结果 →' : '下一关 →';
+}
+
+// ── Correct / Wrong Handlers ──
+function handleCorrect(event){
+  flashScreen('correct');
+  state.combo++; state.maxCombo=Math.max(state.maxCombo,state.combo); state.correctCount++;
+  const speedBonus=Math.floor(state.timerValue*5);
+  const comboBonus=state.combo>1?state.combo*20:0;
+  const pts=100+speedBonus+comboBonus;
+  state.score+=pts; $('score-val').textContent=state.score;
+  if(event){
+    const rect=event.target.getBoundingClientRect();
+    showPoints(pts,rect.left+rect.width/2,rect.top-10);
+  }
+  if(state.combo>=2){
+    const labels=['','','🔥 2连击！','⚡ 3连击！','💥 4连击！','🌟 5连击！MAX！'];
+    $('combo-banner').textContent=labels[Math.min(state.combo,5)]||`🌟 ${state.combo}x Combo！`;
+  }
+  $('next-btn').style.display='block';
+  $('next-btn').textContent='下一关 →';
+}
+
+function handleWrong(){
+  flashScreen('wrong'); state.combo=0; state.hp--; renderHP();
+  $('combo-banner').textContent='\u00a0';
+  $('next-btn').style.display='block';
+  $('next-btn').textContent=state.hp<=0?'查看结果 →':'下一关 →';
+}
+
+function showExp(text){
+  $('exp-box').innerHTML=`<strong>📖 知识点：</strong> ${text}`;
+  $('exp-box').style.display='block';
+}
+
+// ── Timer ──
+function tickTimer(){
+  if(state.answered) return;
+  state.timerValue-=0.1;
+  if(state.timerValue<=0){ state.timerValue=0; updateTimerDisplay(0); stopTimer(); timeOut(); }
+  else updateTimerDisplay(state.timerValue);
+}
+
+function updateTimerDisplay(val){
+  const pct=(val/TOTAL_TIME)*100;
+  const fill=$('timer-fill');
+  fill.style.width=pct+'%';
+  $('timer-text').textContent=Math.ceil(val)+'s';
+  fill.className='timer-fill'+(pct<=30?' danger':pct<=60?' warn':'');
+}
+
+function timeOut(){
+  if(state.answered) return;
+  state.answered=true; state.combo=0; state.hp--; renderHP();
+  // Disable all interactive elements
+  document.querySelectorAll('.opt-btn,.tf-btn,.sort-check-btn,.fill-chip,.fill-blank').forEach(el=>el.disabled=true);
+  const q=quizData[state.level];
+  if(q.type==='mcq'){
+    document.querySelectorAll('.opt-btn')[state.shuffledAns]?.classList.add('reveal');
+  }
+  showExp(q.exp);
+  $('exp-box').innerHTML=`⏰ <strong>时间到！</strong> ${q.exp}`;
+  $('next-btn').style.display='block';
+  $('next-btn').textContent=state.hp<=0?'查看结果 →':'下一关 →';
+}
+
+function nextQuestion(){
+  if(state.hp<=0){ showResult(); return; }
+  state.level++;
+  if(state.level>=TOTAL_Q) showResult();
+  else loadQuestion();
+}
+
+// ══ RESULT ══
+function showResult(){
+  stopTimer();
+  state.elapsed=Math.round((Date.now()-state.startTime)/1000);
+  const isWin=state.hp>0&&state.level>=TOTAL_Q;
+  showScreen('result-screen');
+  $('result-icon').textContent=isWin?'🏆':'💔';
+  $('result-title').textContent=isWin?'挑战成功！完美通关！':'生命耗尽，遗憾落败';
+  $('result-sub').textContent=isWin
+    ?'你已掌握光的所有奥秘，真正的光线守护者！'
+    :`勇敢的尝试！你答对了 ${state.correctCount} / ${TOTAL_Q} 题，继续加油！`;
+  $('r-score').textContent=state.score;
+  $('r-correct').textContent=`${state.correctCount}/${TOTAL_Q}`;
+  $('r-time').textContent=state.elapsed+'s';
+  $('r-combo').textContent=state.maxCombo+'x';
+
+  const badges=[];
+  if(isWin) badges.push({e:'🏆',t:'完美通关'});
+  if(state.correctCount===TOTAL_Q) badges.push({e:'💯',t:'满分达人'});
+  if(state.maxCombo>=5) badges.push({e:'🌟',t:'连击大师'});
+  if(state.elapsed<150) badges.push({e:'⚡',t:'极速王者'});
+  if(state.hp===3) badges.push({e:'💎',t:'无伤通关'});
+  if(state.score>=1800) badges.push({e:'🎯',t:'神射手'});
+
+  const ach=$('achievements'); ach.innerHTML='';
+  badges.forEach(b=>{ const d=document.createElement('div'); d.className='badge'; d.innerHTML=`${b.e} ${b.t}`; ach.appendChild(d); });
+}
+
+// ══ CERTIFICATE (Portrait / Vertical) ══
+function generateCert(){
+  const name=$('player-name').value.trim();
+  if(!name){ alert('请先输入你的名字哦！'); return; }
+
+  // ── Hide input section ──
+  $('cert-input-section').style.display='none';
+
+  const canvas=$('cert-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=540, H=760;  // Portrait dimensions
+  canvas.width=W; canvas.height=H;
+
+  // ── Background ──
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#08081e');
+  bg.addColorStop(0.45,'#140d30');
+  bg.addColorStop(1,'#081822');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  for(let i=0;i<140;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.4+0.2,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // Glow blobs
+  function glow(x,y,r,col){
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,col+'44'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  glow(W*0.2,H*0.15,180,'#7c4dff');
+  glow(W*0.8,H*0.8,180,'#00e5ff');
+  glow(W*0.5,H*0.5,220,'#1a0040');
+
+  // ── Outer border ──
+  ctx.strokeStyle='rgba(0,229,255,0.65)'; ctx.lineWidth=3;
+  rrect(ctx,15,15,W-30,H-30,14); ctx.stroke();
+  ctx.strokeStyle='rgba(124,77,255,0.35)'; ctx.lineWidth=1;
+  rrect(ctx,22,22,W-44,H-44,10); ctx.stroke();
+
+  // Corner ornaments
+  cornOrn(ctx,34,34,1,1); cornOrn(ctx,W-34,34,-1,1);
+  cornOrn(ctx,34,H-34,1,-1); cornOrn(ctx,W-34,H-34,-1,-1);
+
+  ctx.textAlign='center';
+
+  // ── Header line ──
+  ctx.fillStyle='rgba(0,229,255,0.5)'; ctx.fillRect(W*0.15,62,W*0.7,1);
+
+  // ── Trophy ──
+  ctx.font='52px serif';
+  ctx.fillText('🏆',W/2,115);
+
+  // ── EN title ──
+  ctx.font='bold 11px Orbitron,monospace';
+  ctx.fillStyle='rgba(0,229,255,0.7)';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT',W/2,145);
+
+  // ── CN title ──
+  ctx.font='bold 26px "Noto Sans SC",sans-serif';
+  const tg=ctx.createLinearGradient(W*0.2,0,W*0.8,0);
+  tg.addColorStop(0,'#00e5ff'); tg.addColorStop(1,'#7c4dff');
+  ctx.fillStyle=tg;
+  ctx.fillText('光线守护者 · 光学大师',W/2,182);
+
+  // ── Divider ──
+  ctx.strokeStyle='rgba(0,229,255,0.35)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W*0.2,200); ctx.lineTo(W*0.8,200); ctx.stroke();
+
+  // ── Award text ──
+  ctx.fillStyle='#9e9e9e'; ctx.font='14px "Noto Sans SC"';
+  ctx.fillText('兹证明以下同学',W/2,232);
+
+  // ── Name ──
+  ctx.font='bold 46px "Noto Sans SC"';
+  ctx.fillStyle='#ffffff';
+  ctx.fillText(name,W/2,296);
+  const nw=ctx.measureText(name).width;
+  ctx.strokeStyle='rgba(0,229,255,0.6)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2-10,308); ctx.lineTo(W/2+nw/2+10,308); ctx.stroke();
+
+  // ── Sub description ──
+  ctx.fillStyle='#90a4ae'; ctx.font='13px "Noto Sans SC"';
+  ctx.fillText('成功完成《初一科学·第7章 光的现象》',W/2,338);
+  ctx.fillText('全20关闯关挑战，展现卓越的科学学习能力',W/2,358);
+
+  // ── Decorative separator ──
+  ctx.fillStyle='rgba(124,77,255,0.4)'; ctx.fillRect(W*0.1,378,W*0.8,1);
+
+  //Made by ecchua79
+  // ── Stats grid (2×2) ──
+  const stats=[
+    {e:'⭐',label:'最终得分',val:state.score+'分'},
+    {e:'✅',label:'答对题数',val:state.correctCount+'/'+TOTAL_Q+'题'},
+    {e:'⏱️',label:'完成用时',val:state.elapsed+'秒'},
+    {e:'🔥',label:'最高连击',val:state.maxCombo+'x'},
+  ];
+  const cw=(W-60)/2, ch=90, ox=30, oy=395;
+  stats.forEach((s,i)=>{
+    const col=i%2, row=Math.floor(i/2);
+    const sx=ox+col*(cw+10), sy=oy+row*(ch+10);
+    ctx.fillStyle='rgba(0,229,255,0.06)';
+    rrect(ctx,sx,sy,cw,ch,8); ctx.fill();
+    ctx.strokeStyle='rgba(0,229,255,0.18)'; ctx.lineWidth=1;
+    rrect(ctx,sx,sy,cw,ch,8); ctx.stroke();
+    ctx.font='20px serif';
+    ctx.fillText(s.e, sx+cw/2, sy+28);
+    ctx.fillStyle='#00e5ff'; ctx.font='bold 20px Orbitron,monospace';
+    ctx.fillText(s.val, sx+cw/2, sy+58);
+    ctx.fillStyle='#607d8b'; ctx.font='12px "Noto Sans SC"';
+    ctx.fillText(s.label, sx+cw/2, sy+78);
+  });
+
+  // ── Quote ──
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W*0.1,604); ctx.lineTo(W*0.9,604); ctx.stroke();
+
+  ctx.fillStyle='rgba(255,234,0,0.88)';
+  ctx.font='italic bold 14px "Noto Sans SC"';
+  ctx.fillText('"光照前路，知识无边 — Excellent Work！"',W/2,632);
+
+  // ── Date + Stamp ring ──
+  const now=new Date();
+  const ds=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  ctx.fillStyle='#546e7a'; ctx.font='12px "Noto Sans SC"';
+  ctx.fillText(`颁发日期：${ds}`,W/2,660);
+
+  // Decorative circle stamp
+  ctx.strokeStyle='rgba(0,229,255,0.4)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(W/2,700,38,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W/2,700,33,0,Math.PI*2); ctx.stroke();
+  ctx.font='22px serif'; ctx.fillText('🔦',W/2,710);
+
+  // Bottom line
+  ctx.fillStyle='rgba(0,229,255,0.5)'; ctx.fillRect(W*0.15,735,W*0.7,1);
+
+  // ── Output ──
+  const url=canvas.toDataURL('image/png');
+  $('cert-img').src=url;
+  $('cert-preview-wrap').style.display='block';
+  $('download-btn').style.display='block';
+  $('download-btn').dataset.url=url;
+  $('download-btn').dataset.name=name;
+}
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function cornOrn(ctx,x,y,dx,dy){
+  ctx.strokeStyle='rgba(0,229,255,0.75)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x,y+dy*28); ctx.lineTo(x,y); ctx.lineTo(x+dx*28,y); ctx.stroke();
+  ctx.fillStyle='rgba(0,229,255,0.85)';
+  ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fill();
+}
+
+function downloadCert(){
+  const btn=$('download-btn');
+  const a=document.createElement('a');
+  a.href=btn.dataset.url;
+  a.download=`光线守护者证书_${btn.dataset.name}.png`;
+  a.click();
+}
+
+window.addEventListener('resize',()=>{
+  if($('visual-wrap').style.display==='block') drawMirrorScene();
+});
+</script>
+</body>
+</html>
