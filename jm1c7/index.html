@@ -947,7 +947,13 @@ function checkTF(userAns,clickedBtn,otherBtn,event){
 
 // ── Build Sort ──
 function buildSort(q,area){
-  state.sortOrder=[...Array(q.items.length).keys()];
+  // Start with items in a random order (but never accidentally already correct)
+  let initialOrder = shuffleArray([...Array(q.items.length).keys()]);
+  // If accidentally already matches correctOrder, shuffle again
+  while(initialOrder.every((v,i)=>v===q.correctOrder[i])){
+    initialOrder = shuffleArray([...Array(q.items.length).keys()]);
+  }
+  state.sortOrder = initialOrder;
   const wrap=document.createElement('div'); wrap.className='sort-area';
   const lbl=document.createElement('div'); lbl.className='sort-label';
   lbl.textContent='⬆️ 最快  →  拖拽排序  →  最慢 ⬇️';
@@ -1017,10 +1023,11 @@ function buildFill(q,area){
       display.appendChild(sep);
     }
   });
-  // Chip choices
+  // Chip choices — shuffled each time
   const chipsWrap=document.createElement('div'); chipsWrap.className='fill-choices';
   chipsWrap.innerHTML='<span style="font-size:12px;color:var(--muted);width:100%;display:block;margin-bottom:2px;">点击词语填入下一个空格：</span>';
-  q.choices.forEach(ch=>{
+  const shuffledChoices = shuffleArray([...q.choices]);
+  shuffledChoices.forEach(ch=>{
     const chip=document.createElement('button'); chip.className='fill-chip'; chip.textContent=ch;
     chip.onclick=()=>{
       // Fill next empty input
