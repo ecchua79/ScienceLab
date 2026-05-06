@@ -1,0 +1,371 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热传递的三种方式</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
+        canvas { background-color: #1e293b; border-radius: 0.5rem; width: 100%; height: auto; aspect-ratio: 2/1; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center pb-24">
+
+    <header class="w-full text-center py-8 glass-panel sticky top-0 z-10 border-b border-gray-700 shadow-lg">
+        <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-600">
+            热传递的三种方式
+        </h1>
+        <p class="text-gray-400 mt-2">观察微观粒子和波浪如何传递热量</p>
+    </header>
+
+    <main class="w-full max-w-5xl px-4 mt-8 space-y-12">
+        
+        <!-- 热传导 -->
+        <section class="bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700">
+            <h2 class="text-2xl font-semibold mb-4 text-orange-400 flex items-center">
+                <span class="mr-2">🔥</span> 一、热传导 (Conduction)
+            </h2>
+            <p class="text-gray-300 mb-6 leading-relaxed">
+                显示在一根长长的棒子里面，有很多的粒子只可以在原位上震动。受到热以后，左侧区域的粒子就会震动得更激烈，然后敲到旁边的粒子，让它们也跟着剧烈运动，从而将热量传递过去。
+            </p>
+            <canvas id="canvas-conduction" width="800" height="400"></canvas>
+        </section>
+
+        <!-- 热对流 -->
+        <section class="bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700">
+            <h2 class="text-2xl font-semibold mb-4 text-orange-400 flex items-center">
+                <span class="mr-2">🌊</span> 二、热对流 (Convection)
+            </h2>
+            <p class="text-gray-300 mb-6 leading-relaxed">
+                画出一个烧杯下面有火。加热的时候，烧杯底部受热的粒子会震动得更剧烈并膨胀，跑到上面去；而上面的粒子远离热源，冷却后密度变大，从周围边缘降下来，一直循环。
+            </p>
+            <canvas id="canvas-convection" width="800" height="400"></canvas>
+        </section>
+
+        <!-- 热辐射 -->
+        <section class="bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700">
+            <h2 class="text-2xl font-semibold mb-4 text-orange-400 flex items-center">
+                <span class="mr-2">☀️</span> 三、热辐射 (Radiation)
+            </h2>
+            <p class="text-gray-300 mb-6 leading-relaxed">
+                辐射没有办法用粒子来表达，不需要介质。这里我们用“像波浪的线段”来表达，热量以电磁波的形式从热源向外发射，并被远处的物体吸收使其升温。
+            </p>
+            <canvas id="canvas-radiation" width="800" height="400"></canvas>
+        </section>
+
+    </main>
+
+    <!-- 控制面板 -->
+    <div class="fixed bottom-0 w-full p-4 glass-panel border-t border-gray-700 flex justify-center items-center z-20">
+        <button id="toggleBtn" class="bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white font-bold py-3 px-12 rounded-full shadow-lg transform transition active:scale-95 text-xl flex items-center">
+            <span id="btnIcon" class="mr-2">▶️</span> <span id="btnText">开始加热</span>
+        </button>
+    </div>
+
+    <script>
+        let isHeating = false;
+        let frameCount = 0;
+
+        const toggleBtn = document.getElementById('toggleBtn');
+        const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
+
+        toggleBtn.addEventListener('click', () => {
+            isHeating = !isHeating;
+            if (isHeating) {
+                btnText.textContent = "停止加热";
+                btnIcon.textContent = "⏸️";
+                toggleBtn.classList.replace('from-red-600', 'from-blue-600');
+                toggleBtn.classList.replace('to-orange-500', 'to-cyan-500');
+                toggleBtn.classList.replace('hover:from-red-500', 'hover:from-blue-500');
+                toggleBtn.classList.replace('hover:to-orange-400', 'hover:to-cyan-400');
+            } else {
+                btnText.textContent = "开始加热";
+                btnIcon.textContent = "▶️";
+                toggleBtn.classList.replace('from-blue-600', 'from-red-600');
+                toggleBtn.classList.replace('to-cyan-500', 'to-orange-500');
+                toggleBtn.classList.replace('hover:from-blue-500', 'hover:from-red-500');
+                toggleBtn.classList.replace('hover:to-cyan-400', 'hover:to-orange-400');
+            }
+        });
+
+        // 通用颜色插值：从冷(蓝色)到热(红色)
+        function getTempColor(temp) {
+            // temp range: 0 (cold) to 1 (hot)
+            const r = Math.min(255, temp * 2 * 255);
+            const g = Math.max(0, Math.min(255, (temp < 0.5 ? temp * 2 * 100 : (1 - temp) * 2 * 100)));
+            const b = Math.max(0, (1 - temp) * 255);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function drawFlame(ctx, x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(size, size);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(15, -20, 0, -40);
+            ctx.quadraticCurveTo(-15, -20, 0, 0);
+            ctx.fillStyle = isHeating ? "#fb923c" : "#475569";
+            ctx.fill();
+            
+            if (isHeating) {
+                ctx.beginPath();
+                ctx.moveTo(0, -5);
+                ctx.quadraticCurveTo(8, -15, 0, -25);
+                ctx.quadraticCurveTo(-8, -15, 0, -5);
+                ctx.fillStyle = "#fef08a";
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // ==========================================
+        // 1. 热传导 (Conduction) 逻辑
+        // ==========================================
+        const ctxCond = document.getElementById('canvas-conduction').getContext('2d');
+        const condParticles = [];
+        const cols = 28;
+        const rows = 6;
+        const spacingX = 22;
+        const spacingY = 22;
+        const startX = 90;
+        const startY = 135;
+
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows; r++) {
+                condParticles.push({
+                    c, r,
+                    baseX: startX + c * spacingX,
+                    baseY: startY + r * spacingY,
+                    temp: 0
+                });
+            }
+        }
+
+        function renderConduction() {
+            ctxCond.clearRect(0, 0, 800, 400);
+
+            // 绘制加热源
+            drawFlame(ctxCond, 50, 230, 1.5);
+            ctxCond.fillStyle = isHeating ? "rgba(255, 100, 0, 0.2)" : "rgba(100, 100, 100, 0.1)";
+            ctxCond.fillRect(20, 100, 50, 200);
+
+            // 绘制棒子边框
+            ctxCond.strokeStyle = "#475569";
+            ctxCond.lineWidth = 4;
+            ctxCond.strokeRect(startX - 15, startY - 15, cols * spacingX + 10, rows * spacingY + 10);
+
+            // 热量更新逻辑
+            let newTemps = condParticles.map(p => p.temp);
+            
+            if (isHeating) {
+                condParticles.forEach((p, i) => {
+                    if (p.c === 0) newTemps[i] = Math.min(1, newTemps[i] + 0.05);
+                });
+            }
+
+            condParticles.forEach((p, i) => {
+                // 向右传导 (仅模拟主要的单向传递和散热)
+                if (p.c > 0) {
+                    let leftTemp = condParticles.find(lp => lp.c === p.c - 1 && lp.r === p.r).temp;
+                    if (leftTemp > p.temp) {
+                        newTemps[i] += (leftTemp - p.temp) * 0.06; // 传导率
+                    }
+                }
+                newTemps[i] -= 0.003; // 环境散热
+                newTemps[i] = Math.max(0, Math.min(1, newTemps[i]));
+            });
+
+            condParticles.forEach((p, i) => p.temp = newTemps[i]);
+
+            // 渲染粒子
+            condParticles.forEach(p => {
+                let jitter = p.temp * 12; // 温度越高，原位震动越大
+                let px = p.baseX + (Math.random() - 0.5) * jitter;
+                let py = p.baseY + (Math.random() - 0.5) * jitter;
+
+                ctxCond.beginPath();
+                ctxCond.arc(px, py, 7, 0, Math.PI * 2);
+                ctxCond.fillStyle = getTempColor(p.temp);
+                ctxCond.fill();
+            });
+        }
+
+        // ==========================================
+        // 2. 热对流 (Convection) 逻辑
+        // ==========================================
+        const ctxConv = document.getElementById('canvas-convection').getContext('2d');
+        const convParticles = [];
+        const beakerX = 250, beakerY = 50, beakerW = 300, beakerH = 280;
+
+        for (let i = 0; i < 200; i++) {
+            convParticles.push({
+                x: beakerX + 20 + Math.random() * (beakerW - 40),
+                y: beakerY + 20 + Math.random() * (beakerH - 40),
+                vx: (Math.random() - 0.5),
+                vy: (Math.random() - 0.5),
+                temp: 0
+            });
+        }
+
+        function renderConvection() {
+            ctxConv.clearRect(0, 0, 800, 400);
+
+            // 画火
+            drawFlame(ctxConv, 400, 390, 2);
+
+            // 画烧杯
+            ctxConv.strokeStyle = "#94a3b8";
+            ctxConv.lineWidth = 6;
+            ctxConv.beginPath();
+            ctxConv.moveTo(beakerX, beakerY);
+            ctxConv.lineTo(beakerX, beakerY + beakerH);
+            ctxConv.quadraticCurveTo(beakerX, beakerY + beakerH + 20, beakerX + 20, beakerY + beakerH + 20);
+            ctxConv.lineTo(beakerX + beakerW - 20, beakerY + beakerH + 20);
+            ctxConv.quadraticCurveTo(beakerX + beakerW, beakerY + beakerH + 20, beakerX + beakerW, beakerY + beakerH);
+            ctxConv.lineTo(beakerX + beakerW, beakerY);
+            ctxConv.stroke();
+
+            // 粒子更新
+            convParticles.forEach(p => {
+                // 底部加热
+                if (isHeating && p.y > beakerY + beakerH - 40 && p.x > beakerX + 100 && p.x < beakerX + 200) {
+                    p.temp = Math.min(1, p.temp + 0.03);
+                } else {
+                    p.temp = Math.max(0, p.temp - 0.005);
+                }
+
+                let forceX = 0;
+                let forceY = 0;
+
+                // 物理：热的向上（浮力），冷的向下
+                let buoyancy = (p.temp - 0.4) * -0.6; 
+                forceY += buoyancy;
+
+                // 制造对流循环的向量场
+                if (p.y < beakerY + 80) {
+                    // 顶部向两侧散开
+                    forceX += (p.x < beakerX + beakerW / 2) ? -0.4 : 0.4;
+                } else if (p.y > beakerY + beakerH - 60) {
+                    // 底部向中间汇聚
+                    forceX += (p.x < beakerX + beakerW / 2) ? 0.3 : -0.3;
+                } else {
+                    // 边缘受重力加速下降
+                    if (p.x < beakerX + 50 || p.x > beakerX + beakerW - 50) {
+                        forceY += 0.2;
+                    }
+                }
+
+                // 添加随机布朗运动
+                forceX += (Math.random() - 0.5) * 0.5;
+                forceY += (Math.random() - 0.5) * 0.5;
+
+                p.vx = (p.vx + forceX) * 0.9; // 摩擦力
+                p.vy = (p.vy + forceY) * 0.9;
+
+                // 根据温度增加速度（震动更剧烈）
+                let speedMult = 1 + p.temp * 1.5;
+                
+                p.x += p.vx * speedMult;
+                p.y += p.vy * speedMult;
+
+                // 边界碰撞反弹
+                if (p.x < beakerX + 10) { p.x = beakerX + 10; p.vx *= -0.5; }
+                if (p.x > beakerX + beakerW - 10) { p.x = beakerX + beakerW - 10; p.vx *= -0.5; }
+                if (p.y < beakerY + 10) { p.y = beakerY + 10; p.vy *= -0.5; }
+                if (p.y > beakerY + beakerH + 10) { p.y = beakerY + beakerH + 10; p.vy *= -0.5; }
+
+                ctxConv.beginPath();
+                ctxConv.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctxConv.fillStyle = getTempColor(p.temp);
+                ctxConv.fill();
+            });
+        }
+
+        // ==========================================
+        // 3. 热辐射 (Radiation) 逻辑
+        // ==========================================
+        const ctxRad = document.getElementById('canvas-radiation').getContext('2d');
+        let radWaves = [];
+        let targetTemp = 0;
+
+        function renderRadiation() {
+            ctxRad.clearRect(0, 0, 800, 400);
+
+            // 画火/热源
+            drawFlame(ctxRad, 150, 240, 3);
+            
+            // 发射波浪状线段
+            if (isHeating && frameCount % 25 === 0) {
+                // 发射三个方向的波浪
+                radWaves.push({ x: 180, y: 120, speed: 4, angle: -0.2 });
+                radWaves.push({ x: 200, y: 180, speed: 5, angle: 0 });
+                radWaves.push({ x: 180, y: 240, speed: 4, angle: 0.2 });
+            }
+
+            // 更新和画波浪
+            ctxRad.strokeStyle = "rgba(239, 68, 68, 0.8)"; // Red wave
+            ctxRad.lineWidth = 3;
+
+            for (let i = radWaves.length - 1; i >= 0; i--) {
+                let w = radWaves[i];
+                w.x += w.speed * Math.cos(w.angle);
+                w.y += w.speed * Math.sin(w.angle);
+
+                // 画线段波浪 (正弦波)
+                ctxRad.beginPath();
+                for (let dx = 0; dx < 40; dx++) {
+                    let px = w.x + dx;
+                    let py = w.y + Math.sin((dx * 0.3) - (frameCount * 0.2)) * 10;
+                    if (dx === 0) ctxRad.moveTo(px, py);
+                    else ctxRad.lineTo(px, py);
+                }
+                ctxRad.stroke();
+
+                // 击中目标
+                if (w.x > 550) {
+                    targetTemp = Math.min(1, targetTemp + 0.05);
+                    radWaves.splice(i, 1);
+                }
+            }
+
+            if (!isHeating) {
+                targetTemp = Math.max(0, targetTemp - 0.002);
+            }
+
+            // 画接收辐射的物体
+            ctxRad.fillStyle = getTempColor(targetTemp);
+            ctxRad.fillRect(600, 100, 100, 200);
+            ctxRad.strokeStyle = "#475569";
+            ctxRad.lineWidth = 4;
+            ctxRad.strokeRect(600, 100, 100, 200);
+            
+            // 物体上的文字提示
+            ctxRad.fillStyle = "white";
+            ctxRad.font = "16px sans-serif";
+            ctxRad.textAlign = "center";
+            ctxRad.fillText(targetTemp > 0.5 ? "很热！" : "受热物体", 650, 200);
+        }
+
+        // ==========================================
+        // 动画主循环
+        // ==========================================
+        function animate() {
+            renderConduction();
+            renderConvection();
+            renderRadiation();
+            frameCount++;
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+    </script>
+</body>
+</html>
+
+```
