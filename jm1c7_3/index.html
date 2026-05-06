@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>光的反射定律 · 互动游戏</title>
+<style>
+/* ── 字体：使用系统字体，避免网络加载失败 ── */
+:root{
+  --bg:#0a0e1a;--panel:#0f1628;--border:#1e2d4a;
+  --accent:#00d4ff;--accent2:#ff6b35;--gold:#ffd700;
+  --green:#00ff88;--text:#c8d8f0;--dim:#4a6080;
+  --ff:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  --fmono:'SF Mono','Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--ff);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  overflow-x:hidden
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 35% 65%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 72% 22%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 78%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 22% 82%,rgba(0,212,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 92% 42%,rgba(0,212,255,.18) 0%,transparent 100%)
+}
+
+header{
+  width:100%;max-width:960px;padding:18px 24px 8px;
+  display:flex;align-items:center;gap:16px;position:relative;z-index:1
+}
+.logo{font-family:var(--fmono);font-size:12px;color:var(--accent);letter-spacing:3px;opacity:.7}
+h1{
+  font-size:clamp(18px,4vw,26px);font-weight:900;
+  background:linear-gradient(135deg,var(--accent),#fff,var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+}
+
+/* ── 主布局 ── */
+.main-layout{
+  display:flex;gap:16px;width:100%;max-width:960px;
+  padding:0 16px 20px;position:relative;z-index:1;flex-wrap:wrap
+}
+.canvas-wrap{
+  flex:1;min-width:280px;background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;position:relative;
+  box-shadow:0 0 40px rgba(0,212,255,.07),inset 0 1px 0 rgba(255,255,255,.05)
+}
+canvas{display:block;width:100%;height:auto}
+.canvas-label{
+  position:absolute;top:12px;left:16px;font-size:10px;letter-spacing:2px;
+  color:var(--dim);font-family:var(--fmono);text-transform:uppercase
+}
+.side-panel{width:220px;display:flex;flex-direction:column;gap:10px}
+
+/* ── 卡片 ── */
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)
+}
+.card-title{
+  font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;
+  font-family:var(--fmono);margin-bottom:10px
+}
+.angle-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.angle-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:7px;padding:7px;text-align:center}
+.angle-label{font-size:9px;color:var(--dim);margin-bottom:2px}
+.angle-value{font-family:var(--fmono);font-size:17px;font-weight:700;color:var(--accent)}
+.angle-unit{font-size:9px;color:var(--dim)}
+.eq-badge{
+  display:flex;align-items:center;justify-content:center;gap:7px;padding:6px;
+  border-radius:8px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);
+  font-size:10px;color:var(--green);font-weight:700
+}
+.eq-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);animation:pulse 1.5s infinite
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.6)}}
+.law-box{
+  background:rgba(0,0,0,.2);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:8px 10px;font-size:11px;line-height:1.75;color:var(--text)
+}
+.law-box b{color:var(--gold)}
+.mode-group{display:flex;flex-direction:column;gap:5px}
+.mbtn{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;
+  color:var(--dim);font-size:12px;font-family:var(--ff);cursor:pointer;
+  text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px
+}
+.mbtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.05)}
+.mbtn.active{border-color:var(--accent);background:rgba(0,212,255,.12);color:#fff}
+.tog-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid var(--border)
+}
+.tog-row:last-child{border-bottom:none}
+.tog-label{font-size:11px;color:var(--text)}
+.tog{
+  width:34px;height:19px;background:rgba(0,0,0,.4);border:1px solid var(--border);
+  border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0
+}
+.tog.on{background:rgba(0,212,255,.3);border-color:var(--accent)}
+.tog::after{
+  content:'';position:absolute;width:13px;height:13px;background:var(--dim);
+  border-radius:50%;top:2px;left:2px;transition:all .2s
+}
+.tog.on::after{left:17px;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.score-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.score-val{
+  font-family:var(--fmono);font-size:20px;font-weight:700;color:var(--gold);
+  text-shadow:0 0 12px rgba(255,215,0,.4)
+}
+.lv-badge{
+  font-family:var(--fmono);font-size:10px;color:var(--accent2);
+  background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.3);border-radius:20px;padding:3px 9px
+}
+.stage-bar{display:flex;gap:4px;margin:6px 0}
+.stage-pip{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.1);transition:background .3s}
+.stage-pip.done{background:var(--green)}
+.stage-pip.active{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.ch-msg{font-size:11px;color:var(--gold);margin-top:4px;min-height:30px;line-height:1.5}
+.hint-tag{
+  display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin-top:3px;
+  margin-right:3px;font-weight:700
+}
+.h1{background:rgba(255,238,68,.12);border:1px solid rgba(255,238,68,.3);color:#ffee44}
+.h2{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);color:var(--green)}
+.h3{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);color:var(--accent2)}
+.ch-bar{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin-top:6px}
+.ch-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .35s ease}
+#next-btn{
+  display:none;width:100%;padding:9px;margin-top:8px;
+  background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,212,255,.15));
+  border:1px solid var(--green);border-radius:8px;color:var(--green);
+  font-size:13px;font-weight:700;font-family:var(--ff);cursor:pointer;transition:all .2s
+}
+#next-btn:hover{background:linear-gradient(135deg,rgba(0,255,136,.28),rgba(0,212,255,.28))}
+#toast{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-70px);
+  background:var(--panel);border:1px solid var(--green);color:var(--green);
+  padding:9px 22px;border-radius:30px;font-weight:700;font-size:13px;z-index:100;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 0 18px rgba(0,255,136,.28);white-space:nowrap
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.legend{width:100%;max-width:960px;padding:0 16px 16px;position:relative;z-index:1}
+.legend-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap
+}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:11px}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ── 封面 ── */
+#cover{
+  position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 40%,#0d1830 0%,#050a14 100%);
+  transition:opacity .7s ease
+}
+#cover.hidden{opacity:0;pointer-events:none}
+.cv-stars{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.cv-star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d) infinite var(--delay)}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.9;transform:scale(1.4)}}
+.cv-badge{
+  font-family:var(--fmono);font-size:11px;color:#00d4ff;letter-spacing:4px;
+  opacity:.7;margin-bottom:12px;animation:fadeUp .8s .2s both
+}
+.cv-title{
+  font-size:clamp(28px,7vw,58px);font-weight:900;line-height:1.1;text-align:center;
+  background:linear-gradient(135deg,#00d4ff 0%,#fff 45%,#ff6b35 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;animation:fadeUp .8s .35s both
+}
+.cv-sub{
+  font-size:clamp(12px,2vw,16px);color:rgba(200,216,240,.7);text-align:center;
+  margin-bottom:28px;animation:fadeUp .8s .5s both;line-height:1.6
+}
+.cv-sub b{color:#ffd700}
+.cv-stages{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:32px;animation:fadeUp .8s .6s both
+}
+.cv-stage{
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  padding:10px 14px;font-size:12px;color:#c8d8f0;text-align:center;min-width:110px
+}
+.cv-stage .si{font-size:20px;display:block;margin-bottom:4px}
+.cv-stage b{color:var(--gold);font-size:10px;display:block}
+.cv-btn{
+  font-family:var(--ff);font-size:17px;font-weight:700;color:#0a0e1a;
+  background:linear-gradient(135deg,#00d4ff,#00ff88);border:none;border-radius:50px;
+  padding:14px 48px;cursor:pointer;box-shadow:0 0 30px rgba(0,212,255,.4);
+  transition:all .25s;animation:fadeUp .8s .75s both,gp 2s 1.5s infinite
+}
+.cv-btn:hover{transform:scale(1.06);box-shadow:0 0 44px rgba(0,212,255,.65)}
+@keyframes gp{0%,100%{box-shadow:0 0 30px rgba(0,212,255,.4)}50%{box-shadow:0 0 50px rgba(0,212,255,.7)}}
+.cv-credit{
+  position:absolute;bottom:18px;font-size:11px;color:rgba(255,255,255,.2);
+  letter-spacing:1px;animation:fadeUp .8s .9s both
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── 结算弹窗 ── */
+#result-overlay{
+  position:fixed;inset:0;z-index:8888;background:rgba(5,10,20,.92);
+  display:none;align-items:center;justify-content:center;
+  animation:fadeIn .4s ease
+}
+#result-overlay.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.result-box{
+  background:linear-gradient(145deg,#0d1a30,#0a1220);
+  border:1px solid var(--accent);border-radius:20px;
+  padding:32px 28px;max-width:460px;width:90%;text-align:center;
+  box-shadow:0 0 60px rgba(0,212,255,.2);position:relative;overflow:hidden
+}
+.result-box::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,.08),transparent 70%)
+}
+.result-title{
+  font-size:28px;font-weight:900;margin-bottom:6px;
+  background:linear-gradient(135deg,var(--gold),#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+}
+.result-subtitle{font-size:13px;color:var(--dim);margin-bottom:24px}
+.result-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px
+}
+.stat-box{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:12px 8px
+}
+.stat-label{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:4px}
+.stat-val{font-family:var(--fmono);font-size:22px;color:var(--accent);font-weight:700}
+.name-row{display:flex;gap:8px;margin-bottom:16px}
+.name-input{
+  flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;color:#fff;font-size:14px;font-family:var(--ff);outline:none;
+  transition:border-color .2s
+}
+.name-input:focus{border-color:var(--accent)}
+.name-input::placeholder{color:var(--dim)}
+.cert-btn{
+  background:linear-gradient(135deg,var(--accent),var(--green));border:none;
+  border-radius:10px;padding:10px 20px;color:#0a0e1a;font-weight:700;
+  font-size:13px;font-family:var(--ff);cursor:pointer;transition:all .2s;white-space:nowrap
+}
+.cert-btn:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,212,255,.4)}
+.replay-btn{
+  width:100%;background:rgba(0,212,255,.1);border:1px solid var(--accent);
+  border-radius:10px;padding:12px;color:var(--accent);font-weight:700;
+  font-size:14px;font-family:var(--ff);cursor:pointer;transition:all .2s;margin-bottom:10px
+}
+.replay-btn:hover{background:rgba(0,212,255,.2)}
+
+/* ── 证书弹窗 ── */
+#cert-overlay{
+  position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.95);
+  display:none;align-items:center;justify-content:center;flex-direction:column;
+  gap:16px;animation:fadeIn .4s ease
+}
+#cert-overlay.show{display:flex}
+#cert-canvas{
+  border-radius:12px;max-width:90vw;max-height:75vh;
+  box-shadow:0 0 60px rgba(0,212,255,.3)
+}
+.cert-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.cert-dl-btn{
+  background:linear-gradient(135deg,var(--accent),var(--green));border:none;
+  border-radius:30px;padding:12px 30px;color:#0a0e1a;font-weight:700;
+  font-size:15px;font-family:var(--ff);cursor:pointer;transition:all .2s
+}
+.cert-dl-btn:hover{transform:scale(1.06);box-shadow:0 0 30px rgba(0,212,255,.5)}
+.cert-close-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+  border-radius:30px;padding:12px 28px;color:#aaa;font-size:14px;
+  font-family:var(--ff);cursor:pointer;transition:all .2s
+}
+.cert-close-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+
+/* ── 响应式 ── */
+@media(max-width:600px){
+  .side-panel{width:100%}
+  .main-layout{gap:10px}
+  header{padding:12px 16px 6px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── 封面 ── -->
+<div id="cover">
+  <div class="cv-stars" id="cv-stars"></div>
+  <div class="cv-badge">Physics Lab · 物理实验室</div>
+  <div class="cv-title">光的反射定律</div>
+  <div class="cv-sub">互动探索游戏 &nbsp;·&nbsp; <b>初中物理</b><br>探索光在镜面之间的多重反射</div>
+  <div class="cv-stages">
+    <div class="cv-stage"><span class="si">🔦</span><b>第 1–5 关</b>单镜·调角度<br>拖动光源</div>
+    <div class="cv-stage"><span class="si">🪞🪞</span><b>第 6–10 关</b>双镜·混合操作<br>拖源或转镜</div>
+    <div class="cv-stage"><span class="si">🪞🪞🪞</span><b>第 11–18 关</b>三镜·极限<br>多种组合挑战</div>
+  </div>
+  <button class="cv-btn" onclick="startGame()">开始实验 →</button>
+  <div class="cv-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+</div>
+
+<!-- ── 主体 ── -->
+<header>
+  <div>
+    <div class="logo">Physics Lab</div>
+    <h1>光的反射定律</h1>
+  </div>
+</header>
+
+<div class="main-layout">
+  <div class="canvas-wrap">
+    <div class="canvas-label">实验台</div>
+    <canvas id="c" width="620" height="460"></canvas>
+  </div>
+  <div class="side-panel">
+
+    <div class="card" id="angle-card">
+      <div class="card-title">角度读数</div>
+      <div class="angle-grid" id="angle-rows"></div>
+      <div class="eq-badge"><div class="eq-dot"></div>每面镜子 θ入 = θ反 ✓</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">反射定律</div>
+      <div class="law-box">
+        入射角<b>等于</b>反射角<br>
+        入射光、法线、反射光<b>同平面</b><br>
+        法线在两光线<b>之间</b>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">模式</div>
+      <div class="mode-group">
+        <button class="mbtn active" id="btn-free" onclick="setMode('free')">🔦 自由探索</button>
+        <button class="mbtn" id="btn-ch" onclick="setMode('challenge')">🎯 挑战模式</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">显示选项</div>
+      <div class="tog-row"><span class="tog-label">法线</span><div class="tog on" id="tog-normal" onclick="togOpt('normal')"></div></div>
+      <div class="tog-row"><span class="tog-label">角度弧线</span><div class="tog on" id="tog-arcs" onclick="togOpt('arcs')"></div></div>
+      <div class="tog-row"><span class="tog-label">角度标注</span><div class="tog on" id="tog-labels" onclick="togOpt('labels')"></div></div>
+      <div class="tog-row"><span class="tog-label">反射光线</span><div class="tog on" id="tog-reflected" onclick="togOpt('reflected')"></div></div>
+      <div class="tog-row"><span class="tog-label">光束宽度</span><div class="tog" id="tog-beam" onclick="togOpt('beam')"></div></div>
+    </div>
+
+    <div class="card" id="score-card" style="display:none">
+      <div class="card-title">挑战进度</div>
+      <div class="score-row">
+        <span class="score-val" id="score-disp">0</span>
+        <span class="lv-badge" id="lv-disp">第 1 关</span>
+      </div>
+      <div class="stage-bar" id="stage-bar"></div>
+      <div class="ch-msg" id="ch-msg"></div>
+      <div id="hint-tags"></div>
+      <div class="ch-bar"><div class="ch-fill" id="ch-fill" style="width:0%"></div></div>
+      <button id="next-btn" onclick="nextQ()">下一题 →</button>
+      <button id="skip-btn" onclick="skipQ()" style="display:none;width:100%;padding:7px;margin-top:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--dim);font-size:11px;font-family:var(--ff);cursor:pointer;">跳过此题（-5分）</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-card">
+    <div class="leg-item"><div class="leg-dot" style="background:#ffee44;box-shadow:0 0 5px #ffee44"></div><span>光线（各段不同颜色）</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.45)"></div><span>法线（虚线）</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7899bb"></div><span>镜面（M2/M3 拖端点调角）</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ff6b35;box-shadow:0 0 5px #ff6b35"></div><span>目标</span></div>
+    <div class="leg-item" style="margin-left:auto;color:var(--dim);font-size:10px">单镜：拖光源 | 多镜：拖镜端点</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── 结算弹窗 ── -->
+<div id="result-overlay">
+  <div class="result-box">
+    <div class="result-title">🎉 挑战完成！</div>
+    <div class="result-subtitle">你已完成全部 18 关挑战！</div>
+    <div class="result-stats">
+      <div class="stat-box"><div class="stat-label">最终得分</div><div class="stat-val" id="final-score">0</div></div>
+      <div class="stat-box"><div class="stat-label">用时</div><div class="stat-val" id="final-time">0s</div></div>
+      <div class="stat-box"><div class="stat-label">完成关卡</div><div class="stat-val" id="final-lv">0</div></div>
+      <div class="stat-box"><div class="stat-label">评级</div><div class="stat-val" id="final-grade">A</div></div>
+    </div>
+    <div class="name-row">
+      <input class="name-input" id="student-name" type="text" placeholder="输入你的名字获取证书" maxlength="20">
+      <button class="cert-btn" onclick="generateCert()">🏆 证书</button>
+    </div>
+    <button class="replay-btn" onclick="replayGame()">🔁 再战一次</button>
+    <div style="font-size:11px;color:var(--dim)">峇株吧辖华仁中学 · 蔡逸众制作</div>
+  </div>
+</div>
+
+<!-- ── 证书弹窗 ── -->
+<div id="cert-overlay">
+  <canvas id="cert-canvas" width="700" height="500"></canvas>
+  <div class="cert-actions">
+    <button class="cert-dl-btn" onclick="downloadCert()">⬇️ 下载证书 (PNG)</button>
+    <button class="cert-close-btn" onclick="closeCert()">关闭</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  光的反射定律 · 互动游戏
+//  修复版 by Claude — 原作：峇株吧辖华仁中学蔡逸众
+// ══════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let mode = 'free';
+let opts = {normal:true, arcs:true, labels:true, reflected:true, beam:false};
+
+function makeMirror(x1,y1,x2,y2){ return {p1:{x:x1,y:y1}, p2:{x:x2,y:y2}}; }
+
+let mirrors = [ makeMirror(W/2+200,310,W/2-200,310) ]; // 法线朝上（p1右→p2左）
+let src = {x:180, y:120};
+let numMirrors = 1;
+
+let score=0, level=1, tolerance=7, answered=false;
+let targetPos=null, targetAngle=null;
+let drag = null;
+let startTime=0;
+let curDraggable='src';
+let curFixedMirrors=[];
+
+// ──────────────────────────────────────────────────────
+//  几何运算
+// ──────────────────────────────────────────────────────
+function mirrorTangent(m){
+  const dx=m.p2.x-m.p1.x, dy=m.p2.y-m.p1.y, l=Math.hypot(dx,dy)||1;
+  return {x:dx/l, y:dy/l};
+}
+// 镜子法线（固定方向：始终朝p1→p2方向的左侧，即反射面固定）
+// 正面 = 法线那一侧；背面来的光直接穿过，不反射
+function mirrorFrontNormal(m){
+  const t=mirrorTangent(m);
+  // 固定法线方向：切线逆时针旋转90°
+  return {x:-t.y, y:t.x};
+}
+function mirrorNormal(m, fromPt){
+  // 兼容旧调用：根据来源点选择法线方向（用于画法线线段）
+  const t=mirrorTangent(m);
+  const n1={x:-t.y, y:t.x};
+  const mx=(m.p1.x+m.p2.x)/2, my=(m.p1.y+m.p2.y)/2;
+  const ds={x:fromPt.x-mx, y:fromPt.y-my};
+  return (n1.x*ds.x+n1.y*ds.y)>=0 ? n1 : {x:t.y, y:-t.x};
+}
+function mirrorMid(m){ return {x:(m.p1.x+m.p2.x)/2, y:(m.p1.y+m.p2.y)/2}; }
+
+// 射线 vs 镜子线段：返回 {hit, tRay, normal} 或 null
+// 只有从正面射来才返回（单面反射）
+function rayVsMirror(P, D, m){
+  const dx=m.p2.x-m.p1.x, dy=m.p2.y-m.p1.y;
+  const denom=D.x*dy - D.y*dx;
+  if(Math.abs(denom)<1e-9) return null;
+  const tRay=((m.p1.x-P.x)*dy-(m.p1.y-P.y)*dx)/denom;
+  const tSeg=((m.p1.x-P.x)*D.y-(m.p1.y-P.y)*D.x)/denom;
+  if(tRay<2 || tSeg<-0.01 || tSeg>1.01) return null;
+  // 单面检测：光线方向必须与法线相对（从正面来）
+  const N = mirrorFrontNormal(m);
+  if(D.x*N.x + D.y*N.y >= 0) return null; // 从背面来，穿过
+  return {hit:{x:P.x+D.x*tRay, y:P.y+D.y*tRay}, tRay, normal:N};
+}
+
+function reflectDir(D, N){
+  const dot=D.x*N.x+D.y*N.y;
+  return {x:D.x-2*dot*N.x, y:D.y-2*dot*N.y};
+}
+
+// ── 完整光路追踪 ──
+function traceRay(){
+  const active = mirrors.slice(0, numMirrors);
+  const mid0 = mirrorMid(active[0]);
+  let dx=mid0.x-src.x, dy=mid0.y-src.y, l=Math.hypot(dx,dy)||1;
+  let D = {x:dx/l, y:dy/l};
+  let P = {x:src.x, y:src.y};
+
+  const path = [{x:P.x,y:P.y}];
+  const hits = [];
+  const used = new Set();
+
+  for(let bounce=0; bounce<active.length*2; bounce++){
+    // 找最近的交点（所有镜子，含正背面都阻断）
+    let bestHit=null, bestT=Infinity, bestMi=-1, bestN=null, isFront=false;
+
+    for(let mi=0; mi<active.length; mi++){
+      if(used.has(mi)) continue;
+      const m=active[mi];
+      // 检测正面（可反射）
+      const rf=rayVsMirror(P, D, m);
+      if(rf && rf.tRay<bestT){
+        bestT=rf.tRay; bestHit=rf.hit; bestMi=mi; bestN=rf.normal; isFront=true;
+      }
+      // 检测背面（仅阻断，不反射）
+      const mb = backRayVsMirror(P, D, m);
+      if(mb && mb.tRay<bestT){
+        bestT=mb.tRay; bestHit=mb.hit; bestMi=mi; bestN=null; isFront=false;
+      }
+    }
+
+    if(!bestHit) break;
+
+    if(!isFront){
+      // 光线打到镜子背面：阻断，停止追踪
+      path.push({x:bestHit.x, y:bestHit.y});
+      return {path, hits, finalOrigin:bestHit, finalDir:{x:0,y:0}, blocked:true};
+    }
+
+    used.add(bestMi);
+    const cosA = -(D.x*bestN.x+D.y*bestN.y);
+    const incDeg = Math.round(Math.acos(Math.min(1,Math.max(-1,cosA)))*180/Math.PI);
+    hits.push({hit:bestHit, normal:bestN, incDeg, mirrorIdx:bestMi});
+    path.push({x:bestHit.x, y:bestHit.y});
+    D = reflectDir(D, bestN);
+    P = bestHit;
+
+    // 已经完成了所需要的反射次数
+    if(hits.length>=numMirrors) break;
+  }
+
+  const ext = 900;
+  path.push({x:P.x+D.x*ext, y:P.y+D.y*ext});
+  return {path, hits, finalOrigin:P, finalDir:D, blocked:false};
+}
+
+// 背面碰撞检测（不反射，只阻断）
+function backRayVsMirror(P, D, m){
+  const dx=m.p2.x-m.p1.x, dy=m.p2.y-m.p1.y;
+  const denom=D.x*dy - D.y*dx;
+  if(Math.abs(denom)<1e-9) return null;
+  const tRay=((m.p1.x-P.x)*dy-(m.p1.y-P.y)*dx)/denom;
+  const tSeg=((m.p1.x-P.x)*D.y-(m.p1.y-P.y)*D.x)/denom;
+  if(tRay<2 || tSeg<-0.01 || tSeg>1.01) return null;
+  const N = mirrorFrontNormal(m);
+  if(D.x*N.x + D.y*N.y < 0) return null; // 从正面来，交给rayVsMirror处理
+  return {hit:{x:P.x+D.x*tRay, y:P.y+D.y*tRay}, tRay};
+}
+
+// ──────────────────────────────────────────────────────
+//  绘制
+// ──────────────────────────────────────────────────────
+const RAY_COLS  = ['#ffee44','#00d4ff','#ff88cc','#88ffcc'];
+const MIR_COLS  = ['#cce0ff','#88ffcc','#ffcc88'];
+const MIR_GLOW  = ['rgba(200,224,255,.5)','rgba(136,255,204,.4)','rgba(255,204,136,.4)'];
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawGrid();
+  const {path, hits, finalOrigin, finalDir} = traceRay();
+  for(let i=0;i<numMirrors;i++) drawMirror(mirrors[i], i);
+  if(opts.normal) hits.forEach(h=>drawNormal(h.hit, h.normal));
+  drawRayPath(path, hits);
+  if(opts.arcs||opts.labels) hits.forEach((h,i)=>drawAngles(h, path, i));
+  if(mode==='challenge' && targetPos) drawTarget();
+  updateAngles(hits);
+  if(mode==='challenge' && !answered) checkWin(path, hits);
+}
+
+function drawGrid(){
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+
+function drawMirror(m, idx){
+  const fn = mirrorFrontNormal(m);   // 固定正面法线
+  const bn = {x:-fn.x, y:-fn.y};    // 背面
+  const t  = mirrorTangent(m);
+  const len= Math.hypot(m.p2.x-m.p1.x, m.p2.y-m.p1.y);
+
+  // 背面阴影填充（深色斜线，表示不反射）
+  ctx.save(); ctx.strokeStyle='rgba(80,80,100,.35)'; ctx.lineWidth=1;
+  for(let s=0; s<=len; s+=10){
+    const fx=m.p1.x+t.x*s, fy=m.p1.y+t.y*s;
+    ctx.beginPath(); ctx.moveTo(fx,fy);
+    ctx.lineTo(fx+bn.x*8+t.x*(-6), fy+bn.y*8+t.y*(-6)); ctx.stroke();
+  }
+  ctx.restore();
+
+  // 镜体填充
+  ctx.save();
+  const gr=ctx.createLinearGradient(m.p1.x,m.p1.y,m.p2.x,m.p2.y);
+  gr.addColorStop(0,'#1a2a40'); gr.addColorStop(.5,'#5a7a99'); gr.addColorStop(1,'#1a2a40');
+  ctx.beginPath();
+  ctx.moveTo(m.p1.x,m.p1.y); ctx.lineTo(m.p2.x,m.p2.y);
+  ctx.lineTo(m.p2.x+bn.x*6, m.p2.y+bn.y*6);
+  ctx.lineTo(m.p1.x+bn.x*6, m.p1.y+bn.y*6);
+  ctx.closePath(); ctx.fillStyle=gr; ctx.fill(); ctx.restore();
+
+  // 正面发光边（亮边 = 反射面）
+  ctx.save(); ctx.beginPath(); ctx.moveTo(m.p1.x,m.p1.y); ctx.lineTo(m.p2.x,m.p2.y);
+  ctx.strokeStyle=MIR_COLS[idx]; ctx.lineWidth=3;
+  ctx.shadowColor=MIR_GLOW[idx]; ctx.shadowBlur=8; ctx.stroke(); ctx.restore();
+
+  // 正面小箭头指示反射面（每隔40px一个）
+  ctx.save(); ctx.strokeStyle=MIR_COLS[idx]+'99'; ctx.lineWidth=1;
+  for(let s=20; s<len-10; s+=40){
+    const fx=m.p1.x+t.x*s, fy=m.p1.y+t.y*s;
+    const ex=fx+fn.x*10, ey=fy+fn.y*10;
+    ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(ex,ey);
+    // 小箭头头
+    const ang=Math.atan2(fn.y,fn.x);
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-Math.cos(ang-0.5)*5, ey-Math.sin(ang-0.5)*5);
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-Math.cos(ang+0.5)*5, ey-Math.sin(ang+0.5)*5);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 标签
+  const mid=mirrorMid(m);
+  ctx.fillStyle='rgba(200,220,255,.7)'; ctx.font='bold 11px sans-serif';
+  ctx.fillText('M'+(idx+1), mid.x+fn.x*16-6, mid.y+fn.y*16+4);
+
+  // 可拖端点手柄
+  if(idx>=1 && mode==='challenge' && !curFixedMirrors.includes(idx)){
+    const canDragMirror=(curDraggable==='mirrors'||curDraggable==='both');
+    if(canDragMirror){
+      [m.p1,m.p2].forEach(ep=>{
+        ctx.save();
+        ctx.beginPath(); ctx.arc(ep.x,ep.y,10,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,255,255,.18)';
+        ctx.strokeStyle=MIR_COLS[idx]; ctx.lineWidth=2;
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle=MIR_COLS[idx]; ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(ep.x-4,ep.y);ctx.lineTo(ep.x+4,ep.y);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(ep.x,ep.y-4);ctx.lineTo(ep.x,ep.y+4);ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+  // 可拖光源光晕（当本关允许拖光源时）
+}
+
+function drawNormal(hit, n){
+  ctx.save(); ctx.setLineDash([5,5]);
+  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(hit.x+n.x*100, hit.y+n.y*100);
+  ctx.lineTo(hit.x-n.x*45,  hit.y-n.y*45);
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+}
+
+function drawRayPath(path, hits){
+  if(path.length<2) return;
+  for(let i=0;i<path.length-1;i++){
+    if(i>=1 && !opts.reflected) continue;
+    const A=path[i], B=path[i+1];
+    const col=RAY_COLS[i%RAY_COLS.length];
+    const dx=B.x-A.x, dy=B.y-A.y, l=Math.hypot(dx,dy)||1;
+    if(opts.beam){
+      const px=-dy/l*9,py=dx/l*9;
+      const gr=ctx.createLinearGradient(A.x,A.y,B.x,B.y);
+      gr.addColorStop(0,col+'88'); gr.addColorStop(1,col+'11');
+      ctx.beginPath();
+      ctx.moveTo(A.x+px,A.y+py);ctx.lineTo(B.x+px,B.y+py);
+      ctx.lineTo(B.x-px,B.y-py);ctx.lineTo(A.x-px,A.y-py);
+      ctx.fillStyle=gr; ctx.fill();
+    }
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=2.5;
+    ctx.shadowColor=col; ctx.shadowBlur=9;
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    drawArrow((A.x+B.x)/2,(A.y+B.y)/2,Math.atan2(dy,dx),col);
+    ctx.restore();
+  }
+  ctx.save();
+  const sg=ctx.createRadialGradient(src.x,src.y,0,src.x,src.y,12);
+  sg.addColorStop(0,'rgba(255,238,68,.9)'); sg.addColorStop(1,'rgba(255,238,68,0)');
+  ctx.beginPath(); ctx.arc(src.x,src.y,12,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+  ctx.beginPath(); ctx.arc(src.x,src.y,5,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.shadowColor='#ffee44'; ctx.shadowBlur=12; ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='rgba(255,238,68,.8)'; ctx.font='bold 10px sans-serif';
+  ctx.fillText('光源', src.x+8, src.y-10);
+}
+
+function drawAngles(h, path, hitIdx){
+  const {hit,normal,incDeg,mirrorIdx}=h;
+  if(incDeg<2) return;
+  const R=44;
+  const pi=hitIdx+1;
+  if(pi<1||pi>=path.length-1) return;
+  const prev=path[pi-1], next=path[pi+1];
+  const normalAngle=Math.atan2(normal.y,normal.x);
+  const incAngle=Math.atan2(prev.y-hit.y,prev.x-hit.x);
+  const refAngle=Math.atan2(next.y-hit.y,next.x-hit.x);
+  const c1=RAY_COLS[(pi-1)%RAY_COLS.length];
+  const c2=RAY_COLS[pi%RAY_COLS.length];
+  function shortArc(a1,a2,color){
+    let diff=a2-a1;
+    while(diff>Math.PI)diff-=2*Math.PI;
+    while(diff<-Math.PI)diff+=2*Math.PI;
+    if(Math.abs(diff)<0.015) return a1;
+    if(opts.arcs){
+      ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(hit.x,hit.y,R,a1,a1+diff,diff<0); ctx.stroke(); ctx.restore();
+    }
+    return a1+diff/2;
+  }
+  const incMid=shortArc(normalAngle,incAngle,c1+'cc');
+  const refMid=shortArc(normalAngle,refAngle,c2+'cc');
+  if(opts.labels){
+    const LR=R+17;
+    ctx.font='bold 12px monospace';
+    ctx.fillStyle=c1; ctx.fillText(`${incDeg}°`,hit.x+Math.cos(incMid)*LR-9,hit.y+Math.sin(incMid)*LR+5);
+    ctx.fillStyle=c2; ctx.fillText(`${incDeg}°`,hit.x+Math.cos(refMid)*LR-9,hit.y+Math.sin(refMid)*LR+5);
+  }
+}
+
+function drawTarget(){
+  if(!targetPos) return;
+  const {x,y}=targetPos;
+  // 静态目标圈（无脉冲动画，避免RAF无限循环）
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,24,0,Math.PI*2);
+  const tg=ctx.createRadialGradient(x,y,3,x,y,26);
+  tg.addColorStop(0,'rgba(255,107,53,.75)');tg.addColorStop(.6,'rgba(255,107,53,.2)');tg.addColorStop(1,'rgba(255,107,53,0)');
+  ctx.fillStyle=tg; ctx.fill();
+  ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,107,53,.9)'; ctx.lineWidth=2;
+  ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
+  ctx.fillStyle='#ff6b35'; ctx.shadowColor='#ff6b35'; ctx.shadowBlur=14; ctx.fill();
+  ctx.fillStyle='rgba(255,107,53,.95)'; ctx.font='bold 10px sans-serif'; ctx.shadowBlur=0;
+  ctx.fillText('目标',x-12,y-30);
+  ctx.restore();
+}
+
+function drawArrow(x,y,angle,color){
+  const s=7; ctx.save(); ctx.translate(x,y); ctx.rotate(angle);
+  ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=4;
+  ctx.beginPath(); ctx.moveTo(s,0); ctx.lineTo(-s*.6,-s*.5); ctx.lineTo(-s*.6,s*.5);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+// ──────────────────────────────────────────────────────
+//  角度面板更新
+// ──────────────────────────────────────────────────────
+function updateAngles(hits){
+  const el=document.getElementById('angle-rows');
+  if(!hits.length){
+    el.innerHTML='<div style="color:var(--dim);font-size:11px;grid-column:1/-1;padding:4px 0">光线未打到镜面</div>';
+    return;
+  }
+  el.innerHTML=hits.map(h=>{
+    const c=MIR_COLS[h.mirrorIdx];
+    return `<div class="angle-box">
+      <div class="angle-label" style="color:${c}">M${h.mirrorIdx+1} 入射</div>
+      <div class="angle-value">${h.incDeg}</div><div class="angle-unit">°</div>
+    </div>
+    <div class="angle-box" style="border-color:${c}44">
+      <div class="angle-label" style="color:${c}">M${h.mirrorIdx+1} 反射</div>
+      <div class="angle-value" style="color:var(--green)">${h.incDeg}</div><div class="angle-unit">°</div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────────────
+//  进度条
+// ──────────────────────────────────────────────────────
+function updateStageBar(){
+  const bar=document.getElementById('stage-bar');
+  // 三段：1-5 / 6-10 / 11-18
+  const stages=[{start:1,end:5},{start:6,end:10},{start:11,end:TOTAL_LEVELS}];
+  bar.innerHTML=stages.map(s=>{
+    let cls='stage-pip';
+    if(level>s.end) cls+=' done';
+    else if(level>=s.start) cls+=' active';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  // 同步总关卡说明
+  document.getElementById('lv-disp').textContent=`第 ${level} / ${TOTAL_LEVELS} 关`;
+}
+
+// ──────────────────────────────────────────────────────
+//  关卡定义（每关独立布局 + 操作方式）
+//  每个关卡对象包含：
+//    mirrors   : 镜子数组（初始位置）
+//    src       : 光源初始位置
+//    numMirrors: 激活镜子数量
+//    draggable : 'src'=拖光源, 'mirrors'=拖镜子, 'both'=两者都能拖
+//    fixedMirrors: [索引数组] 哪些镜子是固定的（不能拖）
+//    target    : {x,y} 固定目标，或 null（角度关卡用 targetAngle）
+//    targetAngle: 数字=角度关卡，null=位置关卡
+//    tolerance : 覆盖全局容差
+//    hint      : 提示文字
+//    desc      : 任务描述
+// ──────────────────────────────────────────────────────
+
+// 辅助：创建关卡对象
+function mkLevel(cfg){ return cfg; }
+
+// ══════════════════════════════════════════════════════
+//  关卡设计说明：
+//  镜子法线 = p1→p2 切线 逆时针旋转90° = (-dy, dx)/len
+//  即：站在p1看p2，法线朝左手边
+//  设计时确保：光源 → M1正面 → 反射 → M2正面 → 反射 → 目标
+//  单面镜：背面来的光会被阻断（不会穿透）
+// ══════════════════════════════════════════════════════
+
+const LEVELS = [
+  // ══ 第 1–5 关：单镜，拖光源，调角度 ══
+  // M1水平，法线朝上（正面朝上）；光源在上方
+  mkLevel({
+    mirrors:[makeMirror(520,320,100,320)],  // 水平翻转，法线真正朝上(0,-1)
+    src:{x:460,y:80}, numMirrors:1,
+    draggable:'src', fixedMirrors:[0],
+    targetAngle:30, target:null,
+    desc:'将入射角调整到 <b>30°</b>',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:6
+  }),
+  mkLevel({
+    mirrors:[makeMirror(520,320,100,320)],  // 法线朝上
+    src:{x:300,y:80}, numMirrors:1,
+    draggable:'src', fixedMirrors:[0],
+    targetAngle:45, target:null,
+    desc:'将入射角调整到 <b>45°</b>',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:5
+  }),
+  mkLevel({
+    // 斜镜：p1(80,400)→p2(480,160)，切线朝右上，法线朝左上
+    // 光源在左上，从法线正面射来
+    mirrors:[makeMirror(80,400,480,160)],
+    src:{x:80,y:120}, numMirrors:1,
+    draggable:'src', fixedMirrors:[0],
+    targetAngle:50, target:null,
+    desc:'镜面已倾斜！将入射角调整到 <b>50°</b>',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:5
+  }),
+  mkLevel({
+    mirrors:[makeMirror(520,320,100,320)],  // 法线朝上
+    src:{x:150,y:100}, numMirrors:1,
+    draggable:'src', fixedMirrors:[0],
+    targetAngle:20, target:null,
+    desc:'小角度挑战！将入射角调整到 <b>20°</b>',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:5
+  }),
+  mkLevel({
+    // 斜镜另一个方向：p1(80,160)→p2(480,400)，法线朝右上
+    // 光源在右上方正面射来
+    mirrors:[makeMirror(80,160,480,400)],
+    src:{x:460,y:80}, numMirrors:1,
+    draggable:'src', fixedMirrors:[0],
+    targetAngle:60, target:null,
+    desc:'反向斜镜！将入射角调整到 <b>60°</b>',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:5
+  }),
+
+  // ══ 第 6–10 关：双镜 ══
+  // 关卡6：光源固定，拖M2
+  // M1水平法线必须朝下才能让上方光源打到正面
+  // makeMirror(p1,p2)法线 = (-dy,dx)/len，水平镜朝下需 dy>0 即 p1在左p2在右但y相同
+  // 水平线切线(1,0)，法线(0,-1)朝下 → 光从上方来打背面！
+  // 修正：要让光从上打到正面，需法线朝上：切线(-1,0)，即p1在右p2在左
+  // M1: p1(360,300)→p2(100,300) 切线=(-1,0) 法线=(0,-1)... 还是不对
+  // 根本：法线=(-dy,dx)，水平线dy=0，法线=(0,dx/|dx|)
+  // p1(100,300)→p2(360,300): dx=260,dy=0, 切线=(1,0), 法线=(0,1) → 朝下(y轴向下)
+  // Canvas y轴向下！所以法线(0,1)=朝下，光源在上方(y小)，光向下打镜子，D=(?,+)
+  // D·N = (+) > 0 → 背面！需要法线朝上(0,-1)：p1在右p2在左
+  // M1: p1(360,300)→p2(100,300): 切线=(-1,0), 法线=(0,-1)=朝上 ✓
+  // 光从上方(y<300)向下射，D·N = D.y*(-1) < 0（D.y>0时）✓ 正面
+  mkLevel({
+    mirrors:[
+      makeMirror(360,300,100,300),   // M1水平，法线朝上（p1右→p2左）
+      makeMirror(460,100,460,360)    // M2竖直初始（会被打乱）
+    ],
+    src:{x:200,y:120}, numMirrors:2,
+    draggable:'mirrors', fixedMirrors:[0],
+    target:{x:530,y:410}, targetAngle:null,
+    desc:'光源固定！转动 M2 把光线引到目标 🎯',
+    hint:'<span class="hint-tag h2">拖动 M2 端点</span>',
+    tolerance:22
+  }),
+  // 关卡7：拖光源，M1M2全固定
+  // M1短竖直(380,160)→(380,300)法线朝右；光源右上，光斜向左下打M1正面，反射后右下
+  // M2斜(480,220)→(360,360)，p1右上→p2左下，法线朝左下；接收右下来的光，反射后左上
+  // 目标在左上(80,100)，被M1(x=380竖直)遮挡，光源无法直达，必须M1→M2两次反射
+  mkLevel({
+    mirrors:[
+      makeMirror(380,320,380,80),    // M1竖直延伸至顶，法线朝右，完全遮挡左侧目标
+      makeMirror(480,310,360,450)    // M2斜，法线朝左下
+    ],
+    src:{x:520,y:100}, numMirrors:2,
+    draggable:'src', fixedMirrors:[0,1],
+    target:{x:200,y:240}, targetAngle:null,
+    desc:'M1 是挡板！移动光源，让光经两次反射绕到目标 🎯',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:25
+  }),
+  // 关卡8：光源固定，只拖M2
+  // M1水平法线朝上：p1(380,380)→p2(80,380) 切线=(-1,0) 法线=(0,-1)朝上
+  // 光源在上方，光向下打M1正面，反射后向上→不对，应向右
+  // 让光斜打M1：光源偏左，M1偏右，反射后光向右上→再被M2向下打到目标
+  // M1: p1(380,360)→p2(80,360) 法线朝上，光从左上斜打，反射向右上
+  // M2可调，把光打到右下目标(540,420)
+  mkLevel({
+    mirrors:[
+      makeMirror(540,360,80,360),    // M1水平延伸至右侧，法线朝上，遮挡右下目标
+      makeMirror(420,280,540,120)    // M2斜初始（会被打乱）
+    ],
+    src:{x:160,y:120}, numMirrors:2,
+    draggable:'mirrors', fixedMirrors:[0],
+    target:{x:540,y:420}, targetAngle:null,
+    desc:'转动 M2，让光线打到右下角目标！',
+    hint:'<span class="hint-tag h2">拖动 M2 端点</span>',
+    tolerance:22
+  }),
+  // 关卡9：光源+M2都能动，M1是竖直挡板
+  // M1竖直：p1(300,80)→p2(300,400) 切线=(0,1) 法线=(-1,0)朝左
+  // 光源在左侧，向右打M1正面，M1在中间挡住直达路线
+  mkLevel({
+    mirrors:[
+      makeMirror(300,80,300,400),    // M1竖直，法线朝左
+      makeMirror(380,140,500,300)    // M2斜，端点远离边界
+    ],
+    src:{x:120,y:220}, numMirrors:2,
+    draggable:'both', fixedMirrors:[0],
+    target:{x:540,y:420}, targetAngle:null,
+    desc:'M1 是竖直挡板！光必须经过 M1 反射才能到目标',
+    hint:'<span class="hint-tag h1">拖光源</span><span class="hint-tag h2">拖 M2</span>',
+    tolerance:22
+  }),
+  // 关卡10：光源固定，拖M2，M1斜置在画面中央
+  // M1斜，放在画面中央偏左，法线朝右上，光从右上方打正面
+  // M1: p1(180,400)→p2(340,200) 切线=(0.62,-0.78) 法线=(0.78,0.62)朝右下→错
+  // 需要法线朝左上：p1(340,200)→p2(180,400) 切线=(-0.62,0.78) 法线=(-0.78,-0.62)朝左上
+  // 光源在右上(400,80)，光向左下打，D·N: D≈(-0.7,0.7)·(-0.78,-0.62)=0.546-0.434>0→背面！
+  // 换：法线朝右上。p1(180,400)→p2(340,200): 切线=(0.62,-0.78) 法线=(0.78,0.62)朝右下
+  // 光从左上来：光源(120,80)，D≈(0.52,0.85)，D·N=0.41+0.53>0→背面
+  // 要让法线朝左上，且光从右下来打正面：光源在右下
+  // p1(340,200)→p2(180,400): 法线=(-0.78,-0.62)朝左上，光从右下来D≈(-0.5,0.3)，D·N=0.39-0.19>0→背面
+  // 最简单：M1水平放中央，光源从上打，反射向右，M2把光打到左下
+  // M1: p1(400,240)→p2(140,240) 法线朝上，光源在上方
+  // 目标在左下(80,400)，需M2把光折返，光源固定
+  mkLevel({
+    mirrors:[
+      makeMirror(400,240,160,240),   // M1水平，左端缩短1/4，法线朝上
+      makeMirror(440,140,560,320)    // M2斜（可调）
+    ],
+    src:{x:280,y:80}, numMirrors:2,
+    draggable:'mirrors', fixedMirrors:[0],
+    target:{x:80,y:400}, targetAngle:null,
+    desc:'M1 在画面中央！转动 M2 让光折返到左下目标',
+    hint:'<span class="hint-tag h2">拖动 M2 端点</span>',
+    tolerance:22
+  }),
+
+  // ══ 第 11–18 关：三镜 ══
+  // 关卡11：光源固定，只拖M2，M1M3固定
+  // M1水平翻转(260,200→60,200)法线朝上；src(80,80)从左上斜打，反射后右上
+  // M3竖直(480,80→480,400)法线朝左；接收右下方向光，反射后左下
+  // M2（可调）把M1右上反射光转向右下，再让M3反射到左下目标
+  mkLevel({
+    mirrors:[
+      makeMirror(260,200,60,200),    // M1水平翻转，法线朝上(0,-1)
+      makeMirror(280,120,460,300),   // M2 斜（可调）
+      makeMirror(480,80,480,400)     // M3 竖直，法线朝左(-1,0)
+    ],
+    src:{x:80,y:80}, numMirrors:3,
+    draggable:'mirrors', fixedMirrors:[0,2],
+    target:{x:80,y:420}, targetAngle:null,
+    desc:'只有 M2 可动！调整它让光经过三面镜到达目标',
+    hint:'<span class="hint-tag h2">拖动 M2 端点</span>',
+    tolerance:25
+  }),
+  // 关卡12：光源固定，只拖M3，M1M2固定
+  // M1水平翻转(320,300→80,300)法线朝上；src(160,100)，反射后朝右
+  // M2竖直(440,80→440,340)法线朝左(-1,0)；M1反射光从左打正面，反射后朝左
+  // M2是必经挡板（目标在M2左侧），M3可调把光打到目标(80,420)
+  mkLevel({
+    mirrors:[
+      makeMirror(320,300,80,300),    // M1水平翻转，法线朝上
+      makeMirror(440,80,440,340),    // M2竖直，法线朝左（必经挡板）
+      makeMirror(200,200,380,360)    // M3 斜（可调）
+    ],
+    src:{x:160,y:100}, numMirrors:3,
+    draggable:'mirrors', fixedMirrors:[0,1],
+    target:{x:80,y:420}, targetAngle:null,
+    desc:'M1 M2 固定！转动 M3 让光折返到左下目标',
+    hint:'<span class="hint-tag h3">拖动 M3 端点</span>',
+    tolerance:25
+  }),
+  // 关卡13：拖光源，三镜全固定
+  // M1水平靠上(80,100→440,100)法线朝下(0,+1)；光源在M1下方向上打正面
+  // M2竖直(420,80→420,380)法线朝左(-1,0)；接收M1反射后向右的光
+  // M3水平靠底(540,420→80,420)法线朝上(0,-1)；接收M2反射后向下的光，反射向上→目标
+  // 光路：src(80,280)向上 → M1反射向右下 → M2反射向左下 → M3反射向左上 → 目标
+  mkLevel({
+    mirrors:[
+      makeMirror(80,100,440,100),    // M1水平靠上，法线朝下(0,+1)
+      makeMirror(420,80,420,420),    // M2竖直延伸至底部，法线朝左(-1,0)
+      makeMirror(540,420,80,420)     // M3水平靠底，法线朝上(0,-1)
+    ],
+    src:{x:500,y:280}, numMirrors:3,
+    draggable:'src', fixedMirrors:[0,1,2],
+    target:{x:200,y:300}, targetAngle:null,
+    desc:'三镜全固定！光源在 M1 下方，移动它让光穿越三面镜到目标',
+    hint:'<span class="hint-tag h1">拖动 光源</span>',
+    tolerance:25
+  }),
+  // 关卡14：光源固定，M2+M3可调
+  // M1水平(80,160→280,160)法线朝上
+  // 目标在右下(520,420)，需要M2M3两次折射才能到
+  mkLevel({
+    mirrors:[
+      makeMirror(80,160,300,160),    // M1水平上部，法线朝上
+      makeMirror(320,200,520,380),   // M2 斜（可调）
+      makeMirror(400,380,560,180)    // M3 斜（可调）
+    ],
+    src:{x:160,y:60}, numMirrors:3,
+    draggable:'mirrors', fixedMirrors:[0],
+    target:{x:100,y:400}, targetAngle:null,
+    desc:'调整 M2 和 M3，让光线折返！',
+    hint:'<span class="hint-tag h2">拖 M2</span><span class="hint-tag h3">拖 M3</span>',
+    tolerance:25
+  }),
+  // 关卡15：光源+M2都能动，M1M3固定
+  // M1竖直挡板(300,60→300,380)法线朝左；目标(440,300)在M1右侧被挡住，光无法直达
+  // M3水平底(560,420→400,420)法线朝上；光经M2打M3反射向上到目标
+  // 光路：src(左侧) → M1反射 → M2(可调) → M3 → 目标(440,300)
+  mkLevel({
+    mirrors:[
+      makeMirror(300,140,300,380),   // M1竖直挡板，上端缩短1/4，法线朝左
+      makeMirror(360,120,540,300),   // M2 斜（可调）
+      makeMirror(560,420,400,420)    // M3水平底，法线朝上(p1右→p2左)
+    ],
+    src:{x:120,y:200}, numMirrors:3,
+    draggable:'both', fixedMirrors:[0,2],
+    target:{x:440,y:300}, targetAngle:null,
+    desc:'M1 是挡板，目标在右侧！光必须经过 M1 → M2 → M3 才能到达',
+    hint:'<span class="hint-tag h1">拖光源</span><span class="hint-tag h2">拖 M2</span>',
+    tolerance:25
+  }),
+  // 关卡16：光源固定，只拖M3，M1竖直挡板+M2竖直固定，目标被M1遮挡
+  // M1竖直(280,80→280,380)法线朝左；M2竖直(160,360→160,80)法线朝右
+  // 光路：src(160,120)→M1(向左反射)→M2(向右反射)→M3(可调)→目标(480,400)
+  mkLevel({
+    mirrors:[
+      makeMirror(280,80,280,380),    // M1竖直挡板，法线朝左(-1,0)
+      makeMirror(160,360,160,80),    // M2竖直，法线朝右(1,0)
+      makeMirror(440,200,560,380)    // M3（可调）
+    ],
+    src:{x:160,y:120}, numMirrors:3,
+    draggable:'mirrors', fixedMirrors:[0,1],
+    target:{x:480,y:400}, targetAngle:null,
+    desc:'光路已被 M1→M2 折叠！只调 M3 把光线打到右下目标',
+    hint:'<span class="hint-tag h3">拖动 M3 端点</span>',
+    tolerance:25
+  }),
+  // 关卡17：光源+M2+M3可动，M1固定（BOSS前奏）
+  mkLevel({
+    mirrors:[
+      makeMirror(60,220,260,420),    // M1斜，法线朝右上，固定
+      makeMirror(280,380,480,220),   // M2（可调）
+      makeMirror(420,100,560,300)    // M3（可调）
+    ],
+    src:{x:80,y:100}, numMirrors:3,
+    draggable:'both', fixedMirrors:[0],
+    target:{x:540,y:420}, targetAngle:null,
+    desc:'光源 M2 M3 都能动，M1 固定，找到通路！',
+    hint:'<span class="hint-tag h1">光源</span><span class="hint-tag h2">M2</span><span class="hint-tag h3">M3</span>',
+    tolerance:22
+  }),
+  // 关卡18：BOSS关，所有镜子+光源都能动
+  mkLevel({
+    mirrors:[
+      makeMirror(80,400,280,240),    // M1 斜（也可调，难度最高）
+      makeMirror(300,180,480,340),   // M2（可调）
+      makeMirror(420,380,580,180)    // M3（可调）
+    ],
+    src:{x:80,y:160}, numMirrors:3,
+    draggable:'both', fixedMirrors:[],
+    target:{x:300,y:60}, targetAngle:null,
+    desc:'🔥 BOSS 关！三面镜和光源全部可动，挑战极限！',
+    hint:'<span class="hint-tag h1">光源</span><span class="hint-tag h2">M2</span><span class="hint-tag h3">M3</span>',
+    tolerance:22
+  }),
+];
+
+const TOTAL_LEVELS = LEVELS.length;
+
+function levelStage(){
+  if(level<=5)  return 1;
+  if(level<=10) return 2;
+  return 3;
+}
+
+// 不再使用独立的 setupStageXLayout，改用 LEVELS 数组
+function setupStage3Layout(){
+  // 保留以防万一，实际不再调用
+  mirrors = [
+    makeMirror(60, 420, 220, 260),
+    makeMirror(240, 160, 440, 280),
+    makeMirror(380, 350, 560, 200)
+  ];
+  src = {x:60, y:200};
+  numMirrors = 3;
+}
+
+function buildChallenge(){
+  answered=false;
+  const idx = Math.min(level-1, LEVELS.length-1);
+  const lv  = LEVELS[idx];
+
+  // 深拷贝镜子（避免修改原始定义）
+  mirrors = lv.mirrors.map(m=>makeMirror(m.p1.x,m.p1.y,m.p2.x,m.p2.y));
+  src = {x:lv.src.x, y:lv.src.y};
+  numMirrors = lv.numMirrors;
+  curDraggable = lv.draggable;
+  curFixedMirrors = lv.fixedMirrors||[];
+  tolerance = lv.tolerance||7;
+
+  if(lv.targetAngle != null){
+    targetAngle = lv.targetAngle;
+    targetPos   = null;
+  } else {
+    scrambleMirrors();
+    targetPos   = {x:lv.target.x, y:lv.target.y};
+    targetAngle = null;
+  }
+
+  document.getElementById('ch-msg').innerHTML = lv.desc;
+  document.getElementById('hint-tags').innerHTML = lv.hint;
+}
+
+function scrambleMirrors(){
+  for(let mi=1; mi<numMirrors; mi++){
+    if(curFixedMirrors.includes(mi)) continue;
+    const m=mirrors[mi];
+    const mx=(m.p1.x+m.p2.x)/2, my=(m.p1.y+m.p2.y)/2;
+    const halfLen=Math.hypot(m.p2.x-m.p1.x,m.p2.y-m.p1.y)/2;
+    const origAng=Math.atan2(m.p2.y-m.p1.y,m.p2.x-m.p1.x);
+    const sign=(mi%2===0)?1:-1;
+    const delta=sign*(50+Math.random()*25)*Math.PI/180;
+    const newAng=origAng+delta;
+    m.p1={x:mx-Math.cos(newAng)*halfLen, y:my-Math.sin(newAng)*halfLen};
+    m.p2={x:mx+Math.cos(newAng)*halfLen, y:my+Math.sin(newAng)*halfLen};
+  }
+}
+
+function newQ(){
+  answered=false;
+  clearHold();
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('skip-btn').style.display='none';
+  document.getElementById('ch-fill').style.width='0%';
+  buildChallenge();
+  updateStageBar();
+  draw();
+  clearTimeout(skipTimer);
+  if(levelStage()>=2){
+    skipTimer=setTimeout(()=>{
+      if(!answered) document.getElementById('skip-btn').style.display='block';
+    }, 8000);
+  }
+}
+
+let skipTimer=null;
+function skipQ(){
+  score=Math.max(0,score-5);
+  document.getElementById('score-disp').textContent=score;
+  document.getElementById('skip-btn').style.display='none';
+  showToast('⏭ 跳过 -5分');
+  nextQ();
+}
+
+// ── 胜利判断 ──
+// 停留计时：位置关卡需持续命中3秒才算过关
+let holdStart = null;
+let holdInterval = null;
+const HOLD_MS = 3000;
+
+function startHold(){
+  if(holdStart !== null) return; // 已在计时
+  holdStart = Date.now();
+  holdInterval = setInterval(()=>{
+    if(answered){ clearHold(); return; }
+    if(holdStart === null){ clearHold(); return; }
+    const elapsed = Date.now() - holdStart;
+    const pct = Math.min(100, (elapsed / HOLD_MS) * 100);
+    document.getElementById('ch-fill').style.width = pct + '%';
+    const secs = Math.ceil((HOLD_MS - elapsed) / 1000);
+    document.getElementById('ch-msg').innerHTML =
+      `🎯 保持！<b style="color:var(--green)">${secs > 0 ? secs : 0}秒</b>后确认`;
+    if(elapsed >= HOLD_MS){
+      clearHold();
+      win('✓ 光线稳定命中目标！');
+    }
+  }, 50);
+}
+
+function clearHold(){
+  holdStart = null;
+  clearInterval(holdInterval);
+  holdInterval = null;
+}
+
+function resetHold(){
+  if(holdStart !== null){
+    clearHold();
+    document.getElementById('ch-fill').style.width = '0%';
+  }
+}
+
+function checkWin(path, hits){
+  if(answered) return;
+
+  if(targetAngle != null){
+    // 角度关卡：立即判定
+    if(!hits.length) return;
+    const diff = Math.abs(hits[0].incDeg - targetAngle);
+    const pct = Math.max(0, 100 - diff * 3.5);
+    document.getElementById('ch-fill').style.width = pct + '%';
+    if(diff <= tolerance) win(`✓ 正确！入射角 = ${hits[0].incDeg}°`);
+  } else {
+    // 位置关卡：需持续命中 HOLD_MS 毫秒
+    if(!targetPos || path.length < 2) return;
+    const A = path[path.length-2], B = path[path.length-1];
+    const dist = pointSegDist(targetPos, A, B);
+    if(dist < tolerance){
+      startHold(); // 开始或继续计时
+    } else {
+      resetHold(); // 离开目标，重置
+    }
+  }
+}
+function pointSegDist(P,A,B){
+  const dx=B.x-A.x, dy=B.y-A.y, l2=dx*dx+dy*dy;
+  if(l2<1) return Math.hypot(P.x-A.x,P.y-A.y);
+  const t=Math.max(0,Math.min(1,((P.x-A.x)*dx+(P.y-A.y)*dy)/l2));
+  return Math.hypot(P.x-(A.x+dx*t),P.y-(A.y+dy*t));
+}
+
+function win(msg){
+  answered=true;
+  const pts=Math.max(5,25-level+Math.floor(tolerance));
+  score+=pts;
+  document.getElementById('score-disp').textContent=score;
+  document.getElementById('ch-msg').textContent=msg;
+  document.getElementById('next-btn').style.display='block';
+  document.getElementById('ch-fill').style.width='100%';
+  showToast(`🎉 +${pts} 分！`);
+  draw();
+
+  if(level>=TOTAL_LEVELS) setTimeout(showResult, 800);
+}
+
+function nextQ(){
+  if(level>=TOTAL_LEVELS){ showResult(); return; }
+  level++;
+  document.getElementById('lv-disp').textContent=`第 ${level} / ${TOTAL_LEVELS} 关`;
+  newQ();
+}
+
+// ──────────────────────────────────────────────────────
+//  结算系统
+// ──────────────────────────────────────────────────────
+function getElapsed(){
+  return Math.round((Date.now()-startTime)/1000);
+}
+
+function formatTime(sec){
+  const m=Math.floor(sec/60), s=sec%60;
+  return m>0 ? `${m}m${s}s` : `${s}s`;
+}
+
+function getGrade(s){
+  if(s>=200) return 'S';
+  if(s>=160) return 'A';
+  if(s>=120) return 'B';
+  if(s>=80)  return 'C';
+  return 'D';
+}
+
+function showResult(){
+  const elapsed=getElapsed();
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('final-time').textContent=formatTime(elapsed);
+  document.getElementById('final-lv').textContent=level;
+  document.getElementById('final-grade').textContent=getGrade(score);
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function replayGame(){
+  document.getElementById('result-overlay').classList.remove('show');
+  setMode('challenge');
+}
+
+// ──────────────────────────────────────────────────────
+//  证书生成
+// ──────────────────────────────────────────────────────
+function generateCert(){
+  const name=document.getElementById('student-name').value.trim()||'同学';
+  const certCanvas=document.getElementById('cert-canvas');
+  const cc=certCanvas.getContext('2d');
+  const CW=700, CH=500;
+  certCanvas.width=CW; certCanvas.height=CH;
+
+  // 背景
+  const bg=cc.createLinearGradient(0,0,CW,CH);
+  bg.addColorStop(0,'#050a14'); bg.addColorStop(.5,'#0d1a30'); bg.addColorStop(1,'#050a14');
+  cc.fillStyle=bg; cc.fillRect(0,0,CW,CH);
+
+  // 星星背景
+  for(let i=0;i<80;i++){
+    const x=Math.random()*CW, y=Math.random()*CH;
+    const r=Math.random()*1.5+0.3;
+    cc.beginPath(); cc.arc(x,y,r,0,Math.PI*2);
+    cc.fillStyle=`rgba(255,255,255,${Math.random()*.6+.1})`; cc.fill();
+  }
+
+  // 外框
+  cc.strokeStyle='#00d4ff'; cc.lineWidth=3;
+  cc.strokeRect(20,20,CW-40,CH-40);
+  cc.strokeStyle='rgba(0,212,255,.3)'; cc.lineWidth=1;
+  cc.strokeRect(28,28,CW-56,CH-56);
+
+  // 角落装饰
+  function corner(x,y,dx,dy){
+    cc.strokeStyle='#ffd700'; cc.lineWidth=2;
+    cc.beginPath();cc.moveTo(x,y+dy*30);cc.lineTo(x,y);cc.lineTo(x+dx*30,y);cc.stroke();
+  }
+  corner(20,20,1,1); corner(CW-20,20,-1,1); corner(20,CH-20,1,-1); corner(CW-20,CH-20,-1,-1);
+
+  // 顶部图标
+  cc.font='36px sans-serif'; cc.textAlign='center';
+  cc.fillText('🏆', CW/2, 80);
+
+  // 标题
+  cc.font='bold 14px sans-serif'; cc.fillStyle='#00d4ff'; cc.letterSpacing='4px';
+  cc.fillText('PHYSICS LAB · 物理实验室', CW/2, 108);
+
+  // 副标题
+  cc.font='bold 26px sans-serif'; cc.fillStyle='#ffffff';
+  cc.fillText('光的反射定律 · 挑战证书', CW/2, 150);
+
+  // 横线
+  const lg=cc.createLinearGradient(60,0,CW-60,0);
+  lg.addColorStop(0,'transparent'); lg.addColorStop(.3,'#00d4ff'); lg.addColorStop(.7,'#00d4ff'); lg.addColorStop(1,'transparent');
+  cc.strokeStyle=lg; cc.lineWidth=1; cc.beginPath(); cc.moveTo(60,162);cc.lineTo(CW-60,162); cc.stroke();
+
+  // 授予语
+  cc.font='14px sans-serif'; cc.fillStyle='rgba(200,216,240,.7)';
+  cc.fillText('兹证明以下同学成功完成本游戏挑战', CW/2, 192);
+
+  // 名字
+  cc.font='bold 42px sans-serif'; cc.fillStyle='#ffd700';
+  cc.shadowColor='rgba(255,215,0,.5)'; cc.shadowBlur=16;
+  cc.fillText(name, CW/2, 252);
+  cc.shadowBlur=0;
+
+  // 横线
+  cc.strokeStyle=lg; cc.lineWidth=1; cc.beginPath(); cc.moveTo(100,265);cc.lineTo(CW-100,265);cc.stroke();
+
+  // 成绩格子
+  const elapsed=getElapsed();
+  const stats=[
+    {label:'最终得分',value:String(score)},
+    {label:'通关时间',value:formatTime(elapsed)},
+    {label:'完成关卡',value:String(level)+'关'},
+    {label:'评级',value:getGrade(score)}
+  ];
+  const boxW=120, boxH=60, boxGap=16;
+  const totalW=stats.length*(boxW+boxGap)-boxGap;
+  const bx0=(CW-totalW)/2;
+  stats.forEach((s,i)=>{
+    const bx=bx0+i*(boxW+boxGap), by=285;
+    cc.fillStyle='rgba(0,0,0,.4)'; cc.strokeStyle='rgba(0,212,255,.3)'; cc.lineWidth=1;
+    cc.beginPath(); cc.roundRect(bx,by,boxW,boxH,8);
+    cc.fill(); cc.stroke();
+    cc.font='10px sans-serif'; cc.fillStyle='rgba(200,216,240,.6)';
+    cc.fillText(s.label, bx+boxW/2, by+18);
+    cc.font='bold 22px monospace'; cc.fillStyle='#00d4ff';
+    cc.fillText(s.value, bx+boxW/2, by+44);
+  });
+
+  // 鼓励语
+  const encouragement = score>=200?'卓越表现 · Excellent！': score>=160?'优秀完成 · Great Work！': score>=120?'努力完成 · Good Job！': '完成挑战 · Keep Going！';
+  cc.font='bold 16px sans-serif'; cc.fillStyle='#00ff88';
+  cc.shadowColor='rgba(0,255,136,.4)'; cc.shadowBlur=8;
+  cc.fillText(encouragement, CW/2, 395);
+  cc.shadowBlur=0;
+
+  // 日期
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日  ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  cc.font='12px sans-serif'; cc.fillStyle='rgba(200,216,240,.4)';
+  cc.fillText(dateStr, CW/2, 425);
+
+  // 落款
+  cc.font='11px sans-serif'; cc.fillStyle='rgba(200,216,240,.35)';
+  cc.fillText('峇株吧辖华仁中学 · 蔡逸众制作', CW/2, 455);
+
+  document.getElementById('cert-overlay').classList.add('show');
+}
+
+function downloadCert(){
+  const certCanvas=document.getElementById('cert-canvas');
+  const a=document.createElement('a');
+  const name=document.getElementById('student-name').value.trim()||'同学';
+  a.download=`反射定律证书_${name}.png`;
+  a.href=certCanvas.toDataURL('image/png');
+  a.click();
+}
+
+function closeCert(){
+  document.getElementById('cert-overlay').classList.remove('show');
+}
+
+// ──────────────────────────────────────────────────────
+//  模式切换 & 选项
+// ──────────────────────────────────────────────────────
+function setMode(m){
+  mode=m;
+  document.getElementById('btn-free').className='mbtn'+(m==='free'?' active':'');
+  document.getElementById('btn-ch').className='mbtn'+(m==='challenge'?' active':'');
+  document.getElementById('score-card').style.display=m==='challenge'?'block':'none';
+  if(m==='challenge'){
+    score=0;level=1;tolerance=7;answered=false;
+    startTime=Date.now();
+    document.getElementById('score-disp').textContent=0;
+    document.getElementById('lv-disp').textContent=`第 1 / ${TOTAL_LEVELS} 关`;
+    newQ();
+  } else {
+    numMirrors=1;
+    mirrors=[makeMirror(W/2+200,310,W/2-200,310)]; // 法线朝上
+    src={x:180,y:120};
+    targetPos=null;targetAngle=null;answered=false;
+    document.getElementById('next-btn').style.display='none';
+    draw();
+  }
+}
+
+function togOpt(k){
+  opts[k]=!opts[k];
+  document.getElementById('tog-'+k).className='tog'+(opts[k]?' on':'');
+  draw();
+}
+
+// ──────────────────────────────────────────────────────
+//  输入处理
+// ──────────────────────────────────────────────────────
+
+function pickDrag(p){
+  if(mode==='free'){
+    if(Math.hypot(p.x-src.x,p.y-src.y)<24) return {type:'src'};
+    return null;
+  }
+  // 挑战模式：根据当前关卡的 draggable 权限
+  const canDragSrc    = (curDraggable==='src'  || curDraggable==='both');
+  const canDragMirror = (curDraggable==='mirrors'||curDraggable==='both');
+
+  if(canDragSrc){
+    if(Math.hypot(p.x-src.x,p.y-src.y)<24) return {type:'src'};
+  }
+  if(canDragMirror){
+    for(let mi=1;mi<numMirrors;mi++){
+      if(curFixedMirrors.includes(mi)) continue;
+      if(Math.hypot(p.x-mirrors[mi].p1.x,p.y-mirrors[mi].p1.y)<20) return {type:'ep',mi,ep:'p1'};
+      if(Math.hypot(p.x-mirrors[mi].p2.x,p.y-mirrors[mi].p2.y)<20) return {type:'ep',mi,ep:'p2'};
+    }
+  }
+  return null;
+}
+
+function applyDrag(p){
+  if(!drag) return;
+  const cx=Math.max(5,Math.min(W-5,p.x));
+  const cy=Math.max(5,Math.min(H-5,p.y));
+  if(drag.type==='src'){
+    src.x=cx; src.y=cy;
+  } else {
+    const m=mirrors[drag.mi];
+    m[drag.ep]={x:cx,y:cy};
+    const ml=Math.hypot(m.p2.x-m.p1.x,m.p2.y-m.p1.y);
+    if(ml<50){
+      const t=mirrorTangent(m);
+      const mx=(m.p1.x+m.p2.x)/2, my=(m.p1.y+m.p2.y)/2;
+      m.p1={x:mx-t.x*25,y:my-t.y*25};
+      m.p2={x:mx+t.x*25,y:my+t.y*25};
+    }
+  }
+}
+
+// ── 统一输入处理（兼容鼠标和触摸）──
+function getPos(e){
+  const r=canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - r.left) * W / r.width,
+    y: (src.clientY - r.top)  * H / r.height
+  };
+}
+
+canvas.addEventListener('mousedown', e=>{
+  e.preventDefault();
+  const p=getPos(e);
+  drag=pickDrag(p);
+});
+canvas.addEventListener('mousemove', e=>{
+  e.preventDefault();
+  const p=getPos(e);
+  if(drag){ applyDrag(p); draw(); }
+  else canvas.style.cursor = pickDrag(p) ? 'grab' : 'default';
+});
+canvas.addEventListener('mouseup',  e=>{ drag=null; });
+canvas.addEventListener('mouseleave',e=>{ drag=null; });
+
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  drag=pickDrag(getPos(e));
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if(!drag) return;
+  applyDrag(getPos(e));
+  draw();
+}, {passive:false});
+canvas.addEventListener('touchend',  e=>{ drag=null; });
+canvas.addEventListener('touchcancel',e=>{ drag=null; });
+
+// ──────────────────────────────────────────────────────
+//  封面星星
+// ──────────────────────────────────────────────────────
+(function(){
+  const el=document.getElementById('cv-stars');
+  for(let i=0;i<60;i++){
+    const s=document.createElement('div');s.className='cv-star';
+    const sz=(Math.random()*2+1)+'px';
+    s.style.cssText='width:'+sz+';height:'+sz+';top:'+Math.random()*100+'%;left:'+Math.random()*100+'%;--d:'+(2+Math.random()*4)+'s;--delay:'+(Math.random()*4)+'s';
+    el.appendChild(s);
+  }
+})();
+
+function startGame(){
+  const cv=document.getElementById('cover');
+  cv.classList.add('hidden');
+  setTimeout(()=>{cv.style.display='none';},700);
+}
+
+// ──────────────────────────────────────────────────────
+//  Toast
+// ──────────────────────────────────────────────────────
+let toastT;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='show';
+  clearTimeout(toastT);toastT=setTimeout(()=>{el.className='';},2200);
+}
+
+// ── 启动 ──
+draw();
+showToast('💡 自由模式：拖动光源探索反射！');
+</script>
+</body>
+</html>
