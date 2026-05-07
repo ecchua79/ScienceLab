@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热传递三种方式</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&family=Orbitron:wght@400;700;900&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans SC','Microsoft YaHei',sans-serif;background:#050510;color:#eee;height:100vh;overflow:hidden;user-select:none;}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:center;background:rgba(5,5,16,0.93);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.08);}
+  .nav-btn{flex:1;max-width:260px;padding:13px 10px 10px;background:transparent;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,0.35);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s;letter-spacing:.06em;}
+  .nav-btn .icon{font-size:19px;display:block;margin-bottom:2px;}
+  .nav-btn:hover{color:rgba(255,255,255,0.72);}
+  .nav-btn.act-c{color:#00c8ff;border-bottom-color:#00c8ff;text-shadow:0 0 16px #00c8ffaa;}
+  .nav-btn.act-v{color:#ff8c00;border-bottom-color:#ff8c00;text-shadow:0 0 16px #ff8c00aa;}
+  .nav-btn.act-r{color:#ff2266;border-bottom-color:#ff2266;text-shadow:0 0 16px #ff2266aa;}
+
+  .page{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px;opacity:0;pointer-events:none;transition:opacity .4s;}
+  .page.active{opacity:1;pointer-events:all;}
+  #page-conduction{background:radial-gradient(ellipse at 50% 60%,#0d1a33 0%,#05050f 70%);}
+  #page-convection{background:radial-gradient(ellipse at 50% 70%,#1a0e00 0%,#060502 70%);}
+  #page-radiation{background:radial-gradient(ellipse at 50% 50%,#200510 0%,#0f0508 70%);}
+
+  .page-title{font-family:'Orbitron',monospace;font-size:clamp(18px,3.5vw,32px);font-weight:900;letter-spacing:.15em;margin-bottom:4px;text-align:center;}
+  .page-desc{font-size:12px;line-height:1.7;opacity:.48;text-align:center;max-width:560px;margin-bottom:10px;padding:0 20px;}
+
+  canvas{border-radius:12px;display:block;cursor:grab;}
+  canvas:active{cursor:grabbing;}
+
+  .controls{margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;}
+  .action-btn{padding:9px 28px;border:none;border-radius:30px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.07em;transition:all .25s;position:relative;}
+  .action-btn::after{content:'';position:absolute;inset:0;border-radius:30px;background:rgba(255,255,255,0.12);opacity:0;transition:opacity .2s;}
+  .action-btn:hover::after{opacity:1;}
+  .btn-blue{background:linear-gradient(135deg,#006caa,#00c8ff);color:#fff;box-shadow:0 4px 16px #00c8ff44;}
+  .btn-orange{background:linear-gradient(135deg,#aa4400,#ff8c00);color:#fff;box-shadow:0 4px 16px #ff8c0044;}
+  .btn-red{background:linear-gradient(135deg,#880022,#ff2266);color:#fff;box-shadow:0 4px 16px #ff226644;}
+  .btn-ghost{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);}
+  .action-btn.done{opacity:.45;pointer-events:none;}
+
+  .hint3d{font-size:11px;opacity:.38;margin-top:4px;text-align:center;}
+
+  .legend{margin-top:6px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:11px;opacity:.58;}
+  .legend-item{display:flex;align-items:center;gap:5px;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-btn act-c" id="btn-conduction" onclick="showPage('conduction')"><span class="icon">🔵</span>热传导</button>
+  <button class="nav-btn" id="btn-convection" onclick="showPage('convection')"><span class="icon">🔴</span>热对流</button>
+  <button class="nav-btn" id="btn-radiation" onclick="showPage('radiation')"><span class="icon">🟡</span>热辐射</button>
+</nav>
+
+<!-- 热传导 -->
+<div id="page-conduction" class="page active">
+  <div class="page-title" style="color:#00c8ff;text-shadow:0 0 26px #00c8ff88;">热 传 导</div>
+  <div class="page-desc">固体中的粒子只能在原位振动。受热端粒子剧烈振动，碰撞邻近粒子，热量沿棒传递。拖动画面可旋转查看。</div>
+  <canvas id="cv-conduction"></canvas>
+  <div class="controls">
+    <button class="action-btn btn-blue" id="btn-heat-cond" onclick="startHeatingCond()">🔥 开始加热</button>
+    <button class="action-btn btn-ghost" onclick="resetCond()">↺ 重置</button>
+  </div>
+  <div class="hint3d">🖱 拖动旋转 · 滚轮缩放</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff3333"></div>高温粒子</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#44aaff"></div>低温粒子</div>
+  </div>
+</div>
+
+<!-- 热对流 -->
+<div id="page-convection" class="page">
+  <div class="page-title" style="color:#ff8c00;text-shadow:0 0 26px #ff8c0088;">热 对 流</div>
+  <div class="page-desc">底部加热 → 液体膨胀上升 → 顶部冷却 → 两侧下沉 → 形成循环。拖动画面可旋转查看。</div>
+  <canvas id="cv-convection"></canvas>
+  <div class="controls">
+    <button class="action-btn btn-orange" id="btn-heat-conv" onclick="startHeatingConv()">🔥 开始加热</button>
+    <button class="action-btn btn-ghost" onclick="resetConv()">↺ 重置</button>
+  </div>
+  <div class="hint3d">🖱 拖动旋转 · 滚轮缩放</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff4400"></div>热流（上升）</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0088ff"></div>冷流（下沉）</div>
+  </div>
+</div>
+
+<!-- 热辐射 -->
+<div id="page-radiation" class="page">
+  <div class="page-title" style="color:#ff2266;text-shadow:0 0 26px #ff226688;">热 辐 射</div>
+  <div class="page-desc">热辐射以电磁波形式传播，无需介质，可在真空中传递。挡板阻隔辐射，移开后能量传至接收体。</div>
+  <canvas id="cv-radiation"></canvas>
+  <div class="controls">
+    <button class="action-btn btn-red" id="btn-shutter" onclick="removeShutter()">⬆ 移开挡板</button>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff2200"></div>红外线</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffbb00"></div>可见光</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#cc44ff"></div>紫外线</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SHARED
+// ═══════════════════════════════════════════════════════
+const rafIds = {};
+let currentPage = 'conduction';
+
+function cvSize(canvas) {
+  canvas.width  = Math.min(window.innerWidth - 32, 820);
+  canvas.height = Math.min(window.innerHeight - 240, 380);
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.className = 'nav-btn');
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('btn-' + name).classList.add({ conduction:'act-c', convection:'act-v', radiation:'act-r' }[name]);
+  currentPage = name;
+  if (name === 'conduction') startConduction();
+  if (name === 'convection') startConvection();
+  if (name === 'radiation')  startRadiation();
+}
+
+// ─── 3D Math ───
+function mat3Mul(a, b) {
+  return [
+    a[0]*b[0]+a[1]*b[3]+a[2]*b[6], a[0]*b[1]+a[1]*b[4]+a[2]*b[7], a[0]*b[2]+a[1]*b[5]+a[2]*b[8],
+    a[3]*b[0]+a[4]*b[3]+a[5]*b[6], a[3]*b[1]+a[4]*b[4]+a[5]*b[7], a[3]*b[2]+a[4]*b[5]+a[5]*b[8],
+    a[6]*b[0]+a[7]*b[3]+a[8]*b[6], a[6]*b[1]+a[7]*b[4]+a[8]*b[7], a[6]*b[2]+a[7]*b[5]+a[8]*b[8],
+  ];
+}
+function rotX(a) { const c=Math.cos(a),s=Math.sin(a); return [1,0,0, 0,c,-s, 0,s,c]; }
+function rotY(a) { const c=Math.cos(a),s=Math.sin(a); return [c,0,s, 0,1,0, -s,0,c]; }
+function applyRot(R, [x,y,z]) { return [R[0]*x+R[1]*y+R[2]*z, R[3]*x+R[4]*y+R[5]*z, R[6]*x+R[7]*y+R[8]*z]; }
+
+function makeCamera() {
+  return { rotX: -0.35, rotY: 0.45, zoom: 1, dragging: false, lx: 0, ly: 0 };
+}
+
+function bindDrag(canvas, cam) {
+  canvas.addEventListener('mousedown', e => { cam.dragging=true; cam.lx=e.clientX; cam.ly=e.clientY; });
+  window.addEventListener('mousemove', e => {
+    if (!cam.dragging) return;
+    cam.rotY += (e.clientX - cam.lx) * 0.012;
+    cam.rotX += (e.clientY - cam.ly) * 0.012;
+    cam.rotX = Math.max(-1.4, Math.min(1.4, cam.rotX));
+    cam.lx=e.clientX; cam.ly=e.clientY;
+  });
+  window.addEventListener('mouseup', () => cam.dragging=false);
+  canvas.addEventListener('wheel', e => { cam.zoom = Math.max(0.5, Math.min(2.2, cam.zoom - e.deltaY * 0.001)); e.preventDefault(); }, { passive:false });
+  // Touch
+  let lt = null;
+  canvas.addEventListener('touchstart', e => { if(e.touches.length===1){ cam.dragging=true; cam.lx=e.touches[0].clientX; cam.ly=e.touches[0].clientY; lt=null; } else if(e.touches.length===2){ lt=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); } });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if(e.touches.length===1 && cam.dragging){ cam.rotY+=(e.touches[0].clientX-cam.lx)*0.012; cam.rotX+=(e.touches[0].clientY-cam.ly)*0.012; cam.rotX=Math.max(-1.4,Math.min(1.4,cam.rotX)); cam.lx=e.touches[0].clientX; cam.ly=e.touches[0].clientY; }
+    else if(e.touches.length===2 && lt!==null){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); cam.zoom=Math.max(0.5,Math.min(2.2,cam.zoom*(d/lt))); lt=d; }
+  }, { passive:false });
+  canvas.addEventListener('touchend', () => { cam.dragging=false; lt=null; });
+}
+
+function project(R, [x,y,z], cx, cy, zoom, fov=900) {
+  const [rx,ry,rz] = applyRot(R, [x,y,z]);
+  const scale = fov / (fov + rz * zoom * 0.5) * zoom;
+  return { sx: cx + rx * scale, sy: cy + ry * scale, depth: rz, scale };
+}
+
+// ═══════════════════════════════════════════════════════
+// HEAT COLOR
+// ═══════════════════════════════════════════════════════
+function heatColor(t, alpha=1) {
+  let r,g,b;
+  if      (t<0.25){r=0;  g=Math.round(t*4*180);          b=255;}
+  else if (t<0.5) {r=0;  g=180;                           b=Math.round(255-(t-0.25)*4*255);}
+  else if (t<0.75){r=Math.round((t-0.5)*4*255);g=180;     b=0;}
+  else            {r=255;g=Math.round(180-(t-0.75)*4*180);b=0;}
+  return alpha<1 ? `rgba(${r},${g},${b},${alpha.toFixed(2)})` : `rgb(${r},${g},${b})`;
+}
+
+// ═══════════════════════════════════════════════════════
+// 1. 热传导 — 3D
+// ═══════════════════════════════════════════════════════
+let condCam = makeCamera();
+let condTime=0, condHeatFront=0, condHeating=false, condParticles=[];
+const C_ROWS=4, C_COLS=22, C_DEPTH=4;
+
+function buildCondParticles() {
+  condParticles=[];
+  const gx=80, gy=34, gz=34;
+  const ox=(C_COLS-1)*gx/2, oy=(C_ROWS-1)*gy/2, oz=(C_DEPTH-1)*gz/2;
+  for(let d=0;d<C_DEPTH;d++)
+    for(let r=0;r<C_ROWS;r++)
+      for(let c=0;c<C_COLS;c++)
+        condParticles.push({
+          bx:c*gx-ox, by:r*gy-oy, bz:d*gz-oz,
+          x:0,y:0,z:0, c, phase:Math.random()*Math.PI*2
+        });
+}
+
+function condGetHeat(col) {
+  if(!condHeating) return 0.05;
+  if(col<=condHeatFront) return Math.max(0.10, 1-col*0.026);
+  const d=col-condHeatFront; return d<4?(1-d/4)*0.44:0.05;
+}
+
+function drawConduction(canvas,ctx) {
+  condTime++;
+  if(condHeating && condTime%72===0 && condHeatFront<C_COLS-1) condHeatFront++;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const R=mat3Mul(rotX(condCam.rotX),rotY(condCam.rotY));
+
+  // Sort particles by depth
+  const pts=condParticles.map(p=>{
+    const heat=condGetHeat(p.c);
+    const amp=condHeating?heat*9:1.5, freq=condHeating?(0.10+heat*0.38):0.035;
+    const px=p.bx+Math.sin(p.c*1.3+p.phase+condTime*freq)*amp;
+    const py=p.by+Math.sin(p.c*0.9+p.phase*1.2+condTime*freq*0.85+1.3)*amp;
+    const pz=p.bz+Math.sin(p.c*0.7+p.phase*0.7+condTime*freq*0.7+2.1)*amp;
+    const proj=project(R,[px,py,pz],cx,cy,condCam.zoom);
+    return {...proj, heat, col:p.c};
+  });
+  pts.sort((a,b)=>b.depth-a.depth);
+
+  // Draw rod outline (3D box)
+  const corners3d=[
+    [-820,-68,-51],[-820,-68,51],[-820,68,-51],[-820,68,51],
+    [820,-68,-51],[820,-68,51],[820,68,-51],[820,68,51]
+  ];
+  const cp=corners3d.map(v=>project(R,v,cx,cy,condCam.zoom));
+  const edges=[[0,1],[0,2],[1,3],[2,3],[4,5],[4,6],[5,7],[6,7],[0,4],[1,5],[2,6],[3,7]];
+  ctx.save();
+  ctx.strokeStyle='rgba(140,175,220,0.18)';ctx.lineWidth=1;
+  for(const [a,b] of edges){
+    ctx.beginPath();ctx.moveTo(cp[a].sx,cp[a].sy);ctx.lineTo(cp[b].sx,cp[b].sy);ctx.stroke();
+  }
+  ctx.restore();
+
+  // Draw particles
+  for(const p of pts){
+    const r=Math.max(2,(4+p.heat*3)*p.scale);
+    const col=heatColor(p.heat);
+    const grd=ctx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,r*2.5);
+    grd.addColorStop(0,col);grd.addColorStop(1,'transparent');
+    ctx.globalAlpha=0.22;
+    ctx.beginPath();ctx.arc(p.sx,p.sy,r*2.5,0,Math.PI*2);ctx.fillStyle=grd;ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.beginPath();ctx.arc(p.sx+r*0.15,p.sy+r*0.15,r,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fill();
+    ctx.beginPath();ctx.arc(p.sx,p.sy,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    ctx.beginPath();ctx.arc(p.sx-r*0.32,p.sy-r*0.32,r*0.38,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fill();
+  }
+
+  // Heat glow on left
+  if(condHeating){
+    const lp=project(R,[-820,0,0],cx,cy,condCam.zoom);
+    const gg=ctx.createRadialGradient(lp.sx,lp.sy,0,lp.sx,lp.sy,90);
+    gg.addColorStop(0,'rgba(255,80,0,0.32)');gg.addColorStop(1,'transparent');
+    ctx.fillStyle=gg;ctx.beginPath();ctx.arc(lp.sx,lp.sy,90,0,Math.PI*2);ctx.fill();
+  }
+
+  // Heat front arrow (in projected space)
+  if(condHeating && condHeatFront<C_COLS-1){
+    const ox2=(C_COLS-1)*80/2;
+    const fx3=condHeatFront*80-ox2+40;
+    const fp=project(R,[fx3,0,0],cx,cy,condCam.zoom);
+    ctx.save();ctx.strokeStyle='#ffaa33';ctx.lineWidth=1.8;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(fp.sx,fp.sy-22);ctx.lineTo(fp.sx,fp.sy+22);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle='#ffaa33';
+    ctx.beginPath();ctx.moveTo(fp.sx,fp.sy+30);ctx.lineTo(fp.sx-6,fp.sy+16);ctx.lineTo(fp.sx+6,fp.sy+16);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+
+  // Labels
+  const lp=project(R,[-820,0,0],cx,cy,condCam.zoom);
+  const rp=project(R,[820,0,0],cx,cy,condCam.zoom);
+  ctx.font='bold 12px Microsoft YaHei,sans-serif';
+  if(condHeating){ctx.fillStyle='#ff5500';ctx.fillText('🔥',lp.sx-10,lp.sy+50);}
+  ctx.fillStyle='rgba(150,180,220,0.5)';ctx.fillText('← 热源端',lp.sx-26,lp.sy+65);
+  ctx.fillText('冷端 →',rp.sx-20,rp.sy+65);
+}
+
+function startHeatingCond(){
+  condHeating=true;condHeatFront=0;
+  document.getElementById('btn-heat-cond').classList.add('done');
+  document.getElementById('btn-heat-cond').textContent='🔥 加热中…';
+}
+function resetCond(){
+  condHeating=false;condHeatFront=0;condTime=0;
+  document.getElementById('btn-heat-cond').className='action-btn btn-blue';
+  document.getElementById('btn-heat-cond').textContent='🔥 开始加热';
+}
+
+function startConduction(){
+  const canvas=document.getElementById('cv-conduction');
+  cvSize(canvas);
+  condCam=makeCamera();
+  bindDrag(canvas,condCam);
+  condTime=0;condHeatFront=0;condHeating=false;
+  buildCondParticles();
+  document.getElementById('btn-heat-cond').className='action-btn btn-blue';
+  document.getElementById('btn-heat-cond').textContent='🔥 开始加热';
+  if(rafIds.conduction) cancelAnimationFrame(rafIds.conduction);
+  const ctx=canvas.getContext('2d');
+  (function loop(){
+    if(currentPage!=='conduction'){rafIds.conduction=null;return;}
+    drawConduction(canvas,ctx);
+    rafIds.conduction=requestAnimationFrame(loop);
+  })();
+}
+
+// ═══════════════════════════════════════════════════════
+// 2. 热对流 — 3D  真实速度场驱动
+//
+// 速度场：圆柱体容器，中央热柱上升，边缘冷流下沉。
+// vx = -kx * (r/R) * sin(theta)   → 边缘推向旁边
+// vy = -A * exp(-r²/σ²) + B*(r/R)² → 中央上升，边缘下沉
+// vz = -kz * (r/R) * cos(theta)
+// 粒子只在温度和y位置相关的颜色上体现冷热。
+// ═══════════════════════════════════════════════════════
+let convCam=makeCamera();
+let convTime=0, convHeating=false, convParticles=[];
+const CONV_N=120;
+const CONV_R=160, CONV_H=160; // cylinder radius & half-height
+
+function buildConvParticles(){
+  convParticles=[];
+  for(let i=0;i<CONV_N;i++){
+    // Random position inside cylinder
+    const r=Math.random()*CONV_R;
+    const theta=Math.random()*Math.PI*2;
+    const y=(Math.random()-0.5)*CONV_H*2;
+    convParticles.push({
+      x:r*Math.cos(theta), y, z:r*Math.sin(theta),
+      vx:0, vy:0, vz:0,
+      phase:Math.random()*Math.PI*2,
+      size:4.5+Math.random()*2.5,
+    });
+  }
+}
+
+function convVelocity(x, y, z) {
+  const r = Math.sqrt(x*x + z*z);
+  const R = CONV_R;
+  const H = CONV_H;
+  const rn = r / R; // 0=center, 1=edge
+
+  // Canvas y: positive = DOWN. So "rise" = negative vy, "fall" = positive vy.
+  // Center: strong upward rise (vy negative), edge: downward fall (vy positive)
+  const vy_rise =  -3.5 * Math.exp(-rn*rn * 4.5);  // center rises (negative = up)
+  const vy_fall =   1.8 * Math.pow(rn, 2.2);         // edge falls  (positive = down)
+  const vy = vy_rise + vy_fall;
+
+  // Horizontal continuity:
+  // y=-CONV_H → top of beaker (particles arrived after rising) → spread outward
+  // y=+CONV_H → bottom of beaker (particles arrived after falling) → pull inward
+  // yn = y/H: +1=bottom, -1=top → spread = -yn pushes out at top, in at bottom
+  const yn = y / H; // +1=bottom, -1=top
+  const spread = -1.2 * yn; // +1.2 at top (outward), -1.2 at bottom (inward)
+  const vx = r>0 ? spread * (x/r) * rn : 0;
+  const vz = r>0 ? spread * (z/r) * rn : 0;
+
+  return {vx, vy, vz};
+}
+
+function updateConvParticle(p, dt) {
+  const {vx,vy,vz} = convVelocity(p.x,p.y,p.z);
+  const speed = convHeating ? 1.0 : 0.12;
+
+  // Small random diffusion
+  const diff = convHeating ? 0.15 : 0.06;
+  p.x += (vx*speed + (Math.random()-0.5)*diff) * dt;
+  p.y += (vy*speed + (Math.random()-0.5)*diff) * dt; // canvas: +y is down, we flip in draw
+  p.z += (vz*speed + (Math.random()-0.5)*diff) * dt;
+
+  // Clamp inside cylinder + vertical bounds
+  const r=Math.sqrt(p.x*p.x+p.z*p.z);
+  if(r>CONV_R-2){
+    const scale=(CONV_R-2)/r;
+    p.x*=scale; p.z*=scale;
+  }
+  if(p.y> CONV_H) p.y= CONV_H;
+  if(p.y<-CONV_H) p.y=-CONV_H;
+}
+
+function convParticleColor(p){
+  // y=+CONV_H → bottom (hot, near flame) → heat=1 → red
+  // y=-CONV_H → top  (cold)              → heat=0 → blue
+  const heat = (p.y + CONV_H) / (2 * CONV_H);
+  return heatColor(Math.max(0, Math.min(1, heat)));
+}
+
+function drawConvection(canvas,ctx){
+  convTime++;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;
+  const R=mat3Mul(rotX(convCam.rotX),rotY(convCam.rotY));
+
+  // Update particles
+  for(const p of convParticles) updateConvParticle(p, 1);
+
+  // Draw beaker cylinder outline (3D)
+  const segs=32;
+  // Bottom ring, top ring, vertical lines
+  ctx.save();
+  ctx.strokeStyle='rgba(140,210,255,0.25)';ctx.lineWidth=1.2;
+
+  // Draw bottom circle
+  ctx.beginPath();
+  for(let i=0;i<=segs;i++){
+    const a=i/segs*Math.PI*2;
+    const p3d=[CONV_R*Math.cos(a), CONV_H, CONV_R*Math.sin(a)]; // bottom y=+CONV_H (canvas down)
+    const pr=project(R,p3d,cx,cy,convCam.zoom);
+    i===0?ctx.moveTo(pr.sx,pr.sy):ctx.lineTo(pr.sx,pr.sy);
+  }
+  ctx.stroke();
+
+  // Top circle
+  ctx.beginPath();
+  for(let i=0;i<=segs;i++){
+    const a=i/segs*Math.PI*2;
+    const p3d=[CONV_R*Math.cos(a),-CONV_H,CONV_R*Math.sin(a)];
+    const pr=project(R,p3d,cx,cy,convCam.zoom);
+    i===0?ctx.moveTo(pr.sx,pr.sy):ctx.lineTo(pr.sx,pr.sy);
+  }
+  ctx.stroke();
+
+  // Vertical lines every 45°
+  ctx.strokeStyle='rgba(140,210,255,0.12)';
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    const bot=project(R,[CONV_R*Math.cos(a), CONV_H,CONV_R*Math.sin(a)],cx,cy,convCam.zoom);
+    const top=project(R,[CONV_R*Math.cos(a),-CONV_H,CONV_R*Math.sin(a)],cx,cy,convCam.zoom);
+    ctx.beginPath();ctx.moveTo(bot.sx,bot.sy);ctx.lineTo(top.sx,top.sy);ctx.stroke();
+  }
+  ctx.restore();
+
+  // Flame at bottom
+  if(convHeating){
+    const botCenter=project(R,[0,CONV_H,0],cx,cy,convCam.zoom);
+    for(let i=2;i>=0;i--){
+      const ox=Math.sin(convTime*0.055+i*1.2)*6;
+      const cols=['#fff5aa','#ffaa00','#ff3300'];
+      const grd=ctx.createRadialGradient(botCenter.sx+ox,botCenter.sy+10,1,botCenter.sx,botCenter.sy+20,55);
+      grd.addColorStop(0,cols[i]);grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd;
+      ctx.beginPath();ctx.ellipse(botCenter.sx+ox,botCenter.sy+18,42-i*5,46*(0.5+i*0.1),0,0,Math.PI*2);ctx.fill();
+    }
+    ctx.font='bold 12px Microsoft YaHei,sans-serif';ctx.fillStyle='#ff5500';
+    ctx.fillText('🔥 加热',botCenter.sx-22,botCenter.sy+52);
+  }
+
+  // Sort and draw particles
+  const sorted=convParticles.map(p=>{
+    // Flip y for 3D: hot is at bottom (y=+CONV_H in our space, but we want it to appear at bottom on screen)
+    // In our space: p.y=+CONV_H → bottom of beaker (hot), p.y=-CONV_H → top (cold)
+    // Camera y: we render p.y directly (positive=down in canvas) — that maps hot=bottom correctly
+    const pr=project(R,[p.x,p.y,p.z],cx,cy,convCam.zoom);
+    return {...pr, p};
+  });
+  sorted.sort((a,b)=>b.depth-a.depth);
+
+  for(const {sx,sy,scale,p} of sorted){
+    const col=convParticleColor(p);
+    const r=Math.max(2,p.size*scale);
+    const grd=ctx.createRadialGradient(sx,sy,0,sx,sy,r*2.4);
+    grd.addColorStop(0,col);grd.addColorStop(1,'transparent');
+    ctx.globalAlpha=0.26;
+    ctx.beginPath();ctx.arc(sx,sy,r*2.4,0,Math.PI*2);ctx.fillStyle=grd;ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    ctx.beginPath();ctx.arc(sx-r*0.3,sy-r*0.3,r*0.36,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fill();
+  }
+
+  // Flow arrows (projected) — only when heating
+  if(convHeating){
+    // Center UP arrow: from bottom toward top of beaker
+    const bot=project(R,[0, CONV_H*0.6,0],cx,cy,convCam.zoom);
+    const top=project(R,[0,-CONV_H*0.6,0],cx,cy,convCam.zoom);
+    const alpha=0.35+0.15*Math.abs(Math.sin(convTime*0.04));
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.strokeStyle='#ff6600';ctx.lineWidth=2;ctx.fillStyle='#ff6600';
+    ctx.beginPath();ctx.moveTo(bot.sx,bot.sy);ctx.lineTo(top.sx,top.sy);ctx.stroke();
+    // Arrowhead AT top (pointing upward on screen)
+    const dx=top.sx-bot.sx, dy=top.sy-bot.sy;
+    const len=Math.sqrt(dx*dx+dy*dy)||1;
+    const ux=dx/len, uy=dy/len;
+    ctx.beginPath();
+    ctx.moveTo(top.sx, top.sy);
+    ctx.lineTo(top.sx - ux*14 + uy*7, top.sy - uy*14 - ux*7);
+    ctx.lineTo(top.sx - ux*14 - uy*7, top.sy - uy*14 + ux*7);
+    ctx.closePath();ctx.fill();
+
+    // Side down arrows
+    const sides=[[CONV_R*0.7,0,0],[0,0,CONV_R*0.7],[-CONV_R*0.7,0,0],[0,0,-CONV_R*0.7]];
+    ctx.strokeStyle='#4488ff';ctx.fillStyle='#4488ff';
+    for(const s of sides){
+      const t2=project(R,[s[0],-CONV_H*0.6,s[2]],cx,cy,convCam.zoom);
+      const b2=project(R,[s[0], CONV_H*0.6,s[2]],cx,cy,convCam.zoom);
+      ctx.beginPath();ctx.moveTo(t2.sx,t2.sy);ctx.lineTo(b2.sx,b2.sy);ctx.stroke();
+      // Arrowhead AT bottom (pointing toward bottom)
+      const dx2=b2.sx-t2.sx, dy2=b2.sy-t2.sy;
+      const len2=Math.sqrt(dx2*dx2+dy2*dy2)||1;
+      const ux2=dx2/len2, uy2=dy2/len2;
+      ctx.beginPath();
+      ctx.moveTo(b2.sx, b2.sy);
+      ctx.lineTo(b2.sx - ux2*12 + uy2*5, b2.sy - uy2*12 - ux2*5);
+      ctx.lineTo(b2.sx - ux2*12 - uy2*5, b2.sy - uy2*12 + ux2*5);
+      ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function startHeatingConv(){
+  convHeating=true;
+  document.getElementById('btn-heat-conv').classList.add('done');
+  document.getElementById('btn-heat-conv').textContent='🔥 加热中…';
+}
+function resetConv(){
+  convHeating=false;convTime=0;
+  buildConvParticles();
+  document.getElementById('btn-heat-conv').className='action-btn btn-orange';
+  document.getElementById('btn-heat-conv').textContent='🔥 开始加热';
+}
+
+function startConvection(){
+  const canvas=document.getElementById('cv-convection');
+  cvSize(canvas);
+  convCam=makeCamera();convCam.rotX=-0.5;convCam.rotY=0.3;convCam.zoom=1.1;
+  bindDrag(canvas,convCam);
+  convTime=0;convHeating=false;
+  buildConvParticles();
+  document.getElementById('btn-heat-conv').className='action-btn btn-orange';
+  document.getElementById('btn-heat-conv').textContent='🔥 开始加热';
+  if(rafIds.convection) cancelAnimationFrame(rafIds.convection);
+  const ctx=canvas.getContext('2d');
+  (function loop(){
+    if(currentPage!=='convection'){rafIds.convection=null;return;}
+    drawConvection(canvas,ctx);
+    rafIds.convection=requestAnimationFrame(loop);
+  })();
+}
+
+// ═══════════════════════════════════════════════════════
+// 3. 热辐射 — 挡板
+// ═══════════════════════════════════════════════════════
+let radTime=0, shutterRemoved=false, shutterOffsetY=0;
+const WAVES=[
+  {label:'红外线',color:'#ff2200',freq:0.016,amp:23,spd:2.4,ry:0.16},
+  {label:'红外线',color:'#ff5500',freq:0.019,amp:20,spd:2.7,ry:0.27},
+  {label:'可见光',color:'#ffcc00',freq:0.030,amp:16,spd:3.4,ry:0.39},
+  {label:'可见光',color:'#44ee66',freq:0.037,amp:13,spd:3.9,ry:0.51},
+  {label:'可见光',color:'#3399ff',freq:0.044,amp:10,spd:4.3,ry:0.63},
+  {label:'紫外线',color:'#cc44ff',freq:0.058,amp: 8,spd:5.0,ry:0.74},
+  {label:'紫外线',color:'#ff44cc',freq:0.072,amp: 6,spd:5.8,ry:0.84},
+];
+
+function removeShutter(){
+  shutterRemoved=true;
+  document.getElementById('btn-shutter').classList.add('done');
+  document.getElementById('btn-shutter').textContent='✓ 挡板已移开';
+}
+
+function drawSun(ctx,W,H,t){
+  const sx=W*0.10,sy=H*0.50,r=30;
+  const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r*3.8);
+  g.addColorStop(0,'rgba(255,220,80,0.65)');g.addColorStop(0.45,'rgba(255,110,0,0.22)');g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(sx,sy,r*3.8,0,Math.PI*2);ctx.fill();
+  const cg=ctx.createRadialGradient(sx-r*0.2,sy-r*0.2,2,sx,sy,r);
+  cg.addColorStop(0,'#fff8cc');cg.addColorStop(0.5,'#ffcc00');cg.addColorStop(1,'#ff6600');
+  ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fillStyle=cg;ctx.fill();
+  ctx.save();ctx.strokeStyle='rgba(255,220,80,0.48)';ctx.lineWidth=1.8;
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2+t*0.012;const r1=r+6,r2=r+18+Math.sin(t*0.09+i)*5;ctx.beginPath();ctx.moveTo(sx+Math.cos(a)*r1,sy+Math.sin(a)*r1);ctx.lineTo(sx+Math.cos(a)*r2,sy+Math.sin(a)*r2);ctx.stroke();}
+  ctx.restore();
+  ctx.font='bold 12px Microsoft YaHei,sans-serif';ctx.fillStyle='#ffcc44';ctx.fillText('热源',sx-14,sy+r+17);
+}
+
+function drawReceiver(ctx,W,H,t){
+  const rx=W*0.87,ry=H*0.50,rw=32,rh=Math.min(H*0.80,300);
+  if(shutterRemoved){
+    const pulse=0.13+0.10*Math.abs(Math.sin(t*0.04));
+    const gg=ctx.createRadialGradient(rx,ry,0,rx,ry,rw*3.5);
+    gg.addColorStop(0,`rgba(255,100,50,${pulse.toFixed(2)})`);gg.addColorStop(1,'transparent');
+    ctx.fillStyle=gg;ctx.beginPath();ctx.arc(rx,ry,rw*3.5,0,Math.PI*2);ctx.fill();
+  }
+  const bg=ctx.createLinearGradient(rx-rw/2,0,rx+rw/2,0);
+  bg.addColorStop(0,'#331100');bg.addColorStop(0.3,'#993322');bg.addColorStop(1,'#111');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.roundRect(rx-rw/2,ry-rh/2,rw,rh,6);ctx.fill();
+  ctx.strokeStyle='rgba(255,100,50,0.45)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.font='bold 12px Microsoft YaHei,sans-serif';ctx.fillStyle='#ff8866';ctx.fillText('接收体',rx-22,ry+rh/2+17);
+}
+
+function drawWave(ctx,wt,W,H,t,maxX){
+  const sy=H*wt.ry,x0=W*0.19,x1=W*0.82,len=x1-x0;
+  const progress=(t*wt.spd)%(len+60)-30;
+  ctx.save();
+  const clipW=Math.max(0,Math.min(maxX,x1)-x0);
+  ctx.beginPath();ctx.rect(x0,0,clipW,H);ctx.clip();
+  ctx.shadowColor=wt.color;ctx.shadowBlur=9;ctx.strokeStyle=wt.color;ctx.lineWidth=2.3;
+  ctx.beginPath();
+  let first=true;
+  for(let x=0;x<=len;x+=2){
+    if(x>progress)break;
+    const px=x0+x,py=sy+Math.sin(x*wt.freq*Math.PI*2-t*wt.spd*0.22)*wt.amp;
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+  if(progress>0&&progress<len+20){
+    const fx=x0+Math.min(progress,len);
+    const fy=sy+Math.sin(Math.min(progress,len)*wt.freq*Math.PI*2-t*wt.spd*0.22)*wt.amp;
+    ctx.shadowBlur=20;ctx.fillStyle=wt.color;ctx.beginPath();ctx.arc(fx,fy,5,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+  ctx.font='11px Microsoft YaHei,sans-serif';ctx.fillStyle=wt.color;ctx.fillText(wt.label,x0-2,sy-wt.amp-4);
+}
+
+function drawShutterPanel(ctx,W,H,offsetY){
+  const sx=W*0.47,sw=26;
+  const top=H*0.04-offsetY,bot=H*0.95-offsetY;
+  if(bot<0)return;
+  const sg=ctx.createLinearGradient(sx,0,sx+sw,0);
+  sg.addColorStop(0,'#1a1a2e');sg.addColorStop(0.4,'#3a3a5c');sg.addColorStop(1,'#111120');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.roundRect(sx,top,sw,bot-top,4);ctx.fill();
+  ctx.strokeStyle='rgba(150,150,200,0.5)';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(sx,top,sw,bot-top,4);ctx.stroke();
+  for(let i=0;i<5;i++){const yy=top+(bot-top)*(i+1)/6;ctx.beginPath();ctx.arc(sx+sw/2,yy,3,0,Math.PI*2);ctx.fillStyle='rgba(200,200,255,0.3)';ctx.fill();}
+  if(offsetY<H*0.5){
+    ctx.save();ctx.translate(sx+sw/2,(top+bot)/2);ctx.rotate(-Math.PI/2);
+    ctx.font='bold 11px Microsoft YaHei,sans-serif';ctx.fillStyle='rgba(180,180,220,0.7)';ctx.textAlign='center';ctx.fillText('隔热挡板',0,5);
+    ctx.restore();
+  }
+}
+
+function drawRadiation(canvas,ctx){
+  radTime++;
+  if(shutterRemoved) shutterOffsetY+=8;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const W=canvas.width,H=canvas.height;
+  const shutterX=W*0.47;
+  const maxWaveX=shutterRemoved?W*0.82:shutterX;
+  drawSun(ctx,W,H,radTime);
+  for(const wt of WAVES) drawWave(ctx,wt,W,H,radTime,maxWaveX);
+  if(!shutterRemoved||shutterOffsetY<H*1.2) drawShutterPanel(ctx,W,H,shutterOffsetY);
+  drawReceiver(ctx,W,H,radTime);
+  ctx.font='12px Microsoft YaHei,sans-serif';ctx.fillStyle='rgba(180,180,255,0.26)';
+  ctx.fillText('无需介质，可在真空中传播',W/2-70,H*0.97);
+}
+
+function startRadiation(){
+  const canvas=document.getElementById('cv-radiation');
+  cvSize(canvas);
+  radTime=0;shutterRemoved=false;shutterOffsetY=0;
+  document.getElementById('btn-shutter').className='action-btn btn-red';
+  document.getElementById('btn-shutter').textContent='⬆ 移开挡板';
+  if(rafIds.radiation) cancelAnimationFrame(rafIds.radiation);
+  const ctx=canvas.getContext('2d');
+  (function loop(){
+    if(currentPage!=='radiation'){rafIds.radiation=null;return;}
+    drawRadiation(canvas,ctx);
+    rafIds.radiation=requestAnimationFrame(loop);
+  })();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize',()=>{
+  if(currentPage==='conduction') startConduction();
+  if(currentPage==='convection') startConvection();
+  if(currentPage==='radiation')  startRadiation();
+});
+startConduction();
+</script>
+</body>
+</html>
