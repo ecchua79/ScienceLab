@@ -432,16 +432,20 @@ function buildLensLathe(R, halfT, isConvex) {
       pts.push(new THREE.Vector2(r, x));
     }
   } else {
+    // Concave: guarantee a minimum centre thickness so the two
+    // concave surfaces never overlap when sag >= halfT.
+    // minHalf ensures centre half-thickness is at least 0.18 units.
+    const minHalf = Math.max(halfT, sg + 0.18);
     for (let i=0; i<=SEGS; i++) {
       const r = (i/SEGS)*APR;
       const depth = R - Math.sqrt(R*R - r*r);
-      const x = halfT - (sg - depth);
+      const x = minHalf - (sg - depth);
       pts.push(new THREE.Vector2(r, x));
     }
     for (let i=SEGS; i>=0; i--) {
       const r = (i/SEGS)*APR;
       const depth = R - Math.sqrt(R*R - r*r);
-      const x = -(halfT - (sg - depth));
+      const x = -(minHalf - (sg - depth));
       pts.push(new THREE.Vector2(r, x));
     }
   }
@@ -483,94 +487,93 @@ function buildElement() {
 
   // ── PLANAR MIRROR ──
   if (el==='planar') {
-    // ── Layer 1: silver base with MeshPhysicalMaterial (clearcoat + high metalness) ──
-    const fGeo = new THREE.PlaneGeometry(4.2, 4.2, 1, 1);
-    const fMat = new THREE.MeshPhysicalMaterial({
-      color: 0xd8e8f8,
-      roughness: 0.0,
-      metalness: 1.0,
-      reflectivity: 1.0,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.0,
-      envMapIntensity: 2.2,
-      side: THREE.FrontSide
+    // ── Layer 1: glass body — semi-transparent blue-white glass plate ──
+    const glassGeo = new THREE.BoxGeometry(0.13, 4.2, 4.2);
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8deff,
+      transparent: true, opacity: 0.22,
+      roughness: 0.0, metalness: 0.0,
+      transmission: 0.80,
+      ior: 1.52,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      reflectivity: 0.6,
+      envMapIntensity: 1.6,
+      side: THREE.DoubleSide
     });
-    const front = new THREE.Mesh(fGeo, fMat);
-    front.rotation.y = Math.PI / 2;
-    elGrp.add(front);
+    elGrp.add(new THREE.Mesh(glassGeo, glassMat));
 
-    // ── Layer 2: streak highlight — canvas texture simulating polished-metal brushed lines ──
+    // ── Layer 2: silver backing — sits behind the glass on the +X side ──
+    const silverGeo = new THREE.PlaneGeometry(4.2, 4.2);
+    const silverMat = new THREE.MeshPhysicalMaterial({
+      color: 0xd0e4f8,
+      roughness: 0.0, metalness: 1.0,
+      reflectivity: 1.0,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      envMapIntensity: 2.0,
+      side: THREE.FrontSide   // normal points toward -X (toward light)
+    });
+    const silverMesh = new THREE.Mesh(silverGeo, silverMat);
+    silverMesh.rotation.y = -Math.PI / 2; silverMesh.position.x = -0.065;
+    elGrp.add(silverMesh);
+
+    // ── Layer 3: canvas streak texture — glass surface reflections & polish ──
     const streakCv = document.createElement('canvas');
     streakCv.width = 256; streakCv.height = 256;
     const sCtx = streakCv.getContext('2d');
-    // base silver gradient
-    const baseGrad = sCtx.createLinearGradient(0, 0, 256, 256);
-    baseGrad.addColorStop(0.00, 'rgba(255,255,255,0.00)');
-    baseGrad.addColorStop(0.18, 'rgba(220,235,255,0.18)');
-    baseGrad.addColorStop(0.35, 'rgba(255,255,255,0.38)');
-    baseGrad.addColorStop(0.50, 'rgba(200,220,245,0.10)');
-    baseGrad.addColorStop(0.68, 'rgba(255,255,255,0.32)');
-    baseGrad.addColorStop(0.82, 'rgba(210,228,255,0.15)');
-    baseGrad.addColorStop(1.00, 'rgba(255,255,255,0.00)');
-    sCtx.fillStyle = baseGrad;
-    sCtx.fillRect(0, 0, 256, 256);
-    // fine horizontal streaks (polished metal grain)
-    for (let i = 0; i < 48; i++) {
-      const y = Math.random() * 256;
-      const w = Math.random() * 1.2 + 0.2;
-      const a = Math.random() * 0.18 + 0.04;
-      sCtx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
-      sCtx.fillRect(0, y, 256, w);
+    // radial centre highlight (light passing through glass)
+    const radGrad = sCtx.createRadialGradient(128,128,0,128,128,128);
+    radGrad.addColorStop(0.00,'rgba(220,240,255,0.30)');
+    radGrad.addColorStop(0.50,'rgba(180,215,255,0.10)');
+    radGrad.addColorStop(1.00,'rgba( 80,140,220,0.00)');
+    sCtx.fillStyle = radGrad; sCtx.fillRect(0,0,256,256);
+    // diagonal sweep highlight
+    const swpGrad = sCtx.createLinearGradient(20,20,236,236);
+    swpGrad.addColorStop(0.00,'rgba(255,255,255,0.00)');
+    swpGrad.addColorStop(0.35,'rgba(255,255,255,0.32)');
+    swpGrad.addColorStop(0.50,'rgba(220,235,255,0.48)');
+    swpGrad.addColorStop(0.65,'rgba(255,255,255,0.32)');
+    swpGrad.addColorStop(1.00,'rgba(255,255,255,0.00)');
+    sCtx.fillStyle = swpGrad; sCtx.fillRect(0,0,256,256);
+    // fine horizontal streaks (polished glass grain)
+    for (let i=0;i<36;i++){
+      const y=Math.random()*256, w=Math.random()*0.9+0.2, a=(Math.random()*0.12+0.03).toFixed(3);
+      sCtx.fillStyle=`rgba(255,255,255,${a})`; sCtx.fillRect(0,y,256,w);
     }
-    // a few bright specular flashes
-    for (let i = 0; i < 5; i++) {
-      const cx2 = Math.random() * 256, cy2 = Math.random() * 256;
-      const gr = sCtx.createRadialGradient(cx2, cy2, 0, cx2, cy2, 18 + Math.random()*22);
-      gr.addColorStop(0, 'rgba(255,255,255,0.55)');
-      gr.addColorStop(1, 'rgba(255,255,255,0.00)');
-      sCtx.fillStyle = gr;
-      sCtx.fillRect(0, 0, 256, 256);
+    // specular flashes
+    for (let i=0;i<4;i++){
+      const cx2=Math.random()*256,cy2=Math.random()*256;
+      const gr=sCtx.createRadialGradient(cx2,cy2,0,cx2,cy2,16+Math.random()*20);
+      gr.addColorStop(0,'rgba(255,255,255,0.48)'); gr.addColorStop(1,'rgba(255,255,255,0.00)');
+      sCtx.fillStyle=gr; sCtx.fillRect(0,0,256,256);
     }
+    // edge chromatic fringe (blue tint at border, like real glass mirror)
+    const edgeGrad = sCtx.createRadialGradient(128,128,88,128,128,128);
+    edgeGrad.addColorStop(0.00,'rgba(120,170,255,0.00)');
+    edgeGrad.addColorStop(0.78,'rgba(120,170,255,0.00)');
+    edgeGrad.addColorStop(0.92,'rgba(140,185,255,0.20)');
+    edgeGrad.addColorStop(1.00,'rgba(160,130,255,0.32)');
+    sCtx.fillStyle=edgeGrad; sCtx.fillRect(0,0,256,256);
     const streakTex = new THREE.CanvasTexture(streakCv);
     const hGeo = new THREE.PlaneGeometry(4.2, 4.2);
     const hl = new THREE.Mesh(hGeo, new THREE.MeshBasicMaterial({
-      map: streakTex, transparent: true, opacity: 0.72,
+      map: streakTex, transparent: true, opacity: 0.80,
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide
     }));
-    hl.rotation.y = Math.PI / 2; hl.position.x = 0.002;
+    hl.rotation.y = -Math.PI / 2; hl.position.x = -0.067;
     elGrp.add(hl);
 
-    // ── Layer 3: edge glow / vignette to give depth ──
-    const edgeCv = document.createElement('canvas');
-    edgeCv.width = 128; edgeCv.height = 128;
-    const eCtx = edgeCv.getContext('2d');
-    const edgeGrad = eCtx.createRadialGradient(64, 64, 22, 64, 64, 64);
-    edgeGrad.addColorStop(0, 'rgba(180,210,255,0.00)');
-    edgeGrad.addColorStop(0.7, 'rgba(180,210,255,0.00)');
-    edgeGrad.addColorStop(1.0, 'rgba(140,180,230,0.38)');
-    eCtx.fillStyle = edgeGrad;
-    eCtx.fillRect(0, 0, 128, 128);
-    const edgeTex = new THREE.CanvasTexture(edgeCv);
-    const eGeo = new THREE.PlaneGeometry(4.2, 4.2);
-    const edgeMesh = new THREE.Mesh(eGeo, new THREE.MeshBasicMaterial({
-      map: edgeTex, transparent: true, opacity: 0.9,
-      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide
-    }));
-    edgeMesh.rotation.y = Math.PI / 2; edgeMesh.position.x = 0.003;
-    elGrp.add(edgeMesh);
-
-    // ── Layer 4: thin blue-tinted tint overlay (cold silver tone) ──
+    // ── Layer 4: cold blue-white tint (glass colour) ──
     const tintGeo = new THREE.PlaneGeometry(4.2, 4.2);
     const tintMesh = new THREE.Mesh(tintGeo, new THREE.MeshBasicMaterial({
-      color: 0x99bbdd, transparent: true, opacity: 0.07,
+      color: 0xaaccff, transparent: true, opacity: 0.09,
       blending: THREE.NormalBlending, depthWrite: false, side: THREE.FrontSide
     }));
-    tintMesh.rotation.y = Math.PI / 2; tintMesh.position.x = 0.004;
+    tintMesh.rotation.y = -Math.PI / 2; tintMesh.position.x = -0.068;
     elGrp.add(tintMesh);
 
-    // ── Backing: dark frame body ──
+    // ── Backing frame ──
     elGrp.add(new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 4.2, 4.2),
+      new THREE.BoxGeometry(0.12, 4.2, 4.2),
       new THREE.MeshStandardMaterial({ color: 0x1a2535, roughness: 0.7 })
     ));
     return;
@@ -598,14 +601,80 @@ function buildElement() {
   if (el==='convex-lens'||el==='concave-lens') {
     const isConvex = el==='convex-lens';
     const lGeo = buildLensLathe(R, d/2, isConvex);
-    elGrp.add(new THREE.Mesh(lGeo, new THREE.MeshPhysicalMaterial({
-      color:0x88aaff, transparent:true, opacity:0.30,
-      roughness:0.0, metalness:0.0,
-      transmission:0.88, ior:n, thickness:d, side:THREE.DoubleSide
+
+    // ── Layer 1: glass body — transmission + physical IOR ──
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8deff,
+      transparent: true, opacity: 0.18,
+      roughness: 0.0, metalness: 0.0,
+      transmission: 0.96,
+      ior: n,
+      thickness: d,
+      attenuationColor: new THREE.Color(0x99ccff),
+      attenuationDistance: 2.5,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      reflectivity: 0.5,
+      envMapIntensity: 1.8,
+      side: THREE.DoubleSide
+    });
+    elGrp.add(new THREE.Mesh(lGeo, glassMat));
+
+    // ── Layer 2: canvas streak texture — internal reflections & polish ──
+    const lCv = document.createElement('canvas');
+    lCv.width = 256; lCv.height = 256;
+    const lCtx = lCv.getContext('2d');
+    // radial base: bright centre fade (light passing through)
+    const radGrad = lCtx.createRadialGradient(128,128,0, 128,128,128);
+    radGrad.addColorStop(0.00, 'rgba(220,240,255,0.38)');
+    radGrad.addColorStop(0.45, 'rgba(180,215,255,0.14)');
+    radGrad.addColorStop(0.80, 'rgba(100,160,230,0.06)');
+    radGrad.addColorStop(1.00, 'rgba( 60,120,200,0.00)');
+    lCtx.fillStyle = radGrad; lCtx.fillRect(0,0,256,256);
+    // diagonal sweep highlight (polished surface sheen)
+    const swpGrad = lCtx.createLinearGradient(30,30,226,226);
+    swpGrad.addColorStop(0.00,'rgba(255,255,255,0.00)');
+    swpGrad.addColorStop(0.38,'rgba(255,255,255,0.28)');
+    swpGrad.addColorStop(0.50,'rgba(220,235,255,0.42)');
+    swpGrad.addColorStop(0.62,'rgba(255,255,255,0.28)');
+    swpGrad.addColorStop(1.00,'rgba(255,255,255,0.00)');
+    lCtx.fillStyle = swpGrad; lCtx.fillRect(0,0,256,256);
+    // fine concentric arc hints
+    for (let i=0;i<6;i++){
+      const r2 = 20+i*18, a2 = (Math.random()*0.12+0.04).toFixed(3);
+      lCtx.beginPath();
+      lCtx.arc(128,128,r2,Math.PI*0.9,Math.PI*1.8);
+      lCtx.strokeStyle=`rgba(200,225,255,${a2})`; lCtx.lineWidth=1.2+Math.random();
+      lCtx.stroke();
+    }
+    // edge chromatic rim (blue-violet fringe)
+    const edgeGrad = lCtx.createRadialGradient(128,128,90,128,128,128);
+    edgeGrad.addColorStop(0.00,'rgba(100,150,255,0.00)');
+    edgeGrad.addColorStop(0.75,'rgba(120,160,255,0.00)');
+    edgeGrad.addColorStop(0.90,'rgba(140,180,255,0.22)');
+    edgeGrad.addColorStop(1.00,'rgba(160,120,255,0.38)');
+    lCtx.fillStyle = edgeGrad; lCtx.fillRect(0,0,256,256);
+    const lTex = new THREE.CanvasTexture(lCv);
+    const lGeo2 = buildLensLathe(R, d/2, isConvex);
+    const hlMesh = new THREE.Mesh(lGeo2, new THREE.MeshBasicMaterial({
+      map: lTex, transparent: true, opacity: 0.82,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    }));
+    elGrp.add(hlMesh);
+
+    // ── Layer 3: thin blue-white tint (cold glass colour) ──
+    const lGeo3 = buildLensLathe(R, d/2, isConvex);
+    elGrp.add(new THREE.Mesh(lGeo3, new THREE.MeshBasicMaterial({
+      color: 0xaaccff, transparent: true, opacity: 0.07,
+      blending: THREE.NormalBlending, depthWrite: false, side: THREE.DoubleSide
     })));
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(APR,0.055,8,48),
-      new THREE.MeshStandardMaterial({color:0x445566, metalness:0.7, roughness:0.3}));
+
+    // ── Rim ──
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(APR, 0.055, 8, 48),
+      new THREE.MeshStandardMaterial({color:0x445566, metalness:0.7, roughness:0.3})
+    );
     rim.rotation.y = Math.PI/2; elGrp.add(rim);
+
     if (S.focal) {
       const f = computeFocalLength();
       if (isConvex) { addFocalMarker(f,'F');      addFocalMarker(-f,"F'"); }
