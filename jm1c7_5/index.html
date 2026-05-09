@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光学实验室 · 互动演示</title>
+<style>
+/*峇株吧辖华仁中学蔡逸众制作*/
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&family=Orbitron:wght@400;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--dark:#06080f;--dark2:#0b0f1c;--panel:#0e1220;--border:rgba(255,255,255,0.07);--text:#dde2f0;--dim:rgba(255,255,255,0.35);--accent:#4488ff}
+html,body{width:100%;height:100%;background:var(--dark);color:var(--text);font-family:'Noto Sans SC',sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;gap:12px;padding:9px 18px 0;border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-family:'Orbitron',sans-serif;font-size:clamp(12px,2vw,18px);letter-spacing:.15em;color:#fff;white-space:nowrap}
+/*峇株吧辖蔡逸众制作*/
+.credit-wm{font-size:9px;color:rgba(255,255,255,.06);margin-left:auto;letter-spacing:.04em;user-select:none;pointer-events:none;white-space:nowrap}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-left:16px;align-self:flex-end}
+.tab{font-family:'Noto Sans SC',sans-serif;font-size:12px;padding:7px 18px 6px;border:none;background:transparent;color:rgba(255,255,255,.4);cursor:pointer;border-radius:8px 8px 0 0;border:1px solid transparent;border-bottom:none;transition:all .2s;letter-spacing:.06em;white-space:nowrap;position:relative;top:1px}
+.tab:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.04)}
+.tab.active{color:#fff;background:var(--dark);border-color:var(--border);border-bottom-color:var(--dark)}
+.tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:var(--dark)}
+
+/* ── TAB PANELS ── */
+.panel-wrap{flex:1;min-height:0;position:relative}
+.tab-panel{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.tab-panel.active{opacity:1;pointer-events:auto}
+
+/* ══════════════════════════════════
+   TAB 1 — RGB 三原色
+══════════════════════════════════ */
+/*Made by ecchua79*/
+.rgb-main{flex:1;display:flex;min-height:0}
+.stage-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,#0a0f1e 0%,#03050b 100%)}
+#rgbStage{width:100%;height:100%;display:block}
+.result-badge{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);border-radius:40px;padding:5px 18px;font-size:12px;letter-spacing:.08em;backdrop-filter:blur(8px);white-space:nowrap;pointer-events:none}
+.result-badge .bs{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle;margin-right:5px;border:1px solid rgba(255,255,255,.3)}
+.drag-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.22);pointer-events:none;transition:opacity .5s}
+
+/* RGB control panel */
+.rgb-panel{width:clamp(190px,24vw,280px);background:var(--panel);border-left:1px solid var(--border);padding:14px 13px;overflow-y:auto;display:flex;flex-direction:column;gap:11px;flex-shrink:0}
+.ptitle{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:-4px}
+.channel{border-radius:10px;padding:12px 12px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.ch-header{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.tog{width:32px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s,opacity .2s}
+.tog.on{background:var(--cc)}
+.tog.off{background:#333}
+.tog.off::after{opacity:.35}
+.tog.on::after{transform:translateX(14px)}
+.ch-name{font-weight:700;font-size:14px;flex:1}
+.ch-num{font-family:'Orbitron',monospace;font-size:11px;color:rgba(255,255,255,.45);min-width:26px;text-align:right}
+.sl-row{display:flex;align-items:center;gap:7px}
+.sl-row label{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.1em;width:22px;flex-shrink:0}
+input[type=range].cslider{-webkit-appearance:none;flex:1;height:4px;border-radius:2px;outline:none;cursor:pointer;background:rgba(255,255,255,.08)}
+input[type=range].cslider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--cc);border:2px solid rgba(255,255,255,.6);cursor:grab;box-shadow:0 0 7px var(--cc);transition:transform .1s}
+input[type=range].cslider:active::-webkit-slider-thumb{transform:scale(1.25);cursor:grabbing}
+.mix-preview-box{border-radius:10px;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.mix-preview-box .plabel{font-size:9px;letter-spacing:.15em;color:rgba(255,255,255,.28);margin-bottom:8px;text-transform:uppercase}
+.big-swatch{width:100%;height:52px;border-radius:7px;margin-bottom:7px;border:1px solid rgba(255,255,255,.08);transition:background .1s}
+.mix-name{font-size:12px;font-weight:700;text-align:center}
+.mix-hex{font-family:'Orbitron',monospace;font-size:10px;color:rgba(255,255,255,.35);text-align:center;margin-top:2px}
+.fmla-box{border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);font-size:10px;line-height:1.9;color:rgba(255,255,255,.38)}
+.frow{display:flex;align-items:center;gap:5px}
+.fdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fx-active{color:rgba(255,255,255,.85)}
+@media(max-width:600px){.rgb-main{flex-direction:column}.stage-wrap{flex:none;height:50vw;min-height:200px}.rgb-panel{width:100%;flex-direction:row;flex-wrap:wrap;border-left:none;border-top:1px solid var(--border);padding:8px;gap:7px}.channel{flex:1 1 130px}.mix-preview-box,.fmla-box{flex:1 1 130px}}
+
+/* ══════════════════════════════════
+   TAB 2 — 光谱探索器
+══════════════════════════════════ */
+/*华仁中学蔡逸众制作*/
+.spec-main{flex:1;display:flex;flex-direction:column;min-height:0;padding:11px 16px 8px;gap:9px;overflow:hidden}
+.prism-section{flex-shrink:0;height:clamp(110px,19vh,168px);position:relative;border-radius:12px;background:var(--dark2);border:1px solid var(--border);overflow:hidden}
+#prismCanvas{width:100%;height:100%;display:block}
+.prism-hint{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.16);pointer-events:none;white-space:nowrap}
+.spectrum-section{flex-shrink:0}
+.spec-label-row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px;padding:0 2px}
+.spec-wrap{position:relative;height:40px;cursor:crosshair}
+#spectrumBar{width:100%;height:40px;border-radius:8px;display:block}
+.cursor-line{position:absolute;top:-5px;bottom:-5px;width:2px;background:rgba(255,255,255,.9);border-radius:2px;pointer-events:none;transform:translateX(-50%);box-shadow:0 0 7px rgba(255,255,255,.7)}
+.cursor-line::before{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff}
+.tick-row{display:flex;justify-content:space-between;padding:2px 2px 0}
+.tick{font-size:9px;color:rgba(255,255,255,.2)}
+.slider-row{flex-shrink:0;display:flex;align-items:center;gap:10px}
+.slider-row label{font-size:10px;color:var(--dim);white-space:nowrap;flex-shrink:0;letter-spacing:.08em}
+#wlSlider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,#8b00ff 0%,#4400ff 8%,#0000ff 16%,#0055ff 22%,#00aaff 28%,#00ffee 35%,#00ff88 42%,#88ff00 50%,#ffff00 58%,#ffaa00 66%,#ff6600 76%,#ff0000 100%)}
+#wlSlider::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.3);cursor:grab;box-shadow:0 0 10px var(--tg,#fff);transition:transform .1s}
+#wlSlider:active::-webkit-slider-thumb{transform:scale(1.2);cursor:grabbing}
+.wl-out{font-family:'Orbitron',monospace;font-size:13px;min-width:56px;text-align:right}
+.named-strip{flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap}
+.nbtn{font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.55);cursor:pointer;transition:all .2s;white-space:nowrap}
+.nbtn:hover,.nbtn.active{background:rgba(255,255,255,.13);color:#fff;border-color:rgba(255,255,255,.3)}
+.info-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;min-height:0;overflow:hidden}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;transition:border-color .3s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ca,transparent);border-radius:11px 11px 0 0}
+.clabel{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.26)}
+.cval{font-family:'Orbitron',monospace;font-size:clamp(11px,1.6vw,17px);font-weight:700;color:#fff;line-height:1.15;transition:color .2s}
+.csub{font-size:10px;color:rgba(255,255,255,.36);margin-top:1px}
+.cprev{width:100%;height:28px;border-radius:5px;margin-top:3px;border:1px solid rgba(255,255,255,.08);transition:background .15s,box-shadow .15s}
+@media(max-width:540px){.prism-section{height:105px}.info-grid{grid-template-columns:1fr 1fr}.spec-main{padding:7px 9px 6px;gap:7px}}
+</style>
+</head>
+<body>
+<!-- 峇株吧辖蔡逸众制作 -->
+<div class="app">
+  <header>
+    <h1>光学实验室</h1>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(0,this)">🔴🟢🔵 三原色混合</button>
+      <button class="tab" onclick="switchTab(1,this)">🌈 光谱探索</button>
+    </div>
+    <span class="credit-wm">峇株吧辖华仁中学蔡逸众制作 · ecchua79</span>
+  </header>
+
+  <div class="panel-wrap">
+
+    <!-- ══ TAB 0: RGB ══ -->
+    <!-- Made by ecchua79 -->
+    <div class="tab-panel active" id="panel-rgb">
+      <div class="rgb-main">
+        <div class="stage-wrap">
+          <canvas id="rgbStage"></canvas>
+          <div class="drag-hint" id="dragHint">🖱 拖动光圈 · 调节亮度观察混色</div>
+          <div class="result-badge">
+            <span class="bs" id="badgeSwatch"></span>
+            <span id="badgeText">调节光圈开始混色</span>
+          </div>
+        </div>
+        <div class="rgb-panel">
+          <div class="ptitle">光源控制</div>
+          <div class="channel" id="card-r">
+            <div class="ch-header">
+              <button class="tog on" id="tog-r" style="--cc:#ff3333" onclick="toggleCh('r')"></button>
+              <span class="ch-name" style="color:#ff6666">红光 R</span>
+              <span class="ch-num" id="val-r">255</span>
+            </div>
+            <div class="sl-row"><label>亮度</label><input type="range" class="cslider" style="--cc:#ff3333" id="br-r" min="0" max="255" value="255" oninput="updateCh('r',this.value)"></div>
+          </div>
+          <div class="channel" id="card-g">
+            <div class="ch-header">
+              <button class="tog on" id="tog-g" style="--cc:#33ff55" onclick="toggleCh('g')"></button>
+              <span class="ch-name" style="color:#55ff77">绿光 G</span>
+              <span class="ch-num" id="val-g">255</span>
+            </div>
+            <div class="sl-row"><label>亮度</label><input type="range" class="cslider" style="--cc:#33ff55" id="br-g" min="0" max="255" value="255" oninput="updateCh('g',this.value)"></div>
+          </div>
+          <div class="channel" id="card-b">
+            <div class="ch-header">
+              <button class="tog on" id="tog-b" style="--cc:#4499ff" onclick="toggleCh('b')"></button>
+              <span class="ch-name" style="color:#66aaff">蓝光 B</span>
+              <span class="ch-num" id="val-b">255</span>
+            </div>
+            <div class="sl-row"><label>亮度</label><input type="range" class="cslider" style="--cc:#4499ff" id="br-b" min="0" max="255" value="255" oninput="updateCh('b',this.value)"></div>
+          </div>
+          <div class="mix-preview-box">
+            <div class="plabel">混色结果</div>
+            <div class="big-swatch" id="bigSwatch"></div>
+            <div class="mix-name" id="mixName">白光</div>
+            <div class="mix-hex" id="mixHex">#FFFFFF</div>
+          </div>
+          <div class="fmla-box">
+            <div class="frow"><span class="fdot" style="background:#ff3333"></span><span id="fx-r">红 + 绿 = 黄</span></div>
+            <div class="frow"><span class="fdot" style="background:#33ff55"></span><span id="fx-g">绿 + 蓝 = 青</span></div>
+            <div class="frow"><span class="fdot" style="background:#4499ff"></span><span id="fx-b">蓝 + 红 = 品红</span></div>
+            <div class="frow"><span class="fdot" style="background:#fff"></span><span id="fx-w">红 + 绿 + 蓝 = 白</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 1: SPECTRUM ══ -->
+    <div class="tab-panel" id="panel-spec">
+      <div class="spec-main">
+        <div class="prism-section">
+          <canvas id="prismCanvas"></canvas>
+          <div class="prism-hint">☀ 拖动光源上下移动 · 红光偏折最少（最上）· 紫光偏折最多（最下）</div>
+        </div>
+        <div class="spectrum-section">
+          <div class="spec-label-row">
+            <span>← 紫外线</span><span>可见光谱 380–700nm</span><span>红外线 →</span>
+          </div>
+          <div class="spec-wrap" id="specWrap">
+            <canvas id="spectrumBar"></canvas>
+            <div class="cursor-line" id="cursorLine"></div>
+          </div>
+          <div class="tick-row" id="tickRow"></div>
+        </div>
+        <div class="slider-row">
+          <label>波长 λ</label>
+          <input type="range" id="wlSlider" min="380" max="700" value="550" step="1">
+          <span class="wl-out" id="wlOut">550 nm</span>
+        </div>
+        <div class="named-strip" id="namedStrip"></div>
+        <div class="info-grid">
+          <div class="card"><div class="clabel">颜色</div><div class="cval" id="cv-name">绿光</div><div class="cprev" id="cv-prev"></div></div>
+          <div class="card"><div class="clabel">波长范围</div><div class="cval" id="cv-wl">550 <span style="font-size:10px;opacity:.55">nm</span></div><div class="csub" id="cv-range">绿光区 510–560nm</div></div>
+          <div class="card"><div class="clabel">频率</div><div class="cval" id="cv-freq">5.45 <span style="font-size:10px;opacity:.55">×10¹⁴Hz</span></div><div class="csub">f = c ÷ λ</div></div>
+          <div class="card"><div class="clabel">光子能量</div><div class="cval" id="cv-ev">2.25 <span style="font-size:10px;opacity:.55">eV</span></div><div class="csub">E = hc ÷ λ</div></div>
+          <div class="card"><div class="clabel">能量高低</div><div class="cval" id="cv-lvl" style="font-size:13px">中等能量</div><div class="csub">紫光最高，红光最低</div></div>
+          <div class="card"><div class="clabel">有趣事实</div><div class="cval" id="cv-fact" style="font-size:10px;font-family:inherit;font-weight:400;line-height:1.5;opacity:.86">叶绿素反射绿光，所以植物是绿色的</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel-wrap -->
+</div><!-- /app -->
+
+<script>
+//峇株吧辖华仁中学蔡逸众制作
+
+// ══════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════
+function switchTab(idx, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel')[idx].classList.add('active');
+  // Re-render canvases after panel becomes visible
+  setTimeout(()=>{
+    if(idx===0){ rgbResize(); }
+    else{ specResize(); drawPrism(parseInt(document.getElementById('wlSlider').value)); }
+  }, 30);
+}
+
+// ══════════════════════════════════
+// SHARED: wlToRGB (used by spectrum tab)
+// ══════════════════════════════════
+//峇株吧辖蔡逸众制作
+function wlToRGB(wl){let r=0,g=0,b=0;if(wl>=380&&wl<440){r=(440-wl)/60;g=0;b=1;}else if(wl>=440&&wl<490){r=0;g=(wl-440)/50;b=1;}else if(wl>=490&&wl<510){r=0;g=1;b=(510-wl)/20;}else if(wl>=510&&wl<580){r=(wl-510)/70;g=1;b=0;}else if(wl>=580&&wl<645){r=1;g=(645-wl)/65;b=0;}else if(wl>=645&&wl<=700){r=1;g=0;b=0;}let f=1;if(wl>=380&&wl<420)f=0.3+0.7*(wl-380)/40;else if(wl>680&&wl<=700)f=0.3+0.7*(700-wl)/20;return[Math.round(255*r*f),Math.round(255*g*f),Math.round(255*b*f)];}
+function wlCSS(wl){const[r,g,b]=wlToRGB(wl);return`rgb(${r},${g},${b})`;}
+
+// ══════════════════════════════════
+// TAB 0 — RGB 三原色
+// ══════════════════════════════════
+const ch={r:{on:true,br:255},g:{on:true,br:255},b:{on:true,br:255}};
+const rgbCanvas=document.getElementById('rgbStage');
+const rCtx=rgbCanvas.getContext('2d');
+let RW,RH;
+const circles={r:{x:0,y:0},g:{x:0,y:0},b:{x:0,y:0}};
+let Rr=100;
+
+function rgbInitPos(){
+  RW=rgbCanvas.width=rgbCanvas.offsetWidth;
+  RH=rgbCanvas.height=rgbCanvas.offsetHeight;
+  Rr=Math.min(RW,RH)*0.28;
+  const d=Rr*0.55;
+  circles.r.x=RW/2;   circles.r.y=RH/2-d*0.9;
+  circles.g.x=RW/2+d; circles.g.y=RH/2+d*0.55;
+  circles.b.x=RW/2-d; circles.b.y=RH/2+d*0.55;
+}
+
+function rgbDraw(){
+  rCtx.clearRect(0,0,RW,RH);
+  function drawLight(key,cr,cg,cb){
+    if(!ch[key].on)return;
+    const c=circles[key],a=ch[key].br/255;
+    if(a<=0)return;
+    rCtx.globalCompositeOperation='screen';
+    [[1.3,.75,.60,.35,0],[1,.95,.85,.50,0],[.45,1,.90,0,0]].forEach(([rMult,a0,a1,a2,a3],pass)=>{
+      const radius=[Rr*1.3,Rr,Rr*.45][pass];
+      const alphas=[[a*.75,a*.60,a*.35,0],[a*.95,a*.85,a*.50,0],[a,a*.90,0,0]][pass];
+      const gr=rCtx.createRadialGradient(c.x,c.y,0,c.x,c.y,radius);
+      const stops=[[0,.35,.65,1],[0,.5,.85,1],[0,.6,1]][pass];
+      stops.forEach((s,i)=>gr.addColorStop(s,`rgba(${cr},${cg},${cb},${alphas[i]??0})`));
+      rCtx.beginPath();rCtx.arc(c.x,c.y,radius,0,Math.PI*2);
+      rCtx.fillStyle=gr;rCtx.fill();
+    });
+  }
+  drawLight('r',255,0,0);drawLight('g',0,255,0);drawLight('b',0,0,255);
+  rCtx.globalCompositeOperation='source-over';
+  ['r','g','b'].forEach(key=>{
+    if(!ch[key].on)return;
+    const c=circles[key],a=ch[key].br/255;
+    if(a<=.05)return;
+    rCtx.beginPath();rCtx.arc(c.x,c.y,Rr,0,Math.PI*2);
+    rCtx.strokeStyle=key==='r'?`rgba(255,80,80,${(a*.4).toFixed(2)})`:key==='g'?`rgba(80,255,100,${(a*.4).toFixed(2)})`:`rgba(80,160,255,${(a*.4).toFixed(2)})`;
+    rCtx.lineWidth=1.5;rCtx.stroke();
+  });
+  rCtx.globalCompositeOperation='source-over';
+  updateRGBUI();
+}
+
+function updateRGBUI(){
+  const rv=ch.r.on?ch.r.br:0,gv=ch.g.on?ch.g.br:0,bv=ch.b.on?ch.b.br:0;
+  const hex='#'+[rv,gv,bv].map(v=>Math.round(v).toString(16).padStart(2,'0').toUpperCase()).join('');
+  const name=rgbColorName(rv,gv,bv);
+  document.getElementById('bigSwatch').style.background=`rgb(${rv},${gv},${bv})`;
+  document.getElementById('bigSwatch').style.boxShadow=rv+gv+bv>10?`0 0 18px rgba(${rv},${gv},${bv},.45)`:'none';
+  document.getElementById('mixName').textContent=name;
+  document.getElementById('mixHex').textContent=hex;
+  document.getElementById('badgeSwatch').style.background=`rgb(${rv},${gv},${bv})`;
+  document.getElementById('badgeText').textContent=name+'  '+hex;
+  const rOn=ch.r.on&&ch.r.br>20,gOn=ch.g.on&&ch.g.br>20,bOn=ch.b.on&&ch.b.br>20;
+  document.getElementById('fx-r').className=rOn&&gOn?'fx-active':'';
+  document.getElementById('fx-g').className=gOn&&bOn?'fx-active':'';
+  document.getElementById('fx-b').className=bOn&&rOn?'fx-active':'';
+  document.getElementById('fx-w').className=rOn&&gOn&&bOn?'fx-active':'';
+}
+
+function rgbColorName(rv,gv,bv){
+  if(rv===0&&gv===0&&bv===0)return'无光（黑暗）';
+  const r=rv/255,g=gv/255,b=bv/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+  if(mx-mn<.08){if(mx<.15)return'近乎黑色';if(mx<.55)return'灰色';return'白光';}
+  if(r>.7&&g<.2&&b<.2)return'红光';if(g>.7&&r<.2&&b<.2)return'绿光';if(b>.7&&r<.2&&g<.2)return'蓝光';
+  if(r>.5&&g>.5&&b<.25)return'黄光（红＋绿）';if(g>.5&&b>.5&&r<.25)return'青光（绿＋蓝）';if(r>.5&&b>.5&&g<.25)return'品红（红＋蓝）';
+  if(r>.35&&g>.35&&b>.35)return'白光（三色混合）';return'混合色';
+}
+
+function toggleCh(key){
+  ch[key].on=!ch[key].on;
+  const btn=document.getElementById('tog-'+key);
+  btn.className='tog '+(ch[key].on?'on':'off');
+  rgbDraw();
+}
+function updateCh(key,val){
+  ch[key].br=parseInt(val);
+  document.getElementById('val-'+key).textContent=val;
+  rgbDraw();
+}
+
+// RGB drag
+let rgbDragging=null,rgbOffX=0,rgbOffY=0;
+function rgbGetPt(e){const rect=rgbCanvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};}
+function rgbHit(px,py){for(const key of['r','g','b']){if(Math.hypot(px-circles[key].x,py-circles[key].y)<Rr)return key;}return null;}
+rgbCanvas.addEventListener('pointerdown',e=>{const{x,y}=rgbGetPt(e);const h=rgbHit(x,y);if(h){rgbDragging=h;rgbOffX=x-circles[h].x;rgbOffY=y-circles[h].y;rgbCanvas.setPointerCapture(e.pointerId);document.getElementById('dragHint').style.opacity='0';e.preventDefault();}});
+rgbCanvas.addEventListener('pointermove',e=>{if(!rgbDragging)return;const{x,y}=rgbGetPt(e);circles[rgbDragging].x=x-rgbOffX;circles[rgbDragging].y=y-rgbOffY;rgbDraw();e.preventDefault();});
+rgbCanvas.addEventListener('pointerup',()=>rgbDragging=null);
+rgbCanvas.addEventListener('pointercancel',()=>rgbDragging=null);
+
+function rgbResize(){
+  RW=rgbCanvas.width=rgbCanvas.offsetWidth;
+  RH=rgbCanvas.height=rgbCanvas.offsetHeight;
+  // Only re-init positions if first time or size changed significantly
+  if(!Rr||Math.abs(Rr-Math.min(RW,RH)*0.28)>5) rgbInitPos();
+  else { Rr=Math.min(RW,RH)*0.28; }
+  rgbDraw();
+}
+
+setTimeout(()=>document.getElementById('dragHint').style.opacity='0', 5000);
+
+// ══════════════════════════════════
+// TAB 1 — 光谱探索器
+// ══════════════════════════════════
+//华仁中学蔡逸众制作
+const NAMED=[{name:'紫光',wl:415},{name:'蓝光',wl:460},{name:'青光',wl:495},{name:'绿光',wl:530},{name:'黄光',wl:580},{name:'橙光',wl:610},{name:'红光',wl:660}];
+const FACTS={380:'接近紫外线边界，人眼几乎无法感知，但皮肤会被晒伤！',415:'紫色光频率最高、能量最大，在彩虹中弯曲最明显排在最内侧。',440:'蓝紫光造成天空呈蓝色——瑞利散射让短波长向四面八方散开。',460:'蓝光会抑制褪黑素分泌，睡前少看手机真的有科学根据！',490:'青色光介于蓝绿之间，浅海的青蓝色与此波段有关。',510:'绿光是人眼白天感知最灵敏的颜色范围。',530:'叶绿素大量吸收红光与蓝光，把绿光反射出来，叶子才是绿的。',560:'黄绿光是白天人眼对亮度最敏感的区域。',580:'黄光是钠蒸气路灯的主要颜色，穿透雾气的能力很强。',610:'橙光让食物看起来更美味，餐厅爱用暖色灯就是这原因！',640:'红光穿透力强，交通号志与刹车灯都使用红色。',660:'植物光合作用的吸收峰之一就在660nm红光附近。',700:'接近红外线边界，人眼感知极弱，但普通相机传感器能拍到。'};
+function getFact(wl){const k=Object.keys(FACTS).map(Number).sort((a,b)=>a-b);let bst=k[0];for(const x of k)if(Math.abs(x-wl)<Math.abs(bst-wl))bst=x;return FACTS[bst];}
+function wlName(wl){if(wl<420)return'紫光';if(wl<450)return'蓝紫光';if(wl<490)return'蓝光';if(wl<510)return'青光';if(wl<560)return'绿光';if(wl<590)return'黄光';if(wl<625)return'橙光';return'红光';}
+function wlRange(wl){const R=[[380,420,'紫光区 380–420nm'],[420,490,'蓝光区 420–490nm'],[490,510,'青光区 490–510nm'],[510,560,'绿光区 510–560nm'],[560,590,'黄光区 560–590nm'],[590,625,'橙光区 590–625nm'],[625,700,'红光区 625–700nm']];for(const[a,b,l]of R)if(wl>=a&&wl<b)return l;return'';}
+function wlFreq(wl){return(3e8/(wl*1e-9)/1e14).toFixed(2);}
+function wlEV(wl){return((6.626e-34*3e8)/(wl*1e-9)/1.6e-19).toFixed(2);}
+function wlLevel(wl){if(wl<440)return'高能量';if(wl<530)return'中高能量';if(wl<600)return'中等能量';return'低能量';}
+
+// Named buttons
+const strip=document.getElementById('namedStrip');
+NAMED.forEach(({name,wl})=>{const btn=document.createElement('button');btn.className='nbtn';btn.textContent=name;btn.style.borderColor=wlCSS(wl)+'99';btn.onclick=()=>{setWL(wl);document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');};strip.appendChild(btn);});
+
+// Spectrum bar
+const sC=document.getElementById('spectrumBar'),sX=sC.getContext('2d');
+function drawBar(){const W=sC.offsetWidth,H=sC.offsetHeight;sC.width=W;sC.height=H;if(!W||!H)return;const g=sX.createLinearGradient(0,0,W,0);for(let w=380;w<=700;w+=3){const t=(w-380)/320;const[r,gv,b]=wlToRGB(w);g.addColorStop(t,`rgb(${r},${gv},${b})`);}sX.fillStyle=g;sX.fillRect(0,0,W,H);const lf=sX.createLinearGradient(0,0,W*.05,0);lf.addColorStop(0,'rgba(6,8,15,.8)');lf.addColorStop(1,'rgba(6,8,15,0)');sX.fillStyle=lf;sX.fillRect(0,0,W,H);const rf=sX.createLinearGradient(W*.95,0,W,0);rf.addColorStop(0,'rgba(6,8,15,0)');rf.addColorStop(1,'rgba(6,8,15,.8)');sX.fillStyle=rf;sX.fillRect(0,0,W,H);sX.globalCompositeOperation='destination-in';sX.beginPath();sX.roundRect(0,0,W,H,8);sX.fill();sX.globalCompositeOperation='source-over';}
+function buildTicks(){const row=document.getElementById('tickRow');row.innerHTML='';[380,420,460,500,540,580,620,660,700].forEach(wl=>{const t=document.createElement('span');t.className='tick';t.textContent=wl;row.appendChild(t);});}
+function updateCursor(wl){const W=document.getElementById('specWrap').offsetWidth;document.getElementById('cursorLine').style.left=((wl-380)/320*W)+'px';}
+
+const sw=document.getElementById('specWrap');let isDrS=false;
+function specHit(cx){const r=sw.getBoundingClientRect();const t=Math.max(0,Math.min(1,(cx-r.left)/r.width));setWL(Math.round(380+t*320));document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));}
+sw.addEventListener('pointerdown',e=>{isDrS=true;sw.setPointerCapture(e.pointerId);specHit(e.clientX);e.preventDefault();});
+sw.addEventListener('pointermove',e=>{if(!isDrS)return;specHit(e.clientX);});
+sw.addEventListener('pointerup',()=>isDrS=false);
+sw.addEventListener('pointercancel',()=>isDrS=false);
+document.getElementById('wlSlider').addEventListener('input',function(){setWL(parseInt(this.value));document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));});
+
+//Made by ecchua79
+function setWL(wl){
+  wl=Math.max(380,Math.min(700,wl));
+  document.getElementById('wlSlider').value=wl;
+  const css=wlCSS(wl);
+  document.getElementById('wlOut').textContent=wl+' nm';
+  document.getElementById('wlOut').style.color=css;
+  document.getElementById('wlSlider').style.setProperty('--tg',css);
+  updateCursor(wl);
+  document.getElementById('cv-name').textContent=wlName(wl);
+  document.getElementById('cv-name').style.color=css;
+  document.getElementById('cv-prev').style.background=css;
+  document.getElementById('cv-prev').style.boxShadow=`0 0 13px ${css}99`;
+  document.getElementById('cv-wl').innerHTML=`${wl} <span style="font-size:10px;opacity:.55">nm</span>`;
+  document.getElementById('cv-range').textContent=wlRange(wl);
+  document.getElementById('cv-freq').innerHTML=`${wlFreq(wl)} <span style="font-size:10px;opacity:.55">×10¹⁴Hz</span>`;
+  document.getElementById('cv-ev').innerHTML=`${wlEV(wl)} <span style="font-size:10px;opacity:.55">eV</span>`;
+  document.getElementById('cv-lvl').textContent=wlLevel(wl);
+  document.getElementById('cv-lvl').style.color=css;
+  document.getElementById('cv-fact').textContent=getFact(wl);
+  document.querySelectorAll('.card').forEach(c=>{c.style.setProperty('--ca',css);c.style.borderColor=css+'33';});
+  drawPrism(wl);
+}
+
+// Prism
+const pc=document.getElementById('prismCanvas'),pctx=pc.getContext('2d');
+let PW,PH,lightY=0.5,isDrL=false;
+
+function drawPrism(selWl){
+  PW=pc.width=pc.offsetWidth; PH=pc.height=pc.offsetHeight;
+  pctx.clearRect(0,0,PW,PH);
+  const side=Math.min(PW*.38,PH*.82),th=side*Math.sqrt(3)/2;
+  const cx=PW*.38;
+  const apex={x:cx,y:PH*.08};
+  const bl={x:cx-side/2,y:apex.y+th};
+  const br={x:cx+side/2,y:apex.y+th};
+  // Prism body
+  pctx.beginPath();pctx.moveTo(apex.x,apex.y);pctx.lineTo(bl.x,bl.y);pctx.lineTo(br.x,br.y);pctx.closePath();
+  const pf=pctx.createLinearGradient(bl.x,bl.y,br.x,br.y);
+  pf.addColorStop(0,'rgba(160,200,255,.06)');pf.addColorStop(.5,'rgba(220,235,255,.16)');pf.addColorStop(1,'rgba(160,200,255,.05)');
+  pctx.fillStyle=pf;pctx.fill();
+  pctx.strokeStyle='rgba(190,220,255,.50)';pctx.lineWidth=1.5;pctx.stroke();
+  // Entry on left face
+  const entryT=0.30+lightY*0.45;
+  const entry={x:apex.x+entryT*(bl.x-apex.x),y:apex.y+entryT*(bl.y-apex.y)};
+  const srcX=PW*.02,slope=0.20;
+  const srcY=entry.y-(entry.x-srcX)*slope;
+  // White ray
+  const inG=pctx.createLinearGradient(srcX,srcY,entry.x,entry.y);
+  inG.addColorStop(0,'rgba(255,255,255,0)');inG.addColorStop(.4,'rgba(255,255,255,.6)');inG.addColorStop(1,'rgba(255,255,255,1)');
+  pctx.beginPath();pctx.moveTo(srcX,srcY);pctx.lineTo(entry.x,entry.y);
+  pctx.strokeStyle=inG;pctx.lineWidth=2.5;pctx.stroke();
+  // Source glow
+  pctx.beginPath();pctx.arc(srcX,srcY,6,0,Math.PI*2);pctx.fillStyle='rgba(255,255,245,.95)';pctx.fill();
+  pctx.beginPath();pctx.arc(srcX,srcY,12,0,Math.PI*2);pctx.fillStyle='rgba(255,255,220,.14)';pctx.fill();
+  // Internal ray
+  const exitT=0.30+entryT*0.30;
+  const exitPt={x:apex.x+exitT*(br.x-apex.x),y:apex.y+exitT*(br.y-apex.y)};
+  const intG=pctx.createLinearGradient(entry.x,entry.y,exitPt.x,exitPt.y);
+  intG.addColorStop(0,'rgba(255,255,255,.35)');intG.addColorStop(1,'rgba(255,255,255,.10)');
+  pctx.beginPath();pctx.moveTo(entry.x,entry.y);pctx.lineTo(exitPt.x,exitPt.y);
+  pctx.strokeStyle=intG;pctx.lineWidth=1.5;pctx.stroke();
+  // Dispersed rays
+  const whiteAng=Math.atan(slope);
+  const redAng=whiteAng+0.05,violetAng=whiteAng+0.55;
+  const bands=[{wl:660,lbl:'红'},{wl:610,lbl:'橙'},{wl:575,lbl:'黄'},{wl:530,lbl:'绿'},{wl:495,lbl:'青'},{wl:450,lbl:'蓝'},{wl:410,lbl:'紫'}];
+  const rayLen=PW*0.56;
+  // Wedge fill
+  const redEndX=exitPt.x+Math.cos(redAng)*rayLen,redEndY=exitPt.y+Math.sin(redAng)*rayLen;
+  const violEndX=exitPt.x+Math.cos(violetAng)*rayLen,violEndY=exitPt.y+Math.sin(violetAng)*rayLen;
+  pctx.save();pctx.beginPath();pctx.moveTo(exitPt.x,exitPt.y);pctx.lineTo(redEndX,redEndY);pctx.lineTo(violEndX,violEndY);pctx.closePath();
+  const wg=pctx.createLinearGradient(exitPt.x,exitPt.y+1,exitPt.x,exitPt.y+(violEndY-exitPt.y));
+  wg.addColorStop(0,'rgba(255,30,0,.18)');wg.addColorStop(.18,'rgba(255,120,0,.14)');wg.addColorStop(.32,'rgba(255,220,0,.14)');wg.addColorStop(.50,'rgba(0,200,50,.14)');wg.addColorStop(.68,'rgba(0,200,200,.14)');wg.addColorStop(.82,'rgba(30,80,255,.14)');wg.addColorStop(1,'rgba(120,0,200,.18)');
+  pctx.fillStyle=wg;pctx.fill();pctx.restore();
+  // Individual rays
+  bands.forEach(({wl,lbl},idx)=>{
+    const t=idx/(bands.length-1),ang=redAng+t*(violetAng-redAng);
+    const endX=exitPt.x+Math.cos(ang)*rayLen,endY=exitPt.y+Math.sin(ang)*rayLen;
+    const[r,g,b]=wlToRGB(wl);
+    const isSel=Math.abs(wl-selWl)<38;
+    const al=isSel?1:.55,lw=isSel?3.5:1.8;
+    const rg=pctx.createLinearGradient(exitPt.x,exitPt.y,endX,endY);
+    rg.addColorStop(0,`rgba(${r},${g},${b},${al})`);rg.addColorStop(.65,`rgba(${r},${g},${b},${(al*.6).toFixed(2)})`);rg.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    pctx.beginPath();pctx.moveTo(exitPt.x,exitPt.y);pctx.lineTo(endX,endY);
+    pctx.strokeStyle=rg;pctx.lineWidth=lw;pctx.stroke();
+    const lx=exitPt.x+Math.cos(ang)*rayLen*.80,ly=exitPt.y+Math.sin(ang)*rayLen*.80;
+    pctx.font=`${isSel?'bold ':''}${isSel?12:10}px Noto Sans SC,sans-serif`;
+    pctx.fillStyle=`rgba(${r},${g},${b},${isSel?.95:.55})`;
+    pctx.fillText(lbl,lx+5,ly);
+  });
+}
+
+pc.addEventListener('pointerdown',e=>{
+  const rect=pc.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const side=Math.min(PW*.38,PH*.82),th=side*Math.sqrt(3)/2;
+  const apexY=PH*.08,blY=apexY+th,eT=0.30+lightY*0.45;
+  const entryY=apexY+eT*(blY-apexY),srcY=entryY-(PW*.38-PW*.02)*0.20;
+  if(Math.hypot(mx-PW*.02,my-srcY)<22){isDrL=true;pc.setPointerCapture(e.pointerId);e.preventDefault();}
+});
+pc.addEventListener('pointermove',e=>{
+  if(!isDrL)return;
+  const rect=pc.getBoundingClientRect();
+  lightY=Math.max(.05,Math.min(.95,(e.clientY-rect.top)/PH));
+  drawPrism(parseInt(document.getElementById('wlSlider').value));
+  e.preventDefault();
+});
+pc.addEventListener('pointerup',()=>isDrL=false);
+pc.addEventListener('pointercancel',()=>isDrL=false);
+
+function specResize(){drawBar();updateCursor(parseInt(document.getElementById('wlSlider').value));}
+
+// ══════════════════════════════════
+// RESIZE OBSERVER
+// ══════════════════════════════════
+const ro=new ResizeObserver(()=>{
+  const t0=document.getElementById('panel-rgb').classList.contains('active');
+  const t1=document.getElementById('panel-spec').classList.contains('active');
+  if(t0)rgbResize();
+  if(t1){specResize();drawPrism(parseInt(document.getElementById('wlSlider').value));}
+});
+ro.observe(document.querySelector('.panel-wrap'));
+
+// ── INIT ──
+buildTicks();
+rgbInitPos();rgbDraw();
+drawBar();setWL(550);
+</script>
+</body>
+</html>
