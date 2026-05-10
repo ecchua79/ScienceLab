@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热胀冷缩 · 粒子世界</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Share+Tech+Mono&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cold:#4fc3f7; --hot:#ff6b35;
+    --bg:#0a0e1a; --panel:#111827; --border:#1e293b;
+    --text:#e2e8f0; --sub:#64748b;
+  }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'Share Tech Mono',monospace;
+    height:100vh; display:flex; flex-direction:column;
+    overflow:hidden; user-select:none;
+  }
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:9px 20px; border-bottom:1px solid var(--border);
+    background:rgba(10,14,26,.95); backdrop-filter:blur(8px);
+    z-index:20; flex-shrink:0;
+  }
+  .logo {
+    font-family:'ZCOOL XiaoWei',serif; font-size:1.15rem; letter-spacing:.08em;
+    background:linear-gradient(90deg,var(--cold),var(--hot));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .credit { font-size:.62rem; color:var(--sub); letter-spacing:.05em; }
+  .tabs {
+    display:flex; gap:4px; padding:9px 18px 0;
+    flex-shrink:0; border-bottom:1px solid var(--border); background:var(--bg);
+  }
+  .tab {
+    padding:6px 20px; border-radius:6px 6px 0 0;
+    border:1px solid transparent; border-bottom:none;
+    cursor:pointer; font-family:'ZCOOL XiaoWei',serif; font-size:.9rem;
+    color:var(--sub); transition:all .22s; background:transparent;
+    position:relative; bottom:-1px;
+  }
+  .tab:hover { color:var(--text); border-color:var(--border); }
+  .tab.active { color:var(--text); background:var(--panel); border-color:var(--border); }
+  .tab-solid.active  { border-top:2px solid #94a3b8; }
+  .tab-liquid.active { border-top:2px solid #38bdf8; }
+  .tab-gas.active    { border-top:2px solid #fb923c; }
+
+  .main { display:flex; flex:1; overflow:hidden; }
+
+  .scene-wrap { flex:1; position:relative; overflow:hidden; }
+  canvas.three { width:100%!important; height:100%!important; display:block; }
+
+  .side-outer {
+    display:flex; flex-shrink:0; position:relative;
+    transition:width .32s cubic-bezier(.4,0,.2,1);
+    width:220px;
+  }
+  .side-outer.collapsed { width:0; }
+
+  .side {
+    width:220px; flex-shrink:0;
+    background:var(--panel); border-left:1px solid var(--border);
+    display:flex; flex-direction:column;
+    padding:16px 14px; overflow-y:auto; overflow-x:hidden;
+    transition:opacity .25s ease;
+  }
+  .side-outer.collapsed .side { opacity:0; pointer-events:none; }
+
+  .toggle-tab {
+    position:absolute; left:-22px; top:50%; transform:translateY(-50%);
+    width:22px; height:56px;
+    background:var(--panel); border:1px solid var(--border); border-right:none;
+    border-radius:6px 0 0 6px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:var(--sub); font-size:.8rem;
+    transition:color .2s, background .2s;
+    z-index:5;
+  }
+  .toggle-tab:hover { color:var(--text); background:#1a2540; }
+
+  .side h3 {
+    font-family:'ZCOOL XiaoWei',serif; font-size:.95rem;
+    color:var(--text); margin-bottom:6px; white-space:nowrap;
+  }
+  input[type=range] {
+    -webkit-appearance:none; width:100%; height:5px;
+    border-radius:3px; outline:none; cursor:pointer;
+    background:linear-gradient(to right,var(--cold),var(--hot));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:16px; height:16px;
+    border-radius:50%; background:#fff; border:3px solid var(--hot);
+    box-shadow:0 0 7px rgba(255,107,53,.5);
+  }
+  .temp-label {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;
+  }
+  .temp-label span { font-size:.68rem; color:var(--sub); }
+  .temp-val { font-size:1.05rem; font-weight:700; transition:color .3s; }
+  .temp-section { margin-bottom:18px; }
+  .stat-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:6px 0; border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-key { font-size:.65rem; color:var(--sub); }
+  .stat-num { font-size:.8rem; font-weight:600; transition:color .3s; }
+  .legend { margin-top:16px; display:flex; flex-direction:column; gap:5px; }
+  .legend-item { display:flex; align-items:center; gap:7px; font-size:.65rem; color:var(--sub); }
+  .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .side-tip { margin-top:14px; font-size:.62rem; line-height:1.7; color:var(--sub); }
+
+  .info-bar {
+    flex-shrink:0; background:var(--panel); border-top:1px solid var(--border);
+    padding:5px 18px; display:flex; gap:28px; align-items:center;
+  }
+  .info-item { font-size:.66rem; color:var(--sub); }
+  .info-item b { color:var(--text); }
+  .phase-badge {
+    display:inline-block; padding:2px 10px; border-radius:20px;
+    font-size:.63rem; font-family:'ZCOOL XiaoWei',serif;
+    letter-spacing:.06em; margin-left:auto;
+  }
+
+  #liqHint {
+    position:absolute; bottom:52px; left:50%; transform:translateX(-50%);
+    background:rgba(10,14,26,.8); border:1px solid #1e3a5f; border-radius:6px;
+    padding:5px 14px; font-size:.68rem; color:#7dd3fc;
+    pointer-events:none; white-space:nowrap; display:none;
+    backdrop-filter:blur(4px);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">热胀冷缩 · 粒子世界</div>
+  <div class="credit">蔡逸众 · 峇株吧辖华仁中学</div>
+</header>
+
+<div class="tabs">
+  <div class="tab tab-solid active" data-phase="solid">⬡ 固体</div>
+  <div class="tab tab-liquid" data-phase="liquid">≋ 液体</div>
+  <div class="tab tab-gas" data-phase="gas">∿ 气体</div>
+</div>
+
+<div class="main">
+  <div class="scene-wrap">
+    <canvas id="c" class="three"></canvas>
+    <div id="liqHint">升温 → 粒子间距↑ → 液体膨胀 → 液面沿管上升 ↑</div>
+  </div>
+
+  <div class="side-outer" id="sideOuter">
+    <button class="toggle-tab" id="toggleBtn" title="收起/展开">▶</button>
+    <div class="side" id="sidePanel">
+      <h3>温度控制</h3>
+      <div class="temp-section">
+        <div class="temp-label">
+          <span>❄ 低温</span>
+          <span class="temp-val" id="tempVal">20°C</span>
+          <span>高温 🔥</span>
+        </div>
+        <input type="range" id="tempSlider" min="0" max="100" value="20">
+      </div>
+
+      <h3>实时数据</h3>
+      <div class="stat-row"><span class="stat-key">粒子间距</span><span class="stat-num" id="statDist">—</span></div>
+      <div class="stat-row"><span class="stat-key">振动幅度</span><span class="stat-num" id="statVib">—</span></div>
+      <div class="stat-row"><span class="stat-key">整体体积</span><span class="stat-num" id="statVol">—</span></div>
+      <div class="stat-row"><span class="stat-key">粒子动能</span><span class="stat-num" id="statKE">—</span></div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="dot" style="background:#b8e8ff"></div>普通粒子（液体）</div>
+        <div class="legend-item"><div class="dot" style="background:#fbbf24"></div>高能粒子</div>
+        <div class="legend-item"><div class="dot" style="background:#f87171"></div>超高能粒子</div>
+      </div>
+      <div class="side-tip">
+        拖动滑块升温，观察粒子<b style="color:var(--text)">间距增大</b>、运动加快，整体<b style="color:var(--text)">体积膨胀</b>。<br><br>
+        液体粒子在烧瓶内<b style="color:#38bdf8">自由游走</b>，比气体慢且密，膨胀后液面沿玻璃管<b style="color:#38bdf8">上升</b>。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info-bar">
+  <div class="info-item">物态：<b id="infoPhase">固体</b></div>
+  <div class="info-item">粒子数：<b id="infoCount">—</b></div>
+  <div class="info-item">排列：<b id="infoArrange">—</b></div>
+  <div class="phase-badge" id="phaseBadge" style="background:#1e293b;color:#94a3b8">固体 Solid</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   热胀冷缩 3D 粒子模拟 v3
+   作者：蔡逸众 · 峇株吧辖华仁中学
+   液体模式：粒子在瓶内自由游走（类似气体但更慢更密）
+   ═══════════════════════════════════════════════════════ */
+
+// ── PANEL TOGGLE ──
+const sideOuter = document.getElementById('sideOuter');
+const toggleBtn = document.getElementById('toggleBtn');
+let panelOpen = true;
+toggleBtn.addEventListener('click', () => {
+  panelOpen = !panelOpen;
+  sideOuter.classList.toggle('collapsed', !panelOpen);
+  toggleBtn.textContent = panelOpen ? '▶' : '◀';
+  setTimeout(onResize, 340);
+});
+
+// ── RENDERER ──
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e1a);
+scene.fog = new THREE.Fog(0x0a0e1a, 30, 60);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
+
+function onResize() {
+  const w = canvas.parentElement.clientWidth;
+  const h = canvas.parentElement.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+onResize();
+window.addEventListener('resize', onResize);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x334466, 1.0));
+const dirL = new THREE.DirectionalLight(0xffffff, 1.0);
+dirL.position.set(8,16,8); dirL.castShadow = true; scene.add(dirL);
+const ptL = new THREE.PointLight(0x4fc3f7, 2.0, 50);
+ptL.position.set(-6,8,6); scene.add(ptL);
+const ptL2 = new THREE.PointLight(0xffa060, 1.2, 40);
+ptL2.position.set(6,-4,-6); scene.add(ptL2);
+
+// ── ORBIT ──
+let isDrag = false, prevM = {x:0,y:0};
+let sph = { theta:0.25, phi:1.05, r:22 };
+canvas.addEventListener('mousedown', e=>{ isDrag=true; prevM={x:e.clientX,y:e.clientY}; });
+window.addEventListener('mouseup', ()=>isDrag=false);
+window.addEventListener('mousemove', e=>{
+  if(!isDrag)return;
+  sph.theta -= (e.clientX-prevM.x)*0.007;
+  sph.phi = Math.max(0.18, Math.min(2.1, sph.phi+(e.clientY-prevM.y)*0.007));
+  prevM={x:e.clientX,y:e.clientY};
+});
+canvas.addEventListener('wheel', e=>{
+  sph.r = Math.max(8, Math.min(45, sph.r+e.deltaY*0.03));
+},{passive:true});
+
+function camUpdate() {
+  const lookY = (phaseKey === 'liquid') ? 2.5 : 0;
+  camera.position.set(
+    sph.r*Math.sin(sph.phi)*Math.sin(sph.theta),
+    sph.r*Math.cos(sph.phi) + lookY,
+    sph.r*Math.sin(sph.phi)*Math.cos(sph.theta)
+  );
+  camera.lookAt(0, lookY, 0);
+}
+
+// ── SHARED GEO ──
+// Liquid particles are slightly larger radius for denser look
+const pGeo     = new THREE.SphereGeometry(0.36, 10, 10);
+const pGeoLiq  = new THREE.SphereGeometry(0.34, 10, 10); // slightly smaller for tighter packing
+
+function mat(hex, emissiveHex, emissiveInt) {
+  const m = new THREE.MeshStandardMaterial({color:hex, roughness:.35, metalness:.18});
+  if(emissiveHex !== undefined) {
+    m.emissive.setHex(emissiveHex);
+    m.emissiveIntensity = emissiveInt || 0;
+  }
+  return m;
+}
+function disposeMesh(m) {
+  if(!m)return;
+  if(m.isGroup){
+    m.traverse(c=>{ if(c.isMesh){c.geometry.dispose();c.material.dispose();} });
+    scene.remove(m);
+  } else {
+    scene.remove(m); m.geometry.dispose(); m.material.dispose();
+  }
+}
+
+// ════════════════════════════════════════
+//  FLASK SCENE (liquid tab)
+// ════════════════════════════════════════
+const F = {
+  ballR:   3.2,
+  ballCY:  0,
+  neckBotY:2.6,
+  neckTopY:6.2,
+  neckRbot:1.0,
+  neckRtop:0.62,
+  stopH:   0.75,
+  stopR:   0.68,
+  tubeR:   0.26,
+  tubeBotY:6.95,
+  tubeTopY:12.2,
+};
+
+const LIQ_BASE_Y   = F.ballCY + F.ballR * 0.58;
+const LIQ_NECK_BOT = F.neckBotY;
+const LIQ_NECK_TOP = F.neckTopY;
+const TUBE_MIN_Y   = F.tubeBotY;
+const TUBE_MAX_Y   = F.tubeTopY - 0.9;
+
+let flaskGroup    = null;
+let liqGroup      = null;
+let tubeMarkGroup = null;
+
+function clearFlask() {
+  disposeMesh(flaskGroup);  flaskGroup  = null;
+  disposeMesh(liqGroup);    liqGroup    = null;
+  disposeMesh(tubeMarkGroup); tubeMarkGroup = null;
+}
+
+function buildFlaskStatic() {
+  clearFlask();
+  flaskGroup = new THREE.Group();
+
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x99ddff, transparent:true, opacity:0.18,
+    roughness:0.04, metalness:0.0,
+    transmission:0.88, thickness:0.25,
+    side: THREE.DoubleSide,
+  });
+  const glassEdge = new THREE.MeshStandardMaterial({
+    color:0xaaddff, transparent:true, opacity:0.5, roughness:0.08,
+  });
+
+  const ballGeo = new THREE.SphereGeometry(F.ballR, 40, 40, 0, Math.PI*2, 0, Math.PI*0.72);
+  const ball = new THREE.Mesh(ballGeo, glassMat);
+  ball.position.y = F.ballCY;
+  flaskGroup.add(ball);
+
+  const neckH = F.neckTopY - F.neckBotY;
+  const neckGeo = new THREE.CylinderGeometry(F.neckRtop, F.neckRbot, neckH, 36, 1, true);
+  const neck = new THREE.Mesh(neckGeo, glassMat);
+  neck.position.y = F.neckBotY + neckH/2;
+  flaskGroup.add(neck);
+
+  [[F.neckBotY, F.neckRbot],[F.neckTopY, F.neckRtop]].forEach(([y,r])=>{
+    const rg = new THREE.TorusGeometry(r, 0.05, 8, 40);
+    const rm = new THREE.Mesh(rg, glassEdge);
+    rm.position.y = y; rm.rotation.x = Math.PI/2;
+    flaskGroup.add(rm);
+  });
+
+  const stopMat = new THREE.MeshStandardMaterial({color:0xcc2222, roughness:.75, metalness:0});
+  const stopGeo = new THREE.CylinderGeometry(F.stopR, F.neckRtop, F.stopH, 28);
+  const stop = new THREE.Mesh(stopGeo, stopMat);
+  stop.position.y = F.neckTopY + F.stopH/2;
+  flaskGroup.add(stop);
+
+  const tubeH = F.tubeTopY - F.tubeBotY;
+  const tubeGeo = new THREE.CylinderGeometry(F.tubeR, F.tubeR, tubeH, 24, 1, true);
+  const tube = new THREE.Mesh(tubeGeo, glassMat);
+  tube.position.y = F.tubeBotY + tubeH/2;
+  flaskGroup.add(tube);
+
+  const trGeo = new THREE.TorusGeometry(F.tubeR, 0.04, 8, 32);
+  const trMesh = new THREE.Mesh(trGeo, glassEdge);
+  trMesh.position.y = F.tubeTopY; trMesh.rotation.x = Math.PI/2;
+  flaskGroup.add(trMesh);
+
+  scene.add(flaskGroup);
+
+  tubeMarkGroup = new THREE.Group();
+  const markMat = new THREE.MeshStandardMaterial({color:0x447788});
+  const markSpan = TUBE_MAX_Y - TUBE_MIN_Y;
+  for(let i=0; i<=10; i++) {
+    const y = TUBE_MIN_Y + i*markSpan/10;
+    const len = i%2===0 ? 0.55 : 0.32;
+    const mg = new THREE.BoxGeometry(len, 0.04, 0.04);
+    const mm = new THREE.Mesh(mg, markMat);
+    mm.position.set(F.tubeR+len/2, y, 0);
+    tubeMarkGroup.add(mm);
+  }
+  scene.add(tubeMarkGroup);
+}
+
+// ── LIQUID FILL (static colored volume in flask) ──
+// Color is a PALE, light tint — lighter than the particle colors
+let prevLiqT = -1;
+function liqFillColor(tempT) {
+  // Base: pale cyan-blue; hotter → pale amber/warm
+  // Much lighter (higher lightness) than particles
+  const h = 0.58 - tempT * 0.22;   // cyan → warm blue-green
+  const s = 0.55;
+  const l = 0.62 + tempT * 0.10;   // lightness 0.62→0.72 (pale)
+  return new THREE.Color().setHSL(h, s, l);
+}
+
+function updateLiquid(tempT) {
+  if (Math.abs(tempT - prevLiqT) < 0.004) return;
+  prevLiqT = tempT;
+
+  const baseTempT = 0.20;
+  const expFrac = Math.max(0, (tempT - baseTempT) / 0.80);
+  let surfY;
+  if (expFrac < 0.35) {
+    const neckRange = LIQ_NECK_TOP - LIQ_BASE_Y;
+    surfY = LIQ_BASE_Y + (expFrac / 0.35) * neckRange;
+  } else {
+    const tubeRange = TUBE_MAX_Y - TUBE_MIN_Y;
+    const tubeFrac = Math.min(1.0, (expFrac - 0.35) / 0.65);
+    surfY = TUBE_MIN_Y + tubeFrac * tubeRange;
+  }
+
+  const liqColor = liqFillColor(tempT);
+  const liqMat = () => new THREE.MeshStandardMaterial({
+    color: liqColor,
+    transparent: true,
+    opacity: 0.38,   // semi-transparent so particles inside are visible
+    roughness: 0.10
+  });
+
+  disposeMesh(liqGroup);
+  liqGroup = new THREE.Group();
+
+  // Ball fill
+  const ballFillTop = Math.min(surfY, F.neckBotY);
+  {
+    const pts = [];
+    const steps = 32;
+    for (let s=0; s<=steps; s++) {
+      const yLocal = -F.ballR + (s/steps)*(ballFillTop - (F.ballCY - F.ballR));
+      const rr = Math.sqrt(Math.max(0, F.ballR*F.ballR - yLocal*yLocal)) - 0.07;
+      pts.push(new THREE.Vector2(Math.max(0.01, rr), yLocal + F.ballCY));
+    }
+    if(pts.length >= 2) {
+      const lg = new THREE.LatheGeometry(pts, 36);
+      liqGroup.add(new THREE.Mesh(lg, liqMat()));
+    }
+  }
+
+  // Neck fill
+  if(surfY > F.neckBotY) {
+    const top = Math.min(surfY, F.neckTopY);
+    const h = top - F.neckBotY;
+    if(h > 0.02) {
+      const t2b = h / (F.neckTopY - F.neckBotY);
+      const rTop = (F.neckRtop * t2b + F.neckRbot * (1-t2b)) * 0.86;
+      const ng = new THREE.CylinderGeometry(rTop, F.neckRbot*0.86, h, 28);
+      const nm = new THREE.Mesh(ng, liqMat());
+      nm.position.y = F.neckBotY + h/2;
+      liqGroup.add(nm);
+    }
+  }
+
+  // Tube column
+  if(surfY > TUBE_MIN_Y) {
+    const h = Math.min(surfY, TUBE_MAX_Y) - TUBE_MIN_Y;
+    if(h > 0.02) {
+      const tg = new THREE.CylinderGeometry(F.tubeR*0.72, F.tubeR*0.72, h, 20);
+      const tm = new THREE.Mesh(tg, liqMat());
+      tm.position.y = TUBE_MIN_Y + h/2;
+      liqGroup.add(tm);
+
+      const mGeo = new THREE.SphereGeometry(F.tubeR*0.72, 16, 8, 0, Math.PI*2, 0, Math.PI*0.38);
+      const mMesh = new THREE.Mesh(mGeo, liqMat());
+      mMesh.position.y = TUBE_MIN_Y + h;
+      mMesh.rotation.x = Math.PI;
+      liqGroup.add(mMesh);
+    }
+  }
+
+  scene.add(liqGroup);
+}
+
+// ════════════════════════════════════════
+//  PHASE CONFIG
+// ════════════════════════════════════════
+const PHASES = {
+  solid: {
+    label:'固体', arrange:'规则晶格', count:125,
+    baseSpacing:1.15, expansionRate:0.006,
+    vibBase:0.0, vibRate:0.0018,
+    colors:[0x7dd3fc,0x38bdf8,0x0ea5e9],
+    badge:{bg:'#1e293b',color:'#94a3b8',text:'固体 Solid'},
+    camR:22
+  },
+  liquid: {
+    label:'液体', arrange:'圆底烧瓶', count:72,
+    baseSpacing:1.55, expansionRate:0.012,
+    vibBase:0.04, vibRate:0.004,
+    // Liquid particle colors: PALE, lighter than solid/gas — light cyan to light warm
+    colors:[0xb8e8ff, 0x93d5f5, 0xe0f4ff],
+    badge:{bg:'#0c2a3a',color:'#38bdf8',text:'液体 Liquid'},
+    camR:30
+  },
+  gas: {
+    label:'气体', arrange:'自由运动', count:45,
+    baseSpacing:3.5, expansionRate:0.045,
+    vibBase:0.15, vibRate:0.012,
+    colors:[0x7dd3fc,0xfbbf24,0xf87171],
+    badge:{bg:'#2a1505',color:'#fb923c',text:'气体 Gas'},
+    camR:22
+  }
+};
+
+// ════════════════════════════════════════
+//  PARTICLES
+// ════════════════════════════════════════
+let particles = [];
+let phaseKey  = 'solid';
+let tempT     = 0.20;
+
+function clearParticles() {
+  particles.forEach(p=>{ scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); });
+  particles = [];
+}
+
+// ── LIQUID: compute accessible bounding zone from Y ──
+// Returns max horizontal radius at a given Y inside the flask
+function flaskMaxR(y) {
+  const dy = y - F.ballCY;
+  if (y <= F.neckBotY) {
+    return Math.sqrt(Math.max(0.04, F.ballR*F.ballR - dy*dy)) * 0.78;
+  } else {
+    return F.neckRbot * 0.68;
+  }
+}
+
+// Current liquid surface Y based on temperature
+function liquidSurfY(tT) {
+  const baseTempT = 0.20;
+  const expFrac = Math.max(0, (tT - baseTempT) / 0.80);
+  if (expFrac < 0.35) {
+    return LIQ_BASE_Y + (expFrac / 0.35) * (LIQ_NECK_TOP - LIQ_BASE_Y);
+  } else {
+    const tubeFrac = Math.min(1.0, (expFrac - 0.35) / 0.65);
+    return TUBE_MIN_Y + tubeFrac * (TUBE_MAX_Y - TUBE_MIN_Y);
+  }
+}
+
+// Flask floor
+const FLASK_FLOOR = F.ballCY - F.ballR * 0.88;
+
+// Clamp particle position strictly inside liquid region
+function confineParticle(pos, tT) {
+  const surfY = liquidSurfY(tT);
+
+  // Clamp Y between floor and liquid surface
+  if (pos.y > surfY - 0.1) pos.y = surfY - 0.1 - Math.random() * 0.2;
+  if (pos.y < FLASK_FLOOR + 0.1) pos.y = FLASK_FLOOR + 0.1 + Math.random() * 0.15;
+
+  // Clamp radial within flask walls at this Y
+  const maxR = flaskMaxR(pos.y);
+  const rr = Math.sqrt(pos.x*pos.x + pos.z*pos.z);
+  if (rr > maxR) {
+    const s = maxR / rr;
+    pos.x *= s;
+    pos.z *= s;
+  }
+}
+
+// Random starting position inside flask (below liquid surface at 20°C)
+function randFlaskPos(tT) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const yRange = liquidSurfY(tT) - 0.3 - FLASK_FLOOR - 0.1;
+    const y = FLASK_FLOOR + 0.1 + Math.random() * yRange;
+    const maxR = flaskMaxR(y) * 0.9;
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * maxR;
+    return new THREE.Vector3(r * Math.cos(angle), y, r * Math.sin(angle));
+  }
+  return new THREE.Vector3(0, F.ballCY - 1.5, 0);
+}
+
+// Random velocity for liquid particle (slow free-moving, like slow gas)
+function randLiqVel(tT) {
+  const speed = 0.012 + tT * 0.030; // slow: 0.012 at 0°C → 0.042 at 100°C
+  const dir = new THREE.Vector3(
+    Math.random() - 0.5,
+    Math.random() - 0.5,
+    Math.random() - 0.5
+  ).normalize();
+  return dir.multiplyScalar(speed);
+}
+
+function buildParticles(phase) {
+  clearParticles();
+  const cfg = PHASES[phase];
+  const cols = cfg.colors;
+
+  if(phase === 'liquid') {
+    buildFlaskStatic();
+    prevLiqT = -1;
+    updateLiquid(tempT);
+    document.getElementById('liqHint').style.display = 'block';
+    sph = { theta:0.22, phi:1.1, r: cfg.camR };
+  } else {
+    clearFlask();
+    document.getElementById('liqHint').style.display = 'none';
+    sph = { theta:0.25, phi:1.05, r: cfg.camR };
+  }
+
+  if(phase === 'solid') {
+    const n=5;
+    for(let ix=0;ix<n;ix++)for(let iy=0;iy<n;iy++)for(let iz=0;iz<n;iz++){
+      const ci = Math.floor(Math.random()*cols.length);
+      const m = new THREE.Mesh(pGeo, mat(cols[ci]));
+      scene.add(m);
+      particles.push({
+        mesh:m, base:new THREE.Vector3(ix-2,iy-2,iz-2),
+        vp:{x:Math.random()*7,y:Math.random()*7,z:Math.random()*7}
+      });
+    }
+
+  } else if(phase === 'liquid') {
+    // Liquid: gas-like free motion, but slower and denser, confined in flask
+    for(let i=0; i<cfg.count; i++){
+      const ci = Math.floor(Math.random()*cols.length);
+      // Use slightly smaller sphere for denser packing look
+      const m = new THREE.Mesh(pGeoLiq, mat(cols[ci]));
+      scene.add(m);
+      const pos = randFlaskPos(tempT);
+      const vel = randLiqVel(tempT);
+      particles.push({
+        mesh: m,
+        pos:  pos.clone(),
+        vel:  vel,
+        ci:   ci
+      });
+    }
+
+  } else {
+    // Gas
+    for(let i=0;i<cfg.count;i++){
+      const ci = Math.floor(Math.random()*cols.length);
+      const m = new THREE.Mesh(pGeo, mat(cols[ci]));
+      scene.add(m);
+      const spd = 0.04+Math.random()*0.04;
+      const dir = new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize();
+      particles.push({
+        mesh:m, pos:new THREE.Vector3((Math.random()-.5)*6,(Math.random()-.5)*6,(Math.random()-.5)*6),
+        vel:dir.multiplyScalar(spd)
+      });
+    }
+  }
+}
+
+// ── BOX WIREFRAME ──
+let boxWire = null;
+function setBox(sz) {
+  if(boxWire){ scene.remove(boxWire); boxWire.geometry.dispose(); }
+  const eg = new THREE.EdgesGeometry(new THREE.BoxGeometry(sz,sz,sz));
+  boxWire = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({color:0x334466,transparent:true,opacity:.36}));
+  scene.add(boxWire);
+}
+function clearBox() {
+  if(boxWire){ scene.remove(boxWire); boxWire.geometry.dispose(); boxWire=null; }
+}
+
+// ── ENERGY COLOR for liquid particles ──
+// Liquid palette: pale tints; hotter particles shift toward warm pale yellow
+function liqParticleColor(tT, ci) {
+  // Base palette: pale blues & cyans
+  const paleCold = [0xb8e8ff, 0x93d5f5, 0xe0f4ff];
+  const paleWarm = [0xffe0b0, 0xffd080, 0xfffbe0];
+  if (tT < 0.50) {
+    return paleCold[ci % paleCold.length];
+  } else {
+    return paleWarm[ci % paleWarm.length];
+  }
+}
+
+// ── ENERGY COLOR for solid/gas ──
+function energyColor(p, tT) {
+  const cols = PHASES[phaseKey].colors;
+  const idx = tT<0.35?0:tT<0.70?Math.min(1,cols.length-1):cols.length-1;
+  p.mesh.material.color.setHex(cols[idx]);
+  const em = Math.max(0, tT-0.5)*1.1;
+  p.mesh.material.emissive.setHex(cols[idx]);
+  p.mesh.material.emissiveIntensity = em*0.38;
+}
+
+// ── DOM ──
+const slider = document.getElementById('tempSlider');
+slider.addEventListener('input', ()=>{ tempT = slider.value/100; updateUI(); });
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    phaseKey = tab.dataset.phase;
+    buildParticles(phaseKey);
+    updateUI();
+  });
+});
+
+function updateUI() {
+  const cfg = PHASES[phaseKey];
+  const temp = Math.round(tempT*100);
+  const tv = document.getElementById('tempVal');
+  tv.textContent = temp+'°C';
+  tv.style.color = `hsl(${200-tempT*160},90%,65%)`;
+
+  const spacing = cfg.baseSpacing + cfg.expansionRate*temp;
+  const sd = document.getElementById('statDist');
+  sd.textContent = spacing.toFixed(3)+' nm';
+  sd.style.color = `hsl(${200-tempT*160},80%,65%)`;
+
+  const vib = cfg.vibBase + cfg.vibRate*temp;
+  document.getElementById('statVib').textContent = (vib*1000).toFixed(1)+' pm';
+
+  const volRatio = (spacing/cfg.baseSpacing)**3;
+  const sv = document.getElementById('statVol');
+  sv.textContent = (volRatio*100).toFixed(1)+'%';
+  sv.style.color = volRatio>1.05?'#fb923c':'#94a3b8';
+
+  document.getElementById('statKE').textContent = (tempT*8.5+0.5).toFixed(2)+' kJ/mol';
+  document.getElementById('infoPhase').textContent = cfg.label;
+  document.getElementById('infoCount').textContent = cfg.count;
+  document.getElementById('infoArrange').textContent = cfg.arrange;
+  const badge = document.getElementById('phaseBadge');
+  badge.style.background = cfg.badge.bg;
+  badge.style.color = cfg.badge.color;
+  badge.textContent = cfg.badge.text;
+}
+
+// ── ANIMATE ──
+let t = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  t += 0.016;
+  camUpdate();
+
+  const cfg   = PHASES[phaseKey];
+  const temp  = tempT * 100;
+  const spac  = cfg.baseSpacing + cfg.expansionRate*temp;
+  const vib   = cfg.vibBase + cfg.vibRate*temp;
+
+  if(phaseKey === 'solid') {
+    clearBox();
+    particles.forEach(p=>{
+      energyColor(p, tempT);
+      p.mesh.position.set(
+        p.base.x*spac + Math.sin(t*8+p.vp.x)*vib,
+        p.base.y*spac + Math.cos(t*9+p.vp.y)*vib,
+        p.base.z*spac + Math.sin(t*7+p.vp.z)*vib
+      );
+    });
+    setBox(spac*4 + 1.0 + vib*2);
+
+  } else if(phaseKey === 'liquid') {
+    clearBox();
+    updateLiquid(tempT);
+
+    // Speed scales with temperature: slow but truly free-moving (like slow gas)
+    const baseSpeed = 0.012 + tempT * 0.030;
+    const surfY = liquidSurfY(tempT);
+
+    particles.forEach((p) => {
+      // Update particle color based on temperature
+      const hexCol = liqParticleColor(tempT, p.ci);
+      p.mesh.material.color.setHex(hexCol);
+      // Slight emissive glow at high temps
+      p.mesh.material.emissive.setHex(hexCol);
+      p.mesh.material.emissiveIntensity = Math.max(0, tempT - 0.6) * 0.25;
+
+      // Small random nudge each frame (Brownian + thermal)
+      const nudge = 0.0008 + tempT * 0.002;
+      p.vel.x += (Math.random() - 0.5) * nudge;
+      p.vel.y += (Math.random() - 0.5) * nudge * 0.6;
+      p.vel.z += (Math.random() - 0.5) * nudge;
+
+      // Clamp speed to temperature-appropriate range
+      const spd = p.vel.length();
+      if (spd > baseSpeed * 1.5) p.vel.multiplyScalar(baseSpeed * 1.5 / spd);
+      if (spd < baseSpeed * 0.3) p.vel.multiplyScalar(baseSpeed * 0.3 / spd);
+
+      // Move
+      p.pos.add(p.vel);
+
+      // ── WALL REFLECTIONS (like gas, but inside flask shape) ──
+      const maxR = flaskMaxR(p.pos.y);
+      const rr = Math.sqrt(p.pos.x*p.pos.x + p.pos.z*p.pos.z);
+
+      // Radial wall bounce
+      if (rr > maxR - 0.05) {
+        // Reflect velocity radially
+        const nx = p.pos.x / rr;
+        const nz = p.pos.z / rr;
+        const dot = p.vel.x*nx + p.vel.z*nz;
+        p.vel.x -= 2*dot*nx;
+        p.vel.z -= 2*dot*nz;
+        // Push back inside
+        const push = maxR - 0.12;
+        p.pos.x = nx * push;
+        p.pos.z = nz * push;
+      }
+
+      // Top surface bounce (liquid surface = ceiling for particles)
+      if (p.pos.y > surfY - 0.15) {
+        p.vel.y = -Math.abs(p.vel.y);
+        p.pos.y = surfY - 0.15;
+      }
+
+      // Bottom floor bounce
+      if (p.pos.y < FLASK_FLOOR + 0.15) {
+        p.vel.y = Math.abs(p.vel.y);
+        p.pos.y = FLASK_FLOOR + 0.15;
+      }
+
+      // Neck transition: if particle goes into narrow neck region,
+      // apply strong radial push to stay within narrower neck
+      if (p.pos.y > F.neckBotY) {
+        const neckMaxR = F.neckRbot * 0.65;
+        const nr = Math.sqrt(p.pos.x*p.pos.x + p.pos.z*p.pos.z);
+        if (nr > neckMaxR) {
+          const nx = p.pos.x / nr;
+          const nz = p.pos.z / nr;
+          const dot = p.vel.x*nx + p.vel.z*nz;
+          p.vel.x -= 2*dot*nx;
+          p.vel.z -= 2*dot*nz;
+          p.pos.x = nx * neckMaxR * 0.9;
+          p.pos.z = nz * neckMaxR * 0.9;
+        }
+        // Also push particles back down if they get too high (above surface)
+        if (p.pos.y > surfY - 0.2) {
+          p.vel.y = -Math.abs(p.vel.y) * 0.8;
+          p.pos.y = surfY - 0.25;
+        }
+      }
+
+      p.mesh.position.copy(p.pos);
+    });
+
+  } else {
+    // Gas
+    const half = spac*1.6+2;
+    particles.forEach(p=>{
+      energyColor(p, tempT);
+      p.vel.setLength(0.04+tempT*0.15);
+      p.pos.add(p.vel);
+      ['x','y','z'].forEach(ax=>{
+        if(p.pos[ax]> half){p.pos[ax]= half; p.vel[ax]*=-1;}
+        if(p.pos[ax]<-half){p.pos[ax]=-half; p.vel[ax]*=-1;}
+      });
+      p.mesh.position.copy(p.pos);
+    });
+    setBox(half*2);
+  }
+
+  // Light temperature tint
+  ptL.color.setHSL(0.56-tempT*0.25, 1.0, 0.5);
+  ptL.intensity = 1.5 + tempT*1.8;
+  ptL2.color.setHSL(0.08+tempT*0.04, 0.9, 0.5);
+
+  renderer.render(scene, camera);
+}
+
+// ── INIT ──
+buildParticles('solid');
+updateUI();
+animate();
+
+/* watermark: 蔡逸众 · 峇株吧辖华仁中学 */
+</script>
+</body>
+</html>
