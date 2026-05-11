@@ -1,0 +1,1329 @@
+in<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>3D 光学交互模拟器 · Optics Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Cormorant+Garamond:wght@300;500;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#05060d;color:#d8e4f0;font-family:'JetBrains Mono',monospace;cursor:crosshair}
+  #cv{position:fixed;inset:0;background:radial-gradient(ellipse at center,#0a1024 0%,#03040a 70%)}
+  .top-bar{position:fixed;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none;background:linear-gradient(180deg,rgba(5,6,13,.85) 0%,transparent 100%)}
+  .brand{pointer-events:auto}
+  .brand h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:26px;letter-spacing:4px;color:#e8f0fc}
+  .brand h1 span{color:#ffb84d;font-style:italic;font-weight:500}
+  .brand .sub{font-size:10px;letter-spacing:6px;color:#5a6a85;margin-top:2px;text-transform:uppercase}
+  .status{pointer-events:auto;text-align:right;font-size:10px;letter-spacing:2px;color:#5a6a85}
+  .live{color:#4ade80;margin-right:6px}
+  .live::before{content:'●';margin-right:4px;animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .ep{position:fixed;left:24px;top:50%;transform:translateY(-50%);z-index:10;display:flex;flex-direction:column;gap:8px;padding:16px 12px;background:rgba(10,14,28,.7);backdrop-filter:blur(14px);border:1px solid rgba(255,184,77,.15);border-radius:2px}
+  .ep::before{content:'OPTICAL ELEMENTS';position:absolute;top:-22px;left:0;font-size:9px;letter-spacing:3px;color:#5a6a85}
+  .eb{width:56px;height:56px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .25s;color:#8090a8;font-size:9px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;position:relative}
+  .eb svg{width:26px;height:26px;opacity:.85}
+  .eb:hover{border-color:rgba(255,184,77,.4);color:#ffb84d;background:rgba(255,184,77,.05)}
+  .eb.active{border-color:#ffb84d;color:#ffb84d;background:rgba(255,184,77,.1);box-shadow:0 0 18px rgba(255,184,77,.25),inset 0 0 12px rgba(255,184,77,.08)}
+  .eb.active::after{content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:2px;background:#ffb84d}
+  .ctrl{position:fixed;right:24px;top:80px;z-index:10;width:290px;font-size:11px}
+  .ctrl-header{background:rgba(10,14,28,.85);backdrop-filter:blur(14px);border:1px solid rgba(255,184,77,.25);border-radius:2px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+  .ctrl-header span{font-size:9px;letter-spacing:3px;color:#ffb84d}
+  .ctrl-toggle{font-size:13px;color:#ffb84d;transition:transform .25s;display:inline-block}
+  .ctrl-toggle.collapsed{transform:rotate(-90deg)}
+  .ctrl-body{background:rgba(10,14,28,.75);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 2px 2px;padding:16px 20px;overflow-y:auto;max-height:calc(100vh - 140px);transition:max-height .3s ease,opacity .25s ease,padding .25s ease}
+  .ctrl-body.collapsed{max-height:0;opacity:0;padding-top:0;padding-bottom:0;overflow:hidden}
+  .ctrl::-webkit-scrollbar{width:4px}
+  .ctrl::-webkit-scrollbar-thumb{background:rgba(255,184,77,.3)}
+  .sec{margin-bottom:6px}
+  .sec-t{font-size:9px;letter-spacing:3px;color:#ffb84d;margin-bottom:0;padding:10px 0 10px;border-bottom:1px dashed rgba(255,184,77,.2);display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;transition:color .2s}
+  .sec-t:hover{color:#ffd080}
+  .sec-t .n{color:#5a6a85;font-size:8px}
+  .sec-t .arr{color:#ffb84d;font-size:11px;transition:transform .25s;display:inline-block;margin-left:6px}
+  .sec-t.collapsed .arr{transform:rotate(-90deg)}
+  .sec-body{overflow:hidden;max-height:300px;transition:max-height .28s ease,opacity .22s ease,margin .22s ease;opacity:1;margin-top:12px;margin-bottom:16px}
+  .sec-body.collapsed{max-height:0;opacity:0;margin-top:0;margin-bottom:0}
+  .cr{margin-bottom:14px}
+  .cl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:#8090a8;margin-bottom:6px}
+  .cl .v{color:#e8f0fc;font-weight:500}
+  .cl .v::before{content:'[';color:#5a6a85;margin-right:2px}
+  .cl .v::after{content:']';color:#5a6a85;margin-left:2px}
+  input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:rgba(255,255,255,.1);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#ffb84d;border-radius:50%;cursor:pointer;box-shadow:0 0 10px rgba(255,184,77,.6)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#ffb84d;border-radius:50%;cursor:pointer;border:none}
+  .ck{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;color:#8090a8;font-size:10px;letter-spacing:1px;transition:color .2s}
+  .ck:hover{color:#e8f0fc}
+  .ck input{display:none}
+  .cb{width:12px;height:12px;border:1px solid rgba(255,255,255,.2);position:relative;transition:all .2s;flex-shrink:0}
+  .ck input:checked+.cb{background:#ffb84d;border-color:#ffb84d;box-shadow:0 0 8px rgba(255,184,77,.5)}
+  .ck input:checked+.cb::after{content:'✓';position:absolute;top:-3px;left:1px;font-size:11px;color:#05060d;font-weight:bold}
+  .vb{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .vbtn{padding:8px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:#8090a8;font-family:inherit;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+  .vbtn:hover{border-color:#ffb84d;color:#ffb84d}
+  .ib{position:fixed;bottom:24px;left:24px;z-index:10;display:flex;gap:16px;pointer-events:none}
+  .ic{background:rgba(10,14,28,.75);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.06);border-left:2px solid #ffb84d;padding:12px 18px;min-width:140px}
+  .ic .lbl{font-size:8px;letter-spacing:3px;color:#5a6a85;margin-bottom:4px}
+  .ic .val{font-size:18px;font-weight:300;color:#e8f0fc;font-family:'Cormorant Garamond',serif}
+  .ic .val .u{font-size:11px;color:#ffb84d;margin-left:4px;font-family:'JetBrains Mono',monospace}
+  .ht{position:fixed;bottom:24px;right:24px;z-index:10;font-size:9px;letter-spacing:2px;color:#5a6a85;text-align:right;line-height:1.8;pointer-events:none}
+  .ht .k{color:#ffb84d;margin-right:4px}
+  .cor{position:fixed;width:14px;height:14px;border:1px solid #ffb84d;z-index:5;opacity:.4}
+  .cor.tl{top:12px;left:12px;border-right:none;border-bottom:none}
+  .cor.tr{top:12px;right:12px;border-left:none;border-bottom:none}
+  .cor.bl{bottom:12px;left:12px;border-right:none;border-top:none}
+  .cor.br{bottom:12px;right:12px;border-left:none;border-top:none}
+  .wm{font-size:9px;color:#090b14;letter-spacing:1px;user-select:none;pointer-events:none;font-family:'JetBrains Mono',monospace;opacity:0.55}
+  .wm-cover{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:9;white-space:nowrap}
+
+  /* ── CHALLENGE MODE ── */
+  #chall-btn{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:20;
+    padding:8px 22px;background:rgba(10,14,28,.85);border:1px solid rgba(255,184,77,.45);
+    color:#ffb84d;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;
+    cursor:pointer;transition:all .25s;backdrop-filter:blur(10px)}
+  #chall-btn:hover{background:rgba(255,184,77,.12);box-shadow:0 0 18px rgba(255,184,77,.3)}
+  #chall-btn.active{background:rgba(255,184,77,.18);box-shadow:0 0 24px rgba(255,184,77,.4)}
+
+  #chall-panel{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
+    align-items:center;justify-content:center;background:rgba(3,4,10,.96);backdrop-filter:blur(20px)}
+  #chall-panel.open{display:flex}
+
+  .chall-inner{width:min(680px,94vw);display:flex;flex-direction:column;gap:0}
+  .chall-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+  .chall-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:32px;
+    letter-spacing:4px;color:#e8f0fc}
+  .chall-title span{color:#ffb84d;font-style:italic}
+  .chall-close{background:none;border:1px solid rgba(255,255,255,.15);color:#8090a8;
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;
+    padding:6px 12px;cursor:pointer;transition:all .2s}
+  .chall-close:hover{border-color:#ffb84d;color:#ffb84d}
+
+  .chall-levels{display:flex;gap:10px;margin-bottom:28px}
+  .chall-lv{flex:1;padding:12px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+    text-align:center;cursor:pointer;transition:all .25s;position:relative;font-size:9px;
+    letter-spacing:2px;color:#5a6a85;font-family:'JetBrains Mono',monospace}
+  .chall-lv:hover{border-color:rgba(255,184,77,.3);color:#ffb84d}
+  .chall-lv.active{border-color:#ffb84d;color:#ffb84d;background:rgba(255,184,77,.08)}
+  .chall-lv.done{border-color:rgba(74,222,128,.4);color:#4ade80}
+  .chall-lv .lv-n{font-size:18px;font-family:'Cormorant Garamond',serif;display:block;margin-bottom:4px}
+  .chall-lv .lv-stars{font-size:13px;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+    white-space:nowrap;letter-spacing:1px}
+
+  .chall-card{background:rgba(10,14,28,.7);border:1px solid rgba(255,184,77,.2);padding:28px 32px}
+  .chall-q{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;
+    color:#e8f0fc;margin-bottom:10px;line-height:1.4}
+  .chall-hint{font-size:10px;letter-spacing:2px;color:#5a6a85;margin-bottom:22px;line-height:1.7}
+  .chall-hint b{color:#ffb84d}
+
+  .chall-params{display:flex;flex-direction:column;gap:14px;margin-bottom:22px}
+  .chall-param .cp-row{display:flex;justify-content:space-between;font-size:10px;
+    letter-spacing:1px;color:#8090a8;margin-bottom:6px}
+  .chall-param .cp-row .cv{color:#e8f0fc}
+  .chall-param input[type=range]{width:100%;-webkit-appearance:none;height:2px;
+    background:rgba(255,255,255,.1);outline:none;cursor:pointer}
+  .chall-param input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+    width:14px;height:14px;background:#ffb84d;border-radius:50%;cursor:pointer;
+    box-shadow:0 0 10px rgba(255,184,77,.6)}
+
+  .chall-meter{margin-bottom:22px}
+  .chall-meter-lbl{display:flex;justify-content:space-between;font-size:9px;
+    letter-spacing:2px;color:#5a6a85;margin-bottom:6px}
+  .chall-bar-bg{height:6px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden}
+  .chall-bar{height:100%;width:0%;border-radius:1px;transition:width .3s ease,background .3s ease;
+    background:linear-gradient(90deg,#ff4444,#ffb84d)}
+  .chall-acc{font-size:28px;font-family:'Cormorant Garamond',serif;color:#e8f0fc;
+    text-align:center;margin-bottom:4px}
+  .chall-acc span{color:#ffb84d}
+
+  .chall-actions{display:flex;gap:10px}
+  .chall-go{flex:1;padding:12px;background:rgba(255,184,77,.12);border:1px solid #ffb84d;
+    color:#ffb84d;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;
+    cursor:pointer;transition:all .25s}
+  .chall-go:hover{background:rgba(255,184,77,.22);box-shadow:0 0 20px rgba(255,184,77,.3)}
+  .chall-go:disabled{opacity:.35;cursor:not-allowed}
+  .chall-skip{padding:12px 18px;background:none;border:1px solid rgba(255,255,255,.1);
+    color:#5a6a85;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer}
+  .chall-skip:hover{border-color:rgba(255,255,255,.25);color:#8090a8}
+
+  .chall-result{text-align:center;padding:18px 0 0}
+  .chall-stars{font-size:32px;letter-spacing:6px;display:block;margin-bottom:8px}
+  .chall-result-txt{font-size:11px;letter-spacing:2px;color:#4ade80}
+  .chall-result-txt.miss{color:#ff6666}
+
+  .chall-overlay-success{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;
+    align-items:center;justify-content:center;background:rgba(3,4,10,.97)}
+  .chall-overlay-success.show{display:flex}
+  .cos-title{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:300;
+    color:#ffb84d;letter-spacing:6px;margin-bottom:16px}
+  .cos-stars{font-size:48px;letter-spacing:10px;margin-bottom:24px}
+  .cos-msg{font-size:11px;letter-spacing:3px;color:#8090a8;margin-bottom:32px;text-align:center;line-height:2}
+  .cos-btn{padding:12px 32px;background:rgba(255,184,77,.12);border:1px solid #ffb84d;
+    color:#ffb84d;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;cursor:pointer}
+  .cos-btn:hover{background:rgba(255,184,77,.22)}
+</style>
+</head>
+<body>
+<div id="cv"></div>
+<div class="cor tl"></div><div class="cor tr"></div>
+<div class="cor bl"></div><div class="cor br"></div>
+
+<!-- //峇株吧辖华仁中学蔡逸众制作 -->
+<div class="wm wm-cover">//峇株吧辖华仁中学蔡逸众制作</div>
+
+<div class="top-bar">
+  <div class="brand">
+    <h1>OPTICA · <span>反射 与 折射</span></h1>
+    <div class="sub">Three Dimensional Ray Tracing Laboratory</div>
+  </div>
+  <div class="status">
+    <div><span class="live">LIVE</span>RAY TRACING</div>
+    <div id="fps" style="margin-top:2px">— FPS</div>
+  </div>
+</div>
+
+<button id="chall-btn">⚡ 挑战模式</button>
+
+<!-- CHALLENGE PANEL -->
+<div id="chall-panel">
+  <div class="chall-inner">
+    <div class="chall-top">
+      <div>
+        <div class="chall-title">FOCUS · <span>对焦挑战</span></div>
+        <div style="font-size:9px;letter-spacing:3px;color:#5a6a85;margin-top:4px">调整参数，让光线精准汇聚到目标点</div>
+      </div>
+      <button class="chall-close" id="chall-close">✕ 退出</button>
+    </div>
+
+    <div class="chall-levels" id="chall-levels">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="chall-card">
+      <div class="chall-q" id="chall-q">—</div>
+      <div class="chall-hint" id="chall-hint">—</div>
+
+      <div class="chall-params" id="chall-params">
+        <!-- filled by JS per level -->
+      </div>
+
+      <div class="chall-meter">
+        <div class="chall-meter-lbl">
+          <span>精准度</span>
+          <span id="chall-pct">—</span>
+        </div>
+        <div class="chall-bar-bg"><div class="chall-bar" id="chall-bar"></div></div>
+      </div>
+      <div class="chall-acc" id="chall-acc">—</div>
+
+      <div class="chall-result" id="chall-result"></div>
+
+      <div class="chall-actions" style="margin-top:18px">
+        <button class="chall-go" id="chall-check">▶ 检测对焦</button>
+        <button class="chall-skip" id="chall-next">下一关 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL COMPLETE overlay -->
+<div class="chall-overlay-success" id="chall-complete">
+  <div class="cos-title">PERFECT FOCUS</div>
+  <div class="cos-stars" id="cos-stars">★★★★★</div>
+  <div class="cos-msg" id="cos-msg">—</div>
+  <button class="cos-btn" id="cos-restart">重新挑战</button>
+</div>
+
+<div class="ep">
+  <button class="eb active" data-el="rough">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 18L5 16L7 17L9 15L11 17L13 15L15 17L17 16L19 18"/><line x1="3" y1="20" x2="21" y2="20"/></svg>粗糙
+  </button>
+  <!-- //Made by ecchua79 -->
+  <button class="eb" data-el="planar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="4" x2="6" y2="20"/><line x1="8" y1="4" x2="8" y2="20" stroke-dasharray="2 2"/></svg>平面镜
+  </button>
+  <button class="eb" data-el="concave-mirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 Q9 12 5 20"/><path d="M7 4 Q11 12 7 20" stroke-dasharray="2 2"/></svg>凹面镜
+  </button>
+  <button class="eb" data-el="convex-mirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4 Q5 12 9 20"/><path d="M11 4 Q7 12 11 20" stroke-dasharray="2 2"/></svg>凸面镜
+  </button>
+  <button class="eb" data-el="concave-lens">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4 Q13 12 9 20 L15 20 Q11 12 15 4 Z"/></svg>凹透镜
+  </button>
+  <button class="eb" data-el="convex-lens">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 Q16 12 12 20 Q8 12 12 4 Z"/></svg>凸透镜
+  </button>
+</div>
+
+<div class="ctrl">
+  <div class="ctrl-header" id="ctrl-header">
+    <span>CONTROLS</span>
+    <span class="ctrl-toggle" id="ctrl-toggle">▾</span>
+  </div>
+  <div class="ctrl-body" id="ctrl-body">
+  <div class="sec">
+    <div class="sec-t" data-sec="s1"><span>光源参数</span><span style="display:flex;align-items:center;gap:4px"><span class="n">/ 01</span><span class="arr">▾</span></span></div>
+    <div class="sec-body" id="s1">
+      <div class="cr"><div class="cl"><span>入射角度</span><span class="v" id="v-angle">0°</span></div><input type="range" id="s-angle" min="-30" max="30" step="1" value="0"></div>
+      <div class="cr"><div class="cl"><span>光束宽度</span><span class="v" id="v-spread">2.0</span></div><input type="range" id="s-spread" min="0.5" max="3.5" step="0.1" value="2.0"></div>
+    </div>
+  </div>
+  <div class="sec">
+    <!-- //华仁中学蔡逸众制作 -->
+    <div class="sec-t" data-sec="s2"><span>镜片参数</span><span style="display:flex;align-items:center;gap:4px"><span class="n">/ 02</span><span class="arr">▾</span></span></div>
+    <div class="sec-body" id="s2">
+      <div class="cr"><div class="cl"><span>曲率半径 R</span><span class="v" id="v-R">3.0</span></div><input type="range" id="s-R" min="2.0" max="6" step="0.1" value="3.0"></div>
+      <div class="cr"><div class="cl"><span>镜片厚度 d</span><span class="v" id="v-d">0.4</span></div><input type="range" id="s-d" min="0.2" max="1.0" step="0.05" value="0.4"></div>
+      <div class="cr"><div class="cl"><span>折射率 n</span><span class="v" id="v-n">1.50</span></div><input type="range" id="s-n" min="1.30" max="2.00" step="0.01" value="1.50"></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-t" data-sec="s3"><span>显示选项</span><span style="display:flex;align-items:center;gap:4px"><span class="n">/ 03</span><span class="arr">▾</span></span></div>
+    <div class="sec-body" id="s3">
+      <label class="ck"><input type="checkbox" id="c-grid" checked><span class="cb"></span><span>水平刻度网格</span></label>
+      <label class="ck"><input type="checkbox" id="c-focal" checked><span class="cb"></span><span>焦点标记</span></label>
+      <label class="ck"><input type="checkbox" id="c-norm"><span class="cb"></span><span>法线向量</span></label>
+      <label class="ck"><input type="checkbox" id="c-axis" checked><span class="cb"></span><span>主光轴</span></label>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-t" data-sec="s4"><span>视角预设</span><span style="display:flex;align-items:center;gap:4px"><span class="n">/ 04</span><span class="arr">▾</span></span></div>
+    <div class="sec-body" id="s4">
+      <div class="vb">
+        <button class="vbtn" data-v="front">正视</button>
+        <button class="vbtn" data-v="side">侧视</button>
+        <button class="vbtn" data-v="top">俯视</button>
+        <button class="vbtn" data-v="iso">斜45°</button>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div class="ib">
+  <div class="ic"><div class="lbl">FOCAL LENGTH</div><div class="val"><span id="i-f">—</span><span class="u">u</span></div></div>
+  <div class="ic"><div class="lbl">ELEMENT TYPE</div><div class="val" id="i-el" style="font-size:14px">粗糙表面</div></div>
+  <div class="ic"><div class="lbl">RAYS TRACED</div><div class="val"><span id="i-r">5</span><span class="u">×</span></div></div>
+</div>
+<div class="ht">
+  <!-- //峇株吧辖蔡逸众制作 -->
+  <div><span class="k">[ DRAG ]</span>旋转视角</div>
+  <div><span class="k">[ SCROLL ]</span>缩放</div>
+  <div><span class="k">[ RIGHT-DRAG ]</span>平移</div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+/*
+════════════════════════════════════════════════════════════
+  COORDINATE SYSTEM  (must be identical for geometry & rays)
+════════════════════════════════════════════════════════════
+  //峇株吧辖华仁中学蔡逸众制作
+  • Light travels in the  +X  direction.
+  • The optical element is centred at the origin.
+  • Aperture radius (half-height of mirrors/lenses): APR = 1.8
+
+  CONCAVE MIRROR
+  ──────────────
+  • Bowl opening faces  –X  (toward the incoming light).
+  • Rim of the bowl at  x = 0.
+  • Vertex (deepest point of bowl) at  x = –sag,
+    where  sag = R – √(R²–APR²).
+  • Sphere centre at  x = +(R – sag) = +√(R²–APR²)  ≡  +CX.
+
+  CONVEX MIRROR
+  ─────────────
+  • Dome peak faces  –X  (toward the incoming light).
+  • Rim at  x = 0.
+  • Vertex (tip of dome) at  x = –sag  (same shape as concave!).
+  • Sphere centre at  x = –(R – sag) = –CX.
+
+  Both mirrors therefore share the SAME cap mesh (vertex at –sag, rim at 0).
+  They differ only in which face is reflective and in the sphere-centre sign:
+    – Concave: reflect off the inner face; outward normal (hit–centre) points –X  ✓
+    – Convex:  reflect off the outer face; inward  normal (centre–hit) points –X  ✓
+════════════════════════════════════════════════════════════
+*/
+
+// ─── STATE ───────────────────────────────────────────────
+const S = {
+  el:'rough', angle:0, spread:2.0,
+  R:3.0, d:0.4, n:1.50,
+  grid:true, focal:true, norm:false, axis:true
+};
+const NAMES = {
+  rough:'粗糙表面', planar:'平面镜',
+  'concave-mirror':'凹面镜', 'convex-mirror':'凸面镜',
+  'concave-lens':'凹透镜', 'convex-lens':'凸透镜'
+};
+const APR = 1.8; // aperture radius
+
+// ─── SCENE ───────────────────────────────────────────────
+const container = document.getElementById('cv');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x03040a, 0.026);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(5, 3.5, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.88, 0.4, 0.18));
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 3; controls.maxDistance = 30;
+
+scene.add(new THREE.AmbientLight(0x4060a0, 0.5));
+const kl = new THREE.DirectionalLight(0xffd9a0, 0.9); kl.position.set(4,8,5); scene.add(kl);
+const rl = new THREE.DirectionalLight(0x6090ff, 0.4); rl.position.set(-5,2,-5); scene.add(rl);
+
+// ─── GRID ────────────────────────────────────────────────
+const gridGrp = new THREE.Group(); scene.add(gridGrp);
+
+function mkSprite(txt, col='#e8f0fc', sz=28) {
+  const cv = document.createElement('canvas'); cv.width=128; cv.height=64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle=col; ctx.font=`600 ${sz}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, 64, 32);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cv), transparent:true, depthTest:false
+  }));
+  return sp;
+}
+
+function buildGrid() {
+  gridGrp.clear();
+  //Made by ecchua79
+  const Y = -2.5;
+  const grid = new THREE.GridHelper(14,28,0x1e2a42,0x111826);
+  grid.position.y = Y;
+  gridGrp.add(grid);
+
+  for (let i=-6; i<=6; i++) {
+    const len = i===0 ? 0.45 : i%2===0 ? 0.28 : 0.14;
+    const col = i===0 ? 0xffb84d : 0x4a5a78;
+    const pts = [new THREE.Vector3(i,Y,-0.05), new THREE.Vector3(i,Y,len-0.05)];
+    gridGrp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:col, transparent:true, opacity:i===0?1:0.6})
+    ));
+    if (i%2===0) {
+      const sp = mkSprite(`${i}`, i===0?'#ffb84d':'#6a7a98', 26);
+      sp.position.set(i, Y-0.01, 0.65); sp.scale.set(0.45,0.22,1);
+      gridGrp.add(sp);
+    }
+  }
+  const rl2 = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-7,Y,-0.05), new THREE.Vector3(7,Y,-0.05)
+  ]);
+  gridGrp.add(new THREE.Line(rl2, new THREE.LineBasicMaterial({color:0x4a5a78, transparent:true, opacity:0.5})));
+
+  if (S.axis) {
+    const al = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-7,0,0), new THREE.Vector3(7,0,0)]),
+      new THREE.LineDashedMaterial({color:0xffb84d, dashSize:0.18, gapSize:0.1, transparent:true, opacity:0.35})
+    );
+    al.computeLineDistances();
+    gridGrp.add(al);
+  }
+}
+
+// ─── MIRROR / LENS GEOMETRY HELPERS ──────────────────────
+
+// sag = sagitta of the aperture circle on a sphere of radius R
+function sag(R) { return R - Math.sqrt(Math.max(0, R*R - APR*APR)); }
+
+/*
+  buildSphereMirror(R, isConcave)
+  ────────────────────────────────
+  Gemini-style approach: use SphereGeometry (a cap slice) + Raycaster for intersection.
+  Light travels in +X direction. Mirror sits at origin.
+
+  CONCAVE: bowl opens toward –X (toward light).
+    • Use a sphere cap centred at x = +R (behind the mirror).
+    • Rotate so the cap faces –X.
+    • The THREE.Mesh is what Raycaster intersects — no manual math needed.
+
+  CONVEX: dome protrudes toward –X (toward light).
+    • Use a sphere cap centred at x = –R (behind the dome).
+    • Rotate so the dome faces –X.
+
+  Returns { mesh, raycasterMesh } — both the visible mesh and the invisible
+  collision mesh (same geometry, but we need to call updateMatrixWorld after positioning).
+*/
+let mirrorRaycasterMesh = null;
+
+function buildSphereMirror(R, isConcave) {
+  const halfAngle = Math.asin(Math.min(APR / R, 0.999));
+  const geo = new THREE.SphereGeometry(R, 64, 64, 0, Math.PI*2, 0, halfAngle);
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xbdd0e8, roughness: 0.03, metalness: 0.96, side: THREE.DoubleSide,
+  });
+  const hlMat = new THREE.MeshStandardMaterial({
+    color: 0xeef4ff, roughness: 0.0, metalness: 1.0,
+    emissive: 0x3355aa, emissiveIntensity: 0.35,
+    transparent: true, opacity: 0.8,
+    side: isConcave ? THREE.BackSide : THREE.FrontSide,
+  });
+
+  const mesh    = new THREE.Mesh(geo, mat);
+  const hlMesh  = new THREE.Mesh(geo, hlMat);
+  const colMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
+
+  /*
+    SphereGeometry default: pole at +Y, cap fans away from pole.
+    //华仁中学蔡逸众制作
+    CONVEX (dome protrudes toward -X):
+      rotation.z = -PI/2  →  pole (+Y) rotates to -X.
+      Vertex (pole) sits at: centre + R*(-1,0,0).
+      Set centre = +cx  →  vertex = cx - R = -sag  (at x = -sag, toward -X). ✓
+      Rim at x = 0. Dome sticks out toward -X = toward incoming light. ✓
+
+    CONCAVE (bowl opens toward -X, deepens toward +X):
+      rotation.z = +PI/2  →  pole (+Y) rotates to +X.
+      Vertex (pole) sits at: centre + R*(+1,0,0).
+      Set centre = -cx  →  vertex = -cx + R = sag  (at x = +sag, deepest point). ✓
+      Rim at x = 0. Bowl opens toward -X = toward incoming light. ✓
+  */
+  const sg  = sag(R);
+  const cx  = R - sg;
+
+  if (isConcave) {
+    [mesh, hlMesh, colMesh].forEach(m => {
+      m.rotation.z = -Math.PI / 2;  // pole → -X (dome tip toward -X) → concave bowl faces light
+      m.position.x = cx;
+    });
+  } else {
+    [mesh, hlMesh, colMesh].forEach(m => {
+      m.rotation.z = Math.PI / 2;   // pole → +X (dome bottom toward +X) → convex dome faces light
+      m.position.x = -cx;
+    });
+  }
+
+  colGroup.clear();
+  colGroup.add(colMesh);
+  colMesh.updateMatrixWorld(true);
+
+  return { mesh, hlMesh, colMesh };
+}
+
+const colGroup = new THREE.Group();
+colGroup.visible = false;
+scene.add(colGroup);
+
+// focal-point marker
+function addFocalMarker(x, label) {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09,16,16),
+    new THREE.MeshBasicMaterial({color:0xff4444})
+  );
+  m.position.set(x,0,0); elGrp.add(m);
+
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22,16,16),
+    new THREE.MeshBasicMaterial({color:0xff4444, transparent:true, opacity:0.18})
+  );
+  halo.position.set(x,0,0); elGrp.add(halo);
+
+  const sp = mkSprite(label,'#ff8888');
+  sp.position.set(x,0.48,0); sp.scale.set(0.52,0.26,1); elGrp.add(sp);
+
+  const fg = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(x,-1.4,0), new THREE.Vector3(x,1.4,0)
+  ]);
+  const fl = new THREE.Line(fg, new THREE.LineDashedMaterial({
+    color:0xff4444, dashSize:0.08, gapSize:0.06, transparent:true, opacity:0.28
+  }));
+  fl.computeLineDistances(); elGrp.add(fl);
+}
+
+// lens lathe geometry (both convex & concave)
+function buildLensLathe(R, halfT, isConvex) {
+  const sg = sag(R);
+  const SEGS = 32;
+  const pts = [];
+  if (isConvex) {
+    for (let i=0; i<=SEGS; i++) {
+      const r = (i/SEGS)*APR;
+      const depth = R - Math.sqrt(R*R - r*r);
+      const x = (sg - depth) + halfT;
+      pts.push(new THREE.Vector2(r, x));
+    }
+    for (let i=SEGS; i>=0; i--) {
+      const r = (i/SEGS)*APR;
+      const depth = R - Math.sqrt(R*R - r*r);
+      const x = -((sg - depth) + halfT);
+      pts.push(new THREE.Vector2(r, x));
+    }
+  } else {
+    // Concave: guarantee a minimum centre thickness so the two
+    // concave surfaces never overlap when sag >= halfT.
+    // minHalf ensures centre half-thickness is at least 0.18 units.
+    const minHalf = Math.max(halfT, sg + 0.18);
+    for (let i=0; i<=SEGS; i++) {
+      const r = (i/SEGS)*APR;
+      const depth = R - Math.sqrt(R*R - r*r);
+      const x = minHalf - (sg - depth);
+      pts.push(new THREE.Vector2(r, x));
+    }
+    for (let i=SEGS; i>=0; i--) {
+      const r = (i/SEGS)*APR;
+      const depth = R - Math.sqrt(R*R - r*r);
+      const x = -(minHalf - (sg - depth));
+      pts.push(new THREE.Vector2(r, x));
+    }
+  }
+  const geo = new THREE.LatheGeometry(pts, 48);
+  geo.rotateZ(-Math.PI / 2);
+  return geo;
+}
+
+function computeFocalLength() {
+  const { R, n, el } = S;
+  if (el==='concave-mirror'||el==='convex-mirror') return R/2;
+  if (el==='convex-lens'||el==='concave-lens')     return 1/((n-1)*(2/R));
+  return 0;
+}
+
+// ─── BUILD ELEMENT ───────────────────────────────────────
+const elGrp = new THREE.Group(); scene.add(elGrp);
+
+function buildElement() {
+  elGrp.clear();
+  mirrorRaycasterMesh = null;
+  const { R, d, n, el } = S;
+
+  const rimMat = new THREE.MeshStandardMaterial({color:0x3a4a60, metalness:0.7, roughness:0.3});
+
+  // ── ROUGH ──
+  if (el==='rough') {
+    // Face toward -X (toward incoming light). Bumps on the -X face.
+    const geo = new THREE.BoxGeometry(0.28,4.2,4.2,1,20,20);
+    const pos = geo.attributes.position;
+    for (let i=0; i<pos.count; i++)
+      if (pos.getX(i) < 0) pos.setX(i, pos.getX(i) - Math.abs((Math.random()-.5)*0.28));
+    geo.computeVertexNormals();
+    elGrp.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color:0x6a7888, roughness:0.98, metalness:0.05, flatShading:true
+    })));
+    return;
+  }
+
+  // ── PLANAR MIRROR ──
+  if (el==='planar') {
+    // ── Layer 1: glass body — semi-transparent blue-white glass plate ──
+    const glassGeo = new THREE.BoxGeometry(0.13, 4.2, 4.2);
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8deff,
+      transparent: true, opacity: 0.22,
+      roughness: 0.0, metalness: 0.0,
+      transmission: 0.80,
+      ior: 1.52,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      reflectivity: 0.6,
+      envMapIntensity: 1.6,
+      side: THREE.DoubleSide
+    });
+    elGrp.add(new THREE.Mesh(glassGeo, glassMat));
+
+    // ── Layer 2: silver backing — sits behind the glass on the +X side ──
+    const silverGeo = new THREE.PlaneGeometry(4.2, 4.2);
+    const silverMat = new THREE.MeshPhysicalMaterial({
+      color: 0xd0e4f8,
+      roughness: 0.0, metalness: 1.0,
+      reflectivity: 1.0,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      envMapIntensity: 2.0,
+      side: THREE.FrontSide   // normal points toward -X (toward light)
+    });
+    const silverMesh = new THREE.Mesh(silverGeo, silverMat);
+    silverMesh.rotation.y = -Math.PI / 2; silverMesh.position.x = -0.065;
+    elGrp.add(silverMesh);
+
+    // ── Layer 3: canvas streak texture — glass surface reflections & polish ──
+    const streakCv = document.createElement('canvas');
+    streakCv.width = 256; streakCv.height = 256;
+    const sCtx = streakCv.getContext('2d');
+    // radial centre highlight (light passing through glass)
+    const radGrad = sCtx.createRadialGradient(128,128,0,128,128,128);
+    radGrad.addColorStop(0.00,'rgba(220,240,255,0.30)');
+    radGrad.addColorStop(0.50,'rgba(180,215,255,0.10)');
+    radGrad.addColorStop(1.00,'rgba( 80,140,220,0.00)');
+    sCtx.fillStyle = radGrad; sCtx.fillRect(0,0,256,256);
+    // diagonal sweep highlight
+    const swpGrad = sCtx.createLinearGradient(20,20,236,236);
+    swpGrad.addColorStop(0.00,'rgba(255,255,255,0.00)');
+    swpGrad.addColorStop(0.35,'rgba(255,255,255,0.32)');
+    swpGrad.addColorStop(0.50,'rgba(220,235,255,0.48)');
+    swpGrad.addColorStop(0.65,'rgba(255,255,255,0.32)');
+    swpGrad.addColorStop(1.00,'rgba(255,255,255,0.00)');
+    sCtx.fillStyle = swpGrad; sCtx.fillRect(0,0,256,256);
+    // fine horizontal streaks (polished glass grain)
+    for (let i=0;i<36;i++){
+      const y=Math.random()*256, w=Math.random()*0.9+0.2, a=(Math.random()*0.12+0.03).toFixed(3);
+      sCtx.fillStyle=`rgba(255,255,255,${a})`; sCtx.fillRect(0,y,256,w);
+    }
+    // specular flashes
+    for (let i=0;i<4;i++){
+      const cx2=Math.random()*256,cy2=Math.random()*256;
+      const gr=sCtx.createRadialGradient(cx2,cy2,0,cx2,cy2,16+Math.random()*20);
+      gr.addColorStop(0,'rgba(255,255,255,0.48)'); gr.addColorStop(1,'rgba(255,255,255,0.00)');
+      sCtx.fillStyle=gr; sCtx.fillRect(0,0,256,256);
+    }
+    // edge chromatic fringe (blue tint at border, like real glass mirror)
+    const edgeGrad = sCtx.createRadialGradient(128,128,88,128,128,128);
+    edgeGrad.addColorStop(0.00,'rgba(120,170,255,0.00)');
+    edgeGrad.addColorStop(0.78,'rgba(120,170,255,0.00)');
+    edgeGrad.addColorStop(0.92,'rgba(140,185,255,0.20)');
+    edgeGrad.addColorStop(1.00,'rgba(160,130,255,0.32)');
+    sCtx.fillStyle=edgeGrad; sCtx.fillRect(0,0,256,256);
+    const streakTex = new THREE.CanvasTexture(streakCv);
+    const hGeo = new THREE.PlaneGeometry(4.2, 4.2);
+    const hl = new THREE.Mesh(hGeo, new THREE.MeshBasicMaterial({
+      map: streakTex, transparent: true, opacity: 0.80,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide
+    }));
+    hl.rotation.y = -Math.PI / 2; hl.position.x = -0.067;
+    elGrp.add(hl);
+
+    // ── Layer 4: cold blue-white tint (glass colour) ──
+    const tintGeo = new THREE.PlaneGeometry(4.2, 4.2);
+    const tintMesh = new THREE.Mesh(tintGeo, new THREE.MeshBasicMaterial({
+      color: 0xaaccff, transparent: true, opacity: 0.09,
+      blending: THREE.NormalBlending, depthWrite: false, side: THREE.FrontSide
+    }));
+    tintMesh.rotation.y = -Math.PI / 2; tintMesh.position.x = -0.068;
+    elGrp.add(tintMesh);
+
+    // ── Backing frame ──
+    elGrp.add(new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 4.2, 4.2),
+      new THREE.MeshStandardMaterial({ color: 0x1a2535, roughness: 0.7 })
+    ));
+    return;
+  }
+
+  // ── CONCAVE MIRROR ──
+  if (el==='concave-mirror') {
+    const { mesh, hlMesh, colMesh } = buildSphereMirror(R, true);
+    elGrp.add(mesh); elGrp.add(hlMesh);
+    mirrorRaycasterMesh = colMesh; // not in scene, only for raycasting
+    if (S.focal) addFocalMarker(-R/2, 'F');
+    return;
+  }
+
+  // ── CONVEX MIRROR ──
+  if (el==='convex-mirror') {
+    const { mesh, hlMesh, colMesh } = buildSphereMirror(R, false);
+    elGrp.add(mesh); elGrp.add(hlMesh);
+    mirrorRaycasterMesh = colMesh;
+    if (S.focal) addFocalMarker(R/2, 'F(虚)');
+    return;
+  }
+
+  // ── LENSES ──
+  if (el==='convex-lens'||el==='concave-lens') {
+    const isConvex = el==='convex-lens';
+    const lGeo = buildLensLathe(R, d/2, isConvex);
+
+    // ── Layer 1: glass body — nearly invisible, just enough for edge fresnel ──
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xddeeff,
+      transparent: true, opacity: 0.04,
+      roughness: 0.0, metalness: 0.0,
+      transmission: 0.99,
+      ior: n,
+      thickness: d,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      reflectivity: 0.3,
+      envMapIntensity: 0.8,
+      side: THREE.DoubleSide
+    });
+    elGrp.add(new THREE.Mesh(lGeo, glassMat));
+
+    // ── Layer 2: edge-only glow — chromatic rim fringe ──
+    const lCv = document.createElement('canvas');
+    lCv.width = 256; lCv.height = 256;
+    const lCtx = lCv.getContext('2d');
+    // centre fully transparent, only rim glows
+    const edgeGrad = lCtx.createRadialGradient(128,128,72,128,128,128);
+    edgeGrad.addColorStop(0.00,'rgba(180,220,255,0.00)');
+    edgeGrad.addColorStop(0.72,'rgba(180,220,255,0.00)');
+    edgeGrad.addColorStop(0.88,'rgba(160,200,255,0.18)');
+    edgeGrad.addColorStop(1.00,'rgba(180,150,255,0.28)');
+    lCtx.fillStyle = edgeGrad; lCtx.fillRect(0,0,256,256);
+    // single faint diagonal specular streak
+    const swpGrad = lCtx.createLinearGradient(60,60,196,196);
+    swpGrad.addColorStop(0.00,'rgba(255,255,255,0.00)');
+    swpGrad.addColorStop(0.45,'rgba(255,255,255,0.10)');
+    swpGrad.addColorStop(0.55,'rgba(255,255,255,0.10)');
+    swpGrad.addColorStop(1.00,'rgba(255,255,255,0.00)');
+    lCtx.fillStyle = swpGrad; lCtx.fillRect(0,0,256,256);
+    const lTex = new THREE.CanvasTexture(lCv);
+    const lGeo2 = buildLensLathe(R, d/2, isConvex);
+    elGrp.add(new THREE.Mesh(lGeo2, new THREE.MeshBasicMaterial({
+      map: lTex, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    })));
+
+    // ── Rim ──
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(APR, 0.055, 8, 48),
+      new THREE.MeshStandardMaterial({color:0x445566, metalness:0.7, roughness:0.3})
+    );
+    rim.rotation.y = Math.PI/2; elGrp.add(rim);
+
+    if (S.focal) {
+      const f = computeFocalLength();
+      if (isConvex) { addFocalMarker(f,'F');      addFocalMarker(-f,"F'"); }
+      else          { addFocalMarker(-f,'F(虚)'); addFocalMarker(f,"F'(虚)"); }
+    }
+  }
+}
+
+// ─── RAY RENDERING ───────────────────────────────────────
+const rayGrp = new THREE.Group(); scene.add(rayGrp);
+const C_IN  = new THREE.Color(0xffe4a0);
+const C_REF = new THREE.Color(0x55ccff);
+const C_RFR = new THREE.Color(0xff9966);
+
+function drawSeg(a, b, col, opacity=0.92, dashed=false) {
+  //峇株吧辖蔡逸众制作
+  if (a.distanceTo(b) < 0.005) return;
+  const geo = new THREE.BufferGeometry().setFromPoints([a, b]);
+  const mat = dashed
+    ? new THREE.LineDashedMaterial({color:col.getHex(), transparent:true, opacity:opacity*0.5, dashSize:0.14, gapSize:0.09})
+    : new THREE.LineBasicMaterial({color:col.getHex(), transparent:true, opacity});
+  const ln = new THREE.Line(geo, mat);
+  if (dashed) ln.computeLineDistances();
+  rayGrp.add(ln);
+}
+
+function drawArrow(pos, dir, col, opacity=0.92) {
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(0.068, 0.20, 8),
+    new THREE.MeshBasicMaterial({color:col.getHex(), transparent:true, opacity})
+  );
+  cone.position.copy(pos);
+  cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  rayGrp.add(cone);
+}
+
+function drawRay(a, b, col, opacity=0.92, dashed=false) {
+  drawSeg(a, b, col, opacity, dashed);
+  const t  = 0.58;
+  const mid = a.clone().lerp(b, t);
+  const dir = b.clone().sub(a).normalize();
+  drawArrow(mid, dir, col, opacity);
+}
+
+function drawNorm(pt, n) {
+  const e = pt.clone().add(n.clone().multiplyScalar(0.75));
+  const ln = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([pt, e]),
+    new THREE.LineDashedMaterial({color:0x44ff88, dashSize:0.08, gapSize:0.06, transparent:true, opacity:0.65})
+  );
+  ln.computeLineDistances(); rayGrp.add(ln);
+}
+
+// reflection: r = d – 2(d·n̂)n̂
+function reflect(d, n) {
+  const nd = n.clone().normalize();
+  return d.clone().sub(nd.clone().multiplyScalar(2 * d.dot(nd))).normalize();
+}
+
+// Raycaster instance (reused)
+const raycaster = new THREE.Raycaster();
+
+// Intersect the sphere mirror mesh and return { hit, normal } or null
+function mirrorIntersect(origin, dir) {
+  if (!mirrorRaycasterMesh) return null;
+  raycaster.set(origin, dir.clone().normalize());
+  const hits = raycaster.intersectObject(mirrorRaycasterMesh);
+  if (!hits.length) return null;
+  const h = hits[0];
+  // Get world-space normal from face normal
+  const normal = h.face.normal.clone();
+  const nm = new THREE.Matrix3().getNormalMatrix(mirrorRaycasterMesh.matrixWorld);
+  normal.applyMatrix3(nm).normalize();
+  // Ensure normal faces toward incoming ray (same side as origin)
+  if (normal.dot(dir) > 0) normal.negate();
+  return { point: h.point, normal };
+}
+
+// ─── TRACE ONE RAY (legacy stub — logic moved to traceColoured) ──────────
+//峇株吧辖华仁中学蔡逸众制作
+function trace(origin, dir) { traceColoured(origin, dir, C_IN, 0.92); }
+
+// ─── BUILD RAYS ──────────────────────────────────────────
+function buildRays() {
+  //Made by ecchua79
+  rayGrp.clear();
+  const ang = S.angle * Math.PI / 180;
+  const sp  = S.spread;
+
+  // Base direction: tilted by 'angle' in the XY plane, then we rotate
+  // the transverse offset around the X-axis for each ray.
+  // dir is always the same for a parallel bundle — only origins differ.
+  const cosA = Math.cos(ang), sinA = Math.sin(ang);
+
+  // ── Layout: 1 axial + 2 rings (6 + 12 rays) around the optical axis ──
+  // ring radii as fractions of spread
+  const rings = [
+    { r: 0,        n: 1,  alpha: 1.00 },   // axial ray
+    { r: sp * 0.5, n: 6,  alpha: 0.85 },   // inner ring
+    { r: sp,       n: 12, alpha: 0.65 },   // outer ring
+  ];
+
+  // Slight colour variation per azimuthal angle to distinguish planes
+  // All still warm-white but with a faint hue shift
+  const hueShift = (phi) => {
+    // phi in [0, 2π] → gentle colour around C_IN
+    const h = (phi / (Math.PI * 2));
+    // interpolate between warm gold and cool blue-white
+    const r = 1.00,
+          g = 0.88 + 0.10 * Math.sin(phi),
+          b = 0.60 + 0.38 * Math.abs(Math.sin(phi + Math.PI / 3));
+    return new THREE.Color(r, g, b);
+  };
+
+  let totalRays = 0;
+  rings.forEach(({ r, n, alpha }) => {
+    for (let i = 0; i < n; i++) {
+      const phi = (i / n) * Math.PI * 2;
+      // Transverse offset in Y and Z (perpendicular to X axis)
+      const yo = r * Math.cos(phi);
+      const zo = r * Math.sin(phi);
+
+      // Origin: behind the element, offset in YZ plane
+      const origin = new THREE.Vector3(-7.8, yo, zo);
+
+      // Direction: parallel bundle tilted by `ang` around Z-axis,
+      // but the tilt is applied in the plane containing X and the offset direction.
+      // For a true parallel beam, all rays share the same direction vector.
+      // The angle slider tilts the whole bundle in XY; we keep that behaviour.
+      const dir = new THREE.Vector3(cosA, sinA, 0).normalize();
+
+      // Use per-plane colour for non-axial rays
+      const col = r === 0 ? C_IN : hueShift(phi);
+
+      traceColoured(origin, dir, col, alpha);
+      totalRays++;
+    }
+  });
+
+  document.getElementById('i-r').textContent = totalRays;
+}
+
+// ─── TRACE WITH EXPLICIT COLOUR (wraps trace logic, colour-aware) ──────────
+function traceColoured(origin, dir, col, opacity) {
+  const { el, R, n } = S;
+  const REACH = 7.5;
+
+  if (el === 'rough') {
+    const t = -origin.x / dir.x;
+    if (t <= 0.001) { drawRay(origin, origin.clone().addScaledVector(dir, REACH), col, opacity); return; }
+    const hit = origin.clone().addScaledVector(dir, t);
+    drawRay(origin, hit, col, opacity);
+    for (let k = 0; k < 3; k++) {
+      const rd = new THREE.Vector3(
+        -Math.abs(Math.random() * 0.6 + 0.4),
+        (Math.random() - .5) * 1.6,
+        (Math.random() - .5) * 0.8
+      ).normalize();
+      drawRay(hit, hit.clone().addScaledVector(rd, 2.0 + Math.random() * 2), C_REF, opacity * 0.5);
+    }
+    return;
+  }
+
+  if (el === 'planar') {
+    if (Math.abs(dir.x) < 1e-5) return;
+    const t = -origin.x / dir.x; if (t <= 0.001) return;
+    const hit = origin.clone().addScaledVector(dir, t);
+    if (Math.abs(hit.y) > 2.1 || Math.abs(hit.z) > 2.1) return;
+    drawRay(origin, hit, col, opacity);
+    const nrm = new THREE.Vector3(-1, 0, 0);
+    const refl = reflect(dir, nrm);
+    drawRay(hit, hit.clone().addScaledVector(refl, REACH), C_REF, opacity);
+    if (S.norm) drawNorm(hit, nrm);
+    return;
+  }
+
+  if (el === 'concave-mirror' || el === 'convex-mirror') {
+    const res = mirrorIntersect(origin, dir);
+    if (!res) return;
+    drawRay(origin, res.point, col, opacity);
+    const refl = reflect(dir, res.normal);
+    drawRay(res.point, res.point.clone().addScaledVector(refl, REACH), C_REF, opacity);
+    if (S.norm) drawNorm(res.point, res.normal);
+    return;
+  }
+
+  if (el === 'convex-lens' || el === 'concave-lens') {
+    const isConvex = el === 'convex-lens';
+    const f = computeFocalLength();
+    if (Math.abs(dir.x) < 1e-5) return;
+    const t = -origin.x / dir.x; if (t <= 0.001) return;
+    const hit = origin.clone().addScaledVector(dir, t);
+    if (Math.sqrt(hit.y * hit.y + hit.z * hit.z) > APR * 0.97) return;
+    drawRay(origin, hit, col, opacity);
+    let exitDir;
+    if (isConvex) {
+      const fp = new THREE.Vector3(f, f * (dir.y / dir.x), f * (dir.z / dir.x));
+      exitDir = fp.clone().sub(hit).normalize();
+    } else {
+      const vf = new THREE.Vector3(-f, -f * (dir.y / dir.x), -f * (dir.z / dir.x));
+      exitDir = hit.clone().sub(vf).normalize();
+    }
+    drawRay(hit, hit.clone().addScaledVector(exitDir, REACH), C_RFR, opacity);
+  }
+}
+
+// ─── REBUILD ─────────────────────────────────────────────
+function rebuild() {
+  buildGrid();
+  buildElement();
+  buildRays();
+  const f = computeFocalLength();
+  document.getElementById('i-f').textContent = f>0 ? f.toFixed(2) : '—';
+  document.getElementById('i-el').textContent = NAMES[S.el];
+}
+
+// ─── UI BINDINGS ─────────────────────────────────────────
+
+// Section collapse/expand
+//华仁中学蔡逸众制作
+document.querySelectorAll('.sec-t').forEach(title => {
+  title.addEventListener('click', () => {
+    const id = title.dataset.sec;
+    const body = document.getElementById(id);
+    const isCollapsed = body.classList.contains('collapsed');
+    body.classList.toggle('collapsed');
+    title.classList.toggle('collapsed');
+  });
+});
+
+// Whole panel toggle
+document.getElementById('ctrl-header').addEventListener('click', () => {
+  document.getElementById('ctrl-body').classList.toggle('collapsed');
+  document.getElementById('ctrl-toggle').classList.toggle('collapsed');
+});
+
+document.querySelectorAll('.eb').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.eb').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    S.el = b.dataset.el;
+    rebuild();
+  });
+});
+
+function bind(sid, vid, key, fmt=v=>v) {
+  document.getElementById(sid).addEventListener('input', e => {
+    S[key] = parseFloat(e.target.value);
+    if (vid) document.getElementById(vid).textContent = fmt(S[key]);
+    rebuild();
+  });
+}
+bind('s-angle','v-angle','angle', v=>`${v}°`);
+bind('s-spread','v-spread','spread', v=>v.toFixed(1));
+bind('s-R','v-R','R', v=>v.toFixed(1));
+bind('s-d','v-d','d', v=>v.toFixed(2));
+bind('s-n','v-n','n', v=>v.toFixed(2));
+
+[['c-grid','grid'],['c-focal','focal'],['c-norm','norm'],['c-axis','axis']].forEach(([id,k]) => {
+  document.getElementById(id).addEventListener('change', e => {
+    S[k] = e.target.checked;
+    id==='c-grid' ? (gridGrp.visible=e.target.checked) : rebuild();
+  });
+});
+
+document.querySelectorAll('.vbtn').forEach(b => {
+  b.addEventListener('click', () => {
+    const p = {front:[0,0,13], side:[13,0,0], top:[0,13,.01], iso:[5,3.5,10]};
+    const tgt = new THREE.Vector3(...p[b.dataset.v]);
+    const s = camera.position.clone(), t0 = performance.now();
+    (function step() {
+      const t=Math.min(1,(performance.now()-t0)/800), e=t<.5?2*t*t:-1+(4-2*t)*t;
+      camera.position.lerpVectors(s,tgt,e); controls.update();
+      if(t<1) requestAnimationFrame(step);
+    })();
+  });
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  composer.setSize(innerWidth,innerHeight);
+});
+
+// ─── RENDER LOOP ─────────────────────────────────────────
+//峇株吧辖蔡逸众制作
+let ft=performance.now(), ff=0;
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  composer.render();
+  if (++ff, performance.now()-ft > 600) {
+    document.getElementById('fps').textContent=`${Math.round(ff*1e3/(performance.now()-ft))} FPS`;
+    ft=performance.now(); ff=0;
+  }
+})();
+
+// ══════════════════════════════════════════════════════════
+//  CHALLENGE MODE  ·  对焦挑战
+// ══════════════════════════════════════════════════════════
+
+const LEVELS = [
+  {
+    id: 0,
+    el: 'concave-mirror',
+    title: '凹面镜 — 聚焦阳光',
+    hint: '调整<b>曲率半径 R</b>，让平行光线汇聚到 <b>x = 2.5</b> 处的靶心。\n提示：焦距 f = R / 2',
+    target: 2.5,
+    params: [{ key:'R', label:'曲率半径 R', min:2.0, max:6.0, step:0.1, init:4.5, fmt:v=>v.toFixed(1) }],
+    tol: 0.25
+  },
+  {
+    id: 1,
+    el: 'convex-lens',
+    title: '凸透镜 — 远处成像',
+    hint: '调整<b>折射率 n</b> 和<b>曲率半径 R</b>，让光线汇聚在 <b>x = 3.5</b> 处。',
+    target: 3.5,
+    params: [
+      { key:'R', label:'曲率半径 R', min:2.0, max:6.0, step:0.1, init:5.0, fmt:v=>v.toFixed(1) },
+      { key:'n', label:'折射率 n',   min:1.30, max:2.00, step:0.01, init:1.40, fmt:v=>v.toFixed(2) }
+    ],
+    tol: 0.28
+  },
+  {
+    id: 2,
+    el: 'concave-mirror',
+    title: '凹面镜 — 精准对焦',
+    hint: '这次目标更近，在 <b>x = 1.5</b>。\n较小的曲率半径 R 会让焦点更近。',
+    target: 1.5,
+    params: [{ key:'R', label:'曲率半径 R', min:2.0, max:6.0, step:0.1, init:5.0, fmt:v=>v.toFixed(1) }],
+    tol: 0.22
+  },
+  {
+    id: 3,
+    el: 'convex-lens',
+    title: '凸透镜 — 高折射率玻璃',
+    hint: '固定 R = 3.0，只调整<b>折射率 n</b>，让光线聚焦在 <b>x = 2.2</b>。\n薄透镜公式：f = R / (2(n-1))',
+    target: 2.2,
+    params: [
+      { key:'R', label:'曲率半径 R', min:3.0, max:3.0, step:0.1, init:3.0, fmt:v=>v.toFixed(1) },
+      { key:'n', label:'折射率 n',   min:1.30, max:2.00, step:0.01, init:1.40, fmt:v=>v.toFixed(2) }
+    ],
+    tol: 0.25
+  },
+  {
+    id: 4,
+    el: 'convex-lens',
+    title: '最终挑战 — 自由对焦',
+    hint: '同时调整 <b>R</b>、<b>n</b> 和<b>厚度 d</b>，把光线打到 <b>x = 4.0</b>。\n这是最自由也是最难的一关！',
+    target: 4.0,
+    params: [
+      { key:'R', label:'曲率半径 R', min:2.0, max:6.0, step:0.1, init:3.0, fmt:v=>v.toFixed(1) },
+      { key:'n', label:'折射率 n',   min:1.30, max:2.00, step:0.01, init:1.50, fmt:v=>v.toFixed(2) },
+      { key:'d', label:'镜片厚度 d', min:0.2,  max:1.0,  step:0.05, init:0.4,  fmt:v=>v.toFixed(2) }
+    ],
+    tol: 0.30
+  }
+];
+
+const challGrp = new THREE.Group();
+scene.add(challGrp);
+
+function buildChallengeTarget(x) {
+  challGrp.clear();
+  // screen plane
+  const sm2 = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.06, 4.4),
+    new THREE.MeshBasicMaterial({ color:0xff4444, transparent:true, opacity:0.18, side:THREE.DoubleSide })
+  );
+  sm2.rotation.y = Math.PI/2; sm2.position.x = x;
+  challGrp.add(sm2);
+  // bullseye rings
+  [0.55, 0.32, 0.16].forEach((r,i) => {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(r, 0.025, 8, 32),
+      new THREE.MeshBasicMaterial({ color:[0xff4444,0xff8844,0xffdd44][i], transparent:true, opacity:0.7-i*0.15 })
+    );
+    ring.rotation.y = Math.PI/2; ring.position.x = x;
+    challGrp.add(ring);
+  });
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16), new THREE.MeshBasicMaterial({color:0xffffff}));
+  dot.position.set(x,0,0); challGrp.add(dot);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.18,16,16),
+    new THREE.MeshBasicMaterial({color:0xff4444,transparent:true,opacity:0.12}));
+  halo.position.set(x,0,0); challGrp.add(halo);
+  const sp = mkSprite(`x = ${x.toFixed(1)}`,'#ff8888',22);
+  sp.position.set(x,0.7,0); sp.scale.set(0.55,0.27,1);
+  challGrp.add(sp);
+}
+
+function computeFocusX() {
+  const { el } = S;
+  if (el === 'concave-mirror') return S.R / 2;
+  if (el === 'convex-lens')    return computeFocalLength();
+  return null;
+}
+
+let CHL = { active:false, level:0, scores:Array(LEVELS.length).fill(null), params:{} };
+
+function challLevelData() { return LEVELS[CHL.level]; }
+
+function initLevelParams() {
+  const lv = challLevelData();
+  CHL.params = {};
+  lv.params.forEach(p => { CHL.params[p.key] = p.init; });
+}
+
+function applyLevelToScene() {
+  const lv = challLevelData();
+  S.el = lv.el; S.angle = 0; S.spread = 1.8;
+  Object.assign(S, CHL.params);
+  document.querySelectorAll('.eb').forEach(b => b.classList.toggle('active', b.dataset.el === lv.el));
+  rebuild();
+  buildChallengeTarget(lv.target);
+}
+
+function updateMeter() {
+  const lv = challLevelData();
+  const fx = computeFocusX();
+  const bar = document.getElementById('chall-bar');
+  const pct = document.getElementById('chall-pct');
+  const acc = document.getElementById('chall-acc');
+  if (fx === null || fx <= 0) {
+    bar.style.width='0%'; pct.textContent='无法计算'; acc.innerHTML='—'; return;
+  }
+  const dist = Math.abs(fx - lv.target);
+  const accuracy = Math.max(0, 1 - dist / 4.0);
+  const pctVal = Math.round(accuracy * 100);
+  bar.style.width = pctVal + '%';
+  bar.style.background = accuracy >= 0.92 ? 'linear-gradient(90deg,#22c55e,#4ade80)'
+    : accuracy >= 0.70 ? 'linear-gradient(90deg,#ffb84d,#ffd080)'
+    : 'linear-gradient(90deg,#ff4444,#ffb84d)';
+  pct.textContent = pctVal + '%';
+  acc.innerHTML = `焦点 x = <span style="color:#ffb84d">${fx.toFixed(2)}</span>　偏差 ${dist.toFixed(2)}`;
+}
+
+function renderLevelButtons() {
+  const cont = document.getElementById('chall-levels');
+  cont.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'chall-lv' + (i===CHL.level?' active':'') + (CHL.scores[i]!==null?' done':'');
+    const sc = CHL.scores[i];
+    const stars = sc !== null ? '★'.repeat(sc)+'☆'.repeat(3-sc) : '· · ·';
+    btn.innerHTML = `<span class="lv-n">${i+1}</span>${['凹面镜①','凸透镜①','凹面镜②','凸透镜②','自由关'][i]}<div class="lv-stars">${stars}</div>`;
+    btn.addEventListener('click', () => {
+      CHL.level = i; initLevelParams(); applyLevelToScene(); renderLevelUI();
+    });
+    cont.appendChild(btn);
+  });
+}
+
+function renderLevelUI() {
+  const lv = challLevelData();
+  document.getElementById('chall-q').textContent = lv.title;
+  document.getElementById('chall-hint').innerHTML = lv.hint.replace(/\n/g,'<br>');
+  document.getElementById('chall-result').innerHTML = '';
+  const c2 = document.getElementById('chall-params');
+  c2.innerHTML = '';
+  lv.params.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'chall-param';
+    div.innerHTML = `<div class="cp-row"><span>${p.label}</span><span class="cv" id="cpv-${p.key}">${p.fmt(CHL.params[p.key])}</span></div>
+      <input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${CHL.params[p.key]}" id="cpr-${p.key}">`;
+    c2.appendChild(div);
+    div.querySelector('input').addEventListener('input', e => {
+      CHL.params[p.key] = parseFloat(e.target.value);
+      document.getElementById(`cpv-${p.key}`).textContent = p.fmt(CHL.params[p.key]);
+      applyLevelToScene(); updateMeter();
+    });
+  });
+  updateMeter();
+  renderLevelButtons();
+}
+
+function checkFocus() {
+  const lv = challLevelData();
+  const fx = computeFocusX();
+  if (fx === null || fx <= 0) return;
+  const dist = Math.abs(fx - lv.target);
+  let stars = dist <= lv.tol*0.4 ? 3 : dist <= lv.tol*0.75 ? 2 : dist <= lv.tol ? 1 : 0;
+  if (stars > 0) CHL.scores[CHL.level] = Math.max(CHL.scores[CHL.level]??0, stars);
+  const res = document.getElementById('chall-result');
+  if (stars === 0) {
+    res.innerHTML = `<span class="chall-stars" style="font-size:26px">☆☆☆</span><div class="chall-result-txt miss" style="font-size:10px;letter-spacing:2px;color:#ff6666;margin-top:6px">还差 ${dist.toFixed(2)} 个单位，继续调整！</div>`;
+  } else {
+    const msgs = ['','继续加油！还可以更精准','做得不错！再微调试试','完美对焦！'];
+    res.innerHTML = `<span class="chall-stars" style="font-size:26px">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span><div class="chall-result-txt" style="font-size:10px;letter-spacing:2px;color:#4ade80;margin-top:6px">${msgs[stars]}</div>`;
+    challGrp.children.forEach(c => {
+      if (c.material?.color) { const o=c.material.color.clone(); c.material.color.set(0x4ade80); setTimeout(()=>c.material.color.copy(o),700); }
+    });
+  }
+  renderLevelButtons();
+  if (CHL.scores.every(s=>s!==null&&s>=1)) setTimeout(showComplete,900);
+}
+
+function showComplete() {
+  const total = CHL.scores.reduce((a,b)=>(a??0)+(b??0),0);
+  const maxT = LEVELS.length*3;
+  const pct = Math.round(total/maxT*100);
+  document.getElementById('cos-stars').textContent = '★'.repeat(Math.round(total/maxT*5));
+  document.getElementById('cos-msg').innerHTML = `总得分 ${total} / ${maxT} 星（${pct}%）<br><br>`
+    + (pct===100?'完美！你已掌握凹面镜与凸透镜的对焦原理。':pct>=70?'很好！再多练习就能满星！':'继续加油，理解薄透镜公式！');
+  document.getElementById('chall-complete').classList.add('show');
+}
+
+document.getElementById('chall-btn').addEventListener('click', () => {
+  CHL.active = !CHL.active;
+  document.getElementById('chall-btn').classList.toggle('active', CHL.active);
+  if (CHL.active) {
+    document.getElementById('chall-panel').classList.add('open');
+    initLevelParams(); applyLevelToScene(); renderLevelUI();
+  } else {
+    document.getElementById('chall-panel').classList.remove('open');
+    challGrp.clear(); rebuild();
+  }
+});
+document.getElementById('chall-close').addEventListener('click', () => {
+  CHL.active=false;
+  document.getElementById('chall-btn').classList.remove('active');
+  document.getElementById('chall-panel').classList.remove('open');
+  challGrp.clear(); rebuild();
+});
+document.getElementById('chall-check').addEventListener('click', checkFocus);
+document.getElementById('chall-next').addEventListener('click', () => {
+  if (CHL.level < LEVELS.length-1) { CHL.level++; initLevelParams(); applyLevelToScene(); renderLevelUI(); }
+});
+document.getElementById('cos-restart').addEventListener('click', () => {
+  CHL.scores=Array(LEVELS.length).fill(null); CHL.level=0;
+  document.getElementById('chall-complete').classList.remove('show');
+  initLevelParams(); applyLevelToScene(); renderLevelUI();
+});
+
+// ══════════════════════════════════════════════════════════
+
+rebuild();
+</script>
+</body>
+</html>
+dexnew
