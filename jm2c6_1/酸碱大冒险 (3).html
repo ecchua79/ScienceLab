@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<!-- //峇株吧辖华仁中学蔡逸众制作 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>⚗️ 酸碱实验室大冒险</title>
+<style>
+/* //峇株吧辖蔡逸众制作 */
+:root {
+  --acid:    #ff6b35;
+  --alkali:  #4ecdc4;
+  --neutral: #ffe66d;
+  --bg:      #0f0e17;
+  --card:    #1a1a2e;
+  --card2:   #16213e;
+  --text:    #fffffe;
+  --dim:     #a7a9be;
+  --danger:  #ef233c;
+  --success: #06d6a0;
+  --combo:   #ffd60a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, #ff6b3511 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, #4ecdc411 0%, transparent 50%);
+  z-index: 0; pointer-events: none;
+}
+.wrap { width: 100%; max-width: 620px; position: relative; z-index: 1; padding: 0 0 50px; }
+
+/* SCREENS */
+.screen { display: none; padding: 22px 16px; animation: up .35s ease; }
+.screen.active { display: block; }
+@keyframes up { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* BUTTONS */
+.btn { width:100%; padding:14px; border:none; border-radius:14px; font-size:.97rem; font-weight:800; cursor:pointer; transition:all .2s; letter-spacing:.4px; }
+.btn-primary { background:linear-gradient(135deg,var(--acid),#e63946); color:#fff; box-shadow:0 6px 18px #ff6b3540; }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 10px 26px #ff6b3560; }
+.btn-primary:active { transform:translateY(0); }
+.btn-secondary { background:var(--card); color:var(--dim); border:1px solid #fff2; margin-top:10px; }
+.btn-secondary:hover { background:var(--card2); color:var(--text); }
+.btn-download { background:linear-gradient(135deg,var(--alkali),#2d9cdb); color:#fff; box-shadow:0 6px 18px #4ecdc440; }
+.btn-download:hover { transform:translateY(-2px); }
+
+/* START */
+.hero { text-align:center; padding:34px 14px 22px; }
+.hero-icon { font-size:68px; display:block; animation:float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.hero h1 { font-size:1.95rem; font-weight:900; line-height:1.2; margin:12px 0 8px;
+  background:linear-gradient(135deg,var(--acid),var(--alkali));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.hero p { color:var(--dim); font-size:.92rem; line-height:1.6; }
+
+.roadmap { display:flex; align-items:center; justify-content:center; gap:0; margin:18px 0; }
+.rm-node { display:flex; flex-direction:column; align-items:center; gap:5px; }
+.rm-circle { width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; border:2px solid #fff2; }
+.rm-circle.lv1 { background:linear-gradient(135deg,#06d6a022,#06d6a011); border-color:var(--success); }
+.rm-circle.lv2 { background:linear-gradient(135deg,#ffe66d22,#ffe66d11); border-color:var(--neutral); }
+.rm-circle.lv3 { background:linear-gradient(135deg,#ff6b3522,#ef233c11); border-color:var(--acid); }
+.rm-label { font-size:.68rem; font-weight:700; color:var(--dim); text-align:center; line-height:1.4; }
+.rm-arrow { font-size:1.1rem; color:#fff3; padding:0 7px; margin-bottom:20px; }
+
+.rules-box { background:var(--card); border-radius:16px; padding:16px; margin-bottom:16px; }
+.rules-box h3 { font-size:.92rem; margin-bottom:11px; color:var(--alkali); }
+.rule-item { display:flex; align-items:center; gap:9px; padding:6px 0; border-bottom:1px solid #fff1; font-size:.86rem; }
+.rule-item:last-child { border-bottom:none; }
+.rule-icon { font-size:1.25rem; flex-shrink:0; }
+.credit { font-size:.6rem; color:#fff2; text-align:center; margin-top:7px; }
+
+/* HUD */
+.hud { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; background:var(--card); border-radius:16px; margin-bottom:11px; gap:7px; }
+.hud-block { text-align:center; }
+.hud-label { font-size:.6rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+.hud-value { font-size:1.1rem; font-weight:900; margin-top:2px; }
+.hp-hearts { font-size:1.25rem; letter-spacing:2px; }
+.combo-badge { background:linear-gradient(135deg,var(--combo),#f77f00); color:#0f0e17; border-radius:20px; padding:4px 11px; font-size:.8rem; font-weight:900; white-space:nowrap; transition:transform .2s; }
+.combo-badge.pop { animation:cpop .3s ease; }
+@keyframes cpop { 0%{transform:scale(1)} 50%{transform:scale(1.35)} 100%{transform:scale(1)} }
+.level-banner { text-align:center; margin-bottom:9px; font-size:.76rem; font-weight:800; letter-spacing:1px; color:var(--dim); }
+.timer-wrap { background:var(--card); border-radius:8px; height:9px; overflow:hidden; margin-bottom:13px; }
+.timer-fill { height:100%; width:100%; background:linear-gradient(90deg,var(--alkali),var(--success)); transition:width .1s linear,background .3s; border-radius:8px; }
+.progress-dots { display:flex; justify-content:center; gap:5px; margin-bottom:13px; flex-wrap:wrap; }
+.dot { width:8px; height:8px; border-radius:50%; background:#fff2; transition:background .3s; }
+.dot.done    { background:var(--success); }
+.dot.current { background:var(--acid); box-shadow:0 0 6px var(--acid); }
+.dot.wrong   { background:var(--danger); }
+
+/* QUESTION CARD */
+.q-card { background:var(--card); border-radius:16px; padding:18px 16px; margin-bottom:13px; border-left:4px solid var(--acid); }
+.q-type-tag { font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--acid); margin-bottom:7px; }
+.q-text { font-size:1rem; font-weight:700; line-height:1.6; }
+
+/* MCQ */
+.options-grid { display:grid; gap:8px; margin-bottom:13px; }
+.opt-btn { background:var(--card); border:2px solid #fff1; color:var(--text); border-radius:12px; padding:12px 13px; font-size:.91rem; font-weight:600; cursor:pointer; text-align:left; transition:all .2s; display:flex; align-items:center; gap:9px; }
+.opt-letter { width:25px; height:25px; border-radius:50%; background:#fff1; display:flex; align-items:center; justify-content:center; font-size:.73rem; font-weight:800; flex-shrink:0; transition:all .2s; }
+.opt-btn:hover:not(:disabled) { border-color:var(--alkali); background:#4ecdc412; }
+.opt-btn:hover:not(:disabled) .opt-letter { background:var(--alkali); color:#0f0e17; }
+.opt-btn.correct { border-color:var(--success); background:#06d6a015; }
+.opt-btn.correct .opt-letter { background:var(--success); color:#0f0e17; }
+.opt-btn.wrong   { border-color:var(--danger);  background:#ef233c15; }
+.opt-btn.wrong   .opt-letter { background:var(--danger); color:#fff; }
+.opt-btn:disabled { cursor:default; }
+
+/* DRAG */
+.drag-zone { background:var(--card); border-radius:14px; padding:13px; margin-bottom:13px; }
+.drag-zone h4 { font-size:.72rem; color:var(--dim); margin-bottom:9px; text-transform:uppercase; letter-spacing:1px; }
+.drag-items { display:flex; flex-wrap:wrap; gap:6px; min-height:42px; }
+.drag-item { background:var(--card2); border:2px solid #fff2; border-radius:9px; padding:6px 11px; cursor:grab; font-weight:700; font-size:.84rem; transition:all .2s; user-select:none; touch-action:none; }
+.drag-item:active { cursor:grabbing; transform:scale(1.05); }
+.drag-item.dragging { opacity:.35; }
+.drag-item.correct-placed { border-color:var(--success); background:#06d6a022; color:var(--success); cursor:default; }
+.drag-item.wrong-placed   { border-color:var(--danger);  background:#ef233c22; color:var(--danger);  cursor:default; }
+.drop-targets { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:13px; }
+.drop-targets.two-col { grid-template-columns:1fr 1fr; }
+.drop-target { background:var(--card); border:2px dashed #fff2; border-radius:14px; padding:10px 7px; min-height:95px; transition:all .2s; }
+.drop-target.drag-over { border-color:var(--alkali); background:#4ecdc412; }
+.drop-target h4 { font-size:.73rem; font-weight:800; margin-bottom:7px; display:flex; align-items:center; gap:4px; line-height:1.3; }
+.drop-target.acid-target    h4 { color:var(--acid); }
+.drop-target.alkali-target  h4 { color:var(--alkali); }
+.drop-target.neutral-target h4 { color:var(--neutral); }
+.drop-target.neutral-target.drag-over { border-color:var(--neutral); background:#ffe66d12; }
+.drop-zone-items { display:flex; flex-wrap:wrap; gap:5px; min-height:28px; }
+
+/* pH MATCH */
+.ph-match-wrap { background:var(--card); border-radius:16px; padding:14px; margin-bottom:13px; }
+.ph-match-grid { display:grid; grid-template-columns:1fr 30px 1fr; gap:8px; align-items:start; margin-top:10px; }
+.ph-col-label { font-size:.7rem; font-weight:800; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; text-align:center; }
+.ph-substances, .ph-values { display:flex; flex-direction:column; gap:7px; }
+.ph-substance { background:var(--card2); border:2px solid #fff2; border-radius:10px; padding:8px 10px; font-size:.85rem; font-weight:700; cursor:pointer; transition:all .2s; text-align:center; }
+.ph-substance:hover { border-color:var(--acid); background:#ff6b3512; }
+.ph-substance.ph-sel-left { border-color:var(--acid); background:#ff6b3520; box-shadow:0 0 10px #ff6b3540; }
+.ph-substance.matched { border-color:#fff3; color:var(--dim); cursor:default; }
+.ph-substance.correct-final { border-color:var(--success); background:#06d6a022; color:var(--success); cursor:default; }
+.ph-substance.wrong-final   { border-color:var(--danger);  background:#ef233c22; color:var(--danger);  cursor:default; }
+.ph-value { border:2px solid #fff2; border-radius:10px; padding:8px 6px; font-size:.88rem; font-weight:800; cursor:pointer; transition:all .2s; text-align:center; display:flex; align-items:center; justify-content:center; gap:5px; }
+.ph-value:hover { border-color:var(--alkali); background:#4ecdc412; }
+.ph-value.ph-sel-right { border-color:var(--alkali); background:#4ecdc420; box-shadow:0 0 10px #4ecdc440; }
+.ph-value.matched { border-color:#fff3; color:var(--dim); cursor:default; }
+.ph-value.correct-final { border-color:var(--success); background:#06d6a022; cursor:default; }
+.ph-value.wrong-final   { border-color:var(--danger);  background:#ef233c22; cursor:default; }
+.ph-dot { width:13px; height:13px; border-radius:50%; flex-shrink:0; }
+.ph-lines-col { display:flex; flex-direction:column; gap:7px; align-items:center; padding-top:26px; }
+.ph-conn { height:35px; display:flex; align-items:center; font-size:1.1rem; color:#fff2; font-weight:900; transition:color .2s; }
+.ph-conn.linked  { color:var(--alkali); }
+.ph-conn.correct { color:var(--success); }
+.ph-conn.wrong   { color:var(--danger); }
+
+/* EXPLANATION */
+.explanation-box { background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid var(--alkali); border-radius:14px; padding:13px 15px; margin-bottom:13px; font-size:.86rem; line-height:1.7; display:none; }
+.explanation-box.show { display:block; animation:up .3s ease; }
+.exp-title { font-weight:800; color:var(--alkali); margin-bottom:5px; font-size:.8rem; }
+
+/* SCORE POPUP */
+.score-popup { position:fixed; font-size:1.3rem; font-weight:900; color:var(--success); pointer-events:none; z-index:9999; animation:sfloat 1.2s ease forwards; }
+@keyframes sfloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-56px) scale(1.4)} }
+
+/* LEVEL UP */
+#screen-levelup { text-align:center; padding:38px 18px; }
+.lu-icon  { font-size:68px; animation:float 2s ease-in-out infinite; }
+.lu-title { font-size:1.75rem; font-weight:900; margin:13px 0 5px;
+  background:linear-gradient(135deg,var(--acid),var(--alkali));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.lu-sub   { color:var(--dim); font-size:.9rem; margin-bottom:24px; }
+.lu-steps { display:flex; justify-content:center; align-items:center; gap:0; margin-bottom:22px; }
+.lu-step  { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.25rem; font-weight:900; border:2px solid #fff2; transition:all .3s; }
+.lu-step.done    { background:linear-gradient(135deg,var(--success),#06d6a0); border-color:var(--success); color:#0f0e17; }
+.lu-step.current { background:linear-gradient(135deg,var(--acid),#e63946); border-color:var(--acid); color:#0f0e17; box-shadow:0 0 14px var(--acid); }
+.lu-step.upcoming{ background:var(--card); color:var(--dim); }
+.lu-arrow-line   { width:18px; height:2px; background:#fff2; }
+.lu-score-box    { background:var(--card); border-radius:16px; padding:16px; margin-bottom:22px; }
+.lu-score-val    { font-size:2.3rem; font-weight:900;
+  background:linear-gradient(135deg,var(--acid),var(--alkali));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+/* RESULTS */
+.results-hero { text-align:center; padding:26px 0 16px; }
+.res-icon  { font-size:60px; }
+.res-title { font-size:1.7rem; font-weight:900; margin:9px 0 3px; }
+.res-sub   { color:var(--dim); font-size:.88rem; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:16px 0; }
+.stat-card  { background:var(--card); border-radius:14px; padding:13px; text-align:center; }
+.stat-val   { font-size:1.7rem; font-weight:900;
+  background:linear-gradient(135deg,var(--acid),var(--alkali));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.stat-label { font-size:.7rem; color:var(--dim); margin-top:3px; }
+.ach-title  { font-size:.73rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.ach-item   { display:flex; align-items:center; gap:9px; background:var(--card); border-radius:12px; padding:10px 12px; margin-bottom:7px; border:1px solid #fff1; }
+.ach-item.unlocked { border-color:var(--combo); background:#ffd60a11; }
+.ach-icon  { font-size:1.25rem; }
+.ach-name  { font-weight:800; font-size:.86rem; }
+.ach-desc  { font-size:.7rem; color:var(--dim); }
+.ach-item.locked .ach-icon { filter:grayscale(1) opacity(.4); }
+.ach-item.locked .ach-name { color:var(--dim); }
+.name-section { background:var(--card); border-radius:16px; padding:16px; margin:13px 0; }
+.name-section label { font-size:.81rem; color:var(--dim); display:block; margin-bottom:6px; }
+.name-input { width:100%; background:var(--card2); border:2px solid #fff2; border-radius:10px; padding:10px 13px; font-size:.97rem; font-weight:700; color:var(--text); outline:none; transition:border-color .2s; }
+.name-input:focus { border-color:var(--alkali); }
+.name-input::placeholder { color:#fff3; }
+
+/* CERT */
+#cert-canvas-wrap { text-align:center; margin-bottom:13px; }
+#cert-canvas { max-width:100%; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+
+/* CONFETTI */
+.confetti-piece { position:fixed; width:9px; height:9px; top:-10px; border-radius:2px; pointer-events:none; z-index:9998; animation:cffall linear forwards; }
+@keyframes cffall { to{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+/* RESPONSIVE */
+@media (max-width:400px) {
+  .hero h1 { font-size:1.6rem; }
+  .drop-targets { grid-template-columns:1fr; }
+  .drop-targets.two-col { grid-template-columns:1fr 1fr; }
+  .ph-match-grid { gap:5px; }
+  .ph-substance, .ph-value { font-size:.78rem; padding:7px 6px; }
+}
+</style>
+</head>
+<body>
+<!-- //华仁中学蔡逸众制作 -->
+<div class="wrap">
+
+<!-- ══════ START ══════ -->
+<div id="screen-start" class="screen active">
+  <div class="hero">
+    <span class="hero-icon">⚗️</span>
+    <h1>酸碱实验室<br>大冒险</h1>
+    <p>穿上白大褂，拿起试管，<br>成为顶级实验室科学家！</p>
+  </div>
+  <div style="padding:0 4px">
+    <div class="roadmap">
+      <div class="rm-node">
+        <div class="rm-circle lv1">🌱</div>
+        <div class="rm-label">Level 1<br>基础概念<br><span style="color:var(--success);font-size:.62rem">7 题</span></div>
+      </div>
+      <div class="rm-arrow">→</div>
+      <div class="rm-node">
+        <div class="rm-circle lv2">⚗️</div>
+        <div class="rm-label">Level 2<br>应用实验<br><span style="color:var(--neutral);font-size:.62rem">7 题</span></div>
+      </div>
+      <div class="rm-arrow">→</div>
+      <div class="rm-node">
+        <div class="rm-circle lv3">🔥</div>
+        <div class="rm-label">Level 3<br>大师挑战<br><span style="color:var(--acid);font-size:.62rem">6 题</span></div>
+      </div>
+    </div>
+    <div class="rules-box">
+      <h3>📋 游戏规则</h3>
+      <div class="rule-item"><span class="rule-icon">❤️</span><span>共 3 条生命，错 3 题即结束</span></div>
+      <div class="rule-item"><span class="rule-icon">📚</span><span>共 20 题，分 3 关，按顺序闯关</span></div>
+      <div class="rule-item"><span class="rule-icon">⚡</span><span>答得越快，时间加分越多</span></div>
+      <div class="rule-item"><span class="rule-icon">🔥</span><span>连续答对触发 Combo 额外奖励</span></div>
+      <div class="rule-item"><span class="rule-icon">🏆</span><span>完成全部关卡，获取专属证书！</span></div>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()">开始实验！🚀</button>
+    <p class="credit">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</p>
+  </div>
+</div>
+
+<!-- ══════ GAME ══════ -->
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div class="hud-block">
+      <div class="hud-label">生命值</div>
+      <div class="hp-hearts" id="hp-display">❤️❤️❤️</div>
+    </div>
+    <div id="combo-badge" class="combo-badge">🔥 x<span id="combo-num">0</span></div>
+    <div class="hud-block">
+      <div class="hud-label">分数</div>
+      <div class="hud-value" id="score-display" style="color:var(--alkali)">0</div>
+    </div>
+  </div>
+  <div class="level-banner" id="level-banner"></div>
+  <div class="timer-wrap"><div class="timer-fill" id="timer-fill"></div></div>
+  <div class="progress-dots" id="progress-dots"></div>
+  <div id="q-area"></div>
+  <div class="explanation-box" id="exp-box">
+    <div class="exp-title">🧪 老师的小提示：</div>
+    <div id="exp-text"></div>
+  </div>
+  <button class="btn btn-primary" id="next-btn" style="display:none" onclick="nextQuestion()">下一题 ➡️</button>
+</div>
+
+<!-- ══════ LEVEL UP ══════ -->
+<div id="screen-levelup" class="screen">
+  <div class="lu-icon" id="lu-icon">🎉</div>
+  <div class="lu-title" id="lu-title">关卡通过！</div>
+  <p class="lu-sub" id="lu-sub"></p>
+  <div class="lu-steps" id="lu-steps"></div>
+  <div class="lu-score-box">
+    <div style="font-size:.76rem;color:var(--dim);margin-bottom:4px">当前累计得分</div>
+    <div class="lu-score-val" id="lu-score">0</div>
+  </div>
+  <button class="btn btn-primary" id="lu-btn" onclick="advanceLevel()">进入下一关 ⚗️</button>
+</div>
+
+<!-- ══════ RESULTS ══════ -->
+<div id="screen-results" class="screen">
+  <div class="results-hero">
+    <div class="res-icon"  id="res-icon">🏆</div>
+    <div class="res-title" id="res-title">实验完成！</div>
+    <div class="res-sub"   id="res-sub"></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="r-score">0</div><div class="stat-label">最终得分</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-correct">0/0</div><div class="stat-label">答题正确率</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-combo">0</div><div class="stat-label">最高连击</div></div>
+    <div class="stat-card"><div class="stat-val" id="r-time">0:00</div><div class="stat-label">用时</div></div>
+  </div>
+  <div class="achievements">
+    <div class="ach-title">🏅 成就解锁</div>
+    <div id="ach-list"></div>
+  </div>
+  <div class="name-section" id="name-section">
+    <label>输入你的大名，领取专属证书 👇</label>
+    <input class="name-input" id="player-name" type="text" placeholder="例如：科学小天才" maxlength="16">
+    <button class="btn btn-download" style="margin-top:10px" onclick="generateCert()">生成证书 🏆</button>
+  </div>
+  <button class="btn btn-secondary" onclick="location.reload()">重新挑战 🔁</button>
+</div>
+
+<!-- ══════ CERT ══════ -->
+<div id="screen-cert" class="screen">
+  <div id="cert-canvas-wrap"><canvas id="cert-canvas"></canvas></div>
+  <button class="btn btn-download" onclick="downloadCert()">📥 下载证书 PNG</button>
+  <button class="btn btn-secondary" style="margin-top:10px" onclick="location.reload()">再玩一次 🔁</button>
+  <p class="credit" style="margin-top:13px">Made by ecchua79 · 峇株吧辖华仁中学蔡逸众制作</p>
+</div>
+
+</div>
+<script>
+// //Made by ecchua79
+
+/* ══════════════════════════════════════
+   题库
+   ══════════════════════════════════════ */
+const ALL_QUESTIONS = [
+
+  /* ── Level 1 基础概念 (7题) ── */
+  { level:1, type:'mcq',
+    q:'酸溶液里最关键的"主角离子"是什么？',
+    options:['氢氧根离子 (OH⁻)','氢离子 (H⁺)','钠离子 (Na⁺)','氯离子 (Cl⁻)'], correct:1,
+    exp:'酸在水中电离后释放出氢离子（H⁺）。就是这个小家伙让溶液变酸！例如盐酸：HCl → H⁺ + Cl⁻' },
+
+  { level:1, type:'mcq',
+    q:'碱溶液里最关键的"主角离子"是什么？',
+    options:['氢离子 (H⁺)','碳酸根离子 (CO₃²⁻)','氢氧根离子 (OH⁻)','钾离子 (K⁺)'], correct:2,
+    exp:'碱在水中电离后释放氢氧根离子（OH⁻）。NaOH → Na⁺ + OH⁻，就是这个 OH⁻ 让溶液有碱性！' },
+
+  { level:1, type:'mcq',
+    q:'把石蕊试液滴入盐酸（HCl）里，液体会变什么颜色？',
+    options:['蓝色','绿色','红色','无色'], correct:2,
+    exp:'口诀：红酸蓝碱！石蕊遇酸变红，遇碱变蓝。盐酸是酸性，所以石蕊变红。' },
+
+  { level:1, type:'mcq',
+    q:'pH = 7 的溶液是什么性质？',
+    options:['强酸性','弱酸性','中性','碱性'], correct:2,
+    exp:'pH = 7 是正正好好的中性！pH < 7 是酸性，pH > 7 是碱性。纯水的 pH 就是 7。' },
+
+  { level:1, type:'mcq',
+    q:'以下哪种日常液体是酸性的？',
+    options:['肥皂水','石灰水','柠檬汁','苏打水'], correct:2,
+    exp:'柠檬汁含柠檬酸，pH 约为 2，是明显酸性。肥皂水和石灰水都是碱性哦！' },
+
+  { level:1, type:'mcq',
+    q:'下面哪个 pH 值的溶液酸性最强？',
+    options:['pH = 1','pH = 4','pH = 7','pH = 10'], correct:0,
+    exp:'pH 值越小，酸性越强！pH = 1 酸性最强，pH = 10 是碱性，pH = 7 是中性。' },
+
+  { level:1, type:'drag',
+    q:'把下面的物质拖拽放进正确的分类框里！',
+    items:['盐酸','氢氧化钠','醋酸','石灰水','硫酸','小苏打','纯水','食盐水','葡萄糖液'],
+    acidItems:['盐酸','醋酸','硫酸'],
+    alkaliItems:['氢氧化钠','石灰水','小苏打'],
+    neutralItems:['纯水','食盐水','葡萄糖液'],
+    exp:'盐酸、醋酸、硫酸是酸（含H⁺）；氢氧化钠、石灰水、小苏打是碱（含OH⁻）；纯水、食盐水、葡萄糖液是中性（pH≈7）！' },
+
+  /* ── Level 2 应用实验 (7题) ── */
+  { level:2, type:'mcq',
+    q:'稀释浓硫酸时，正确且安全的操作是哪个？',
+    options:['把水快速倒入浓硫酸里','把浓硫酸沿烧杯壁缓缓倒入水中并搅拌','把两种液体同时倒入空杯子','加热后再混合'], correct:1,
+    exp:'口诀：酸入水，沿杯壁！浓硫酸溶于水放大量热。若把水倒入酸，水会浮在表面迅速沸腾，导致酸液飞溅伤人！' },
+
+  { level:2, type:'mcq',
+    q:'被蚊虫叮咬红肿（蚊虫分泌蚁酸），涂什么可以止痒？',
+    options:['食醋','盐酸','小苏打水（碳酸氢钠溶液）','盐水'], correct:2,
+    exp:'中和反应的生活应用！蚊虫分泌酸性蚁酸，涂碱性小苏打水可以中和它，减轻痛痒。以碱制酸！' },
+
+  { level:2, type:'mcq',
+    q:'盐酸滴在大理石（碳酸钙 CaCO₃）上，会产生什么气体？',
+    options:['无气泡','氢气 H₂','二氧化碳 CO₂','氧气 O₂'], correct:2,
+    exp:'酸与碳酸盐反应：CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑ 这是检验碳酸盐的常用方法！' },
+
+  { level:2, type:'mcq',
+    q:'中和反应的产物一定包含什么？',
+    options:['气体和沉淀','盐和水','氧气','氢气'], correct:1,
+    exp:'中和反应：酸 + 碱 → 盐 + 水。HCl + NaOH → NaCl + H₂O，产生的 NaCl 就是我们日常吃的食盐！' },
+
+  { level:2, type:'mcq',
+    q:'"酸性体质是万病之源，多吃碱性食物能改善"——这说法正确吗？',
+    options:['正确，酸性体质很危险','错误，人体体液pH由自身精密调节，食物不会改变血液酸碱度','正确，多吃碱性食物才健康','正确，pH<7的血液会让人生病'], correct:1,
+    exp:'"酸碱体质论"是伪科学！血液pH维持在7.35–7.45，由肺脏、肾脏等精密调节。食物不会改变血液pH，这是谣言。' },
+
+  { level:2, type:'mcq',
+    q:'不小心沾上强酸，第一急救步骤是？',
+    options:['立刻涂上碱性液体中和','用纸巾用力擦干','立刻用大量流动清水冲洗 10–15 分钟','用手捂住伤口跑医院'], correct:2,
+    exp:'紧急处理：先用大量流动清水冲洗 15 分钟，再用小苏打溶液处理。千万不要先涂碱——产生的热量会加重伤害！' },
+
+  { level:2, type:'phmatch',
+    q:'把左边的物质和右边正确的 pH 值配对！点击左边一个，再点击右边一个即可配对。',
+    pairs:[
+      { substance:'胃液',   ph:2,  color:'#d32f2f' },
+      { substance:'柠檬汁', ph:3,  color:'#e64a19' },
+      { substance:'牛奶',   ph:7,  color:'#fdd835' },
+      { substance:'海水',   ph:8,  color:'#66bb6a' },
+      { substance:'漂白水', ph:12, color:'#1565c0' },
+    ],
+    exp:'胃液pH≈2（强酸）、柠檬汁pH≈3（弱酸）、牛奶pH≈7（中性）、海水pH≈8（弱碱）、漂白水pH≈12（强碱）。pH越小酸性越强，越大碱性越强！' },
+
+  /* ── Level 3 大师挑战 (5题) ── */
+  { level:3, type:'mcq',
+    q:'农业中为什么有时在酸性土壤上撒石灰（氢氧化钙）？',
+    options:['让土壤更酸，帮助植物吸水','利用中和反应，提高土壤pH，减弱酸性','增加土壤温度','杀死土壤里的昆虫'], correct:1,
+    exp:'中和反应的农业应用！Ca(OH)₂ 与酸性土壤中和，pH升高。大多数农作物喜欢接近中性的土壤（pH 6–7）。' },
+
+  { level:3, type:'mcq',
+    q:'以下化学方程式中，哪个代表中和反应？',
+    options:['Zn + H₂SO₄ → ZnSO₄ + H₂↑','HCl + NaOH → NaCl + H₂O','CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑','Na₂O + H₂O → 2NaOH'], correct:1,
+    exp:'中和反应：酸 + 碱 → 盐 + 水。选项B：HCl（酸）+ NaOH（碱）→ NaCl（盐）+ H₂O（水），完美符合！' },
+
+  { level:3, type:'mcq',
+    q:'关于浓硫酸，以下说法错误的是？',
+    options:['浓硫酸有强烈腐蚀性','硫酸与活泼金属反应可产生氢气','稀释时应将水倒入浓硫酸中','稀硫酸是酸性溶液，pH < 7'], correct:2,
+    exp:'选项C是错的！正确做法是把浓硫酸缓缓倒入水中，而不是把水倒入酸。浓硫酸溶解时放大量热，操作不当会沸腾飞溅！' },
+
+  { level:3, type:'drag',
+    q:'终极配对挑战！把这些物质按酸碱性拖进正确的框！',
+    items:['可乐(pH2.5)','漂白水(pH12)','牛奶(pH6.8)','海水(pH8.2)','纯水(pH7)','氨水(pH11)','血液(pH7.4)','食盐水(pH7)','柠檬汁(pH2)'],
+    acidItems:['可乐(pH2.5)','牛奶(pH6.8)','柠檬汁(pH2)'],
+    alkaliItems:['漂白水(pH12)','海水(pH8.2)','氨水(pH11)','血液(pH7.4)'],
+    neutralItems:['纯水(pH7)','食盐水(pH7)'],
+    acidLabel:'酸性 (pH < 7)', alkaliLabel:'碱性 (pH > 7)', neutralLabel:'中性 (pH = 7)',
+    exp:'可乐pH2.5、牛奶pH6.8、柠檬汁pH2是酸性；漂白水pH12、海水pH8.2、氨水pH11、血液pH7.4是碱性；纯水和食盐水pH=7是中性！' },
+
+  { level:3, type:'phmatch',
+    q:'大师级 pH 配对！把5种物质和它的正确 pH 值配对起来！',
+    pairs:[
+      { substance:'盐酸',   ph:1,  color:'#b71c1c' },
+      { substance:'可乐',   ph:3,  color:'#e64a19' },
+      { substance:'纯水',   ph:7,  color:'#fdd835' },
+      { substance:'海水',   ph:8,  color:'#66bb6a' },
+      { substance:'肥皂水', ph:10, color:'#1976d2' },
+    ],
+    exp:'盐酸pH≈1（强酸）、可乐pH≈3（弱酸）、纯水pH=7（中性）、海水pH≈8（弱碱）、肥皂水pH≈10（碱）。' },
+
+  { level:3, type:'mcq',
+    q:'下列关于酸碱指示剂的描述，哪一项是完全正确的？',
+    options:[
+      '石蕊遇酸变蓝，石蕊遇碱变红',
+      '酚酞在酸性和中性溶液中无色，在碱性溶液中变红',
+      '石蕊和酚酞遇酸都会变红',
+      '酚酞在任何溶液中都会显示颜色'
+    ],
+    correct:1,
+    exp:'口诀：石蕊——红酸蓝碱，中性紫色不变；酚酞——酸性和中性无色，碱性变红。两种指示剂配合使用，可以更准确地判断溶液的酸碱性！' },
+];
+
+/* ══════════════════════════════════════
+   状态
+   ══════════════════════════════════════ */
+let currentLv    = 1;
+let questions    = [];
+let qIndex       = 0;
+let score        = 0;
+let hp           = 3;
+let combo        = 0;
+let maxCombo     = 0;
+let correctCount = 0;
+let totalAnswered = 0;
+let answered     = false;
+let timerValue   = 0;
+let timerMax     = 0;
+let timerRAF     = null;
+let timerStart   = 0;
+let gameStartTime = 0;
+let qResults     = [];
+// MCQ专用计时（用于极速成就，排除拖拽/配对题）
+let mcqCount     = 0;   // MCQ题答题数
+let mcqTotalTime = 0;   // MCQ题总用时（秒）
+let mcqQStart    = 0;   // 当前MCQ题开始时间戳
+const MAX_LV = 3;
+
+const LV_NAMES = {
+  1:'🌱 Level 1 · 基础概念',
+  2:'⚗️ Level 2 · 应用实验',
+  3:'🔥 Level 3 · 大师挑战'
+};
+
+/* ══════════════════════════════════════
+   GAME FLOW
+   ══════════════════════════════════════ */
+function startGame() {
+  score=0; hp=3; combo=0; maxCombo=0; correctCount=0; totalAnswered=0;
+  mcqCount=0; mcqTotalTime=0; mcqQStart=0;
+  gameStartTime = Date.now();
+  loadLevel(1);
+}
+
+function loadLevel(lv) {
+  currentLv = lv;
+  questions  = ALL_QUESTIONS.filter(q => q.level === lv);
+  qIndex=0; qResults=[];
+  document.getElementById('level-banner').textContent = LV_NAMES[lv]||'';
+  showScreen('screen-game');
+  buildProgressDots();
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  document.getElementById('exp-box').classList.remove('show');
+  document.getElementById('next-btn').style.display = 'none';
+  updateHUD();
+  const q = questions[qIndex];
+  const area = document.getElementById('q-area');
+  area.innerHTML = '';
+  if (q.type==='mcq')     renderMCQ(q, area);
+  if (q.type==='drag')    renderDrag(q, area);
+  if (q.type==='phmatch') renderPHMatch(q, area);
+  // 只在MCQ题记录开始时间
+  if (q.type==='mcq') mcqQStart = Date.now();
+  updateDots();
+  startTimer(q.type==='drag' ? 55 : q.type==='phmatch' ? 60 : 18);
+}
+
+function nextQuestion() {
+  qIndex++;
+  totalAnswered++;
+  if (qIndex >= questions.length) {
+    if (currentLv < MAX_LV) showLevelUp();
+    else endGame(true);
+  } else {
+    loadQuestion();
+  }
+}
+
+/* ══════════════════════════════════════
+   MCQ
+   ══════════════════════════════════════ */
+function renderMCQ(q, container) {
+  const L=['A','B','C','D'];
+  let opts = shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
+  container.innerHTML = `
+    <div class="q-card">
+      <div class="q-type-tag">📝 单选题 · 第${qIndex+1}/${questions.length}题</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options-grid">
+      ${opts.map((o,i)=>`
+        <button class="opt-btn" onclick="checkMCQ(this,${o.ok},'${escQ(q.exp)}')">
+          <span class="opt-letter">${L[i]}</span><span>${o.text}</span>
+        </button>`).join('')}
+    </div>`;
+}
+
+function checkMCQ(btn, isCorrect, exp) {
+  if (answered) return;
+  answered=true; stopTimer();
+  // 累计MCQ用时
+  if (mcqQStart > 0) { mcqTotalTime += (Date.now() - mcqQStart) / 1000; mcqCount++; mcqQStart=0; }
+  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+  btn.classList.add(isCorrect?'correct':'wrong');
+  if (isCorrect) handleCorrect(); else handleWrong(exp);
+}
+
+/* ══════════════════════════════════════
+   DRAG
+   ══════════════════════════════════════ */
+let dragSrc=null;
+
+function renderDrag(q, container) {
+  const hasN = q.neutralItems?.length > 0;
+  const items = shuffle([...q.items]);
+  container.innerHTML = `
+    <div class="q-card" style="border-color:var(--alkali)">
+      <div class="q-type-tag" style="color:var(--alkali)">🧲 拖拽分类 · 第${qIndex+1}/${questions.length}题</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="drag-zone">
+      <h4>拖动下面的物质 👇</h4>
+      <div class="drag-items" id="drag-source">
+        ${items.map(n=>`<div class="drag-item" draggable="true" data-name="${n.replace(/"/g,'&quot;')}"
+          ondragstart="onDragStart(event)" ontouchstart="onTouchStart(event)"
+          ontouchmove="onTouchMove(event)" ontouchend="onTouchEnd(event)">${n}</div>`).join('')}
+      </div>
+    </div>
+    <div class="drop-targets ${hasN?'':'two-col'}">
+      <div class="drop-target acid-target" id="drop-acid"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')" ondrop="onDrop(event,'acid')">
+        <h4>🧪 ${q.acidLabel||'酸性物质'}</h4>
+        <div class="drop-zone-items" id="zone-acid"></div>
+      </div>
+      ${hasN?`<div class="drop-target neutral-target" id="drop-neutral"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')" ondrop="onDrop(event,'neutral')">
+        <h4>💧 ${q.neutralLabel||'中性物质'}</h4>
+        <div class="drop-zone-items" id="zone-neutral"></div>
+      </div>`:''}
+      <div class="drop-target alkali-target" id="drop-alkali"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')" ondrop="onDrop(event,'alkali')">
+        <h4>🫧 ${q.alkaliLabel||'碱性物质'}</h4>
+        <div class="drop-zone-items" id="zone-alkali"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="drag-submit-btn" data-qi="${qIndex}" style="margin-bottom:13px">✅ 提交答案</button>`;
+  document.getElementById('drag-submit-btn').addEventListener('click',function(){
+    checkDrag(this.dataset.qi);
+  });
+}
+
+function onDragStart(e) { dragSrc=e.currentTarget; e.dataTransfer.effectAllowed='move'; setTimeout(()=>dragSrc&&dragSrc.classList.add('dragging'),0); }
+function onDrop(e,zone) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if(!dragSrc)return; dragSrc.classList.remove('dragging'); document.getElementById('zone-'+zone)?.appendChild(dragSrc); dragSrc=null; }
+
+let touchEl=null, touchClone=null;
+function onTouchStart(e) {
+  touchEl=e.currentTarget; const r=touchEl.getBoundingClientRect();
+  touchClone=touchEl.cloneNode(true);
+  touchClone.style.cssText=`position:fixed;opacity:.85;pointer-events:none;z-index:9999;width:${r.width}px;left:${r.left}px;top:${r.top}px;transition:none;`;
+  document.body.appendChild(touchClone);
+}
+function onTouchMove(e) { e.preventDefault(); if(!touchClone)return; const t=e.touches[0]; touchClone.style.left=(t.clientX-touchClone.offsetWidth/2)+'px'; touchClone.style.top=(t.clientY-touchClone.offsetHeight/2)+'px'; }
+function onTouchEnd(e) {
+  if(!touchClone||!touchEl)return;
+  const t=e.changedTouches[0]; touchClone.remove(); touchClone=null;
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const dt=el?.closest('.drop-target');
+  if(dt){const m={'drop-acid':'acid','drop-neutral':'neutral','drop-alkali':'alkali'}; const zk=m[dt.id]; if(zk)document.getElementById('zone-'+zk)?.appendChild(touchEl);}
+  touchEl=null;
+}
+
+function checkDrag(qi) {
+  if(answered)return; answered=true; stopTimer();
+  const q=questions[parseInt(qi)];
+  const btn=document.getElementById('drag-submit-btn'); if(btn)btn.disabled=true;
+  let allOK=true;
+  const chk=(zId,list)=>{ document.getElementById(zId)?.querySelectorAll('.drag-item').forEach(el=>{ const ok=list.includes(el.dataset.name); el.classList.add(ok?'correct-placed':'wrong-placed'); if(!ok)allOK=false; }); };
+  chk('zone-acid',   q.acidItems||[]);
+  chk('zone-alkali', q.alkaliItems||[]);
+  chk('zone-neutral',q.neutralItems||[]);
+  document.getElementById('drag-source')?.querySelectorAll('.drag-item').forEach(el=>{ el.classList.add('wrong-placed'); allOK=false; });
+  if(allOK)handleCorrect(); else handleWrong(q.exp);
+}
+
+/* ══════════════════════════════════════
+   pH MATCH
+   ══════════════════════════════════════ */
+const PH_COLORS=['#b71c1c','#d32f2f','#e64a19','#f57c00','#fb8c00','#fbc02d','#fdd835','#c6e000','#66bb6a','#26a69a','#1976d2','#1565c0','#512da8','#4527a0'];
+function phColor(v){ return PH_COLORS[Math.min(v-1,PH_COLORS.length-1)]||'#888'; }
+
+let phSelLeft=null, phSelRight=null, phLinks={}, phValMap=[];
+
+function renderPHMatch(q, container) {
+  phSelLeft=null; phSelRight=null; phLinks={}; phValMap=[];
+  const shuffledPH = shuffle(q.pairs.map(p=>p.ph));
+  phValMap = shuffledPH; // index → ph value
+
+  container.innerHTML = `
+    <div class="q-card" style="border-color:var(--neutral)">
+      <div class="q-type-tag" style="color:var(--neutral)">🌈 pH 配对 · 第${qIndex+1}/${questions.length}题</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="ph-match-wrap">
+      <div style="text-align:center;font-size:.75rem;color:var(--alkali);margin-bottom:10px;font-weight:700;letter-spacing:.3px;">
+        👆 先点左边的物质，再点右边的 pH 值完成配对
+      </div>
+      <div class="ph-match-grid">
+        <div>
+          <div class="ph-col-label">物质 🧪</div>
+          <div class="ph-substances" id="ph-left">
+            ${q.pairs.map((p,i)=>`<div class="ph-substance" id="psl-${i}" onclick="phClickLeft(${i})">${p.substance}</div>`).join('')}
+          </div>
+        </div>
+        <div class="ph-lines-col" id="ph-conns">
+          ${q.pairs.map((_,i)=>`<div class="ph-conn" id="phc-${i}">—</div>`).join('')}
+        </div>
+        <div>
+          <div class="ph-col-label">pH 值 🌈</div>
+          <div class="ph-values" id="ph-right">
+            ${shuffledPH.map((v,i)=>`<div class="ph-value" id="psr-${i}" onclick="phClickRight(${i})"><span class="ph-dot" style="background:${phColor(v)}"></span>pH = ${v}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="ph-sub-btn" data-qi="${qIndex}" style="margin-bottom:13px" onclick="checkPHMatch()">✅ 提交配对</button>`;
+}
+
+function phClickLeft(i) {
+  if(answered)return;
+  if(phLinks[i]!==undefined)return; // already linked
+  phSelLeft = (phSelLeft===i)?null:i;
+  phSelRight = null;
+  refreshPH(); tryLink();
+}
+
+function phClickRight(i) {
+  if(answered)return;
+  const used = Object.values(phLinks).includes(i);
+  if(used)return;
+  phSelRight = (phSelRight===i)?null:i;
+  refreshPH(); tryLink();
+}
+
+function tryLink() {
+  if(phSelLeft===null||phSelRight===null)return;
+  phLinks[phSelLeft]=phSelRight;
+  phSelLeft=null; phSelRight=null;
+  refreshPH(); updateConnLines();
+  if(Object.keys(phLinks).length === questions[qIndex].pairs.length){
+    setTimeout(checkPHMatch, 350);
+  }
+}
+
+function refreshPH() {
+  const q=questions[qIndex];
+  q.pairs.forEach((_,i)=>{
+    const el=document.getElementById('psl-'+i); if(!el)return;
+    el.className='ph-substance';
+    if(phLinks[i]!==undefined) el.classList.add('matched');
+    else if(phSelLeft===i)      el.classList.add('ph-sel-left');
+  });
+  phValMap.forEach((_,i)=>{
+    const el=document.getElementById('psr-'+i); if(!el)return;
+    const usedBy=Object.values(phLinks).includes(i);
+    el.className='ph-value';
+    if(usedBy)          el.classList.add('matched');
+    else if(phSelRight===i) el.classList.add('ph-sel-right');
+  });
+}
+
+function updateConnLines() {
+  const q=questions[qIndex];
+  q.pairs.forEach((_,i)=>{
+    const conn=document.getElementById('phc-'+i); if(!conn)return;
+    conn.textContent = phLinks[i]!==undefined ? '⟷' : '—';
+    conn.className   = phLinks[i]!==undefined ? 'ph-conn linked' : 'ph-conn';
+  });
+}
+
+function checkPHMatch() {
+  if(answered)return; answered=true; stopTimer();
+  const q=questions[qIndex];
+  const sub=document.getElementById('ph-sub-btn'); if(sub)sub.disabled=true;
+  document.querySelectorAll('.ph-substance,.ph-value').forEach(el=>el.style.pointerEvents='none');
+
+  let allOK=true;
+  q.pairs.forEach((pair,si)=>{
+    const vi=phLinks[si];
+    const substEl=document.getElementById('psl-'+si);
+    const valEl  =document.getElementById('psr-'+vi);
+    const conn   =document.getElementById('phc-'+si);
+    let ok=false;
+    if(vi!==undefined){ const matchedPH=phValMap[vi]; ok=(matchedPH===pair.ph); }
+    if(!ok)allOK=false;
+    if(substEl){ substEl.className='ph-substance '+(ok?'correct-final':'wrong-final'); }
+    if(valEl)  { valEl.className  ='ph-value '   +(ok?'correct-final':'wrong-final'); }
+    if(conn)   { conn.textContent=ok?'✓':'✗'; conn.className='ph-conn '+(ok?'correct':'wrong'); }
+  });
+
+  if(allOK)handleCorrect(); else handleWrong(q.exp);
+}
+
+/* ══════════════════════════════════════
+   ANSWER HANDLING
+   ══════════════════════════════════════ */
+function handleCorrect() {
+  combo++; if(combo>maxCombo)maxCombo=combo; correctCount++; qResults.push('correct');
+  const gained=100+Math.floor(timerValue*5)+(combo>=3?combo*15:0);
+  score+=gained; updateHUD();
+  spawnScorePopup(`+${gained}${combo>=3?' 🔥COMBO':''}`);
+  if(combo>=3)confetti();
+  showExp('✅ 答对了！',questions[qIndex].exp);
+  document.getElementById('next-btn').style.display='block';
+}
+
+function handleWrong(exp) {
+  combo=0; hp--; qResults.push('wrong'); updateDots(); updateHUD();
+  showExp('❌ 哎呀，再想想！',exp);
+  if(hp<=0) setTimeout(()=>endGame(false),2200);
+  else document.getElementById('next-btn').style.display='block';
+}
+
+function handleTimeout() {
+  if(answered)return; answered=true;
+  // 若是MCQ题超时，也计入MCQ用时
+  if (mcqQStart > 0 && questions[qIndex]?.type==='mcq') {
+    mcqTotalTime += (Date.now() - mcqQStart) / 1000; mcqCount++; mcqQStart=0;
+  }
+  combo=0; hp--; qResults.push('timeout'); updateDots(); updateHUD();
+  showExp('⏰ 时间到了！',questions[qIndex].exp);
+  if(hp<=0) setTimeout(()=>endGame(false),2200);
+  else document.getElementById('next-btn').style.display='block';
+}
+
+/* ══════════════════════════════════════
+   TIMER
+   ══════════════════════════════════════ */
+function startTimer(seconds) {
+  timerMax=seconds*1000; timerValue=timerMax; timerStart=performance.now();
+  cancelAnimationFrame(timerRAF);
+  function tick(now) {
+    const e=now-timerStart; timerValue=Math.max(0,timerMax-e);
+    const pct=timerValue/timerMax;
+    const fill=document.getElementById('timer-fill');
+    if(fill){ fill.style.width=(pct*100)+'%'; fill.style.background=pct>.5?'linear-gradient(90deg,var(--alkali),var(--success))':pct>.25?'linear-gradient(90deg,var(--neutral),#f0a500)':'linear-gradient(90deg,var(--danger),#ef233c)'; }
+    if(timerValue<=0){handleTimeout();return;}
+    timerRAF=requestAnimationFrame(tick);
+  }
+  timerRAF=requestAnimationFrame(tick);
+}
+function stopTimer(){ cancelAnimationFrame(timerRAF); timerValue=timerValue/1000; }
+
+/* ══════════════════════════════════════
+   HUD & DOTS
+   ══════════════════════════════════════ */
+function updateHUD() {
+  document.getElementById('hp-display').innerHTML='❤️'.repeat(Math.max(0,hp))+'🖤'.repeat(Math.max(0,3-hp));
+  document.getElementById('score-display').textContent=score;
+  const cn=document.getElementById('combo-num'), cb=document.getElementById('combo-badge');
+  cn.textContent=combo;
+  if(combo>=3){ cb.style.background='linear-gradient(135deg,#ff6b35,#e63946)'; cb.classList.add('pop'); setTimeout(()=>cb.classList.remove('pop'),300); }
+  else cb.style.background='linear-gradient(135deg,var(--combo),#f77f00)';
+}
+function showExp(title,text){ document.getElementById('exp-text').innerHTML=text; document.querySelector('#exp-box .exp-title').textContent=title; document.getElementById('exp-box').classList.add('show'); }
+function buildProgressDots(){ document.getElementById('progress-dots').innerHTML=questions.map((_,i)=>`<div class="dot" id="dot-${i}"></div>`).join(''); }
+function updateDots(){ questions.forEach((_,i)=>{ const d=document.getElementById('dot-'+i); if(!d)return; d.className='dot'; if(i<qIndex)d.classList.add(qResults[i]==='correct'?'done':'wrong'); else if(i===qIndex)d.classList.add('current'); }); }
+
+/* ══════════════════════════════════════
+   LEVEL UP
+   ══════════════════════════════════════ */
+function showLevelUp() {
+  confetti();
+  const nxt=currentLv+1;
+  document.getElementById('lu-icon').textContent  = nxt===2?'⚗️':'🔥';
+  document.getElementById('lu-title').textContent = `Level ${currentLv} 通过！`;
+  document.getElementById('lu-sub').textContent   = `太棒了！准备好进入 Level ${nxt} 了吗？`;
+  document.getElementById('lu-score').textContent = score;
+  document.getElementById('lu-btn').textContent   = `进入 Level ${nxt} ${nxt===2?'⚗️':'🔥'}`;
+  const st=document.getElementById('lu-steps'); st.innerHTML='';
+  for(let i=1;i<=MAX_LV;i++){
+    if(i>1) st.innerHTML+=`<div class="lu-arrow-line"></div>`;
+    const cls=i<=currentLv?'done':i===nxt?'current':'upcoming';
+    st.innerHTML+=`<div class="lu-step ${cls}">${i===1?'🌱':i===2?'⚗️':'🔥'}</div>`;
+  }
+  showScreen('screen-levelup');
+}
+function advanceLevel(){ loadLevel(currentLv+1); }
+
+/* ══════════════════════════════════════
+   END GAME
+   ══════════════════════════════════════ */
+let lastAchs = []; // 供证书读取
+
+function endGame(win) {
+  stopTimer(); cancelAnimationFrame(timerRAF);
+  const elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+  const mm=String(Math.floor(elapsed/60)).padStart(2,'0'), ss=String(elapsed%60).padStart(2,'0');
+  showScreen('screen-results');
+  if(win)confetti();
+  const tq=totalAnswered;
+  document.getElementById('res-icon').textContent  = win?'🏆':'💥';
+  document.getElementById('res-title').textContent = win?'实验大成功！':'实验失败了…';
+  document.getElementById('res-sub').textContent   = win?`恭喜完成全部 3 关！总得分 ${score} 分`:`生命值耗尽！已答 ${tq} 题，加油再试！`;
+  document.getElementById('r-score').textContent   = score;
+  document.getElementById('r-correct').textContent = `${correctCount}/${tq}`;
+  document.getElementById('r-combo').textContent   = maxCombo;
+  document.getElementById('r-time').textContent    = `${mm}:${ss}`;
+  lastAchs=[
+    {icon:'💎',name:'满分达人', unlocked:win&&correctCount===tq},
+    {icon:'⚡',name:'极速闪电', unlocked:mcqCount>=3&&(mcqTotalTime/mcqCount)<8},
+    {icon:'🔥',name:'连击王者', unlocked:maxCombo>=5},
+    {icon:'❤️',name:'钢铁意志', unlocked:win&&hp===3},
+    {icon:'🎓',name:'酸碱大师', unlocked:win&&currentLv===MAX_LV},
+  ];
+  document.getElementById('ach-list').innerHTML=lastAchs.map(a=>`
+    <div class="ach-item ${a.unlocked?'unlocked':'locked'}">
+      <span class="ach-icon">${a.icon}</span>
+      <div><div class="ach-name">${a.name}</div></div>
+      ${a.unlocked?'<span style="margin-left:auto;color:var(--combo);font-size:.76rem;font-weight:800">✅ 已解锁</span>':''}
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════
+   CERTIFICATE
+   ══════════════════════════════════════ */
+function generateCert() {
+  const name=document.getElementById('player-name').value.trim();
+  if(!name){alert('请输入你的大名哦！');return;}
+  document.getElementById('name-section').style.display='none';
+  showScreen('screen-cert');
+
+  const canvas=document.getElementById('cert-canvas');
+  const W=540, H=780;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // ── 背景 ──
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0f0e17'); bg.addColorStop(.5,'#1a1a2e'); bg.addColorStop(1,'#16213e');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // 装饰圆
+  [[50,50,70,'#ff6b3514'],[490,730,90,'#4ecdc414']].forEach(([x,y,r,c])=>{
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=c; ctx.fill();
+  });
+
+  // ── 圆角矩形辅助 ──
+  const rr=(x,y,w,h,r)=>{
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+  };
+
+  // ── 外框 ──
+  const bGrad=ctx.createLinearGradient(0,0,W,H);
+  bGrad.addColorStop(0,'#ff6b35'); bGrad.addColorStop(1,'#4ecdc4');
+  ctx.strokeStyle=bGrad; ctx.lineWidth=7;
+  rr(14,14,W-28,H-28,18); ctx.stroke();
+  ctx.strokeStyle='#ffffff1a'; ctx.lineWidth=1.5;
+  rr(24,24,W-48,H-48,12); ctx.stroke();
+
+  // ── 分隔线渐变 ──
+  const dg=ctx.createLinearGradient(80,0,460,0);
+  dg.addColorStop(0,'transparent'); dg.addColorStop(.5,'#4ecdc4'); dg.addColorStop(1,'transparent');
+
+  // ── 图标 ──
+  ctx.font='54px serif'; ctx.textAlign='center';
+  ctx.fillText('⚗️', W/2, 88);
+
+  // ── 标题 ──
+  ctx.font='bold 32px sans-serif'; ctx.fillStyle=bGrad;
+  ctx.fillText('荣誉证书', W/2, 140);
+  ctx.font='13px sans-serif'; ctx.fillStyle='#a7a9be';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT', W/2, 162);
+
+  ctx.strokeStyle=dg; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(80,174); ctx.lineTo(460,174); ctx.stroke();
+
+  // ── 姓名 ──
+  ctx.fillStyle='#fffffe'; ctx.font='15px sans-serif';
+  ctx.fillText('特此证明', W/2, 206);
+
+  ctx.font='bold 36px sans-serif'; ctx.fillStyle='#ffe66d';
+  ctx.shadowColor='#ffe66d'; ctx.shadowBlur=10;
+  ctx.fillText(name, W/2, 252); ctx.shadowBlur=0;
+
+  const nw=ctx.measureText(name).width;
+  ctx.strokeStyle='#ffe66d55'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2,261); ctx.lineTo(W/2+nw/2,261); ctx.stroke();
+
+  ctx.fillStyle='#fffffe'; ctx.font='15px sans-serif';
+  ctx.fillText('成功完成《酸碱实验室大冒险》全部 20 题！', W/2, 292);
+
+  // ── 分数框 ──
+  rr(90,308,W-180,96,12);
+  const sb=ctx.createLinearGradient(90,308,W-90,404);
+  sb.addColorStop(0,'#ff6b3520'); sb.addColorStop(1,'#4ecdc420');
+  ctx.fillStyle=sb; ctx.fill();
+  ctx.strokeStyle='#ffffff18'; ctx.lineWidth=1; ctx.stroke();
+
+  ctx.fillStyle='#a7a9be'; ctx.font='12px sans-serif';
+  ctx.fillText('最终得分', W/2, 332);
+
+  const sg=ctx.createLinearGradient(200,340,340,385);
+  sg.addColorStop(0,'#ff6b35'); sg.addColorStop(1,'#4ecdc4');
+  ctx.font='bold 46px sans-serif'; ctx.fillStyle=sg;
+  ctx.shadowColor='#4ecdc4'; ctx.shadowBlur=12;
+  ctx.fillText(score, W/2, 382); ctx.shadowBlur=0;
+  ctx.font='12px sans-serif'; ctx.fillStyle='#a7a9be';
+  ctx.fillText('分', W/2, 397);
+
+  // ── 成就徽章区 ──
+  ctx.strokeStyle=dg; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(80,416); ctx.lineTo(460,416); ctx.stroke();
+
+  ctx.fillStyle='#a7a9be'; ctx.font='11px sans-serif';
+  ctx.fillText('🏅 成就解锁', W/2, 434);
+
+  // 5个徽章横排，居中
+  const achs = lastAchs.length ? lastAchs : [
+    {icon:'💎',name:'满分达人',unlocked:false},
+    {icon:'⚡',name:'极速闪电',unlocked:false},
+    {icon:'🔥',name:'连击王者',unlocked:false},
+    {icon:'❤️',name:'钢铁意志',unlocked:false},
+    {icon:'🎓',name:'酸碱大师',unlocked:false},
+  ];
+
+  const badgeW = 76;       // 每个徽章格子宽
+  const badgeH = 84;       // 每个徽章格子高
+  const gap    = 10;       // 间距
+  const totalW = achs.length * badgeW + (achs.length-1) * gap;
+  const startX = (W - totalW) / 2;
+  const BY     = 446;      // 徽章顶部 Y
+
+  achs.forEach((a, i) => {
+    const x = startX + i * (badgeW + gap);
+    const cx = x + badgeW/2;
+
+    // 徽章背景圆
+    const r = 30;
+    ctx.beginPath(); ctx.arc(cx, BY+r, r, 0, Math.PI*2);
+    if (a.unlocked) {
+      const cg = ctx.createRadialGradient(cx,BY+r,0,cx,BY+r,r);
+      cg.addColorStop(0,'#ffd60a44'); cg.addColorStop(1,'#ffd60a11');
+      ctx.fillStyle = cg;
+      ctx.fill();
+      ctx.strokeStyle = '#ffd60a88'; ctx.lineWidth = 2; ctx.stroke();
+    } else {
+      ctx.fillStyle = '#ffffff08'; ctx.fill();
+      ctx.strokeStyle = '#ffffff15'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // emoji
+    ctx.font = '26px serif';
+    ctx.globalAlpha = a.unlocked ? 1 : 0.22;
+    ctx.fillText(a.icon, cx, BY + r + 9);
+    ctx.globalAlpha = 1;
+
+    // 名称
+    ctx.font = a.unlocked ? 'bold 10px sans-serif' : '10px sans-serif';
+    ctx.fillStyle = a.unlocked ? '#ffd60a' : '#ffffff33';
+    ctx.fillText(a.name, cx, BY + r*2 + 16);
+
+    // 解锁状态小点
+    if (a.unlocked) {
+      ctx.beginPath(); ctx.arc(cx, BY + r*2 + 26, 3, 0, Math.PI*2);
+      ctx.fillStyle = '#06d6a0'; ctx.fill();
+    }
+  });
+
+  // ── 鼓励语 ──
+  ctx.strokeStyle=dg; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(80,544); ctx.lineTo(460,544); ctx.stroke();
+
+  ctx.font='bold 20px sans-serif'; ctx.fillStyle='#06d6a0';
+  ctx.shadowColor='#06d6a0'; ctx.shadowBlur=7;
+  ctx.fillText('Excellent Work! 🎉', W/2, 580); ctx.shadowBlur=0;
+
+  ctx.font='14px sans-serif'; ctx.fillStyle='#a7a9be';
+  ctx.fillText('你已掌握酸碱化学的核心知识！', W/2, 604);
+
+  // ── 日期 ──
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  ctx.font='13px sans-serif'; ctx.fillStyle='#ffffff44';
+  ctx.fillText(`颁发日期：${dateStr}`, W/2, 638);
+
+  // ── 底部分隔线 + 学校名 ──
+  ctx.strokeStyle=dg; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(80,652); ctx.lineTo(460,652); ctx.stroke();
+
+  ctx.font='13px sans-serif'; ctx.fillStyle='#4ecdc477';
+  ctx.fillText('峇株吧辖华仁中学', W/2, 676);
+
+  // ── 四角装饰点 ──
+  [[38,38],[W-38,38],[38,H-38],[W-38,H-38]].forEach(([cx,cy])=>{
+    ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2);
+    ctx.fillStyle='#4ecdc4'; ctx.fill();
+  });
+}
+
+function downloadCert() {
+  const name=document.getElementById('player-name')?.value?.trim()||'学生';
+  const a=document.createElement('a'); a.download=`酸碱大冒险证书_${name}.png`; a.href=document.getElementById('cert-canvas').toDataURL('image/png'); a.click();
+}
+
+/* ══════════════════════════════════════
+   UTILS
+   ══════════════════════════════════════ */
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr; }
+function escQ(s){ return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function confetti(){ const c=['#ff6b35','#4ecdc4','#ffe66d','#06d6a0','#ef233c']; for(let i=0;i<30;i++){const p=document.createElement('div'); p.className='confetti-piece'; p.style.left=Math.random()*100+'vw'; p.style.background=c[i%c.length]; p.style.width=(6+Math.random()*8)+'px'; p.style.height=(6+Math.random()*8)+'px'; p.style.borderRadius=Math.random()>.5?'50%':'2px'; p.style.animationDuration=(1.2+Math.random()*1.5)+'s'; p.style.animationDelay=Math.random()*.4+'s'; document.body.appendChild(p); p.addEventListener('animationend',()=>p.remove());} }
+function spawnScorePopup(text){ const el=document.createElement('div'); el.className='score-popup'; el.textContent=text; el.style.left=(30+Math.random()*40)+'%'; el.style.top='30%'; document.body.appendChild(el); el.addEventListener('animationend',()=>el.remove()); }
+
+// //峇株吧辖华仁中学蔡逸众制作
+// //峇株吧辖蔡逸众制作
+// //华仁中学蔡逸众制作
+// //Made by ecchua79
+
+// //峇株吧辖华仁中学蔡逸众制作
+// //峇株吧辖蔡逸众制作
+// //华仁中学蔡逸众制作
+// //Made by ecchua79
+</script>
+</body>
+</html>
