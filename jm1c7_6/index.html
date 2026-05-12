@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPTICA · 对焦挑战 v2</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060d;--bg2:#090b14;--gold:#ffb84d;--red:#ff5566;
+  --green:#4ade80;--blue:#88aaee;--text:#c8d4ec;--sub:#5a6a85;--dim:#2a3450;
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
+  font-family:'JetBrains Mono',monospace;overflow:hidden}
+
+#app{display:grid;grid-template-rows:48px 1fr 130px;height:100dvh}
+
+#topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;border-bottom:1px solid rgba(255,255,255,.06);background:var(--bg2);
+  min-width:0;gap:8px}
+.brand{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;
+  letter-spacing:4px;white-space:nowrap;flex-shrink:0}
+.brand span{color:var(--gold);font-style:italic}
+
+.pills{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;
+  scrollbar-width:none;flex:1;min-width:0;justify-content:center}
+.pills::-webkit-scrollbar{display:none}
+.pill{width:26px;height:26px;flex-shrink:0;border:1px solid var(--dim);background:none;
+  font-size:9px;color:var(--sub);cursor:pointer;transition:all .18s;
+  position:relative;font-family:'JetBrains Mono',monospace}
+.pill:hover{border-color:var(--gold);color:var(--gold)}
+.pill.cur{border-color:var(--gold);color:var(--gold);background:rgba(255,184,77,.08)}
+.pill.done{border-color:rgba(74,222,128,.4);color:var(--green)}
+.pill.done::after{content:'✓';position:absolute;top:-4px;right:-4px;font-size:6px;
+  background:var(--green);color:#000;border-radius:50%;width:10px;height:10px;
+  display:flex;align-items:center;justify-content:center}
+.back{font-size:8px;letter-spacing:1px;color:var(--sub);background:none;
+  border:1px solid rgba(255,255,255,.1);padding:5px 10px;cursor:pointer;
+  transition:all .2s;white-space:nowrap;flex-shrink:0}
+.back:hover{border-color:var(--gold);color:var(--gold)}
+
+#scene{position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;pointer-events:none}
+#hud-l{top:10px;left:14px}
+#hud-r{top:10px;right:14px;text-align:right}
+.hl{font-size:6px;letter-spacing:3px;color:var(--sub);margin-bottom:2px}
+.hv{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300}
+.hv .v{color:var(--gold)}
+#acc-wrap{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  width:180px;text-align:center}
+#acc-lbl{font-size:6px;letter-spacing:3px;color:var(--sub);margin-bottom:3px}
+#acc-bg{height:2px;background:rgba(255,255,255,.07);border-radius:1px;overflow:hidden}
+#acc-fill{height:100%;width:0%;transition:width .35s,background .35s}
+#acc-txt{font-size:8px;color:var(--sub);margin-top:3px;letter-spacing:1px}
+
+#badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  background:rgba(5,6,13,.93);border:1px solid rgba(255,184,77,.3);
+  padding:20px 32px;backdrop-filter:blur(14px);pointer-events:none;z-index:10}
+#badge.show{display:flex}
+#badge-stars{font-size:24px;letter-spacing:4px}
+#badge-msg{font-size:8px;letter-spacing:2px;color:var(--sub)}
+
+#ctrl{display:grid;grid-template-columns:1fr 1fr 140px;
+  border-top:1px solid rgba(255,255,255,.05);background:var(--bg2);overflow:hidden}
+.cc{padding:10px 16px;border-right:1px solid rgba(255,255,255,.04);overflow:hidden;min-width:0}
+.cc:last-child{border-right:none}
+.cc-t{font-size:6px;letter-spacing:3px;color:var(--sub);margin-bottom:7px}
+#q-title{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:300;
+  line-height:1.3;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#q-hint{font-size:7px;letter-spacing:.4px;color:var(--sub);line-height:1.8;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#q-hint b{color:var(--gold)}
+.sr{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl{font-size:7px;color:var(--sub);width:80px;flex-shrink:0}
+.sv{font-size:9px;color:var(--gold);width:30px;text-align:right;flex-shrink:0}
+input[type=range]{flex:1;-webkit-appearance:none;height:2px;
+  background:rgba(255,255,255,.09);outline:none;cursor:pointer;border-radius:1px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  background:var(--gold);border-radius:50%;box-shadow:0 0 7px rgba(255,184,77,.5)}
+input[type=range]:disabled{opacity:.25;cursor:not-allowed}
+#cc-act{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:10px 12px}
+#btn-chk{padding:9px 6px;background:rgba(255,184,77,.1);border:1px solid var(--gold);
+  color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:2px;cursor:pointer;transition:all .2s}
+#btn-chk:hover{background:rgba(255,184,77,.2);box-shadow:0 0 16px rgba(255,184,77,.2)}
+#btn-nxt{padding:6px;background:none;border:1px solid rgba(255,255,255,.09);
+  color:var(--sub);font-family:'JetBrains Mono',monospace;font-size:7px;
+  letter-spacing:2px;cursor:pointer;transition:all .2s}
+#btn-nxt:hover{border-color:rgba(255,255,255,.22);color:var(--text)}
+
+/* ── 完成画面 ─── */
+#complete{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
+  align-items:center;justify-content:center;background:rgba(5,6,13,.97);
+  padding:20px;overflow-y:auto}
+#complete.show{display:flex}
+.cm-t{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;
+  letter-spacing:6px;color:var(--gold);margin-bottom:6px;text-align:center}
+.cm-s{font-size:7px;letter-spacing:3px;color:var(--sub);margin-bottom:16px;text-align:center}
+.cm-stars{font-size:30px;letter-spacing:6px;margin-bottom:10px}
+.cm-sc{font-size:11px;letter-spacing:2px;margin-bottom:4px}
+.cm-dt{font-size:7px;letter-spacing:1px;color:var(--sub);line-height:2.1;
+  text-align:center;margin-bottom:18px}
+.cm-btn{padding:8px 22px;background:rgba(255,184,77,.1);border:1px solid var(--gold);
+  color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:3px;cursor:pointer;margin-top:8px}
+.cm-btn:hover{background:rgba(255,184,77,.2)}
+
+/* 姓名输入区 */
+#name-area{display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:14px}
+#name-lbl{font-size:7px;letter-spacing:3px;color:var(--sub)}
+#name-input{background:rgba(255,255,255,.04);border:1px solid var(--dim);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;
+  padding:8px 18px;text-align:center;outline:none;width:220px;letter-spacing:2px}
+#name-input:focus{border-color:var(--gold)}
+#btn-cert{padding:9px 26px;background:rgba(255,184,77,.15);border:1px solid var(--gold);
+  color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:8px;
+  letter-spacing:3px;cursor:pointer;transition:all .2s}
+#btn-cert:hover{background:rgba(255,184,77,.28)}
+
+/* 证书区 */
+#cert-wrap{display:none;flex-direction:column;align-items:center;gap:10px}
+#cert-wrap.show{display:flex}
+#cert-canvas{border:1px solid rgba(255,184,77,.22);max-width:300px;width:85vw;
+  max-height:60vh;object-fit:contain}
+#btn-dl{padding:7px 20px;background:none;border:1px solid rgba(255,255,255,.15);
+  color:var(--sub);font-family:'JetBrains Mono',monospace;font-size:7px;
+  letter-spacing:2px;cursor:pointer;transition:all .2s}
+#btn-dl:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── 竖屏适配 ─── */
+@media (max-aspect-ratio:1/1){
+  #app{grid-template-rows:44px 1fr auto}
+  #ctrl{grid-template-columns:1fr;grid-template-rows:auto auto auto;
+    max-height:50vh;overflow-y:auto}
+  .cc{border-right:none;border-bottom:1px solid rgba(255,255,255,.04);padding:8px 14px}
+  .cc:last-child{border-bottom:none}
+  #cc-act{flex-direction:row;padding:10px 14px;gap:10px}
+  #btn-chk{flex:1}
+  #btn-nxt{flex:0 0 auto;padding:9px 14px}
+  #q-title{white-space:normal;font-size:13px}
+  #q-hint{-webkit-line-clamp:2}
+  .sl{width:72px}
+  .brand{font-size:14px;letter-spacing:3px}
+  .hv{font-size:16px}
+  #acc-wrap{width:150px}
+}
+@media (max-width:360px){
+  .pill{width:22px;height:22px;font-size:8px}
+  .brand{font-size:12px;letter-spacing:2px}
+}
+</style>
+</head>
+<body>
+<!--华仁中学蔡逸众制作-->
+<div id="app">
+  <div id="topbar">
+    <div class="brand">OPTICA · <span>对焦挑战</span></div>
+    <div class="pills" id="pills"></div>
+    <button class="back" onclick="history.back()">← 返回</button>
+  </div>
+  <div id="scene">
+    <canvas id="cv"></canvas>
+    <div class="hud" id="hud-l">
+      <div class="hl">FOCAL POINT</div>
+      <div class="hv" id="hv-f"><span class="v">—</span></div>
+    </div>
+    <div class="hud" id="hud-r">
+      <div class="hl">TARGET</div>
+      <div class="hv" id="hv-t"><span class="v">—</span></div>
+    </div>
+    <div id="acc-wrap">
+      <div id="acc-lbl">ACCURACY</div>
+      <div id="acc-bg"><div id="acc-fill"></div></div>
+      <div id="acc-txt">—</div>
+    </div>
+    <div id="badge"><div id="badge-stars"></div><div id="badge-msg"></div></div>
+  </div>
+  <div id="ctrl">
+    <div class="cc"><div class="cc-t">MISSION</div><div id="q-title">—</div><div id="q-hint"></div></div>
+    <div class="cc" id="cc-sliders"><div class="cc-t">PARAMETERS</div></div>
+    <div id="cc-act"><button id="btn-chk">▶ 检测对焦</button><button id="btn-nxt">下一关 →</button></div>
+  </div>
+</div>
+
+<div id="complete">
+  <div class="cm-t">FOCUS COMPLETE</div>
+  <div class="cm-s">峇株吧辖华仁中学 · 光学对焦挑战</div>
+  <div class="cm-stars" id="cm-stars"></div>
+  <div class="cm-sc" id="cm-sc"></div>
+  <div class="cm-dt" id="cm-dt"></div>
+  <div id="name-area">
+    <div id="name-lbl">输入姓名以生成证书</div>
+    <input id="name-input" type="text" placeholder="请输入你的姓名" maxlength="20">
+    <button id="btn-cert">✦ 生成证书</button>
+  </div>
+  <div id="cert-wrap">
+    <canvas id="cert-canvas" width="480" height="720"></canvas>
+    <button id="btn-dl">⬇ 下载证书</button>
+  </div>
+  <button class="cm-btn" id="cm-restart">重新挑战</button>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════
+// 坐标约定：元件在 x=0，光从左(-x)射入
+//
+// 凹面镜：碗口朝左，球心(-R,0)，顶点(0,0)
+//   hitX = -R+sqrt(R²-y²) ∈(-R,0]  法向量朝右→反射朝左→实焦点 x≈-R/2<0 ✓
+//
+// 凸面镜：凸面朝左，球心(+R,0)，顶点(0,0)
+//   hitX = R-sqrt(R²-y²) ∈[0,R)   法向量朝左→反射朝左发散→虚焦点 x≈+R/2>0 ✓
+//
+// 凸透镜：f=R/(2(n-1))>0  实焦点右侧 ✓
+// 凹透镜：f=-R/(2(n-1))<0 虚焦点左侧 ✓
+// ══════════════════════════════════════════════
+
+function traceConcaveMirror(R,yo){
+  const disc=R*R-yo*yo; if(disc<0)return null;
+  const hitX=-R+Math.sqrt(disc),hitY=yo;
+  const nx=(hitX+R)/R,ny=hitY/R;
+  const dot=nx;
+  const rx=1-2*dot*nx,ry=-2*dot*ny;
+  if(Math.abs(ry)<1e-9)return{hitX,hitY,rx,ry,focusX:null};
+  const tf=-hitY/ry;
+  return{hitX,hitY,rx,ry,focusX:hitX+tf*rx};
+}
+
+function traceConvexMirror(R,yo){
+  const disc=R*R-yo*yo; if(disc<0)return null;
+  const hitX=R-Math.sqrt(disc),hitY=yo;
+  const nx=(hitX-R)/R,ny=hitY/R;
+  const dot=nx;
+  const rx=1-2*dot*nx,ry=-2*dot*ny;
+  if(Math.abs(ry)<1e-9)return{hitX,hitY,rx,ry,focusX:null};
+  const tf=hitY/ry;
+  return{hitX,hitY,rx,ry,focusX:hitX-tf*rx};
+}
+
+function convexLensF(R,n){return R/(2*(n-1));}
+function concaveLensF(R,n){return -R/(2*(n-1));}
+
+function computeFocus(el,R,n,nRays,spread){
+  const fxs=[];
+  for(let i=0;i<nRays;i++){
+    const yo=nRays===1?0:-spread+i/(nRays-1)*2*spread;
+    let res,fx=null;
+    if(el==='concave-mirror'){res=traceConcaveMirror(R,yo);fx=res&&res.focusX;}
+    else if(el==='convex-mirror'){res=traceConvexMirror(R,yo);fx=res&&res.focusX;}
+    else if(el==='convex-lens'){fx=convexLensF(R,n);}
+    else{fx=concaveLensF(R,n);}
+    if(fx!==null&&isFinite(fx))fxs.push(fx);
+  }
+  if(!fxs.length)return null;
+  return fxs.reduce((a,b)=>a+b,0)/fxs.length;
+}
+
+const LEVELS=[
+  {el:'concave-mirror',virtual:false,title:'凹面镜 — 初识焦点',
+   hint:'调整 <b>R</b>，让反射光汇聚到靶心。\n旁轴焦距 f ≈ R/2，焦点在镜面<b>左侧（x&lt;0）</b>。',
+   target:-2.5,tol:.20,
+   params:[{key:'R',label:'曲率半径 R',min:2,max:10,step:.05,init:7,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'concave-mirror',virtual:false,title:'凹面镜 — 近焦挑战',
+   hint:'靶心在 <b>x = −1.5</b>，更靠近镜面。\nR 越小焦点越近。',
+   target:-1.5,tol:.18,
+   params:[{key:'R',label:'曲率半径 R',min:2,max:8,step:.05,init:6,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'concave-mirror',virtual:false,title:'凹面镜 — 远焦挑战',
+   hint:'靶心在 <b>x = −4.5</b>，离镜面较远。\n需要更大的 R，注意球面像差。',
+   target:-4.5,tol:.25,
+   params:[{key:'R',label:'曲率半径 R',min:2,max:14,step:.05,init:5,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'convex-mirror',virtual:true,title:'凸面镜 — 虚焦点初探',
+   hint:'凸面镜使光线<b>发散</b>，反射光延长线汇聚于镜后<b>虚焦点（x&gt;0）</b>。\n调整 R 让虚焦点落在靶心。',
+   target:2.0,tol:.20,
+   params:[{key:'R',label:'曲率半径 R',min:2,max:8,step:.05,init:5,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'convex-mirror',virtual:true,title:'凸面镜 — 精准虚焦',
+   hint:'虚焦点目标在 <b>x = 3.5</b>。\n提示：虚焦距 f = R/2，位于镜面右侧。',
+   target:3.5,tol:.22,
+   params:[{key:'R',label:'曲率半径 R',min:2,max:12,step:.05,init:5,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'convex-lens',virtual:false,title:'凸透镜 — 调节折射率',
+   hint:'固定 R=4.0，只调 <b>n</b>，让折射光汇聚在 <b>x = 2.5</b>。\nf = R / (2(n−1))',
+   target:2.5,tol:.18,
+   params:[
+     {key:'R',label:'曲率半径 R',min:4,max:4,step:.1,init:4,fixed:true,fmt:v=>v.toFixed(1)},
+     {key:'n',label:'折射率 n',min:1.30,max:2.20,step:.01,init:1.60,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'convex-lens',virtual:false,title:'凸透镜 — 双参对焦',
+   hint:'同时调整 <b>R</b> 和 <b>n</b>，让光汇聚在 <b>x = 4.0</b>。\n组合有很多种，找到一个就行！',
+   target:4.0,tol:.22,
+   params:[
+     {key:'R',label:'曲率半径 R',min:2,max:8,step:.1,init:4,fixed:false,fmt:v=>v.toFixed(1)},
+     {key:'n',label:'折射率 n',min:1.30,max:2.20,step:.01,init:1.50,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'convex-lens',virtual:false,title:'凸透镜 — 高精度对焦',
+   hint:'靶心在 <b>x = 1.8</b>，精度要求高。\n偏差需在 0.16 以内才得星。',
+   target:1.8,tol:.16,
+   params:[
+     {key:'R',label:'曲率半径 R',min:2,max:8,step:.1,init:5,fixed:false,fmt:v=>v.toFixed(1)},
+     {key:'n',label:'折射率 n',min:1.30,max:2.20,step:.01,init:1.50,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'concave-lens',virtual:true,title:'凹透镜 — 认识虚焦点',
+   hint:'凹透镜使光线<b>发散</b>，折射光延长线汇聚于<b>虚焦点（x&lt;0）</b>。\n调整 R 和 n。',
+   target:-2.0,tol:.20,
+   params:[
+     {key:'R',label:'曲率半径 R',min:2,max:8,step:.1,init:5,fixed:false,fmt:v=>v.toFixed(1)},
+     {key:'n',label:'折射率 n',min:1.30,max:2.20,step:.01,init:1.50,fixed:false,fmt:v=>v.toFixed(2)}]},
+  {el:'concave-lens',virtual:true,title:'凹透镜 — 最终挑战',
+   hint:'固定 n=1.50，只调 R，让虚焦点落在 <b>x = −3.5</b>。\n提示：|f| = R / (2(n−1))',
+   target:-3.5,tol:.22,
+   params:[
+     {key:'R',label:'曲率半径 R',min:2,max:12,step:.1,init:4,fixed:false,fmt:v=>v.toFixed(1)},
+     {key:'n',label:'折射率 n',min:1.50,max:1.50,step:.01,init:1.50,fixed:true,fmt:v=>v.toFixed(2)}]}
+];
+
+// ── Canvas ──
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const sceneEl=document.getElementById('scene');
+let W,H,OX,OY,SC;
+function resize(){
+  W=sceneEl.clientWidth;H=sceneEl.clientHeight;
+  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  SC=Math.min(W/18,H/7);OX=W*.5;OY=H*.5;
+}
+const wx=x=>OX+x*SC;
+const wy=y=>OY-y*SC;
+
+// 箭头在末端（用于反射光、折射光）
+function arrow(x1,y1,x2,y2,col,alpha,lw){
+  const HL=Math.max(7,lw*5);
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.fillStyle=col;
+  ctx.lineWidth=lw;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-HL*Math.cos(a-.38),y2-HL*Math.sin(a-.38));
+  ctx.lineTo(x2-HL*Math.cos(a+.38),y2-HL*Math.sin(a+.38));
+  ctx.closePath();ctx.fill();ctx.restore();
+}
+// 箭头在中点（用于入射光，避免箭头堆积在镜面处）
+function arrowMid(x1,y1,x2,y2,col,alpha,lw){
+  const HL=Math.max(7,lw*5);
+  const mx=(x1+x2)/2, my=(y1+y2)/2; // 中点
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.fillStyle=col;
+  ctx.lineWidth=lw;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();ctx.moveTo(mx,my);
+  ctx.lineTo(mx-HL*Math.cos(a-.38),my-HL*Math.sin(a-.38));
+  ctx.lineTo(mx-HL*Math.cos(a+.38),my-HL*Math.sin(a+.38));
+  ctx.closePath();ctx.fill();ctx.restore();
+}
+function dash(x1,y1,x2,y2,col,alpha){
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;
+  ctx.lineWidth=1.1;ctx.setLineDash([5,5]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+}
+function rayCol(yo,sp){
+  const t=Math.abs(yo)/sp;
+  return `rgb(${Math.round(185+65*t)},${Math.round(208+32*t*(1-t))},${Math.round(255-45*t)})`;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const lv=LEVELS[state.lv];
+  const P=state.params,R=P.R||3,n=P.n||1.5,el=lv.el;
+
+  // 网格
+  ctx.strokeStyle='rgba(255,255,255,.028)';ctx.lineWidth=1;ctx.setLineDash([]);
+  for(let x=-9;x<=9;x++){ctx.beginPath();ctx.moveTo(wx(x),0);ctx.lineTo(wx(x),H);ctx.stroke();}
+  for(let y=-4;y<=4;y++){ctx.beginPath();ctx.moveTo(0,wy(y));ctx.lineTo(W,wy(y));ctx.stroke();}
+  ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(0,wy(0));ctx.lineTo(W,wy(0));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 刻度
+  ctx.fillStyle='rgba(255,255,255,.14)';ctx.font='9px JetBrains Mono';ctx.textAlign='center';
+  for(let x=-7;x<=7;x++){
+    if(!x)continue;
+    ctx.fillText(x,wx(x),wy(0)+15);
+    ctx.beginPath();ctx.moveTo(wx(x),wy(0)-3);ctx.lineTo(wx(x),wy(0)+3);
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.setLineDash([]);ctx.stroke();
+  }
+
+  // 靶心
+  const tx=lv.target,tgx=wx(tx),tgy=wy(0);
+  const tgg=ctx.createLinearGradient(tgx-3,0,tgx+3,0);
+  tgg.addColorStop(0,'rgba(255,85,102,0)');tgg.addColorStop(.5,'rgba(255,85,102,.28)');tgg.addColorStop(1,'rgba(255,85,102,0)');
+  ctx.fillStyle=tgg;ctx.fillRect(tgx-3,0,6,H);
+  [.55,.33,.17].forEach((r,i)=>{
+    ctx.beginPath();ctx.arc(tgx,tgy,r*SC,0,Math.PI*2);
+    ctx.strokeStyle=['rgba(255,85,102,.22)','rgba(255,136,68,.42)','rgba(255,220,68,.6)'][i];
+    ctx.lineWidth=1.5;ctx.stroke();
+  });
+  ctx.beginPath();ctx.arc(tgx,tgy,3.5,0,Math.PI*2);ctx.fillStyle='#ff5566';ctx.fill();
+  ctx.fillStyle='rgba(255,100,120,.85)';ctx.font='8px JetBrains Mono';ctx.textAlign='center';
+  ctx.fillText('x = '+tx.toFixed(1),tgx,tgy-.65*SC-8);
+  if(lv.virtual){ctx.fillStyle='rgba(136,170,238,.7)';ctx.fillText('虚焦点',tgx,tgy-.65*SC-20);}
+
+  // 元件
+  if(el==='concave-mirror')drawConcaveMirror(R);
+  else if(el==='convex-mirror')drawConvexMirror(R);
+  else if(el==='convex-lens')drawBiconvexLens(R);
+  else drawBiconcaveLens(R);
+
+  // 光线
+  const SP=1.6,NR=13,ys=[];
+  for(let i=0;i<NR;i++)ys.push(-SP+i/(NR-1)*2*SP);
+  if(el==='concave-mirror')drawCMirrorRays(R,ys,SP);
+  else if(el==='convex-mirror')drawVxMirrorRays(R,ys,SP);
+  else if(el==='convex-lens')drawCLensRays(R,n,ys,SP);
+  else drawCcLensRays(R,n,ys,SP);
+
+  // 焦点标记
+  const fx=computeFocus(el,R,n,21,SP);
+  if(fx!==null&&isFinite(fx)&&Math.abs(fx)<8.5){
+    const fpx=wx(fx),fpy=wy(0);
+    ctx.beginPath();ctx.arc(fpx,fpy,5,0,Math.PI*2);ctx.fillStyle='rgba(255,184,77,.92)';ctx.fill();
+    ctx.beginPath();ctx.arc(fpx,fpy,11,0,Math.PI*2);ctx.strokeStyle='rgba(255,184,77,.25)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(255,184,77,.9)';ctx.font='8px JetBrains Mono';
+    ctx.textAlign=fx<0?'right':'left';
+    ctx.fillText('F='+fx.toFixed(2),fpx+(fx<0?-10:10),fpy-9);
+  }
+  updateHUD(fx,tx);
+}
+
+// ══ 元件绘制 ══
+
+// 凹面镜：球心(-R,0)，arc(-ha,ha)=右半弧，开口（凹面）朝左 ✓
+function drawConcaveMirror(R){
+  const APR=1.8,ha=Math.asin(APR/R);
+  const scx=wx(-R),scy=wy(0),sr=R*SC;
+  ctx.save();ctx.beginPath();ctx.arc(scx,scy,sr,-ha,ha);
+  ctx.shadowColor='rgba(180,215,255,.6)';ctx.shadowBlur=12;
+  ctx.strokeStyle='rgba(195,220,255,.9)';ctx.lineWidth=3.5;ctx.stroke();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.arc(scx,scy,sr+6,-ha,ha);
+  ctx.strokeStyle='rgba(12,18,40,.96)';ctx.lineWidth=12;ctx.stroke();ctx.restore();
+  ctx.fillStyle='rgba(180,215,255,.45)';ctx.font='8px JetBrains Mono';ctx.textAlign='right';
+  ctx.fillText('凹面镜',wx(0)-6,wy(0)-APR*SC-10);
+}
+
+// 凸面镜：球心(+R,0)，arc(π-ha,π+ha)=左半弧，弧背（凸面）朝左 ✓
+function drawConvexMirror(R){
+  const APR=1.8,ha=Math.asin(APR/R);
+  const scx=wx(R),scy=wy(0),sr=R*SC;
+  ctx.save();ctx.beginPath();ctx.arc(scx,scy,sr,Math.PI-ha,Math.PI+ha);
+  ctx.shadowColor='rgba(180,215,255,.6)';ctx.shadowBlur=12;
+  ctx.strokeStyle='rgba(195,220,255,.9)';ctx.lineWidth=3.5;ctx.stroke();ctx.restore();
+  ctx.save();ctx.beginPath();ctx.arc(scx,scy,sr+6,Math.PI-ha,Math.PI+ha);
+  ctx.strokeStyle='rgba(12,18,40,.96)';ctx.lineWidth=12;ctx.stroke();ctx.restore();
+  ctx.fillStyle='rgba(180,215,255,.45)';ctx.font='8px JetBrains Mono';ctx.textAlign='left';
+  ctx.fillText('凸面镜',wx(0)+6,wy(0)-APR*SC-10);
+}
+
+// 凸透镜：双凸，中间厚两边薄
+// quadraticCurveTo：左面控制点偏左凸出，右面控制点偏右凸出
+function drawBiconvexLens(R){
+  const APR=1.6,aps=APR*SC;
+  const cx=wx(0),cy=wy(0);
+  const bulge=Math.max(SC*.25,Math.min(SC*.7,SC*1.2/R));
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(cx,cy-aps);
+  ctx.quadraticCurveTo(cx-bulge,cy,cx,cy+aps); // 左面朝左凸
+  ctx.quadraticCurveTo(cx+bulge,cy,cx,cy-aps); // 右面朝右凸
+  ctx.closePath();
+  const lg=ctx.createLinearGradient(cx-bulge,0,cx+bulge,0);
+  lg.addColorStop(0,'rgba(130,175,255,.06)');lg.addColorStop(.35,'rgba(180,215,255,.16)');
+  lg.addColorStop(.5,'rgba(220,238,255,.22)');lg.addColorStop(.65,'rgba(180,215,255,.16)');
+  lg.addColorStop(1,'rgba(130,175,255,.06)');
+  ctx.fillStyle=lg;ctx.fill();
+  ctx.shadowColor='rgba(140,185,255,.7)';ctx.shadowBlur=12;
+  ctx.strokeStyle='rgba(160,200,255,.85)';ctx.lineWidth=1.7;ctx.stroke();ctx.restore();
+  ctx.fillStyle='rgba(155,195,255,.5)';ctx.font='8px JetBrains Mono';ctx.textAlign='center';
+  ctx.fillText('凸透镜',cx,cy-aps-10);
+}
+
+// 凹透镜：双凹，中间薄两边厚（沙漏形）
+// rimW 固定较大值确保两面不重叠；indent < rimW 保证面不越过中心
+function drawBiconcaveLens(R){
+  const APR=1.6,aps=APR*SC;
+  const cx=wx(0),cy=wy(0);
+  const rimW=SC*.55;               // 边缘半厚，固定较大防重叠
+  const indent=Math.min(SC*.40,SC*.8/R); // 内凹深度，始终 < rimW
+  const tl={x:cx-rimW,y:cy-aps},bl={x:cx-rimW,y:cy+aps};
+  const tr={x:cx+rimW,y:cy-aps},br={x:cx+rimW,y:cy+aps};
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(tl.x,tl.y);
+  ctx.quadraticCurveTo(cx-rimW+indent,cy,bl.x,bl.y); // 左面向右内凹
+  ctx.lineTo(br.x,br.y);
+  ctx.quadraticCurveTo(cx+rimW-indent,cy,tr.x,tr.y); // 右面向左内凹
+  ctx.closePath();
+  const lg=ctx.createLinearGradient(cx-rimW,0,cx+rimW,0);
+  lg.addColorStop(0,'rgba(130,175,255,.22)');lg.addColorStop(.5,'rgba(150,195,255,.04)');
+  lg.addColorStop(1,'rgba(130,175,255,.22)');
+  ctx.fillStyle=lg;ctx.fill();
+  ctx.shadowColor='rgba(140,185,255,.5)';ctx.shadowBlur=8;
+  ctx.strokeStyle='rgba(155,195,255,.75)';ctx.lineWidth=1.6;ctx.stroke();ctx.restore();
+  ctx.fillStyle='rgba(155,195,255,.5)';ctx.font='8px JetBrains Mono';ctx.textAlign='center';
+  ctx.fillText('凹透镜',cx,cy-aps-10);
+}
+
+// ══ 光线绘制 ══
+// 入射光起点：距镜面/透镜 4.5 单位（画面宽18的1/4）
+const REACH=7.0;
+const ISTART=-4.5; // 入射起点 x 坐标
+
+// 凹面镜：入射→右打在碗内，反射→左汇聚，实焦点 x<0
+function drawCMirrorRays(R,ys,sp){
+  const APR=1.8;
+  ys.forEach(yo=>{
+    if(Math.abs(yo)>=APR)return;
+    const res=traceConcaveMirror(R,yo);if(!res)return;
+    const col=rayCol(yo,sp);
+    arrowMid(wx(ISTART),wy(yo),wx(res.hitX),wy(res.hitY),col,.72,1.3);
+    const mag=Math.sqrt(res.rx*res.rx+res.ry*res.ry);
+    const ex=res.hitX+res.rx/mag*REACH,ey=res.hitY+res.ry/mag*REACH;
+    arrow(wx(res.hitX),wy(res.hitY),wx(ex),wy(ey),'#ffb84d',.82,1.3);
+  });
+}
+
+// 凸面镜：入射→右打在凸面，反射→左发散；虚线延伸到右侧虚焦点
+function drawVxMirrorRays(R,ys,sp){
+  const APR=1.8;
+  ys.forEach(yo=>{
+    if(Math.abs(yo)>=APR)return;
+    const res=traceConvexMirror(R,yo);if(!res)return;
+    const col=rayCol(yo,sp);
+    arrowMid(wx(ISTART),wy(yo),wx(res.hitX),wy(res.hitY),col,.72,1.3);
+    const mag=Math.sqrt(res.rx*res.rx+res.ry*res.ry);
+    const ex=res.hitX+res.rx/mag*REACH,ey=res.hitY+res.ry/mag*REACH;
+    arrow(wx(res.hitX),wy(res.hitY),wx(ex),wy(ey),'#ffb84d',.82,1.3);
+    if(res.focusX!==null&&Math.abs(res.focusX)<9)
+      dash(wx(res.hitX),wy(res.hitY),wx(res.focusX),wy(0),'rgba(136,170,238,.65)',.65);
+  });
+}
+
+// 凸透镜：入射→右，折射汇聚到实焦点 x=f>0
+function drawCLensRays(R,n,ys,sp){
+  const APR=1.6,f=convexLensF(R,n);
+  if(f<=0)return;
+  ys.forEach(yo=>{
+    if(Math.abs(yo)>=APR)return;
+    const col=rayCol(yo,sp);
+    arrowMid(wx(ISTART),wy(yo),wx(0),wy(yo),col,.72,1.3);
+    const dx=f,dy=-yo,dm=Math.sqrt(dx*dx+dy*dy);
+    arrow(wx(0),wy(yo),wx(dx/dm*REACH),wy(yo+dy/dm*REACH),'#ffb84d',.82,1.3);
+  });
+}
+
+// 凹透镜：入射→右，折射发散；虚线到虚焦点 x=f<0
+function drawCcLensRays(R,n,ys,sp){
+  const APR=1.6,f=concaveLensF(R,n);
+  ys.forEach(yo=>{
+    if(Math.abs(yo)>=APR)return;
+    const col=rayCol(yo,sp);
+    arrowMid(wx(ISTART),wy(yo),wx(0),wy(yo),col,.72,1.3);
+    const dx=-f,dy=yo,dm=Math.sqrt(dx*dx+dy*dy);
+    arrow(wx(0),wy(yo),wx(dx/dm*REACH),wy(yo+dy/dm*REACH),'#ffb84d',.82,1.3);
+    if(Math.abs(f)<9)
+      dash(wx(0),wy(yo),wx(f),wy(0),'rgba(136,170,238,.65)',.65);
+  });
+}
+
+// ── HUD ──
+function updateHUD(fx,tx){
+  document.getElementById('hv-t').innerHTML='<span class="v">'+tx.toFixed(1)+'</span>';
+  const bar=document.getElementById('acc-fill'),txt=document.getElementById('acc-txt');
+  if(fx===null||!isFinite(fx)){
+    document.getElementById('hv-f').innerHTML='<span class="v">—</span>';
+    bar.style.width='0%';txt.textContent='—';return;
+  }
+  document.getElementById('hv-f').innerHTML='<span class="v">'+fx.toFixed(3)+'</span>';
+  const dist=Math.abs(fx-tx),acc=Math.max(0,1-dist/6),pv=Math.round(acc*100);
+  bar.style.width=pv+'%';
+  bar.style.background=acc>=.95?'linear-gradient(90deg,#22c55e,#4ade80)'
+    :acc>=.75?'linear-gradient(90deg,#ffb84d,#ffd080)'
+    :'linear-gradient(90deg,#ff5566,#ffb84d)';
+  txt.textContent=pv+'%  ·  偏差 '+dist.toFixed(3);
+}
+
+// ── 状态 ──
+let state={lv:0,params:{},scores:Array(LEVELS.length).fill(null)};
+
+function initLv(){
+  const lv=LEVELS[state.lv];state.params={};
+  lv.params.forEach(p=>state.params[p.key]=p.init);
+  document.getElementById('badge').classList.remove('show');
+  renderQ();renderSliders();renderPills();draw();
+}
+function renderQ(){
+  const lv=LEVELS[state.lv];
+  document.getElementById('q-title').textContent=lv.title;
+  document.getElementById('q-hint').innerHTML=lv.hint.replace(/\n/g,'<br>');
+}
+function renderSliders(){
+  const lv=LEVELS[state.lv],c=document.getElementById('cc-sliders');
+  c.innerHTML='<div class="cc-t">PARAMETERS</div>';
+  lv.params.forEach(p=>{
+    const d=document.createElement('div');d.className='sr';
+    d.innerHTML='<span class="sl">'+p.label+'</span>'
+      +'<input type="range" min="'+p.min+'" max="'+p.max+'" step="'+p.step
+      +'" value="'+state.params[p.key]+'" id="sl-'+p.key+'"'+(p.fixed?' disabled':'')+'>'
+      +'<span class="sv" id="sv-'+p.key+'">'+p.fmt(state.params[p.key])+'</span>';
+    c.appendChild(d);
+    if(!p.fixed)d.querySelector('input').addEventListener('input',e=>{
+      state.params[p.key]=parseFloat(e.target.value);
+      document.getElementById('sv-'+p.key).textContent=p.fmt(state.params[p.key]);
+      document.getElementById('badge').classList.remove('show');
+      draw();
+    });
+  });
+}
+function renderPills(){
+  const c=document.getElementById('pills');c.innerHTML='';
+  LEVELS.forEach((lv,i)=>{
+    const b=document.createElement('button');
+    b.className='pill'+(i===state.lv?' cur':'')+(state.scores[i]!==null?' done':'');
+    b.textContent=i+1;b.title=lv.title;
+    b.addEventListener('click',()=>{state.lv=i;initLv();});
+    c.appendChild(b);
+  });
+}
+function checkFocus(){
+  const lv=LEVELS[state.lv],P=state.params;
+  const fx=computeFocus(lv.el,P.R,P.n||1.5,25,1.6);
+  if(fx===null||!isFinite(fx))return;
+  const dist=Math.abs(fx-lv.target);
+  const stars=dist<=lv.tol*.35?3:dist<=lv.tol*.70?2:dist<=lv.tol?1:0;
+  if(stars>0)state.scores[state.lv]=Math.max(state.scores[state.lv]??0,stars);
+  document.getElementById('badge-stars').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
+  document.getElementById('badge-msg').textContent=
+    ['还差 '+dist.toFixed(3)+' 单位！','不错，还可以更准','很好！再微调一下','完美对焦！'][stars];
+  document.getElementById('badge').classList.add('show');
+  setTimeout(()=>document.getElementById('badge').classList.remove('show'),2400);
+  renderPills();
+  if(state.scores.every(s=>s!==null&&s>=1))setTimeout(showComplete,2600);
+}
+
+let completeTime=null;
+
+function showComplete(){
+  completeTime=new Date();
+  const tot=state.scores.reduce((a,b)=>(a||0)+(b||0),0),mx=LEVELS.length*3;
+  const pct=Math.round(tot/mx*100),fs=Math.round(tot/mx*5);
+  document.getElementById('cm-stars').textContent='★'.repeat(fs)+'☆'.repeat(5-fs);
+  document.getElementById('cm-sc').textContent='总得分 '+tot+' / '+mx+' 星（'+pct+'%）';
+  document.getElementById('cm-dt').innerHTML=state.scores.map((s,i)=>
+    '关 '+(i+1)+'  '+'★'.repeat(s||0)+'☆'.repeat(3-(s||0))+'  '+LEVELS[i].title).join('<br>');
+  document.getElementById('name-area').style.display='flex';
+  document.getElementById('cert-wrap').classList.remove('show');
+  document.getElementById('name-input').value='';
+  document.getElementById('complete').classList.add('show');
+}
+
+// ── 证书生成 ──
+function generateCert(name){
+  const cc=document.getElementById('cert-canvas');
+  const c=cc.getContext('2d');
+  const CW=480,CH=720;
+  cc.width=CW;cc.height=CH;
+
+  // 背景渐变
+  const bg=c.createLinearGradient(0,0,0,CH);
+  bg.addColorStop(0,'#05060d');bg.addColorStop(1,'#0b0e1f');
+  c.fillStyle=bg;c.fillRect(0,0,CW,CH);
+
+  // 外框
+  c.strokeStyle='rgba(255,184,77,.55)';c.lineWidth=1.4;
+  c.strokeRect(18,18,CW-36,CH-36);
+  c.strokeStyle='rgba(255,184,77,.18)';c.lineWidth=.6;
+  c.strokeRect(26,26,CW-52,CH-52);
+
+  // 角花
+  function corn(x,y,sx,sy){
+    c.save();c.strokeStyle='rgba(255,184,77,.75)';c.lineWidth=1.4;
+    c.beginPath();c.moveTo(x+sx*30,y);c.lineTo(x,y);c.lineTo(x,y+sy*30);
+    c.stroke();c.restore();
+  }
+  corn(22,22,1,1);corn(CW-22,22,-1,1);
+  corn(22,CH-22,1,-1);corn(CW-22,CH-22,-1,-1);
+
+  // 顶部装饰
+  c.fillStyle='rgba(255,184,77,.45)';c.font='12px serif';c.textAlign='center';
+  c.fillText('✦  ✦  ✦',CW/2,68);
+
+  // 标题 OPTICA
+  c.font='italic 300 30px "Cormorant Garamond",serif';
+  c.fillStyle='rgba(255,184,77,.6)';c.textAlign='center';
+  c.fillText('OPTICA',CW/2,108);
+
+  // 副标题
+  c.font='bold 9px "JetBrains Mono",monospace';
+  c.fillStyle='rgba(90,106,133,.9)';c.textAlign='center';
+  c.fillText('峇株吧辖华仁中学  ·  光学对焦挑战',CW/2,132);
+
+  // 分隔
+  function hline(y,alpha){
+    c.save();c.strokeStyle='rgba(255,184,77,'+alpha+')';c.lineWidth=.5;
+    c.beginPath();c.moveTo(55,y);c.lineTo(CW-55,y);c.stroke();c.restore();
+  }
+  hline(150,.22);
+
+  // 颁发文字
+  c.font='300 12px "JetBrains Mono",monospace';
+  c.fillStyle='rgba(200,212,236,.5)';c.textAlign='center';
+  c.fillText('此证书颁发予',CW/2,192);
+
+  // 姓名（最大48px，自动缩小）
+  let nameSz=48;
+  c.font='italic 300 '+nameSz+'px "Cormorant Garamond",serif';
+  while(c.measureText(name).width>360&&nameSz>24){
+    nameSz-=2;
+    c.font='italic 300 '+nameSz+'px "Cormorant Garamond",serif';
+  }
+  c.fillStyle='#ffb84d';c.textAlign='center';
+  c.fillText(name,CW/2,252);
+
+  // 姓名下划线
+  const nw=Math.min(c.measureText(name).width+40,320);
+  c.strokeStyle='rgba(255,184,77,.45)';c.lineWidth=.7;
+  c.beginPath();c.moveTo(CW/2-nw/2,265);c.lineTo(CW/2+nw/2,265);c.stroke();
+
+  // 完成描述
+  c.font='300 11px "JetBrains Mono",monospace';
+  c.fillStyle='rgba(200,212,236,.5)';c.textAlign='center';
+  c.fillText('已成功完成全部十关光学对焦挑战',CW/2,300);
+
+  // 星级
+  const tot=state.scores.reduce((a,b)=>(a||0)+(b||0),0),mx=LEVELS.length*3;
+  const pct=Math.round(tot/mx*100),fs=Math.round(tot/mx*5);
+  c.font='28px serif';c.fillStyle='rgba(255,184,77,.9)';c.textAlign='center';
+  c.fillText('★'.repeat(fs)+'☆'.repeat(5-fs),CW/2,344);
+  c.font='8px "JetBrains Mono",monospace';
+  c.fillStyle='rgba(90,106,133,.9)';
+  c.fillText('SCORE  '+tot+' / '+mx+'  ('+pct+'%)',CW/2,366);
+
+  hline(382,.18);
+
+  // 关卡明细
+  c.font='8px "JetBrains Mono",monospace';c.textAlign='left';
+  const sy=402,lh=20;
+  state.scores.forEach((s,i)=>{
+    const y=sy+i*lh;
+    c.fillStyle='rgba(90,106,133,.65)';
+    c.fillText('关'+(i+1<10?' ':'')+(i+1),52,y);
+    c.fillStyle='rgba(255,184,77,.75)';
+    c.fillText('★'.repeat(s||0)+'☆'.repeat(3-(s||0)),88,y);
+    c.fillStyle='rgba(200,212,236,.45)';
+    const tl=LEVELS[i].title.replace(/凹面镜|凸面镜|凸透镜|凹透镜/,'').replace('—','').trim();
+    c.fillText(tl.length>13?tl.slice(0,13)+'…':tl,152,y);
+  });
+
+  // 完成时间
+  const dt=completeTime;
+  const ds=dt.getFullYear()+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+String(dt.getDate()).padStart(2,'0')
+    +'  '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+  c.textAlign='center';
+  c.font='7px "JetBrains Mono",monospace';
+  c.fillStyle='rgba(90,106,133,.65)';
+  c.fillText('完成时间  '+ds,CW/2,CH-48);
+
+  // 底部装饰
+  c.fillStyle='rgba(255,184,77,.35)';c.font='10px serif';c.textAlign='center';
+  c.fillText('✦  ✦  ✦',CW/2,CH-28);
+}
+
+document.getElementById('btn-cert').addEventListener('click',()=>{
+  const name=document.getElementById('name-input').value.trim();
+  if(!name)return;
+  generateCert(name);
+  document.getElementById('name-area').style.display='none';
+  document.getElementById('cert-wrap').classList.add('show');
+});
+
+document.getElementById('btn-dl').addEventListener('click',()=>{
+  const a=document.createElement('a');
+  a.download='OPTICA_证书.png';
+  a.href=document.getElementById('cert-canvas').toDataURL('image/png');
+  a.click();
+});
+
+document.getElementById('btn-chk').addEventListener('click',checkFocus);
+document.getElementById('btn-nxt').addEventListener('click',()=>{
+  if(state.lv<LEVELS.length-1){state.lv++;initLv();}
+});
+document.getElementById('cm-restart').addEventListener('click',()=>{
+  state.scores=Array(LEVELS.length).fill(null);state.lv=0;
+  document.getElementById('complete').classList.remove('show');initLv();
+});
+
+window.addEventListener('resize',()=>{resize();draw();});
+resize();initLv();
+</script>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+</body></html>
