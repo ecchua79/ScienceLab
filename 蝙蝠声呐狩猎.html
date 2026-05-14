@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🦇 蝙蝠声呐：狩猎挑战</title>
+<style>
+/*//峇株吧辖华仁中学蔡逸众制作*/
+:root {
+  --bg: #04040f;
+  --panel: rgba(255,255,255,0.07);
+  --border: rgba(162,155,254,0.3);
+  --bat: #a29bfe;
+  --echo: #00f0ff;
+  --gold: #ffd700;
+  --red: #ff4757;
+  --green: #2ed573;
+  --orange: #ffa502;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
+  height: 100dvh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+canvas#gameCanvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  touch-action: none;
+}
+
+/* ───── HUD ───── */
+#hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 16px;
+  pointer-events: none;
+  z-index: 20;
+  gap: 8px;
+}
+
+.hud-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 14px;
+  backdrop-filter: blur(8px);
+  text-align: center;
+  min-width: 70px;
+}
+
+.hud-label { font-size: 0.6rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+.hud-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+
+#energy-bar-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 14px;
+  backdrop-filter: blur(8px);
+  min-width: 100px;
+  flex: 1;
+  max-width: 160px;
+}
+
+#energy-bar-bg {
+  background: rgba(255,255,255,0.1);
+  border-radius: 6px;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+#energy-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--echo), var(--bat));
+  transition: width 0.1s, background 0.3s;
+}
+
+/* ───── COMBO POPUP ───── */
+#combo-popup {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%) scale(0);
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 20px var(--gold), 0 0 40px var(--gold);
+  pointer-events: none;
+  z-index: 30;
+  transition: none;
+  white-space: nowrap;
+}
+
+/* ───── LEVEL BANNER ───── */
+#level-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: rgba(162,155,254,0.2);
+  border: 2px solid var(--bat);
+  border-radius: 20px;
+  padding: 20px 50px;
+  text-align: center;
+  z-index: 40;
+  backdrop-filter: blur(10px);
+}
+
+/* ───── QUIZ PANEL ───── */
+#quiz-panel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(4,4,15,0.97) 30%);
+  padding: 20px 16px 24px;
+  z-index: 25;
+  pointer-events: all;
+}
+
+#quiz-question {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  color: #e0e0ff;
+  text-align: center;
+}
+
+#quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quiz-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.3;
+}
+
+.quiz-btn:active { transform: scale(0.96); }
+.quiz-btn.correct { background: rgba(46,213,115,0.35); border-color: var(--green); }
+.quiz-btn.wrong   { background: rgba(255,71,87,0.35);  border-color: var(--red); }
+
+#quiz-hint {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin-top: 10px;
+  text-align: center;
+  min-height: 32px;
+  line-height: 1.4;
+}
+
+/* ───── OVERLAYS ───── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4,4,15,0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  text-align: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.overlay h1 { font-size: clamp(1.4rem, 5vw, 2.2rem); margin-bottom: 12px; }
+.overlay p  { opacity: 0.75; line-height: 1.6; font-size: 0.9rem; max-width: 400px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  margin: 12px 0;
+  max-width: 440px;
+  width: 100%;
+}
+
+.btn {
+  background: var(--bat);
+  color: #000;
+  border: none;
+  padding: 14px 36px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 30px;
+  cursor: pointer;
+  margin: 6px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover { transform: scale(1.06); box-shadow: 0 0 20px rgba(162,155,254,0.5); }
+.btn.secondary { background: rgba(255,255,255,0.1); color: #fff; }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+.tag {
+  background: rgba(0,240,255,0.15);
+  border: 1px solid rgba(0,240,255,0.4);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  color: var(--echo);
+}
+
+/* ───── CERT ───── */
+#cert-canvas-wrap { width: 100%; max-width: 420px; }
+#cert-canvas-wrap canvas { width: 100%; border-radius: 12px; }
+
+/* ───── KNOWLEDGE PILL ───── */
+#know-pill {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,240,255,0.15);
+  border: 1px solid rgba(0,240,255,0.4);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  color: var(--echo);
+  pointer-events: none;
+  z-index: 22;
+  opacity: 0;
+  transition: opacity 0.4s;
+  max-width: 80vw;
+  text-align: center;
+}
+
+/* ───── ACHIEVEMENTS ───── */
+#achieve-popup {
+  position: absolute;
+  right: 16px;
+  top: 80px;
+  background: linear-gradient(135deg, #2d1b69, #1a0a3a);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  z-index: 35;
+  opacity: 0;
+  transform: translateX(120%);
+  transition: transform 0.4s, opacity 0.4s;
+  pointer-events: none;
+  max-width: 200px;
+}
+</style>
+</head>
+<!--华仁中学蔡逸众制作-->
+<body>
+
+<!-- HUD -->
+<div id="hud" style="display:none">
+  <div class="hud-box">
+    <div class="hud-label">❤️ 生命</div>
+    <div class="hud-value" id="hud-lives">3</div>
+  </div>
+  <div class="hud-box">
+    <div class="hud-label">🎯 关卡</div>
+    <div class="hud-value" id="hud-level">1</div>
+  </div>
+  <div class="hud-box">
+    <div class="hud-label">⭐ 分数</div>
+    <div class="hud-value" id="hud-score">0</div>
+  </div>
+  <div id="energy-bar-wrap">
+    <div class="hud-label">🔊 声呐能量</div>
+    <div id="energy-bar-bg"><div id="energy-bar-fill" style="width:100%"></div></div>
+  </div>
+</div>
+
+<div id="know-pill">📡 知识点加载中…</div>
+<div id="combo-popup"></div>
+<div id="level-banner">
+  <div style="font-size:0.8rem;color:var(--bat);letter-spacing:2px">LEVEL</div>
+  <div id="level-num" style="font-size:3rem;font-weight:900;color:var(--gold)">1</div>
+  <div id="level-desc" style="font-size:0.85rem;opacity:0.8">准备好了吗？</div>
+</div>
+<div id="achieve-popup">🏆 <span id="achieve-text">成就解锁</span></div>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- Quiz -->
+<div id="quiz-panel" style="display:none">
+  <div id="quiz-question">问题加载中…</div>
+  <div id="quiz-options"></div>
+  <div id="quiz-hint"></div>
+</div>
+
+<!-- ─────────────── START SCREEN ─────────────── -->
+<div id="start-screen" class="overlay">
+  <div style="font-size:4rem;margin-bottom:8px">🦇</div>
+  <h1 style="color:var(--bat)">蝙蝠声呐：狩猎挑战</h1>
+  <p>帮蝙蝠用<b style="color:var(--echo)">回声定位</b>在黑暗中猎食！<br>答对知识题才能让声呐持续充能！</p>
+
+  <div class="card">
+    <div class="tag-row">
+      <span class="tag">📡 回声定位</span>
+      <span class="tag">🌊 声波反射</span>
+      <span class="tag">🦟 捕食策略</span>
+      <span class="tag">🔬 感官生物学</span>
+    </div>
+    <div style="font-size:0.82rem;opacity:0.7;line-height:1.7;margin-top:8px">
+      🖱️ 移动光标 / 触摸控制蝙蝠<br>
+      🔊 点击/轻触 → 发射超声波<br>
+      🎯 声波碰到目标后才能导航捕食<br>
+      💡 答对题目获得能量奖励
+    </div>
+  </div>
+
+  <div class="card" style="text-align:left">
+    <div style="font-weight:700;color:var(--bat);margin-bottom:8px">📘 快速知识预习</div>
+    <div style="font-size:0.8rem;line-height:1.8;opacity:0.85">
+      🦇 蝙蝠发出人耳<b>听不到</b>的<b>超声波</b>（频率 &gt;20,000Hz）<br>
+      🔊 声波遇到物体会<b>反射</b>回来，蝙蝠靠接收回声判断方向和距离<br>
+      ⚡ 回声的<b>时间差</b>越短 = 物体越近<br>
+      🐬 海豚、鲸鱼也用类似原理——这叫<b>生物声呐</b>
+    </div>
+  </div>
+
+  <button class="btn" onclick="startGame()">🚀 开始狩猎</button>
+</div>
+
+<!-- Made by ecchua79 -->
+<!-- ─────────────── END SCREEN ─────────────── -->
+<div id="end-screen" class="overlay" style="display:none">
+  <div style="font-size:3rem" id="end-emoji">🎉</div>
+  <h1 id="end-title">挑战完成！</h1>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:center">
+      <div><div style="font-size:0.7rem;opacity:0.6">最终得分</div><div style="font-size:2rem;font-weight:900;color:var(--gold)" id="end-score">0</div></div>
+      <div><div style="font-size:0.7rem;opacity:0.6">最高连击</div><div style="font-size:2rem;font-weight:900;color:var(--bat)" id="end-combo">0</div></div>
+      <div><div style="font-size:0.7rem;opacity:0.6">正确率</div><div style="font-size:2rem;font-weight:900;color:var(--green)" id="end-acc">0%</div></div>
+      <div><div style="font-size:0.7rem;opacity:0.6">用时</div><div style="font-size:2rem;font-weight:900;color:var(--echo)" id="end-time">0s</div></div>
+    </div>
+    <div id="end-achieve" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+  </div>
+  <input type="text" id="player-name" placeholder="✏️ 输入你的名字领证书"
+    style="background:var(--panel);border:1px solid var(--border);border-radius:12px;color:#fff;padding:12px 20px;font-size:1rem;width:100%;max-width:320px;margin:8px 0;text-align:center;outline:none">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+    <button class="btn" onclick="generateCert()">🏆 生成证书</button>
+    <button class="btn secondary" onclick="location.reload()">🔁 再次挑战</button>
+  </div>
+</div>
+
+<!-- ─────────────── CERT SCREEN ─────────────── -->
+<div id="cert-screen" class="overlay" style="display:none">
+  <h1 style="color:var(--gold)">🏆 声呐猎手证书</h1>
+  <div id="cert-canvas-wrap"><canvas id="certCanvas"></canvas></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px">
+    <button class="btn" onclick="downloadCert()">⬇️ 下载证书 PNG</button>
+    <button class="btn secondary" onclick="location.reload()">🔁 再来一局</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//峇株吧辖蔡逸众制作
+//  KNOWLEDGE BANK  —  25 Questions
+// ══════════════════════════════════════════════
+const KNOWLEDGE = [
+  // 基础
+  { q:"蝙蝠用什么方式在黑暗中'看'东西？", opts:["发出超声波听回声","用红外线感应体温","眼睛特别灵敏","用气味追踪猎物"], ans:0, hint:"蝙蝠几乎是'盲目'飞行的，它们靠嘴或鼻子发射人耳听不见的高频声波，根据回声来感知世界。", fact:"📡 回声定位" },
+  { q:"超声波的频率特点是？", opts:["低于20Hz","低于20,000Hz","高于20,000Hz","等于20,000Hz"], ans:2, hint:"人耳只能听到20~20,000Hz的声音，超过20,000Hz就叫'超声波'，蝙蝠发出的最高可达110,000Hz！", fact:"📊 超声波频率" },
+  { q:"蝙蝠判断猎物距离的方法是？", opts:["回声的音量大小","回声返回的时间差","回声的音调高低","回声的次数多少"], ans:1, hint:"声音速度是固定的（约340m/s），发射到接收的时间越短，说明物体越近！时间差×速度÷2 = 距离", fact:"⏱️ 时间差测距" },
+  { q:"下面哪种动物也使用类似回声定位的能力？", opts:["猫头鹰","海豚","鹰","蜘蛛"], ans:1, hint:"海豚和鲸鱼用'生物声呐'在浑浊水中感知环境，原理和蝙蝠完全相同！猫头鹰靠超强听力，但不是回声定位。", fact:"🐬 生物声呐" },
+  { q:"蝙蝠发射超声波后，声波遇到物体会？", opts:["穿透过去消失","被完全吸收","向各方向反射/散射","变成红外线"], ans:2, hint:"声波是一种机械波，遇到固体表面时，部分能量会被反射回来（就像打乒乓球一样），蝙蝠接收这些回声。", fact:"🌊 声波反射" },
+  // 进阶
+  { q:"为什么蝙蝠要用'超声波'而不是普通声音来回声定位？", opts:["超声波速度更快","超声波能量更大","超声波波长短，分辨率更高","超声波不怕障碍物"], ans:2, hint:"波长越短，能分辨的细节越精细。蝙蝠需要探测小如蚊子的猎物，普通声波波长太长，会'绕过'小目标。", fact:"🔬 波长与分辨率" },
+  { q:"当蝙蝠快速接近猎物时，它会怎么调整超声波？", opts:["停止发射以节省能量","增加发射频率（发更密集的声波）","降低频率变成普通声音","改用视觉追踪"], ans:1, hint:"当距离变近、时间紧迫时，蝙蝠会快速'刷新'声呐，每秒从8次增加到最高200次！就像雷达'聚焦模式'。", fact:"📡 声呐聚焦模式" },
+  { q:"超声波在人类技术中有哪些应用？", opts:["只用在军事雷达","医学超声波检查、声呐探测、测距仪","只在音乐领域","只用来清洗眼镜"], ans:1, hint:"B超（超声检查）用来给孕妇检查宝宝；船只用声呐探测海底；工厂用超声波清洗精密零件——这些都来自蝙蝠的启发！", fact:"🏥 超声波应用" },
+  { q:"下面哪种情况声波反射最弱？", opts:["声波垂直打在坚硬墙壁上","声波打在蓬松的海绵上","声波打在光滑金属板上","声波从空气进入水中"], ans:1, hint:"海绵等多孔软材料会'吸收'大量声音能量，就像消声室的墙壁。坚硬光滑的表面反射最强！", fact:"🧱 吸声与反射" },
+  { q:"回声定位的'回波时间'如何换算距离？（声速约340m/s）", opts:["距离 = 时间 × 340","距离 = 时间 × 340 ÷ 2","距离 = 时间ˆ2 × 340","距离 = 340 ÷ 时间"], ans:1, hint:"声音走了'去程+回程'两段距离才回到蝙蝠，所以总时间要÷2才是单程距离。公式：d = v × t / 2", fact:"📐 距离计算公式" },
+  // 深入理解
+  { q:"蝙蝠在嘈杂的洞穴里，怎么分辨自己的回声和其他蝙蝠的声音？", opts:["每只蝙蝠有独特的声波频率（'声纹'）","靠气味区分","靠颜色区分","做不到，所以蝙蝠不群居"], ans:0, hint:"就像每个人声音不同，每种蝙蝠发出的超声波频率和结构都略有不同，它们能从杂乱信号中识别自己的'声纹'！", fact:"🎵 个性化声纹" },
+  { q:"为什么蝙蝠有大大的耳朵？", opts:["为了让自己看起来更大","更大的耳廓能收集更多反射声波","用来散热降温","纯粹是装饰"], ans:1, hint:"耳廓越大，'接收天线'越大，能捕捉到更微弱的回声，帮助蝙蝠在更远距离探测猎物！", fact:"👂 耳廓功能" },
+  { q:"声波在哪种介质中传播速度最快？", opts:["真空","空气","水","固体（如铁）"], ans:3, hint:"声速取决于介质的弹性和密度。固体分子排列紧密，振动传递快；真空中声音无法传播（没有介质）！", fact:"⚡ 声速比较" },
+  { q:"海豚在水下用超声波交流，水中声速约1500m/s。1.5秒往返时间对应的距离是？", opts:["1125 m","750 m","2250 m","1500 m"], ans:0, hint:"距离 = 1500 × 1.5 ÷ 2 = 1125m。记住要÷2哦，声波要去再回来，走了两段路！", fact:"🧮 计算练习" },
+  { q:"超声波诊断（B超）利用的是什么原理？", opts:["超声波能杀死细菌","超声波在不同组织界面产生不同回波","超声波加热组织","超声波使组织发光"], ans:1, hint:"不同密度的组织（肌肉/骨骼/液体）对超声波的反射程度不同，医生通过分析回波图像来'看见'身体内部！", fact:"🏥 B超原理" },
+  // 混淆点
+  { q:"超声波和普通声波的根本区别是什么？", opts:["超声波是电磁波，普通声波是机械波","超声波频率更高，超过人耳听觉上限","超声波能在真空传播","超声波速度更快"], ans:1, hint:"超声波本质上也是机械波，需要介质传播，只是频率超过20,000Hz。它们的物理本质完全相同，只有频率不同！", fact:"🔊 超声波本质" },
+  { q:"蝙蝠如果飞入一个满是平行镜面的房间，声呐会失效吗？", opts:["完全失效，蝙蝠会迷失方向","部分干扰，因为回声会从多个方向反复弹回，难以判断","完全正常工作","会更精准"], ans:1, hint:"多重反射会产生'混响'，就像你在空洞洞的大厅说话会有回声叠加。过多回声会干扰定位精度，但不会完全失效。", fact:"🪞 多重反射干扰" },
+  { q:"以下哪种技术是'受蝙蝠启发'发明的？", opts:["X光机","雷达（RADAR）和声呐（SONAR）","磁共振（MRI）","CT扫描"], ans:1, hint:"雷达用无线电波、声呐用声波，都是'发射→反射→接收→判断距离'的原理，和蝙蝠回声定位如出一辙！", fact:"💡 仿生技术" },
+  { q:"为什么有些飞蛾进化出了'干扰蝙蝠声呐'的能力？", opts:["飞蛾想和蝙蝠交朋友","自然选择：能干扰声呐的飞蛾存活率更高","飞蛾也用超声波导航","纯属巧合"], ans:1, hint:"进化军备竞赛！会干扰声呐的飞蛾不被吃掉→繁殖后代→特性遗传→越来越多。这是天然选择的完美案例！", fact:"🦋 进化竞争" },
+  { q:"声波频率越高，波长越——？", opts:["越长","越短","不变","与频率无关"], ans:1, hint:"波长 = 波速 ÷ 频率。频率越大，分母越大，波长自然越短。超声波频率极高，所以波长极短，能探测细小目标！", fact:"📊 波长频率关系" },
+  // 综合应用
+  { q:"用声呐测量海底深度。船发射声波，2秒后收到回声，水中声速1500m/s，海底深度是？", opts:["3000 m","1500 m","750 m","600 m"], ans:1, hint:"深度 = 1500 × 2 ÷ 2 = 1500m。声音下去再上来，所以÷2取单程距离。", fact:"🌊 声呐测深" },
+  { q:"'蝙蝠导航系统'和'GPS导航'最大的不同是？", opts:["GPS更精准","蝙蝠是主动发声收回声（主动声呐），GPS靠接收卫星信号（被动定位）","没什么区别","GPS也用声波"], ans:1, hint:"蝙蝠必须自己发射声波——这叫'主动声呐'。GPS只接收卫星信号，不发射任何东西——更像'被动'接收。", fact:"🛰️ 主动 vs 被动" },
+  { q:"回声传回的方向能告诉蝙蝠什么信息？", opts:["只能知道有没有东西","猎物的方向（角度）和大小","猎物的颜色和温度","只能知道距离"], ans:1, hint:"两只耳朵接收回声的时间差和强度差，帮助蝙蝠确定猎物的水平和垂直方向，就像立体声一样实现3D定位！", fact:"🎧 立体声定向" },
+  { q:"超声波清洗眼镜的工作原理是？", opts:["超声波加热水来清洗","超声波在液体中产生微小气泡，气泡破裂产生冲击波剥离污垢","超声波让污垢变成气体","超声波增加水的溶解力"], ans:1, hint:"这叫'空化效应'！超声波在液体中形成微气泡，气泡快速膨胀破裂时产生极强冲击力，能清除细缝里的污垢。", fact:"🧼 空化效应" },
+  { q:"某蝙蝠发出50,000Hz的超声波，另一蝙蝠发出80,000Hz。谁能探测到更细小的目标？", opts:["50,000Hz的，因为波长更长","80,000Hz的，因为波长更短","两者完全一样","无法比较"], ans:1, hint:"波长越短，能分辨的目标越小。80,000Hz对应的波长比50,000Hz更短，探测精度更高——就像相机像素越高，照片越清晰！", fact:"🎯 频率与精度" },
+];
+
+//华仁中学蔡逸众制作
+// ══════════════════════════════════════════════
+//  LEVEL CONFIG
+// ══════════════════════════════════════════════
+const LEVELS = [
+  { num:1, name:"初入洞穴", targets:5,  speed:1.2, rockCount:4,  energyCost:18, desc:"蚊子移动缓慢，慢慢熟悉声呐" },
+  { num:2, name:"夜空追逐", targets:8,  speed:1.8, rockCount:6,  energyCost:16, desc:"猎物加速，保持专注！" },
+  { num:3, name:"危险峡谷", targets:10, speed:2.4, rockCount:10, energyCost:14, desc:"岩石遍布，小心碰撞" },
+  { num:4, name:"蚊群爆发", targets:12, speed:3.0, rockCount:8,  energyCost:12, desc:"猎物成群，连击拿高分！" },
+  { num:5, name:"终极黑暗", targets:15, speed:3.6, rockCount:12, energyCost:10, desc:"声呐消耗剧增，顶级猎手才能完成" },
+];
+
+// ══════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+let state = {};
+let raf;
+
+function resetState() {
+  return {
+    active: false,
+    paused: false,
+    levelIdx: 0,
+    score: 0,
+    lives: 3,
+    energy: 100,
+    combo: 0,
+    maxCombo: 0,
+    totalQ: 0,
+    correctQ: 0,
+    startTime: 0,
+    bat: { x: 0, y: 0 },
+    waves: [],
+    mosquitoes: [],
+    rocks: [],
+    caught: 0,
+    quizActive: false,
+    quizPending: false,
+    lastQuizTime: 0,
+    achievements: [],
+    particles: [],
+    flashAlpha: 0,
+    flashColor: 'red',
+    knowPillTimer: 0,
+    knowPillText: '',
+  };
+}
+
+// ══════════════════════════════════════════════
+//  RESIZE
+// ══════════════════════════════════════════════
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ══════════════════════════════════════════════
+//  INPUT — unified pointer (mouse + touch)
+// ══════════════════════════════════════════════
+canvas.addEventListener('pointermove', e => {
+  if (!state.active) return;
+  state.bat.x = e.clientX;
+  state.bat.y = e.clientY;
+});
+
+canvas.addEventListener('pointerdown', e => {
+  if (!state.active || state.quizActive) return;
+  state.bat.x = e.clientX;
+  state.bat.y = e.clientY;
+  fireWave();
+});
+
+// ══════════════════════════════════════════════
+//  FIRE WAVE
+// ══════════════════════════════════════════════
+function fireWave() {
+  const lvl = LEVELS[state.levelIdx];
+  if (state.energy < lvl.energyCost) return;
+  state.energy -= lvl.energyCost;
+  state.waves.push({
+    x: state.bat.x, y: state.bat.y,
+    r: 8, maxR: Math.max(canvas.width, canvas.height) * 0.7,
+    opacity: 0.9, speed: 6
+  });
+}
+
+// ══════════════════════════════════════════════
+//  SPAWN
+// ══════════════════════════════════════════════
+function spawnMosquito(lvl) {
+  const edge = Math.floor(Math.random() * 4);
+  let x, y;
+  if      (edge===0) { x=Math.random()*canvas.width; y=-20; }
+  else if (edge===1) { x=canvas.width+20; y=Math.random()*canvas.height; }
+  else if (edge===2) { x=Math.random()*canvas.width; y=canvas.height+20; }
+  else               { x=-20; y=Math.random()*canvas.height; }
+  const angle = Math.random() * Math.PI * 2;
+  return {
+    x, y, r:8, visible:0, opacity:0,
+    vx: Math.cos(angle)*lvl.speed, vy: Math.sin(angle)*lvl.speed,
+    wobble: Math.random()*Math.PI*2,
+    type:'mosquito'
+  };
+}
+
+function spawnRock(lvl) {
+  return {
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    r: 18+Math.random()*14, visible:0,
+    type:'rock'
+  };
+}
+
+// ══════════════════════════════════════════════
+//  GAME INIT / LEVEL
+// ══════════════════════════════════════════════
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  state = resetState();
+  state.startTime = Date.now();
+  loadLevel(0);
+}
+
+function loadLevel(idx) {
+  state.levelIdx = idx;
+  state.caught   = 0;
+  state.waves    = [];
+  state.quizActive = false;
+  state.quizPending = false;
+  const lvl = LEVELS[idx];
+  state.mosquitoes = Array.from({length:4}, ()=>spawnMosquito(lvl));
+  state.rocks      = Array.from({length:lvl.rockCount}, ()=>spawnRock(lvl));
+  state.bat.x = canvas.width/2;
+  state.bat.y = canvas.height/2;
+  showLevelBanner(lvl);
+}
+
+function showLevelBanner(lvl) {
+  const el = document.getElementById('level-banner');
+  document.getElementById('level-num').textContent  = lvl.num;
+  document.getElementById('level-desc').textContent = `${lvl.name} — ${lvl.desc}`;
+  el.style.transform = 'translate(-50%,-50%) scale(1)';
+  el.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+  setTimeout(()=>{
+    el.style.transition = 'transform 0.3s ease-in';
+    el.style.transform  = 'translate(-50%,-50%) scale(0)';
+    state.active = true;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(loop);
+    scheduleQuiz();
+  }, 2000);
+}
+
+//峇株吧辖华仁中学蔡逸众制作
+// ══════════════════════════════════════════════
+//  QUIZ SYSTEM
+// ══════════════════════════════════════════════
+const usedQ = new Set();
+function getRandomQ() {
+  if (usedQ.size >= KNOWLEDGE.length) usedQ.clear();
+  let idx;
+  do { idx = Math.floor(Math.random()*KNOWLEDGE.length); } while(usedQ.has(idx));
+  usedQ.add(idx);
+  return KNOWLEDGE[idx];
+}
+
+function scheduleQuiz() {
+  if (!state.active) return;
+  const delay = 8000 + Math.random()*6000;
+  setTimeout(()=>{
+    if (state.active && !state.quizActive) showQuiz();
+  }, delay);
+}
+
+function showQuiz() {
+  state.quizActive = true;
+  const q = getRandomQ();
+  state.currentQ = q;
+  state.totalQ++;
+
+  document.getElementById('quiz-panel').style.display = 'block';
+  document.getElementById('quiz-question').textContent = q.q;
+  document.getElementById('quiz-hint').textContent = '';
+
+  const wrap = document.getElementById('quiz-options');
+  wrap.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-btn';
+    btn.textContent = opt;
+    btn.onclick = () => answerQuiz(i, btn);
+    wrap.appendChild(btn);
+  });
+
+  showKnowPill('💡 答题加能量！答错扣生命');
+}
+
+function answerQuiz(chosen, btnEl) {
+  const q = state.currentQ;
+  const correct = chosen === q.ans;
+  const allBtns = document.querySelectorAll('.quiz-btn');
+  allBtns.forEach(b => b.onclick = null);
+  allBtns[q.ans].classList.add('correct');
+
+  if (correct) {
+    state.correctQ++;
+    state.energy = Math.min(100, state.energy + 35);
+    state.score += 80 + state.combo * 15;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    btnEl.classList.add('correct');
+    document.getElementById('quiz-hint').innerHTML = `✅ 正确！+35能量<br><small style="color:#aaa">${q.fact}：${q.hint}</small>`;
+    showCombo();
+    triggerFlash('green', 0.25);
+  } else {
+    btnEl.classList.add('wrong');
+    state.combo = 0;
+    state.lives--;
+    document.getElementById('quiz-hint').innerHTML = `❌ 再想想！-1生命<br><small style="color:#aaa">${q.hint}</small>`;
+    triggerFlash('red', 0.35);
+    if (state.lives <= 0) { setTimeout(endGame, 1500); return; }
+  }
+
+  showKnowPill(`📚 ${q.fact}`);
+  setTimeout(()=>{
+    document.getElementById('quiz-panel').style.display = 'none';
+    state.quizActive = false;
+    scheduleQuiz();
+  }, correct ? 1800 : 2800);
+//峇株吧辖蔡逸众制作
+}
+
+// ══════════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════════
+function loop() {
+  if (!state.active) return;
+  update();
+  draw();
+  raf = requestAnimationFrame(loop);
+}
+
+function update() {
+  const lvl = LEVELS[state.levelIdx];
+
+  // Energy regen
+  state.energy = Math.min(100, state.energy + 0.08);
+
+  // Move mosquitoes
+  state.mosquitoes.forEach(m => {
+    m.wobble += 0.08;
+    m.x += m.vx + Math.sin(m.wobble)*0.3;
+    m.y += m.vy + Math.cos(m.wobble)*0.3;
+    if (m.x<-30||m.x>canvas.width+30||m.y<-30||m.y>canvas.height+30) {
+      // Wrap: replace from edge
+      const r = spawnMosquito(lvl);
+      m.x=r.x; m.y=r.y; m.vx=r.vx; m.vy=r.vy; m.visible=0;
+    }
+    if (m.visible > 0) m.visible -= 0.012;
+  });
+
+  // Waves
+  state.waves.forEach((w,wi) => {
+    w.r += w.speed;
+    w.opacity -= 0.012;
+    if (w.r > w.maxR || w.opacity <= 0) { state.waves.splice(wi,1); return; }
+
+    // Echo detection: mosquitoes
+    state.mosquitoes.forEach(m => {
+      const d = Math.hypot(w.x-m.x, w.y-m.y);
+      if (Math.abs(d - w.r) < 14) m.visible = Math.min(1, m.visible + 0.8);
+    });
+    // Echo detection: rocks
+    state.rocks.forEach(r => {
+      const d = Math.hypot(w.x-r.x, w.y-r.y);
+      if (Math.abs(d - r.r*2) < 14) r.visible = Math.min(1, r.visible + 0.7);
+    });
+  });
+
+  // Bat catch mosquito
+  state.mosquitoes.forEach((m,mi) => {
+    if (m.visible <= 0) return; // can only catch what you've located
+    const d = Math.hypot(state.bat.x-m.x, state.bat.y-m.y);
+    if (d < 24 + m.r) {
+      spawnParticles(m.x, m.y, '#ffd700', 12);
+      state.mosquitoes.splice(mi,1);
+      state.caught++;
+      const bonus = Math.floor(state.combo * 10);
+      state.score += 100 + bonus;
+      state.combo++;
+      if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+      showCombo();
+      if (state.caught >= lvl.targets) nextLevel();
+      else state.mosquitoes.push(spawnMosquito(lvl));
+    }
+  });
+
+  // Bat hit rock
+  state.rocks.forEach(r => {
+    if (r.visible <= 0) return;
+    const d = Math.hypot(state.bat.x-r.x, state.bat.y-r.y);
+    if (d < 20 + r.r) {
+      state.lives--;
+      state.combo = 0;
+      triggerFlash('red', 0.6);
+      spawnParticles(state.bat.x, state.bat.y, '#ff4757', 16);
+      r.visible = 0;
+      if (state.lives <= 0) endGame();
+    }
+  });
+
+  // Particles
+  state.particles.forEach((p,pi) => {
+    p.x += p.vx; p.y += p.vy;
+    p.life -= 0.04;
+    p.vy += 0.08;
+    if (p.life <= 0) state.particles.splice(pi,1);
+  });
+
+  // flash decay
+  if (state.flashAlpha > 0) state.flashAlpha -= 0.025;
+
+  // rock visible decay
+  state.rocks.forEach(r => { if(r.visible>0) r.visible -= 0.008; });
+
+  // know pill
+  if (state.knowPillTimer > 0) {
+    state.knowPillTimer--;
+    document.getElementById('know-pill').style.opacity = state.knowPillTimer > 30 ? '1' : (state.knowPillTimer/30).toFixed(2);
+  }
+
+  // HUD
+  document.getElementById('hud-lives').textContent = '❤️'.repeat(state.lives);
+  document.getElementById('hud-level').textContent = state.levelIdx+1;
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('energy-bar-fill').style.width = state.energy+'%';
+  document.getElementById('energy-bar-fill').style.background =
+    state.energy < 25 ? 'linear-gradient(90deg,#ff4757,#ff6b81)' : 'linear-gradient(90deg,var(--echo),var(--bat))';
+//Made by ecchua79
+}
+
+// ══════════════════════════════════════════════
+//  DRAW
+// ══════════════════════════════════════════════
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Starfield
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  for(let i=0;i<80;i++){
+    ctx.fillRect((i*137%canvas.width), (i*113%canvas.height), 1, 1);
+  }
+
+  // Flash overlay
+  if (state.flashAlpha > 0) {
+    ctx.fillStyle = state.flashColor==='red'
+      ? `rgba(255,71,87,${state.flashAlpha})`
+      : `rgba(46,213,115,${state.flashAlpha})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // Waves
+  state.waves.forEach(w => {
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, w.r, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(0,240,255,${w.opacity*0.7})`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // Inner ring
+    if (w.r > 30) {
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, w.r*0.6, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(162,155,254,${w.opacity*0.3})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  });
+
+  // Rocks
+  state.rocks.forEach(r => {
+    if (r.visible <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = r.visible;
+    ctx.fillStyle = '#8a8a9a';
+    ctx.shadowBlur = 12; ctx.shadowColor='#fff';
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
+    ctx.fill();
+    // Crack detail
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(r.x-r.r*0.4, r.y-r.r*0.2);
+    ctx.lineTo(r.x, r.y+r.r*0.3);
+    ctx.lineTo(r.x+r.r*0.3, r.y-r.r*0.1);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // Mosquitoes
+  state.mosquitoes.forEach(m => {
+    if (m.visible <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(m.visible, 0.95);
+    ctx.shadowBlur = 10; ctx.shadowColor='#ffd700';
+    // Body
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.ellipse(m.x, m.y, m.r, m.r*0.6, 0, 0, Math.PI*2); ctx.fill();
+    // Wings
+    ctx.fillStyle='rgba(255,215,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(m.x-m.r*0.5, m.y-m.r*0.8, m.r*0.7, m.r*0.35, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(m.x+m.r*0.5, m.y-m.r*0.8, m.r*0.7, m.r*0.35, 0.4, 0, Math.PI*2); ctx.fill();
+    // Legs
+    ctx.strokeStyle='rgba(255,215,0,0.6)'; ctx.lineWidth=0.8;
+    [-1,0,1].forEach(j=>{
+      ctx.beginPath(); ctx.moveTo(m.x+j*m.r*0.3, m.y); ctx.lineTo(m.x+j*m.r*0.3-m.r*0.6, m.y+m.r*0.9); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(m.x+j*m.r*0.3, m.y); ctx.lineTo(m.x+j*m.r*0.3+m.r*0.6, m.y+m.r*0.9); ctx.stroke();
+    });
+    ctx.restore();
+  });
+
+  // Particles
+  state.particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.shadowBlur = 8; ctx.shadowColor = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*(0.5+p.life*0.5), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Bat
+  drawBat(state.bat.x, state.bat.y);
+
+  // Progress bar (top-center subtle)
+  const lvl = LEVELS[state.levelIdx];
+  const prog = Math.min(state.caught/lvl.targets, 1);
+  const bw = Math.min(200, canvas.width*0.4);
+  const bx = canvas.width/2 - bw/2;
+  const by = 15;
+  ctx.fillStyle='rgba(255,255,255,0.1)';
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,6,3); ctx.fill();
+  ctx.fillStyle='var(--gold)'; // fallback
+  ctx.fillStyle='#ffd700';
+  ctx.beginPath(); ctx.roundRect(bx,by,bw*prog,6,3); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.font='10px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillText(`${state.caught}/${lvl.targets} 捕获`, canvas.width/2, by+18);
+}
+
+function drawBat(x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+  const t = Date.now()/300;
+  // Wings
+  ctx.fillStyle = '#a29bfe';
+  ctx.shadowBlur = 20; ctx.shadowColor='#a29bfe';
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(-20,-10,-38+Math.sin(t)*5,-20,-38+Math.sin(t)*5,-10);
+  ctx.bezierCurveTo(-30+Math.sin(t)*3,5,-12,8,0,4);
+  ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(20,-10,38+Math.sin(t)*5,-20,38+Math.sin(t)*5,-10);
+  ctx.bezierCurveTo(30+Math.sin(t)*3,5,12,8,0,4);
+  ctx.fill();
+  // Body
+  ctx.beginPath(); ctx.ellipse(0,0,7,10,0,0,Math.PI*2); ctx.fill();
+  // Ears
+  ctx.fillStyle='#c8c2ff';
+  ctx.beginPath(); ctx.moveTo(-5,-8); ctx.lineTo(-10,-20); ctx.lineTo(-1,-8); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(5,-8); ctx.lineTo(10,-20); ctx.lineTo(1,-8); ctx.fill();
+  // Eyes
+  ctx.fillStyle='#fff'; ctx.shadowBlur=0;
+  ctx.beginPath(); ctx.arc(-3,-2,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3,-2,2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.arc(-3,-2,1,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3,-2,1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+//峇株吧辖蔡逸众制作
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function triggerFlash(color, alpha) {
+  state.flashColor = color;
+  state.flashAlpha = alpha;
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i=0;i<count;i++) {
+    const angle = Math.random()*Math.PI*2;
+    const speed = 1+Math.random()*3;
+    state.particles.push({
+      x, y, color,
+      vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-2,
+      life:1, size:2+Math.random()*3
+    });
+  }
+}
+
+function showCombo() {
+  if (state.combo < 2) return;
+  const el = document.getElementById('combo-popup');
+  const msgs = ['','','🔥 连击 x2！','💥 三杀！','⚡ 超级连击！','🌟 无敌！','👑 传说！'];
+  el.textContent = msgs[Math.min(state.combo, msgs.length-1)] || `🔥 ${state.combo}连击！`;
+  el.style.transition='none';
+  el.style.transform='translateX(-50%) scale(1.2)';
+  el.style.opacity='1';
+  setTimeout(()=>{
+    el.style.transition='transform 0.6s ease, opacity 0.6s';
+    el.style.transform='translateX(-50%) scale(0.8)';
+    el.style.opacity='0';
+  },900);
+}
+
+function showKnowPill(text) {
+  document.getElementById('know-pill').textContent = text;
+  state.knowPillTimer = 120;
+  document.getElementById('know-pill').style.opacity='1';
+}
+
+function unlockAchieve(text) {
+  if (state.achievements.includes(text)) return;
+  state.achievements.push(text);
+  const el = document.getElementById('achieve-popup');
+  document.getElementById('achieve-text').textContent = text;
+  el.style.transition='transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s';
+  el.style.transform='translateX(0)'; el.style.opacity='1';
+  setTimeout(()=>{
+    el.style.transform='translateX(120%)'; el.style.opacity='0';
+  }, 2500);
+}
+
+function nextLevel() {
+  state.active = false;
+  state.waves = [];
+  if (state.levelIdx >= LEVELS.length-1) { endGame(true); return; }
+  state.levelIdx++;
+  state.lives = Math.min(state.lives+1, 3); // 奖励一条命
+  unlockAchieve(`🏅 通过第${state.levelIdx}关`);
+  loadLevel(state.levelIdx);
+//华仁中学蔡逸众制作
+}
+
+// ══════════════════════════════════════════════
+//  END GAME
+// ══════════════════════════════════════════════
+function endGame(win) {
+  state.active = false;
+  cancelAnimationFrame(raf);
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('quiz-panel').style.display = 'none';
+
+  const elapsed = Math.round((Date.now()-state.startTime)/1000);
+  const acc = state.totalQ ? Math.round(state.correctQ/state.totalQ*100) : 100;
+
+  if (state.maxCombo >= 5) unlockAchieve('🔥 连击大师');
+  if (acc === 100 && state.totalQ >= 3) unlockAchieve('🧠 满分学霸');
+  if (state.lives === 3) unlockAchieve('💎 无伤通关');
+
+  document.getElementById('end-emoji').textContent  = win ? '🏆' : '💥';
+  document.getElementById('end-title').textContent  = win ? '你是顶级声呐猎手！' : '挑战结束 — 下次更强！';
+  document.getElementById('end-score').textContent  = state.score;
+  document.getElementById('end-combo').textContent  = state.maxCombo+'连';
+  document.getElementById('end-acc').textContent    = acc+'%';
+  document.getElementById('end-time').textContent   = elapsed+'秒';
+
+  const achEl = document.getElementById('end-achieve');
+  achEl.innerHTML = state.achievements.map(a=>`<span class="tag">${a}</span>`).join('');
+
+  // Store for cert
+  window._gameResult = { score:state.score, combo:state.maxCombo, acc, elapsed, achievements:state.achievements };
+  document.getElementById('end-screen').style.display = 'flex';
+//峇株吧辖华仁中学蔡逸众制作
+}
+
+// ══════════════════════════════════════════════
+//  CERTIFICATE — Canvas PNG
+// ══════════════════════════════════════════════
+function generateCert() {
+  const name = document.getElementById('player-name').value.trim() || '无名猎手';
+  const res = window._gameResult || {};
+  document.getElementById('end-screen').style.display = 'none';
+  document.getElementById('cert-screen').style.display = 'flex';
+
+  const c = document.getElementById('certCanvas');
+  c.width = 540; c.height = 860;
+  const x = c.getContext('2d');
+
+  // Background gradient
+  const bg = x.createLinearGradient(0,0,540,860);
+  bg.addColorStop(0,'#0d0b2e'); bg.addColorStop(0.5,'#0a1a3a'); bg.addColorStop(1,'#0d0b2e');
+  x.fillStyle = bg; x.fillRect(0,0,540,860);
+
+  // Star field
+  x.fillStyle='rgba(255,255,255,0.5)';
+  for(let i=0;i<120;i++) x.fillRect(Math.random()*540, Math.random()*860, 1, 1);
+
+  // Outer border double
+  x.strokeStyle='#a29bfe'; x.lineWidth=3;
+  x.strokeRect(14,14,512,832);
+  x.strokeStyle='rgba(162,155,254,0.4)'; x.lineWidth=1;
+  x.strokeRect(20,20,500,820);
+
+  // Gold top bar
+  const topBar = x.createLinearGradient(0,0,540,0);
+  topBar.addColorStop(0,'#ffd700'); topBar.addColorStop(0.5,'#fff9c4'); topBar.addColorStop(1,'#ffd700');
+  x.fillStyle=topBar; x.fillRect(14,14,512,50);
+  x.fillStyle='#000'; x.font='bold 18px Segoe UI'; x.textAlign='center';
+  x.fillText('🦇 声呐猎手认证证书 🦇', 270, 46);
+
+  // School badge
+  x.fillStyle='rgba(162,155,254,0.15)';
+  x.beginPath(); x.arc(270,140,65,0,Math.PI*2); x.fill();
+  x.strokeStyle='#a29bfe'; x.lineWidth=2;
+  x.beginPath(); x.arc(270,140,65,0,Math.PI*2); x.stroke();
+  x.font='70px serif'; x.fillStyle='#a29bfe'; x.textAlign='center';
+  x.fillText('🦇',270,165);
+
+  // Certificate text
+  x.fillStyle='rgba(255,255,255,0.55)'; x.font='13px Segoe UI'; x.textAlign='center';
+  x.fillText('此证书授予', 270, 235);
+
+  x.fillStyle='#ffd700';
+  x.font='bold 36px Segoe UI';
+  x.shadowBlur=15; x.shadowColor='#ffd700';
+  x.fillText(name, 270, 285);
+  x.shadowBlur=0;
+
+  x.fillStyle='rgba(255,255,255,0.6)'; x.font='13px Segoe UI';
+  x.fillText('在《蝙蝠声呐：狩猎挑战》中成功运用', 270, 315);
+  x.fillStyle='#00f0ff'; x.font='bold 15px Segoe UI';
+  x.fillText('回声定位 · 超声波 · 声波反射', 270, 340);
+  x.fillStyle='rgba(255,255,255,0.6)'; x.font='13px Segoe UI';
+  x.fillText('等科学原理，完成本关卡挑战。', 270, 365);
+
+  // Stats grid
+  const gridY = 400;
+  const stats = [
+    ['⭐ 最终得分', res.score||0],
+    ['🔥 最高连击', (res.combo||0)+'连'],
+    ['🧠 答题正确率', (res.acc||0)+'%'],
+    ['⏱️ 完成用时', (res.elapsed||0)+'秒'],
+  ];
+  x.strokeStyle='rgba(162,155,254,0.3)'; x.lineWidth=1;
+  x.strokeRect(50, gridY, 440, 120);
+  stats.forEach((s,i)=>{
+    const cx = 130 + (i%2)*260, cy = gridY + 42 + Math.floor(i/2)*50;
+    x.fillStyle='rgba(255,255,255,0.45)'; x.font='11px Segoe UI'; x.textAlign='center';
+    x.fillText(s[0], cx, cy-14);
+    x.fillStyle='#fff'; x.font='bold 22px Segoe UI';
+    x.fillText(s[1], cx, cy+8);
+  });
+
+  // Achievements
+  if (res.achievements && res.achievements.length) {
+    x.fillStyle='rgba(255,255,255,0.4)'; x.font='11px Segoe UI'; x.textAlign='center';
+    x.fillText('获得成就', 270, 545);
+    x.fillStyle='#ffd700'; x.font='13px Segoe UI';
+    x.fillText(res.achievements.join('  '), 270, 565);
+  }
+
+  // Knowledge tagline
+  const tagY = 600;
+  x.fillStyle='rgba(0,240,255,0.15)';
+  x.beginPath(); x.roundRect(60,tagY,420,70,10); x.fill();
+  x.strokeStyle='rgba(0,240,255,0.4)'; x.lineWidth=1;
+  x.beginPath(); x.roundRect(60,tagY,420,70,10); x.stroke();
+  x.fillStyle='#00f0ff'; x.font='bold 12px Segoe UI'; x.textAlign='center';
+  x.fillText('📡 掌握知识点', 270, tagY+22);
+  x.fillStyle='rgba(255,255,255,0.7)'; x.font='11px Segoe UI';
+  x.fillText('超声波回声定位 · 声波反射原理 · 生物声呐', 270, tagY+40);
+  x.fillText('时间差测距 · 波长频率关系 · 仿生技术应用', 270, tagY+56);
+
+  // Bottom seal
+  const sealY = 700;
+  x.fillStyle='rgba(212,175,55,0.15)';
+  x.beginPath(); x.arc(270,sealY+40,50,0,Math.PI*2); x.fill();
+  x.strokeStyle='#d4af37'; x.lineWidth=2;
+  x.beginPath(); x.arc(270,sealY+40,50,0,Math.PI*2); x.stroke();
+  x.fillStyle='#d4af37'; x.font='bold 30px serif'; x.textAlign='center';
+  x.fillText('✦', 270, sealY+52);
+
+  // Date
+  const now = new Date();
+  x.fillStyle='rgba(255,255,255,0.35)'; x.font='11px Segoe UI'; x.textAlign='center';
+  x.fillText(now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'}), 270, sealY+108);
+
+  // Bottom credits
+  x.fillStyle='rgba(255,255,255,0.25)'; x.font='10px Segoe UI'; x.textAlign='center';
+//Made by ecchua79
+}
+
+function downloadCert() {
+  const c = document.getElementById('certCanvas');
+  const name = (document.getElementById('player-name').value.trim()||'声呐猎手').replace(/\s/g,'_');
+  const a = document.createElement('a');
+  a.download = `声呐证书_${name}.png`;
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
