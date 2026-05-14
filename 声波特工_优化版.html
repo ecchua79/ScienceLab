@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>声波特工：频率大作战</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<style>
+/*峇株吧辖蔡逸众制作*/
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #060b1a;
+  --panel: #0d1730;
+  --panel2: #111e3a;
+  --accent: #00e5ff;
+  --accent2: #7b2fff;
+  --gold: #ffd700;
+  --correct: #00e676;
+  --wrong: #ff1744;
+  --warn: #ff9100;
+  --text: #e8f4fd;
+  --subtext: #8ab0cc;
+  --border: rgba(0,229,255,0.18);
+  --glow: 0 0 18px rgba(0,229,255,0.35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,100,255,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 30% at 80% 110%, rgba(123,47,255,0.10) 0%, transparent 70%);
+}
+
+/* ── Waveform canvas background ── */
+#wave-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+  opacity: 0.4;
+}
+
+#app {
+  width: 100%; max-width: 620px;
+  padding: 16px;
+  position: relative; z-index: 1;
+  padding-bottom: 40px;
+}
+
+/* ── Typography ── */
+.orbitron { font-family: 'Orbitron', sans-serif; }
+
+h1.game-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(20px, 5vw, 30px);
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+  text-shadow: none;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--subtext);
+  font-size: 13px;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+/* ── Cards / Panels ── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--glow);
+}
+
+/* ── Screen system ── */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp 0.45s cubic-bezier(.22,.68,0,1.2); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Buttons ── */
+.btn {
+  display: block; width: 100%;
+  padding: 14px 20px;
+  margin: 10px 0;
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: 'Noto Sans SC', sans-serif;
+  cursor: pointer;
+  transition: all 0.22s;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+.btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(123,47,255,0.06));
+  opacity: 0; transition: opacity 0.22s;
+}
+.btn:hover::before { opacity: 1; }
+.btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0,229,255,0.3);
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #0099bb);
+  color: #000; font-weight: 700;
+  border-color: transparent;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 1px;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #33eeff, var(--accent));
+  box-shadow: 0 0 30px rgba(0,229,255,0.6);
+  color: #000;
+}
+.btn-gold {
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  color: #000; font-weight: 700;
+  border-color: transparent;
+}
+.btn-option {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 14px;
+  border-radius: 10px;
+  border-color: var(--border);
+  position: relative;
+}
+.btn-option .opt-label {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: rgba(0,229,255,0.1);
+  border-radius: 50%; font-weight: 700;
+  color: var(--accent); margin-right: 10px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px; flex-shrink: 0;
+  transition: all 0.22s;
+}
+.btn-option:hover .opt-label {
+  background: var(--accent); color: #000;
+}
+.btn-option.correct-btn {
+  background: rgba(0,230,118,0.15) !important;
+  border-color: var(--correct) !important;
+  box-shadow: 0 0 16px rgba(0,230,118,0.3);
+}
+.btn-option.correct-btn .opt-label { background: var(--correct); color: #000; }
+.btn-option.wrong-btn {
+  background: rgba(255,23,68,0.15) !important;
+  border-color: var(--wrong) !important;
+  box-shadow: 0 0 16px rgba(255,23,68,0.3);
+}
+.btn-option.wrong-btn .opt-label { background: var(--wrong); color: #fff; }
+.btn-option.disabled { pointer-events: none; opacity: 0.5; }
+
+/* ── Status bar ── */
+.status-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stat-box {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--subtext);
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  font-family: 'Orbitron', sans-serif;
+}
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Orbitron', sans-serif;
+}
+.stat-lives .stat-value { color: var(--wrong); font-size: 16px; }
+.stat-combo .stat-value { color: var(--warn); }
+.stat-level .stat-value { color: var(--accent2); }
+
+/* ── Level badge ── */
+.level-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(123,47,255,0.2);
+  border: 1px solid rgba(123,47,255,0.4);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 11px;
+  color: #c8a8ff;
+  font-family: 'Orbitron', sans-serif;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+/* ── Timer ── */
+.timer-wrap {
+  position: relative;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.timer-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 1s linear, background 0.5s;
+  box-shadow: 0 0 8px rgba(0,229,255,0.5);
+}
+.timer-fill.warn {
+  background: linear-gradient(90deg, var(--warn), var(--wrong));
+  animation: pulse-bar 0.5s ease infinite alternate;
+}
+@keyframes pulse-bar {
+  from { box-shadow: 0 0 6px rgba(255,23,68,0.4); }
+  to   { box-shadow: 0 0 14px rgba(255,23,68,0.9); }
+}
+
+/* ── Progress bar ── */
+.progress-track {
+  display: flex; gap: 4px; margin-bottom: 18px;
+}
+.progress-dot {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  transition: background 0.3s;
+}
+.progress-dot.done { background: var(--correct); }
+.progress-dot.wrong-dot { background: var(--wrong); }
+.progress-dot.current { background: var(--accent); animation: blink 0.8s ease infinite alternate; }
+@keyframes blink { from { opacity: 1; } to { opacity: 0.4; } }
+
+/* ── Question ── */
+.question-num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px; color: var(--subtext);
+  margin-bottom: 8px; letter-spacing: 1px;
+}
+#question-text {
+  font-size: 15px; line-height: 1.7;
+  margin-bottom: 18px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ── Feedback ── */
+#feedback-box {
+  border-radius: 12px; padding: 14px 16px;
+  font-size: 13px; line-height: 1.7;
+  display: none; margin: 14px 0;
+  border: 1px solid transparent;
+}
+#feedback-box.correct {
+  background: rgba(0,230,118,0.1);
+  border-color: rgba(0,230,118,0.4);
+}
+#feedback-box.wrong {
+  background: rgba(255,23,68,0.1);
+  border-color: rgba(255,23,68,0.4);
+}
+
+/* ── Combo popup ── */
+#combo-popup {
+  position: fixed; top: 30%; left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: linear-gradient(135deg, var(--gold), #ff9500);
+  color: #000; font-weight: 900;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  padding: 10px 30px;
+  border-radius: 30px;
+  z-index: 999;
+  pointer-events: none;
+  letter-spacing: 2px;
+  box-shadow: 0 0 30px rgba(255,215,0,0.6);
+  transition: transform 0.2s cubic-bezier(.22,.68,0,1.4);
+  white-space: nowrap;
+}
+#combo-popup.show {
+  transform: translateX(-50%) scale(1);
+  animation: popOut 1.2s ease forwards;
+}
+@keyframes popOut {
+  0%   { transform: translateX(-50%) scale(1.1); opacity: 1; }
+  60%  { transform: translateX(-50%) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) scale(0.6) translateY(-30px); opacity: 0; }
+}
+
+/* ── Damage shake ── */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-6px); }
+  40%,80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+/* ── Score popup ── */
+.score-popup {
+  position: absolute;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700; font-size: 18px;
+  color: var(--correct);
+  pointer-events: none;
+  animation: floatUp 1s ease forwards;
+  z-index: 50;
+}
+@keyframes floatUp {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-50px); }
+}
+
+/* ── Start screen specifics ── */
+.rule-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px; margin-bottom: 8px;
+  border: 1px solid var(--border);
+  font-size: 13px; line-height: 1.6;
+}
+.rule-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Game Over / Results ── */
+.result-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin: 16px 0;
+}
+.result-stat {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+  text-align: center;
+}
+.result-stat .rs-label {
+  font-size: 11px; color: var(--subtext);
+  font-family: 'Orbitron', sans-serif;
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.result-stat .rs-value {
+  font-size: 24px; font-weight: 700;
+  color: var(--accent);
+  font-family: 'Orbitron', sans-serif;
+}
+.result-rank {
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 28px; font-weight: 900;
+  padding: 12px;
+  border-radius: 12px;
+  margin: 12px 0;
+  letter-spacing: 2px;
+}
+.rank-S { background: linear-gradient(135deg, #ffd700, #ff9500); color: #000; }
+.rank-A { background: linear-gradient(135deg, #00e676, #00897b); color: #000; }
+.rank-B { background: linear-gradient(135deg, #00e5ff, #0288d1); color: #000; }
+.rank-C { background: rgba(255,255,255,0.08); color: var(--subtext); border: 1px solid var(--border); }
+
+/* ── Achievements ── */
+.achievement-list {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 12px 0;
+}
+.badge {
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12px; color: var(--gold);
+  font-weight: 600;
+}
+
+/* ── Input ── */
+input[type="text"] {
+  width: 100%; padding: 14px;
+  background: var(--panel2);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--text); font-size: 16px;
+  text-align: center;
+  font-family: 'Noto Sans SC', sans-serif;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0,229,255,0.2);
+}
+
+/* ── Certificate (Canvas-based download) ── */
+#cert-canvas { display: none; }
+.cert-preview-wrap {
+  border-radius: 12px; overflow: hidden;
+  margin-bottom: 16px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
+#cert-preview {
+  width: 100%;
+  display: block;
+}
+
+/* ── Watermark ── */
+.watermark {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(138,176,204,0.25);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 480px) {
+  #app { padding: 12px; }
+  .card { padding: 16px; }
+  .status-bar { gap: 5px; }
+  .stat-value { font-size: 15px; }
+  #question-text { font-size: 14px; }
+}
+/*华仁中学蔡逸众制作*/
+</style>
+</head>
+<body>
+<canvas id="wave-canvas"></canvas>
+<div id="combo-popup">🔥 COMBO!</div>
+
+<div id="app">
+
+  <!-- ═══ START SCREEN ═══ -->
+  <div id="start-screen" class="screen active">
+    <div style="text-align:center; margin: 24px 0 12px;">
+      <div style="font-size: 56px; line-height:1;">🎧</div>
+      <h1 class="game-title">声波特工</h1>
+      <div class="subtitle">FREQUENCY TASK FORCE · 频率大作战</div>
+    </div>
+
+    <div class="card">
+      <p style="color:var(--subtext); font-size:13px; margin-bottom:16px; line-height:1.8;">
+        城市出现异常"声音波动"！作为声学特工，你必须用《第8章 声音的现象》的知识破解谜题，阻止危机！
+      </p>
+
+      <div class="rule-item"><div class="rule-icon">❤️</div><div><strong>3条生命</strong> — 每答错一题扣1条，归零任务终止</div></div>
+      <div class="rule-item"><div class="rule-icon">⏱️</div><div><strong>15秒限时</strong> — 越快答题，获得越多时间加分</div></div>
+      <div class="rule-item"><div class="rule-icon">🔥</div><div><strong>连击Combo</strong> — 连续答对自动加成，分数翻倍！</div></div>
+      <div class="rule-item"><div class="rule-icon">📈</div><div><strong>3个难度等级</strong> — Level 1基础 → Level 3进阶挑战</div></div>
+      <div class="rule-item"><div class="rule-icon">🏆</div><div><strong>S/A/B/C 排名</strong> — 最后生成可下载专属证书</div></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="startGame()">⚡ 开始特工任务</button>
+    <p class="watermark">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</p>
+  </div>
+
+  <!-- ═══ GAME SCREEN ═══ -->
+  <div id="game-screen" class="screen">
+    <div class="status-bar">
+      <div class="stat-box stat-lives">
+        <div class="stat-label">LIVES</div>
+        <div class="stat-value" id="lives-ui">❤️❤️❤️</div>
+      </div>
+      <div class="stat-box stat-combo">
+        <div class="stat-label">COMBO</div>
+        <div class="stat-value" id="combo-ui">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-value" id="score-ui">0</div>
+      </div>
+      <div class="stat-box stat-level">
+        <div class="stat-label">LEVEL</div>
+        <div class="stat-value" id="level-ui">1</div>
+      </div>
+    </div>
+
+    <div class="timer-wrap">
+      <div id="timer-fill" class="timer-fill"></div>
+    </div>
+
+    <div class="progress-track" id="progress-track"></div>
+
+    <div class="card" id="question-card">
+      <div class="level-badge" id="level-badge">🔰 LEVEL 1 — 基础关卡</div>
+      <div class="question-num" id="question-num">TASK 01 / 10</div>
+      <div id="question-text">题目加载中...</div>
+      <div id="options-container"></div>
+      <div id="feedback-box"></div>
+      <button class="btn btn-primary" id="next-btn" style="display:none; margin-top:12px;" onclick="nextQuestion()">
+        下一题 ⏭
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ RESULT SCREEN ═══ -->
+  <div id="result-screen" class="screen">
+    <div class="card">
+      <h1 class="game-title" id="result-title">任务完成</h1>
+      <div class="result-rank" id="result-rank">S</div>
+
+      <div class="result-grid">
+        <div class="result-stat">
+          <div class="rs-label">FINAL SCORE</div>
+          <div class="rs-value" id="rs-score">0</div>
+        </div>
+        <div class="result-stat">
+          <div class="rs-label">ACCURACY</div>
+          <div class="rs-value" id="rs-acc">0%</div>
+        </div>
+        <div class="result-stat">
+          <div class="rs-label">MAX COMBO</div>
+          <div class="rs-value" id="rs-combo">0</div>
+        </div>
+        <div class="result-stat">
+          <div class="rs-label">TIME USED</div>
+          <div class="rs-value" id="rs-time">0s</div>
+        </div>
+      </div>
+
+      <div id="achievement-area" class="achievement-list"></div>
+    </div>
+
+    <div class="card">
+      <p style="color:var(--subtext); font-size:13px; margin-bottom:12px; text-align:center;">
+        输入你的名字，生成专属特工证书 🏅
+      </p>
+      <input type="text" id="player-name" placeholder="输入名字 / 代号" maxlength="15">
+      <button class="btn btn-gold" onclick="generateCertificate()">🏆 生成并下载证书 (PNG)</button>
+      <button class="btn" onclick="location.reload()">🔄 重新挑战，冲更高分</button>
+    </div>
+    <p class="watermark">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</p>
+  </div>
+
+  <!-- ═══ CERTIFICATE SCREEN ═══ -->
+  <div id="cert-screen" class="screen">
+    <div class="card">
+      <h2 class="orbitron" style="text-align:center; color:var(--gold); margin-bottom:16px;">证书预览</h2>
+      <div class="cert-preview-wrap">
+        <img id="cert-preview" src="" alt="证书">
+      </div>
+      <canvas id="cert-canvas"></canvas>
+      <button class="btn btn-gold" id="download-btn" onclick="downloadCert()">⬇️ 下载证书 PNG</button>
+      <button class="btn" onclick="location.reload()">🔄 再次游玩</button>
+    </div>
+    <p class="watermark">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</p>
+  </div>
+
+</div><!-- /app -->
+
+<!--Made by ecchua79-->
+<script>
+//峇株吧辖华仁中学蔡逸众制作
+/* ════════════════════════════════
+   QUESTION BANK — 10 questions
+   ════════════════════════════════ */
+const QUESTIONS = [
+  {
+    level: 1,
+    q: "当你说话时，喉咙里哪个部位在振动，产生了声音？",
+    options: ["骨头", "血液", "声带", "肌肉"],
+    answer: 2,
+    hint: "🎯 声音是振动产生的。人说话靠的是<strong>声带的振动</strong>——把手指轻放喉部说话，可以感受到振动！"
+  },
+  {
+    level: 1,
+    q: "科幻电影里，太空飞船爆炸时传来"轰！"的巨响。这在科学上合理吗？",
+    options: ["合理，爆炸太大了", "不合理，太空是真空，没有介质传声"],
+    answer: 1,
+    hint: "💡 声音必须靠<strong>介质（物质）</strong>传播。真空中没有任何粒子，所以太空里绝对是寂静的！"
+  },
+  {
+    level: 1,
+    q: "把情报传给墙对面的队友，声音穿过哪种介质速度最快？",
+    options: ["空气（气体）", "河水（液体）", "钢铁墙壁（固体）"],
+    answer: 2,
+    hint: "⚡ 固体粒子排列最紧密，振动传递最快。<strong>固体 > 液体 > 气体</strong>，记住这个顺序！"
+  },
+  {
+    level: 2,
+    q: "气温从15°C升到35°C，空气中声速会发生什么变化？",
+    options: ["变快", "变慢", "完全不变"],
+    answer: 0,
+    hint: "🌡️ 温度越高，粒子运动越激烈，声音传播越<strong>快</strong>。热天打雷听起来更响亮就是这个道理！"
+  },
+  {
+    level: 2,
+    q: "你在小卧室里大喊，却听不到明显的回声。原因是？",
+    options: ["墙壁不反射声音", "声音被墙壁完全吸收", "原声与回声时间差小于0.1秒，耳朵无法分辨"],
+    answer: 2,
+    hint: "👂 回声需要原声与反射声<strong>相差至少0.1秒</strong>才能分辨。距离太近，两个声音几乎同时到达！"
+  },
+  {
+    level: 2,
+    q: "蝙蝠在黑暗中精准抓到蚊子，它依靠的是什么神技？",
+    options: ["超强夜视眼", "超级嗅觉", "发出超声波，利用回声定位猎物"],
+    answer: 2,
+    hint: "🦇 蝙蝠发出<strong>超声波</strong>（频率>20000Hz），超声波碰到目标反射回来，蝙蝠通过回声精准判断方向和距离！"
+  },
+  {
+    level: 3,
+    q: "女生的声音通常比男生"尖"，这是因为女生声音的什么特性更高？",
+    options: ["响度（分贝更高）", "音调（频率更高）", "音色（材质不同）"],
+    answer: 1,
+    hint: "🎵 声音"尖"是指<strong>音调高</strong>，对应<strong>振动频率（Hz）高</strong>。女生声带较短，振动频率更高，所以音调高！"
+  },
+  {
+    level: 3,
+    q: "要让鼓声更"震耳欲聋"（响度更大），你应该怎么敲鼓？",
+    options: ["敲得非常快", "用力敲，让鼓面振幅加大", "换一根更轻的鼓槌"],
+    answer: 1,
+    hint: "💥 <strong>响度由振幅决定</strong>：振幅越大（敲得越用力），分贝越高，声音越响。频率影响音调，不影响响度！"
+  },
+  {
+    level: 3,
+    q: "闭上眼睛，你能分辨出是钢琴还是小提琴在演奏，靠的是声音的什么？",
+    options: ["音调（频率不同）", "响度（音量不同）", "音色（发声体材料结构不同）"],
+    answer: 2,
+    hint: "🎹🎻 <strong>音色</strong>是由发声体的材料和结构决定的。不同乐器有独特的"声纹"，就像人的指纹一样！"
+  },
+  {
+    level: 3,
+    q: "隔壁装修噪音很大，你戴上防噪耳塞。这属于哪种噪音控制方法？",
+    options: ["在发声处减弱（关闭发声源）", "在传播途中减弱（隔音屏障）", "在接收处减弱（保护耳朵）"],
+    answer: 2,
+    hint: "🔇 防噪耳塞保护的是<strong>听觉接收端（耳朵）</strong>，属于<strong>在接收处减弱噪音</strong>。三种方法都要记住哦！"
+  }
+];
+
+/* ════════════════════════════════
+   GAME STATE
+   ════════════════════════════════ */
+let state = {
+  qIndex: 0, score: 0, lives: 3,
+  combo: 0, maxCombo: 0,
+  timeLeft: 15, timerInterval: null,
+  answered: false, startTime: 0,
+  results: [],   // 'correct' | 'wrong' for each question
+  wrongCount: 0
+};
+
+/* ════════════════════════════════
+   WAVE CANVAS ANIMATION
+   ════════════════════════════════ */
+(function initWave() {
+  const canvas = document.getElementById('wave-canvas');
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const waves = [
+      { freq: 0.012, amp: 60, speed: 0.5, y: canvas.height * 0.3, color: 'rgba(0,229,255,0.06)' },
+      { freq: 0.018, amp: 40, speed: 0.8, y: canvas.height * 0.6, color: 'rgba(123,47,255,0.05)' },
+      { freq: 0.009, amp: 80, speed: 0.3, y: canvas.height * 0.8, color: 'rgba(0,229,255,0.04)' },
+    ];
+    waves.forEach(w => {
+      ctx.beginPath();
+      for (let x = 0; x <= canvas.width; x += 3) {
+        const y = w.y + Math.sin(x * w.freq + t * w.speed) * w.amp;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = w.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+    t += 0.05;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ════════════════════════════════
+   SCREEN MANAGEMENT
+   ════════════════════════════════ */
+//峇株吧辖华仁中学蔡逸众制作
+//Made by ecchua79
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ════════════════════════════════
+   GAME START
+   ════════════════════════════════ */
+//峇株吧辖蔡逸众制作
+function startGame() {
+  state = {
+    qIndex: 0, score: 0, lives: 3,
+    combo: 0, maxCombo: 0,
+    timeLeft: 15, timerInterval: null,
+    answered: false,
+    startTime: Date.now(),
+    results: [],
+    wrongCount: 0
+  };
+
+  // Build progress dots
+  const track = document.getElementById('progress-track');
+  track.innerHTML = QUESTIONS.map((_, i) =>
+    `<div class="progress-dot" id="dot-${i}"></div>`
+  ).join('');
+
+  showScreen('game-screen');
+  updateUI();
+  loadQuestion();
+}
+
+/* ════════════════════════════════
+   LOAD QUESTION
+   ════════════════════════════════ */
+function loadQuestion() {
+  if (state.qIndex >= QUESTIONS.length) { endGame(true); return; }
+
+  state.answered = false;
+  state.timeLeft = 15;
+
+  const q = QUESTIONS[state.qIndex];
+  const total = QUESTIONS.length;
+  const num = state.qIndex + 1;
+
+  // Level badge
+  const badges = { 1: '🔰 LEVEL 1 — 基础关卡', 2: '⚡ LEVEL 2 — 进阶挑战', 3: '🔥 LEVEL 3 — 终极测试' };
+  document.getElementById('level-badge').textContent = badges[q.level];
+  document.getElementById('level-ui').textContent = q.level;
+  document.getElementById('question-num').textContent = `TASK ${String(num).padStart(2,'0')} / ${total}`;
+  document.getElementById('question-text').textContent = q.q;
+
+  // Current dot
+  document.querySelectorAll('.progress-dot').forEach((d, i) => {
+    d.className = 'progress-dot' + (i < state.qIndex ? (state.results[i] === 'correct' ? ' done' : ' wrong-dot') : (i === state.qIndex ? ' current' : ''));
+  });
+
+  // Options
+  const container = document.getElementById('options-container');
+  container.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-option';
+    btn.innerHTML = `<span class="opt-label">${String.fromCharCode(65+i)}</span>${opt}`;
+    btn.onclick = () => checkAnswer(i, btn);
+    container.appendChild(btn);
+  });
+
+  // Reset UI
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('feedback-box').className = 'feedback-box';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('timer-fill').style.width = '100%';
+  document.getElementById('timer-fill').className = 'timer-fill';
+
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(tickTimer, 1000);
+}
+
+/* ════════════════════════════════
+   TIMER
+   ════════════════════════════════ */
+function tickTimer() {
+  if (state.answered) return;
+  state.timeLeft--;
+  const pct = (state.timeLeft / 15) * 100;
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = pct + '%';
+  if (state.timeLeft <= 5) fill.classList.add('warn');
+  if (state.timeLeft <= 0) {
+    clearInterval(state.timerInterval);
+    processAnswer(-1, null);
+  }
+}
+
+/* ════════════════════════════════
+   CHECK / PROCESS ANSWER
+   ════════════════════════════════ */
+function checkAnswer(idx, btn) {
+  if (state.answered) return;
+  clearInterval(state.timerInterval);
+  processAnswer(idx, btn);
+}
+
+function processAnswer(idx, btn) {
+  state.answered = true;
+  const q = QUESTIONS[state.qIndex];
+  const allBtns = document.querySelectorAll('.btn-option');
+  const isCorrect = idx === q.answer;
+  const fb = document.getElementById('feedback-box');
+  const timeoutMsg = idx === -1 ? '⌛ 时间到！' : '';
+
+  // Highlight correct
+  allBtns[q.answer].classList.add('correct-btn');
+  allBtns.forEach(b => b.classList.add('disabled'));
+
+  if (isCorrect) {
+    state.combo++;
+    state.maxCombo = Math.max(state.maxCombo, state.combo);
+    const timeBonus = state.timeLeft * 10;
+    const comboMult = 1 + Math.min(state.combo * 0.1, 1.0); // max 2x
+    const pts = Math.round((100 + timeBonus) * comboMult);
+    state.score += pts;
+    state.results.push('correct');
+    //华仁中学蔡逸众制作
+
+    fb.className = 'correct';
+    fb.innerHTML = `✅ <strong>破解成功！</strong>（+${pts}分${state.combo >= 2 ? ` · 🔥 Combo x${state.combo}` : ''}）<br><br>💡 ${q.hint}`;
+
+    // Score popup
+    spawnScorePopup(`+${pts}`);
+
+    // Combo popup on 3+
+    if (state.combo >= 3) showComboPopup(state.combo);
+
+  } else {
+    state.lives--;
+    state.combo = 0;
+    state.wrongCount++;
+    state.results.push('wrong');
+    if (btn) btn.classList.add('wrong-btn');
+
+    fb.className = 'wrong';
+    fb.innerHTML = `❌ <strong>破解失败！</strong> ${timeoutMsg}<br><br>💡 <strong>特工提示：</strong>${q.hint}`;
+
+    // Shake card
+    const card = document.getElementById('question-card');
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+  }
+
+  fb.style.display = 'block';
+  updateUI();
+
+  // Update dot
+  const dot = document.getElementById(`dot-${state.qIndex}`);
+  if (dot) {
+    dot.className = 'progress-dot ' + (isCorrect ? 'done' : 'wrong-dot');
+  }
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.style.display = 'block';
+
+  if (state.lives <= 0) {
+    nextBtn.textContent = '💥 生命归零，查看结果';
+    nextBtn.onclick = () => endGame(false);
+  } else if (state.qIndex >= QUESTIONS.length - 1) {
+    nextBtn.textContent = '🎉 查看最终成绩';
+    nextBtn.onclick = () => endGame(true);
+  } else {
+    nextBtn.textContent = '下一题 ⏭';
+    nextBtn.onclick = nextQuestion;
+  }
+}
+
+function nextQuestion() {
+  state.qIndex++;
+  loadQuestion();
+}
+
+/* ════════════════════════════════
+   UI UPDATES
+   ════════════════════════════════ */
+function updateUI() {
+  const hearts = ['', '❤️', '❤️❤️', '❤️❤️❤️'];
+  document.getElementById('lives-ui').textContent = hearts[Math.max(0, state.lives)];
+  document.getElementById('combo-ui').textContent = state.combo;
+  document.getElementById('score-ui').textContent = state.score;
+}
+
+/* ════════════════════════════════
+   COMBO POPUP
+   ════════════════════════════════ */
+function showComboPopup(n) {
+  const el = document.getElementById('combo-popup');
+  el.textContent = `🔥 ${n} COMBO!`;
+  el.className = 'show';
+  setTimeout(() => { el.className = ''; }, 1300);
+}
+
+/* ════════════════════════════════
+   SCORE FLOAT POPUP
+   ════════════════════════════════ */
+function spawnScorePopup(text) {
+  const card = document.getElementById('question-card');
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = text;
+  el.style.top = '50px';
+  el.style.right = '20px';
+  card.style.position = 'relative';
+  card.appendChild(el);
+  setTimeout(() => el.remove(), 1100);
+}
+
+/* ════════════════════════════════
+   END GAME
+   ════════════════════════════════ */
+function endGame(completed) {
+  clearInterval(state.timerInterval);
+  const elapsed = Math.round((Date.now() - state.startTime) / 1000);
+  const correct = state.results.filter(r => r === 'correct').length;
+  const total = QUESTIONS.length;
+  const acc = Math.round((correct / total) * 100);
+
+  // Rank
+  let rank, rankClass, title;
+  if (state.score >= 1800 && state.lives >= 2) {
+    rank = 'S 特级特工'; rankClass = 'rank-S'; title = '🏅 完美通关！';
+  } else if (state.score >= 1200) {
+    rank = 'A 精英特工'; rankClass = 'rank-A'; title = '🎉 出色完成任务！';
+  } else if (state.score >= 600) {
+    rank = 'B 特工见习生'; rankClass = 'rank-B'; title = '👍 不错，继续加油！';
+  } else {
+    rank = 'C 需要再训练'; rankClass = 'rank-C'; title = '💪 别气馁，再挑战！';
+  }
+  if (!completed) title = '💥 任务中止！生命归零';
+
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-rank').textContent = rank;
+  document.getElementById('result-rank').className = `result-rank ${rankClass}`;
+  document.getElementById('rs-score').textContent = state.score;
+  document.getElementById('rs-acc').textContent = acc + '%';
+  document.getElementById('rs-combo').textContent = state.maxCombo;
+  document.getElementById('rs-time').textContent = elapsed + 's';
+  //峇株吧辖蔡逸众制作
+
+  // Achievements
+  const ach = [];
+  if (correct === total) ach.push('🎯 全部正确');
+  if (state.lives === 3) ach.push('🛡️ 满血完成');
+  if (state.maxCombo >= 5) ach.push('🔥 连击王');
+  if (elapsed < 60) ach.push('⚡ 极速特工');
+  if (state.score >= 2000) ach.push('💎 满分大师');
+
+  const achArea = document.getElementById('achievement-area');
+  achArea.innerHTML = ach.map(a => `<span class="badge">${a}</span>`).join('');
+
+  // Store for cert
+  state._finalStats = { rank, acc, elapsed, correct, total };
+  showScreen('result-screen');
+}
+
+/* ════════════════════════════════
+   CERTIFICATE GENERATION (Canvas)
+   ════════════════════════════════ */
+function generateCertificate() {
+  const name = document.getElementById('player-name').value.trim();
+  if (!name) { alert('⚠️ 特工，请输入你的代号！'); return; }
+
+  const canvas = document.getElementById('cert-canvas');
+  const W = 600, H = 900;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const s = state._finalStats;
+
+  // Background
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#06091a');
+  bgGrad.addColorStop(0.5, '#0d1a3a');
+  bgGrad.addColorStop(1, '#0b0d22');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Outer border
+  ctx.strokeStyle = '#d4af37';
+  ctx.lineWidth = 8;
+  roundRect(ctx, 16, 16, W-32, H-32, 20);
+  ctx.stroke();
+
+  // Inner border
+  ctx.strokeStyle = 'rgba(212,175,55,0.4)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 28, 28, W-56, H-56, 14);
+  ctx.stroke();
+
+  // Header gradient bar
+  const hBar = ctx.createLinearGradient(0, 0, W, 0);
+  hBar.addColorStop(0, 'rgba(0,229,255,0.0)');
+  hBar.addColorStop(0.3, 'rgba(0,229,255,0.25)');
+  hBar.addColorStop(0.7, 'rgba(123,47,255,0.25)');
+  hBar.addColorStop(1, 'rgba(0,229,255,0.0)');
+  ctx.fillStyle = hBar;
+  ctx.fillRect(28, 28, W-56, 140);
+
+  // Stars decoration
+  for (let i = 0; i < 60; i++) {
+    const x = Math.random() * W;
+    const y = Math.random() * H;
+    const r = Math.random() * 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.random() * 0.4})`;
+    ctx.fill();
+  }
+
+  // Wave decoration
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 3;
+  for (let w = 0; w < 3; w++) {
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 4) {
+      const y = 800 + 30*w + Math.sin(x * 0.025 + w) * 25;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Emoji
+  ctx.font = '70px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎧', W/2, 140);
+
+  // Title
+  ctx.font = 'bold 30px Orbitron, Arial';
+  ctx.textAlign = 'center';
+  const titleGrad = ctx.createLinearGradient(W/2-120, 0, W/2+120, 0);
+  titleGrad.addColorStop(0, '#00e5ff');
+  titleGrad.addColorStop(1, '#a47bff');
+  ctx.fillStyle = titleGrad;
+  ctx.fillText('荣誉特工证书', W/2, 185);
+
+  // Subtitle
+  ctx.font = '14px Arial';
+  ctx.fillStyle = 'rgba(0,229,255,0.7)';
+  ctx.fillText('SOUND AGENT ACHIEVEMENT CERTIFICATE', W/2, 210);
+
+  // Divider
+  const divGrad = ctx.createLinearGradient(60, 0, W-60, 0);
+  divGrad.addColorStop(0, 'transparent');
+  divGrad.addColorStop(0.5, '#d4af37');
+  divGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = divGrad;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(60, 225); ctx.lineTo(W-60, 225);
+  ctx.stroke();
+
+  // "特此证明" text
+  ctx.font = '16px Noto Sans SC, Arial';
+  ctx.fillStyle = '#8ab0cc';
+  ctx.textAlign = 'center';
+  ctx.fillText('特此证明', W/2, 270);
+
+  // Name
+  ctx.font = 'bold 44px Noto Sans SC, Arial';
+  const nameGrad = ctx.createLinearGradient(W/2-100, 0, W/2+100, 0);
+  nameGrad.addColorStop(0, '#ffd700');
+  nameGrad.addColorStop(1, '#ffaa00');
+  ctx.fillStyle = nameGrad;
+  ctx.fillText(name, W/2, 340);
+
+  // Underline under name
+  ctx.strokeStyle = 'rgba(212,175,55,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(W/2 - 140, 355); ctx.lineTo(W/2 + 140, 355);
+  ctx.stroke();
+
+  // Main statement
+  ctx.font = '15px Noto Sans SC, Arial';
+  ctx.fillStyle = '#c8d8e8';
+  ctx.textAlign = 'center';
+  ctx.fillText('已成功完成「声波特工·频率大作战」', W/2, 400);
+  ctx.fillText('展现了卓越的声学知识素养与挑战精神！', W/2, 425);
+
+  // Rank box
+  const rankColors = {
+    'S': ['#ffd700','#ff9500'],
+    'A': ['#00e676','#00897b'],
+    'B': ['#00e5ff','#0288d1'],
+    'C': ['#555','#333']
+  };
+  const rankLetter = s.rank[0];
+  const rc = rankColors[rankLetter] || ['#555','#333'];
+  const rankBg = ctx.createLinearGradient(W/2-60, 450, W/2+60, 490);
+  rankBg.addColorStop(0, rc[0]);
+  rankBg.addColorStop(1, rc[1]);
+  ctx.fillStyle = rankBg;
+  roundRect(ctx, W/2-80, 455, 160, 50, 10);
+  ctx.fill();
+  ctx.font = 'bold 18px Orbitron, Arial';
+  ctx.fillStyle = rankLetter === 'C' ? '#ccc' : '#000';
+  ctx.textAlign = 'center';
+  ctx.fillText(s.rank, W/2, 487);
+
+  // Stats grid
+  const stats = [
+    ['SCORE', state.score + ' 分'],
+    ['ACCURACY', s.acc + '%'],
+    ['MAX COMBO', state.maxCombo + 'x'],
+    ['TIME USED', s.elapsed + 's']
+  ];
+  const gx = 70, gy = 530, gw = (W-140)/2, gh = 70;
+  stats.forEach((st, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const bx = gx + col * (gw + 12);
+    const by = gy + row * (gh + 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    roundRect(ctx, bx, by, gw, gh, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, bx, by, gw, gh, 8);
+    ctx.stroke();
+    ctx.font = '11px Orbitron, Arial';
+    ctx.fillStyle = '#5fa8d3';
+    ctx.textAlign = 'center';
+    ctx.fillText(st[0], bx + gw/2, by + 22);
+    ctx.font = 'bold 22px Orbitron, Arial';
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText(st[1], bx + gw/2, by + 52);
+  });
+
+  // Encouragement
+  ctx.font = 'italic 14px Noto Sans SC, Arial';
+  ctx.fillStyle = '#8ab0cc';
+  ctx.textAlign = 'center';
+  ctx.fillText('"Excellent Work! 掌握声波，就掌握了宇宙的律动！"', W/2, 710);
+
+  // Date
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日  ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  ctx.font = '13px Arial';
+  ctx.fillStyle = '#5a7a8f';
+  ctx.textAlign = 'center';
+  ctx.fillText(dateStr, W/2, 740);
+
+  // School watermark
+  ctx.font = '12px Noto Sans SC, Arial';
+  ctx.fillStyle = 'rgba(90,120,140,0.6)';
+  ctx.textAlign = 'center';
+  ctx.fillText('峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79', W/2, 830);
+
+  // Bottom border accent
+  const bBar = ctx.createLinearGradient(0, 0, W, 0);
+  bBar.addColorStop(0, 'transparent');
+  bBar.addColorStop(0.5, 'rgba(0,229,255,0.3)');
+  bBar.addColorStop(1, 'transparent');
+  ctx.fillStyle = bBar;
+  ctx.fillRect(28, H-60, W-56, 1.5);
+
+  // Preview
+  const imgURL = canvas.toDataURL('image/png');
+  document.getElementById('cert-preview').src = imgURL;
+  showScreen('cert-screen');
+}
+
+/* ════════════════════════════════
+   HELPER: roundRect
+   ════════════════════════════════ */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+/* ════════════════════════════════
+   DOWNLOAD CERT
+   ════════════════════════════════ */
+function downloadCert() {
+  const canvas = document.getElementById('cert-canvas');
+  const name = document.getElementById('player-name').value.trim() || 'student';
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = `声波特工证书_${name}.png`;
+  a.click();
+}
+//华仁中学蔡逸众制作
+
+/* ════════════════════════════════
+   MAIN ENTRY
+   ════════════════════════════════ */
+// Start wave animation already runs on load
+//Made by ecchua79
+</script>
+</body>
+</html>
