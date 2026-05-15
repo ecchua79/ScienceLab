@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚡ 静电怪兽大作战 3.0</title>
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --bg: #070b14;
+  --surface: #0f1628;
+  --card: #151e35;
+  --border: #1e2d4a;
+  --border2: #253556;
+  --accent: #6366f1;
+  --accent2: #22d3ee;
+  --gold: #f59e0b;
+  --gold2: #fcd34d;
+  --red: #f43f5e;
+  --green: #10b981;
+  --pos: #fb923c;
+  --neg: #60a5fa;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+  --r: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  padding: 12px 10px 30px;
+  min-height: 100vh;
+}
+
+/* cosmic bg */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 5%,  rgba(99,102,241,.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 85% 90%, rgba(34,211,238,.12) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(245,158,11,.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+#app {
+  width: 100%; max-width: 600px;
+  position: relative; z-index: 1;
+}
+/*峇株吧辖蔡逸众制作*/
+/* ─── SCREENS ─── */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp .35s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── UTILITY ─── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 99px; padding: 3px 12px;
+  font-size: 12px; font-weight: 800;
+  letter-spacing: .3px;
+}
+.pill-purple { background: rgba(99,102,241,.18); color: #a5b4fc; }
+.pill-cyan   { background: rgba(34,211,238,.18); color: #67e8f9; }
+.pill-gold   { background: rgba(245,158,11,.18);  color: #fcd34d; }
+
+.grad-text {
+  background: linear-gradient(135deg, var(--gold), var(--pos));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.grad-text-cool {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── BUTTONS ─── */
+.btn {
+  border: none; border-radius: var(--r);
+  padding: 14px 20px; font-size: 15px;
+  font-family: 'Nunito', sans-serif; font-weight: 800;
+  cursor: pointer; transition: transform .15s, box-shadow .15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  color: white;
+  box-shadow: 0 4px 20px rgba(99,102,241,.35);
+  width: 100%;
+}
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(99,102,241,.5); }
+.btn-gold {
+  background: linear-gradient(135deg, #f59e0b, #fb923c);
+  color: white;
+  box-shadow: 0 4px 18px rgba(245,158,11,.3);
+}
+.btn-ghost {
+  background: var(--card); border: 1.5px solid var(--border2);
+  color: var(--muted2); width: 100%;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+
+/* ════════════════════════════════════
+   START SCREEN
+════════════════════════════════════ */
+#start-screen { padding: 20px 0; }
+
+.logo-wrap { text-align: center; padding: 10px 0 20px; }
+.logo-main {
+  font-family: 'Fredoka One', cursive;
+  font-size: clamp(38px, 10vw, 60px);
+  line-height: 1.1;
+}
+.logo-ver { font-size: 13px; color: var(--muted); letter-spacing: 1px; margin-top: 4px; }
+
+.story-card {
+  padding: 18px 16px; margin-bottom: 14px;
+  border-left: 3px solid var(--accent);
+}
+.story-card p { font-size: 14px; line-height: 1.75; color: var(--muted2); }
+.story-card strong { color: var(--text); }
+
+.phase-cards {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 14px;
+}
+.phase-card {
+  padding: 16px 14px; text-align: center;
+  border-top: 3px solid transparent;
+}
+.phase-card.p1 { border-color: var(--accent); }
+.phase-card.p2 { border-color: var(--accent2); }
+.phase-card .pc-icon { font-size: 28px; margin-bottom: 6px; }
+.phase-card .pc-title { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.phase-card .pc-desc  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+.rules-row {
+  display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.rule-chip {
+  flex: 1; min-width: 130px;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  font-size: 12px; line-height: 1.5; color: var(--muted2);
+}
+.rule-chip b { color: var(--text); display: block; font-size: 13px; }
+
+.start-footer {
+  text-align: center; margin-top: 14px;
+  font-size: 11px; color: var(--surface);
+  user-select: none;
+}
+
+
+/* ════════════════════════════════════
+   PHASE BANNER
+════════════════════════════════════ */
+.phase-banner {
+  text-align: center; padding: 32px 20px;
+}
+.pb-icon { font-size: 52px; margin-bottom: 10px; }
+.pb-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 28px; margin-bottom: 6px;
+}
+.pb-desc { font-size: 14px; color: var(--muted2); line-height: 1.7; margin-bottom: 20px; }
+
+
+/* ════════════════════════════════════
+   HUD
+════════════════════════════════════ */
+#hud {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(7,11,20,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+}
+.hud-inner {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 6px;
+  flex-wrap: wrap;
+}
+.hud-chunk { display: flex; flex-direction: column; align-items: center; }
+.hud-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.hud-val { font-size: 16px; font-weight: 900; line-height: 1.2; }
+.hud-hp  { color: var(--red); }
+.hud-sc  { color: var(--gold); }
+.hud-tm  { color: var(--accent2); }
+.combo-pill {
+  background: linear-gradient(135deg, var(--gold), var(--pos));
+  color: white; border-radius: 99px;
+  padding: 2px 10px; font-size: 11px; font-weight: 900;
+  animation: comboBounce .45s ease;
+  display: none;
+}
+@keyframes comboBounce {
+  0%   { transform: scale(.6); }
+  65%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.hud-phase-bar {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted2);
+}
+.mini-prog {
+  flex: 1; height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+  min-width: 50px;
+}
+.mini-prog-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .4s ease;
+}
+
+/* ════════════════════════════════════
+   GAME BODY
+════════════════════════════════════ */
+#game-screen { background: transparent; }
+#game-body { padding: 16px 0; }
+
+/* Q card */
+.q-card { padding: 18px 16px; margin-bottom: 14px; }
+.q-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.q-num { font-size: 11px; color: var(--muted); }
+.q-text {
+  font-size: 16px; font-weight: 700;
+  line-height: 1.65; color: var(--text);
+}
+
+/* ── QUIZ options ── */
+.opts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+.opt-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  color: var(--text); border-radius: 10px;
+  padding: 13px 15px; font-size: 14px;
+  font-family: 'Nunito', sans-serif; font-weight: 700;
+  text-align: left; cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.opt-btn .opt-key {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--border); color: var(--muted2);
+  font-size: 12px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.opt-btn:not(:disabled):hover {
+  border-color: var(--accent);
+  background: rgba(99,102,241,.1);
+}
+.opt-btn.correct {
+  border-color: var(--green); background: rgba(16,185,129,.12);
+  color: var(--green);
+}
+.opt-btn.correct .opt-key { background: var(--green); color: white; }
+.opt-btn.wrong {
+  border-color: var(--red); background: rgba(244,63,94,.12);
+  color: var(--red);
+}
+.opt-btn.wrong .opt-key { background: var(--red); color: white; }
+
+/* ── LAB SECTION ── */
+.tribo-wrap { margin-bottom: 14px; }
+.tribo-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+//峇株吧辖蔡逸众制作
+  margin-bottom: 6px;
+}
+.tribo-mini {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.tribo-pole-labels {
+  display: flex; justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+}
+.lbl-pos { color: var(--pos); font-weight: 800; }
+.lbl-neg { color: var(--neg); font-weight: 800; }
+
+.tribo-row {
+  display: flex; align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  font-size: 13px;
+  transition: background .2s;
+}
+.tribo-row:last-child { border-bottom: none; }
+.tribo-row .tr-rank {
+  width: 18px; font-size: 10px; color: var(--muted); text-align: center;
+}
+.tribo-row .tr-name { flex: 1; font-weight: 600; padding: 0 8px; }
+.tribo-row .tr-tag {
+  font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 5px;
+}
+.tribo-row.is-rod  { background: rgba(99,102,241,.15); }
+.tribo-row.is-correct-mat { background: rgba(16,185,129,.12); }
+.tag-pos { background: rgba(251,146,60,.2);  color: var(--pos); }
+.tag-neg { background: rgba(96,165,250,.2);  color: var(--neg); }
+.tag-rod { background: rgba(99,102,241,.25); color: #a5b4fc; }
+.tag-unk { background: rgba(100,116,139,.15); color: var(--muted2); }
+
+/* Lab friction display */
+.friction-scene {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 14px; margin-bottom: 12px;
+  background: var(--surface); border-radius: 10px;
+  border: 1px solid var(--border); flex-wrap: wrap;
+}
+.fric-obj {
+  text-align: center; min-width: 80px;
+}
+.fric-icon { font-size: 26px; }
+.fric-name {
+  font-size: 12px; font-weight: 800;
+  color: var(--muted2); margin-top: 3px;
+}
+.fric-charge {
+  font-size: 14px; font-weight: 900;
+  margin-top: 2px; min-height: 20px;
+}
+.fric-charge.pos { color: var(--pos); }
+.fric-charge.neg { color: var(--neg); }
+.fric-charge.unk { color: var(--muted); }
+.fric-arrow {
+  font-size: 22px; color: var(--accent2);
+  animation: rubble .8s ease-in-out infinite alternate;
+}
+@keyframes rubble {
+  from { transform: translateX(-5px) rotate(-5deg); }
+  to   { transform: translateX(5px)  rotate(5deg); }
+}
+
+/* Type A: what charge does X get */
+.charge-ask {
+  font-size: 15px; font-weight: 800;
+  margin-bottom: 12px; color: var(--text);
+}
+.charge-btns { display: flex; gap: 10px; }
+.chg-btn {
+  flex: 1; padding: 15px 10px; border-radius: 10px;
+  font-size: 20px; font-weight: 900;
+  cursor: pointer; border: 2px solid transparent;
+  font-family: 'Nunito', sans-serif;
+  transition: transform .15s, border-color .15s, background .15s;
+}
+.chg-btn.pos-btn {
+  background: rgba(251,146,60,.12); color: var(--pos);
+  border-color: rgba(251,146,60,.3);
+}
+.chg-btn.neg-btn {
+  background: rgba(96,165,250,.12); color: var(--neg);
+  border-color: rgba(96,165,250,.3);
+}
+.chg-btn:not(:disabled):hover { transform: scale(1.04); }
+.chg-btn.correct { background: rgba(16,185,129,.2); border-color: var(--green); color: var(--green); }
+.chg-btn.wrong   { background: rgba(244,63,94,.2);  border-color: var(--red);   color: var(--red); }
+
+/* Type B: which material */
+.mat-ask {
+  font-size: 15px; font-weight: 800;
+  margin-bottom: 12px; color: var(--text);
+}
+.mat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mat-btn {
+  background: var(--surface); border: 1.5px solid var(--border2);
+  color: var(--text); border-radius: 10px;
+  padding: 12px 10px; font-size: 13px; font-weight: 700;
+  text-align: center; cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  transition: border-color .15s, background .15s;
+}
+.mat-btn:not(:disabled):hover {
+  border-color: var(--accent2); background: rgba(34,211,238,.08);
+}
+.mat-btn.correct { background: rgba(16,185,129,.15); border-color: var(--green); color: var(--green); }
+.mat-btn.wrong   { background: rgba(244,63,94,.15);  border-color: var(--red);   color: var(--red); }
+
+/* Hint */
+.hint-box {
+  background: rgba(245,158,11,.07);
+  border: 1.5px solid rgba(245,158,11,.2);
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 13px; color: #fde68a; line-height: 1.6;
+  margin-top: 12px; display: none;
+}
+.hint-box.show { display: block; animation: fadeUp .3s ease; }
+.hint-box .hl { color: var(--gold); font-weight: 800; }
+
+
+/* ════════════════════════════════════
+   RESULT SCREEN
+════════════════════════════════════ */
+#result-screen { padding: 24px 16px; }
+
+.res-hero { text-align: center; margin-bottom: 20px; }
+.res-emoji { font-size: 52px; }
+.res-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 30px; margin: 6px 0 4px;
+}
+.res-sub { font-size: 14px; color: var(--muted2); }
+
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 16px;
+}
+.stat-cell {
+  padding: 14px; border-radius: var(--r);
+  background: var(--card); border: 1px solid var(--border);
+  text-align: center;
+}
+.stat-val { font-size: 26px; font-weight: 900; color: var(--gold); display: block; }
+.stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+
+.phase-scores {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.ps-cell {
+  flex: 1; padding: 12px; border-radius: var(--r);
+  background: var(--card); border: 1px solid var(--border);
+  text-align: center;
+}
+.ps-cell .ps-title { font-size: 11px; color: var(--muted2); margin-bottom: 4px; }
+.ps-cell .ps-val   { font-size: 18px; font-weight: 900; }
+.ps-cell.ph1 .ps-val { color: #a5b4fc; }
+.ps-cell.ph2 .ps-val { color: #67e8f9; }
+
+.ach-row {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  justify-content: center; margin-bottom: 18px;
+}
+.ach-chip {
+  border-radius: 99px; padding: 5px 14px;
+  font-size: 12px; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white; animation: fadeUp .4s ease;
+}
+
+.cert-form { margin-bottom: 10px; }
+.cert-form label { font-size: 13px; color: var(--muted2); display: block; margin-bottom: 6px; }
+.cert-input-row { display: flex; gap: 8px; }
+.name-inp {
+  flex: 1; background: var(--card); border: 1.5px solid var(--border2);
+  border-radius: 10px; padding: 12px 14px;
+  color: var(--text); font-size: 15px;
+  font-family: 'Nunito', sans-serif; outline: none;
+}
+.name-inp:focus { border-color: var(--accent); }
+
+
+/* ════════════════════════════════════
+   CERTIFICATE SCREEN
+════════════════════════════════════ */
+#cert-screen { padding: 16px 0; text-align: center; }
+#certCanvas {
+  width: 100%; max-width: 540px;
+  display: block; margin: 0 auto 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+//Made by ecchua79
+}
+.cert-btn-row {
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 540px; margin: 0 auto;
+}
+
+/* ════════════════════════════════════
+   FLASH OVERLAY
+════════════════════════════════════ */
+#flash {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  opacity: 0; transition: opacity .12s;
+}
+#flash.g { background: rgba(16,185,129,.14); }
+#flash.r { background: rgba(244,63,94,.14); }
+
+/*华仁中学蔡逸众制作*/
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ START ══ -->
+<div id="start-screen" class="screen active">
+  <div class="logo-wrap">
+    <div class="logo-main grad-text">⚡ 静电怪兽<br>大作战 3.0</div>
+    <div class="logo-ver">峇株吧辖华仁中学 · 初中科学 · Static Electricity</div>
+  </div>
+
+  <div class="story-card card">
+    <p>静电怪兽军团袭击城市！你是科学特工，需要先通过<strong>知识测验</strong>拿到装备，再进入<strong>摩擦实验室</strong>亲手制造武器，才能彻底消灭它们！</p>
+  </div>
+
+  <div class="phase-cards">
+    <div class="phase-card card p1">
+      <div class="pc-icon">🧠</div>
+      <div class="pc-title">第一阶段</div>
+      <div class="pc-desc">知识闯关<br>8 道概念题</div>
+    </div>
+    <div class="phase-card card p2">
+      <div class="pc-icon">🔬</div>
+      <div class="pc-title">第二阶段</div>
+      <div class="pc-desc">摩擦实验室<br>6 道分析题</div>
+    </div>
+  </div>
+
+  <div class="rules-row">
+    <div class="rule-chip"><b>❤️ 3条命</b>两阶段共用</div>
+    <div class="rule-chip"><b>⭐ 连击加分</b>连续答对奖励</div>
+    <div class="rule-chip"><b>📊 摩擦电序</b>只显示相关材料</div>
+    <div class="rule-chip"><b>🏆 Canvas证书</b>可下载PNG</div>
+  </div>
+
+  <button class="btn btn-primary" style="font-size:17px;padding:16px;" onclick="startPhase1()">⚡ 开始战斗！</button>
+  <div class="start-footer">Made by ecchua79 · 峇株吧辖华仁中学</div>
+</div>
+
+<!-- ══ PHASE BANNER ══ -->
+<div id="phase-banner-screen" class="screen">
+  <div class="phase-banner">
+    <div class="pb-icon" id="pb-icon">🧠</div>
+    <div class="pb-title grad-text-cool" id="pb-title">第一阶段：知识闯关</div>
+    <div class="pb-desc" id="pb-desc">8道静电知识题，答对才能拿到实验装备！</div>
+    <button class="btn btn-primary" style="max-width:280px;" id="pb-btn" onclick="">开始！</button>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game-screen" class="screen">
+  <div id="hud">
+    <div class="hud-inner">
+      <div class="hud-chunk">
+        <span class="hud-lbl">生命</span>
+        <span class="hud-val hud-hp" id="hud-hp">❤️❤️❤️</span>
+      </div>
+      <div class="hud-chunk">
+        <span class="hud-lbl">得分</span>
+        <span class="hud-val hud-sc" id="hud-sc">0</span>
+        <span class="combo-pill" id="hud-combo">2连击!</span>
+      </div>
+      <div class="hud-chunk">
+        <span class="hud-lbl">用时</span>
+        <span class="hud-val hud-tm" id="hud-tm">0s</span>
+      </div>
+    </div>
+    <div style="margin-top:8px;">
+      <div class="hud-phase-bar">
+        <span id="hud-phase-lbl" style="white-space:nowrap;font-size:11px;">第一阶段</span>
+        <div class="mini-prog"><div class="mini-prog-fill" id="hud-prog" style="width:0%"></div></div>
+        <span id="hud-q-num" style="white-space:nowrap;font-size:11px;">1/8</span>
+      </div>
+    </div>
+  </div>
+  <div id="game-body" style="padding:14px 0;"></div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="result-screen" class="screen">
+  <div class="res-hero">
+    <div class="res-emoji" id="r-emoji">🎉</div>
+    <div class="res-title grad-text" id="r-title">任务完成！</div>
+    <div class="res-sub" id="r-sub">你成功击退了静电怪兽！</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-cell"><span class="stat-val" id="r-score">0</span><span class="stat-lbl">最终得分</span></div>
+    <div class="stat-cell"><span class="stat-val" id="r-correct">0/14</span><span class="stat-lbl">答对题数</span></div>
+    <div class="stat-cell"><span class="stat-val" id="r-time">0s</span><span class="stat-lbl">总用时</span></div>
+    <div class="stat-cell"><span class="stat-val" id="r-combo">0</span><span class="stat-lbl">最大连击</span></div>
+  </div>
+
+  <div class="phase-scores">
+    <div class="ps-cell ph1"><div class="ps-title">🧠 知识闯关</div><div class="ps-val" id="r-ph1">0/8</div></div>
+    <div class="ps-cell ph2"><div class="ps-title">🔬 摩擦实验室</div><div class="ps-val" id="r-ph2">0/6</div></div>
+  </div>
+
+  <div class="ach-row" id="r-achs"></div>
+
+  <div class="cert-form">
+    <label>输入你的名字，领取荣誉证书：</label>
+    <div class="cert-input-row">
+      <input class="name-inp" id="name-inp" type="text" placeholder="你的名字…" maxlength="20">
+      <button class="btn btn-gold" onclick="generateCert()">🏆 领证书</button>
+    </div>
+  </div>
+  <button class="btn btn-ghost" onclick="location.reload()">🔄 再挑战一次</button>
+</div>
+
+<!-- ══ CERT ══ -->
+<div id="cert-screen" class="screen">
+  <canvas id="certCanvas" width="540" height="920"></canvas>
+  <div class="cert-btn-row">
+    <button class="btn btn-primary" onclick="dlCert()">⬇️ 下载证书 PNG</button>
+    <button class="btn btn-ghost"  onclick="location.reload()">🔄 再玩一次</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+<div id="flash"></div>
+
+<script>
+//峇株吧辖华仁中学蔡逸众制作
+
+/* ════════════════════════════════════
+   TRIBOELECTRIC SERIES
+   Lower index = higher in series = more likely to LOSE electrons → positive charge
+   When A rubs B: if idx(A) < idx(B), A → positive, B → negative
+════════════════════════════════════ */
+const TRIBO = [
+  { id:'skin',    name:'人手 / 皮肤',   icon:'🖐️' },
+  { id:'glass',   name:'玻璃棒',        icon:'🔵' },
+  { id:'nylon',   name:'尼龙布',        icon:'🧵' },
+  { id:'wool',    name:'毛皮 / 羊毛',   icon:'🐑' },
+  { id:'silk',    name:'丝绸',          icon:'🎀' },
+  { id:'paper',   name:'纸张',          icon:'📄' },
+  { id:'cotton',  name:'棉布',          icon:'🌿' },
+  { id:'wood',    name:'木材',          icon:'🪵' },
+  { id:'rubber',  name:'橡胶棒',        icon:'⚫' },
+  { id:'plastic', name:'塑料',          icon:'🟣' },
+  { id:'comb',    name:'梳子',          icon:'🪮' },
+];
+
+function triboIdx(id) { return TRIBO.findIndex(t => t.id === id); }
+
+// Returns +1 if idA gets positive charge when rubbed against idB, -1 if negative
+function getCharge(idA, idB) {
+  return triboIdx(idA) < triboIdx(idB) ? '+' : '−';
+}
+
+/* ════════════════════════════════════
+   QUESTION BANKS
+════════════════════════════════════ */
+
+// ── PHASE 1: QUIZ (8 questions) ──
+const QUIZ_Q = [
+  {
+    q: '用塑料梳子梳头后，梳子能吸起小纸屑，这个现象叫什么？',
+    opts: ['热传导', '摩擦起电', '磁化作用'],
+    ans: 1,
+    hint: '摩擦使电子从头发转移到梳子，梳子带了电荷，这就是<hl>摩擦起电</hl>现象。'
+  },
+  {
+    q: '物体摩擦起电的本质是什么？',
+    opts: ['摩擦创造了新的电荷', '摩擦让原子核发生了转移', '电子从一个物体转移到另一个物体'],
+    ans: 2,
+    hint: '电荷守恒！摩擦不产生也不消灭电荷，只是让<hl>电子发生转移</hl>——哪边得到电子，哪边就带负电。'
+  },
+  {
+    q: '两个带正电的气球靠近时，它们会发生什么？',
+    opts: ['互相吸引', '互相排斥', '发生爆炸'],
+    ans: 1,
+    hint: '<hl>同种电荷互相排斥，异种电荷互相吸引</hl>——这是电荷最基本的规律！'
+  },
+  {
+    q: '摩擦起电后，失去电子的那个物体会带什么电？',
+    opts: ['负电', '正电', '不带电'],
+    ans: 1,
+    hint: '失去电子 → 正电荷数 > 负电荷数 → 带<hl>正电</hl>。得到电子的那个带负电。'
+  },
+  {
+    q: '秋冬干燥季节，我们更容易被门把手"电"到，原因是？',
+    opts: ['干燥空气导电性更好', '干燥空气中静电积累后不易释放', '金属门把手在冬天会自己发电'],
+    ans: 1,
+    hint: '水分能帮助静电悄悄散发。<hl>干燥时静电无处可逃，积累后一接触导体就猛烈放电！</hl>'
+  },
+  {
+    q: '天空中的闪电，本质上是？',
+    opts: ['云层反射阳光', '云层与空气摩擦积累大量电荷后的强烈放电', '水蒸气燃烧产生的光'],
+    ans: 1,
+    hint: '云层在大气中摩擦积累巨量电荷，当积累到空气无法"绝缘"时，电荷穿透空气猛烈释放，产生<hl>闪电</hl>。'
+  },
+  {
+    q: '给汽车喷漆时，让油漆带正电、车身带负电，油漆就能均匀吸附在车上。这利用了静电的什么原理？',
+    opts: ['同种电荷相互排斥', '异种电荷相互吸引', '电荷可以流动'],
+    ans: 1,
+    hint: '<hl>异种电荷相互吸引</hl>！正电荷的油漆被负电荷的车身牢牢吸住，喷涂更均匀。'
+  },
+  {
+    q: '油罐车尾部拖着一条金属铁链，它的作用是？',
+    opts: ['提醒后方车辆保持距离', '把车身静电引导入大地（接地）', '增加车重使刹车更稳'],
+    ans: 1,
+    hint: '这叫<hl>接地线</hl>——油罐车行驶时因摩擦积累静电，铁链把电荷安全导入大地，防止静电火花引爆燃油！'
+  },
+];
+
+// ── PHASE 2: LAB (6 questions) ──
+// labType A: "X rubs Y, what charge does X get?"  → answer: + or −
+// labType B: "You want X to get [charge], which material to rub it with?"
+// triboIds: subset of TRIBO ids to show in the mini table (rod + options shown)
+// rodId: the rod/object being charged
+// matIds: the material choices displayed
+// correctMatId: the correct material to pick (for type B)
+// targetCharge: the charge the rod should get
+
+const LAB_Q = [
+  {
+    // Type A: 玻璃棒 rubs 丝绸 → glass gets + (glass idx 1, silk idx 4 → glass loses e⁻ → +)
+    labType: 'A',
+    rodId: 'glass',
+    matId: 'silk',
+    triboIds: ['skin','glass','nylon','wool','silk','rubber'],
+    q: '用<b>丝绸</b>摩擦<b>玻璃棒</b>，玻璃棒会带什么电？',
+    hint: '在摩擦电序中，<hl>玻璃棒排在丝绸上方</hl>，更容易失去电子。摩擦后玻璃棒失去电子 → 带<hl>正电</hl>。'
+  },
+  {
+    // Type A: 橡胶棒 rubs 毛皮 → rubber gets − (rubber idx 8, wool idx 3 → rubber gains e⁻ → −)
+    labType: 'A',
+    rodId: 'rubber',
+    matId: 'wool',
+    triboIds: ['glass','nylon','wool','silk','cotton','rubber','plastic'],
+    q: '用<b>毛皮</b>摩擦<b>橡胶棒</b>，橡胶棒会带什么电？',
+    hint: '<hl>毛皮比橡胶棒排位更高</hl>（更容易失去电子）。摩擦时毛皮失去电子，橡胶棒获得电子 → 带<hl>负电</hl>。'
+  },
+  {
+    // Type B: 玻璃棒 target +, which of [wool, rubber, plastic, comb] to use?
+    // glass idx 1; wool idx 3 → glass loses → glass + ✅
+    // rubber idx 8 → glass loses → glass + ✅ BUT wool is closer/more classic
+    // plastic idx 9 → glass loses → + ✅
+    // comb idx 10 → glass loses → + ✅
+    // Trick: all options would make glass +?? Let me pick materials where some make glass − or neutral
+    // Need one option ABOVE glass in series to make glass −
+    // skin idx 0 < glass idx 1 → skin loses e⁻, glass gains → glass NEGATIVE ✅ as distractor
+    labType: 'B',
+    rodId: 'glass',
+    targetCharge: '+',
+    matIds: ['skin','nylon','silk','rubber'],
+    correctMatId: 'silk',
+    triboIds: ['skin','glass','nylon','wool','silk','cotton','rubber'],
+    q: '你想让<b>玻璃棒</b>带上<b style="color:var(--pos)">正电(+)</b>，应该用哪种材料来摩擦它？',
+    hint: '要让玻璃棒带正电，需要找一种在摩擦电序中<hl>排位比玻璃棒更低</hl>的材料（更难失去电子的），这样摩擦时玻璃棒失去电子。<hl>丝绸、尼龙、橡胶都排在玻璃棒下方，但人手排在玻璃棒上方</hl>，用人手摩擦反而会让玻璃棒带负电！'
+  },
+  {
+    // Type B: 橡胶棒 target −, which of [skin, glass, nylon, comb] ?
+    // rubber idx 8; skin idx 0 < rubber → rubber gains → rubber − ✅
+    // glass idx 1 < rubber → rubber gains → rubber − ✅
+    // nylon idx 2 < rubber → rubber gains → rubber − ✅
+    // comb idx 10 > rubber → rubber loses → rubber + ✗
+    // Need exactly ONE correct answer! Change to: nylon is correct, and add cotton(idx6)<rubber as distractor
+    // skin(0) ✓, glass(1) ✓, nylon(2) ✓ — TOO MANY
+    // Better: target + for rubber → need material BELOW rubber (idx > 8)
+    // plastic(9), comb(10) → rubber loses → rubber +
+    // Change to target +
+    labType: 'B',
+    rodId: 'rubber',
+    targetCharge: '+',
+    matIds: ['wool','cotton','plastic','glass'],
+    correctMatId: 'plastic',
+    triboIds: ['glass','wool','silk','cotton','wood','rubber','plastic','comb'],
+    q: '你想让<b>橡胶棒</b>带上<b style="color:var(--pos)">正电(+)</b>，应该用哪种材料来摩擦它？',
+    hint: '要让橡胶棒带正电，需要找排位<hl>比橡胶棒更低</hl>的材料（如塑料、梳子）。这样摩擦时橡胶棒失去电子带正电。<hl>毛皮、棉布、玻璃都排在橡胶棒上方</hl>，摩擦后只会让橡胶棒带负电！'
+  },
+  {
+    // Type A: 梳子 rubs 人手/皮肤 → comb gets − (comb idx 10, skin idx 0 → skin loses, comb gains → comb −)
+    labType: 'A',
+    rodId: 'comb',
+    matId: 'skin',
+    triboIds: ['skin','glass','nylon','wool','rubber','plastic','comb'],
+    q: '用<b>人手</b>摩擦<b>梳子</b>，梳子会带什么电？',
+    hint: '<hl>人手 / 皮肤排在摩擦电序的最顶端</hl>，极容易失去电子。摩擦后人手失去电子，梳子获得电子 → 带<hl>负电</hl>。这就是为什么梳头后梳子会吸头发！'
+  },
+  {
+    // Type B: 梳子 target −, which of [skin, glass, nylon, rubber] ?
+    // comb idx 10; skin(0) < comb → comb gains → − ✅
+    // glass(1) < comb → comb gains → − ✅
+    // nylon(2) < comb → comb gains → − ✅
+    // rubber(8) < comb → comb gains → − ✅
+    // ALL make comb −?? Need material BELOW comb — none in standard list except nothing
+    // Trick: use plastic(9) < comb(10) → comb −
+    // vs. nothing above comb... Let's change question: target + for comb
+    // Need material BELOW comb (idx > 10) — there isn't one in our list
+    // Better: use a different rod. Use nylon rod target +.
+    // nylon idx 2; need material BELOW nylon: wool(3)✓, silk(4)✓, rubber(8)✓, comb(10)✓
+    // Need exactly one. Let's make it a trickier set:
+    // opts: skin(0)→nylon loses→nylon + NO wait: skin(0) < nylon(2) → skin loses → nylon GAINS → nylon −
+    // opts for nylon+: wool(3)✓, silk(4)✓, cotton(6)✓, comb(10)✓ — still too many
+    // Use nylon target − instead: need material above nylon (idx < 2): skin(0), glass(1)
+    // opts: skin(0)✓, glass(1)✓, wool(3)✗, rubber(8)✗ — TWO correct answers
+    // Let me rethink: glass(idx1) target −. Need material above glass(idx<1): only skin(idx0)
+    // opts: skin(0)✓, nylon(2)✗, wool(3)✗, rubber(8)✗ → EXACTLY ONE ✅
+    labType: 'B',
+    rodId: 'glass',
+    targetCharge: '−',
+    matIds: ['skin','nylon','wool','rubber'],
+    correctMatId: 'skin',
+    triboIds: ['skin','glass','nylon','wool','silk','rubber'],
+    q: '你想让<b>玻璃棒</b>带上<b style="color:var(--neg)">负电(−)</b>，应该用哪种材料来摩擦它？',
+    hint: '要让玻璃棒带负电，需要找排位<hl>比玻璃棒更高</hl>（更容易失去电子）的材料。在摩擦电序中，<hl>只有人手/皮肤排在玻璃棒上方</hl>，其余材料全都在玻璃棒下方！'
+  },
+];
+
+/* ════════════════════════════════════
+   GAME STATE
+════════════════════════════════════ */
+let G = {};
+
+function initState() {
+  G = {
+    phase: 1,          // 1 or 2
+    idx: 0,            // question index within current phase
+    score: 0,
+    hp: 3,
+    combo: 0,
+    maxCombo: 0,
+    elapsed: 0,
+    timer: null,
+    ph1Correct: 0,
+    ph2Correct: 0,
+    totalCorrect: 0,
+  };
+}
+
+/* ════════════════════════════════════
+   UTILITIES
+════════════════════════════════════ */
+function $id(id) { return document.getElementById(id); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $id(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function flash(type) {
+  const el = $id('flash');
+  el.className = type; el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; el.className = ''; }, 280);
+}
+
+function updateHUD() {
+  $id('hud-hp').textContent  = '❤️'.repeat(G.hp) + '🖤'.repeat(3 - G.hp);
+  $id('hud-sc').textContent  = G.score;
+  $id('hud-tm').textContent  = G.elapsed + 's';
+
+  const combo = $id('hud-combo');
+  if (G.combo > 1) {
+    combo.textContent = G.combo + '连击!';
+    combo.style.display = 'inline-block';
+    combo.style.animation = 'none';
+    requestAnimationFrame(() => { combo.style.animation = 'comboBounce .45s ease'; });
+  } else {
+    combo.style.display = 'none';
+  }
+
+  const total = G.phase === 1 ? QUIZ_Q.length : LAB_Q.length;
+  $id('hud-phase-lbl').textContent = G.phase === 1 ? '第一阶段' : '第二阶段';
+  $id('hud-q-num').textContent = (G.idx + 1) + '/' + total;
+  $id('hud-prog').style.width = (G.idx / total * 100) + '%';
+}
+
+/* ════════════════════════════════════
+   PHASE FLOW
+════════════════════════════════════ */
+function startPhase1() {
+  initState();
+  G.timer = setInterval(() => { G.elapsed++; $id('hud-tm').textContent = G.elapsed + 's'; }, 1000);
+  G.phase = 1; G.idx = 0;
+  showScreen('game-screen');
+  renderQuestion();
+}
+
+function triggerPhase2() {
+//华仁中学蔡逸众制作
+  // Show phase 2 banner
+  $id('pb-icon').textContent = '🔬';
+  $id('pb-title').innerHTML  = '<span class="grad-text-cool">第二阶段：摩擦实验室</span>';
+  $id('pb-desc').textContent = '知识装备已就位！现在运用摩擦电序，亲手制造武器——分析6道实验题，消灭静电怪兽！';
+  const btn = $id('pb-btn');
+  btn.textContent = '进入实验室！';
+  btn.onclick = () => {
+    G.phase = 2; G.idx = 0;
+    showScreen('game-screen');
+    renderQuestion();
+  };
+  showScreen('phase-banner-screen');
+}
+
+/* ════════════════════════════════════
+   RENDER QUESTION
+════════════════════════════════════ */
+function renderQuestion() {
+  updateHUD();
+  const body = $id('game-body');
+
+  // phase finished?
+  if (G.phase === 1 && G.idx >= QUIZ_Q.length) { triggerPhase2(); return; }
+  if (G.phase === 2 && G.idx >= LAB_Q.length)  { endGame(); return; }
+
+  if (G.phase === 1) renderQuiz(body, QUIZ_Q[G.idx], G.idx);
+  else               renderLab(body,  LAB_Q[G.idx],  G.idx);
+}
+
+// ── QUIZ ──
+function renderQuiz(body, q, idx) {
+  body.innerHTML = `
+    <div class="q-card card">
+      <div class="q-meta">
+        <span class="pill pill-purple">⚡ 知识闯关</span>
+        <span class="q-num">第 ${idx+1} / ${QUIZ_Q.length} 题</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      <div class="opts" id="opts">
+        ${q.opts.map((o,i)=>`
+          <button class="opt-btn" onclick="answerQuiz(${i},this)">
+            <span class="opt-key">${String.fromCharCode(65+i)}</span>
+            ${o}
+          </button>`).join('')}
+      </div>
+      <div class="hint-box" id="hint"></div>
+    </div>`;
+}
+
+//Made by ecchua79
+// ── LAB ──
+function renderLab(body, q, idx) {
+  const rod = TRIBO.find(t => t.id === q.rodId);
+  const mat = q.labType === 'A' ? TRIBO.find(t => t.id === q.matId) : null;
+
+  // Build mini triboelectric table (only relevant entries)
+  const subset = q.triboIds.map(id => TRIBO.find(t => t.id === id));
+  const triboHTML = buildTriboMini(subset, q.rodId, null, null);
+
+  // Friction visual
+  const matDisplay = mat ? mat : { icon:'❓', name:'?' };
+  const fricHTML = `
+    <div class="friction-scene">
+      <div class="fric-obj">
+        <div class="fric-icon">${matDisplay.icon}</div>
+        <div class="fric-name">${matDisplay.name}</div>
+        <div class="fric-charge unk" id="mat-charge">?</div>
+      </div>
+      <div class="fric-arrow">↔</div>
+      <div class="fric-obj">
+        <div class="fric-icon">${rod.icon}</div>
+        <div class="fric-name">${rod.name}</div>
+        <div class="fric-charge unk" id="rod-charge">?</div>
+      </div>
+    </div>`;
+
+  let interactHTML = '';
+  if (q.labType === 'A') {
+    interactHTML = `
+      <div class="charge-ask">${q.q}</div>
+      <div class="charge-btns">
+        <button class="chg-btn pos-btn" onclick="answerLabA('+',this)">➕ 正电</button>
+        <button class="chg-btn neg-btn" onclick="answerLabA('−',this)">➖ 负电</button>
+      </div>`;
+  } else {
+    // Type B: pick material
+    const matBtns = q.matIds.map(mid => {
+      const m = TRIBO.find(t=>t.id===mid);
+      return `<button class="mat-btn" onclick="answerLabB('${mid}',this)">${m.icon} ${m.name}</button>`;
+    }).join('');
+    interactHTML = `
+      <div class="mat-ask">${q.q}</div>
+      <div class="mat-grid" id="mat-grid">${matBtns}</div>`;
+  }
+
+  body.innerHTML = `
+    <div class="q-card card">
+      <div class="q-meta">
+        <span class="pill pill-cyan">🔬 摩擦实验室</span>
+        <span class="q-num">第 ${idx+1} / ${LAB_Q.length} 题</span>
+      </div>
+      <div class="tribo-wrap">${triboHTML}</div>
+      ${fricHTML}
+      ${interactHTML}
+      <div class="hint-box" id="hint"></div>
+    </div>`;
+}
+
+/* Build mini triboelectric table */
+function buildTriboMini(subset, rodId, highlightPosId, highlightNegId) {
+  const rows = subset.map((item, i) => {
+    const isRod = item.id === rodId;
+    const isPH  = item.id === highlightPosId;
+    const isNH  = item.id === highlightNegId;
+    let rowCls = '';
+    let tagHTML = '';
+
+    if (isRod)  { rowCls = 'is-rod';  tagHTML = `<span class="tr-tag tag-rod">⚡ 棒</span>`; }
+    else if (isPH) { rowCls = 'is-correct-mat'; tagHTML = `<span class="tr-tag tag-pos">➕</span>`; }
+    else if (isNH) { rowCls = 'is-correct-mat'; tagHTML = `<span class="tr-tag tag-neg">➖</span>`; }
+    else { tagHTML = `<span class="tr-tag tag-unk" style="opacity:.3">·</span>`; }
+
+    const arrowHTML = i < subset.length-1 ? `<span style="font-size:9px;color:var(--muted)">↓</span>` : '';
+    return `<div class="tribo-row ${rowCls}">
+      <span class="tr-rank">${i+1}</span>
+      <span class="tr-name">${item.icon} ${item.name}</span>
+      ${tagHTML}
+      <span style="width:10px;text-align:center">${arrowHTML}</span>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="tribo-header">📊 摩擦电序（局部）<span style="font-size:10px;color:var(--muted);margin-left:4px;font-weight:400;">越靠上越容易失去电子（带正电）</span></div>
+    <div class="tribo-mini">
+      <div class="tribo-pole-labels">
+        <span class="lbl-pos">⬆ 正极端（容易失去电子）</span>
+        <span class="lbl-neg">负极端 ⬇</span>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+/* ════════════════════════════════════
+   ANSWER HANDLERS
+════════════════════════════════════ */
+//峇株吧辖蔡逸众制作
+
+function answerQuiz(idx, btn) {
+  document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  const q = QUIZ_Q[G.idx];
+  if (idx === q.ans) {
+    btn.classList.add('correct');
+    onCorrect(); flash('g');
+    setTimeout(next, 900);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.opt-btn')[q.ans].classList.add('correct');
+    onWrong(q.hint); flash('r');
+    if (G.hp > 0) setTimeout(next, 2700);
+  }
+}
+
+function answerLabA(charge, btn) {
+  document.querySelectorAll('.chg-btn').forEach(b => b.disabled = true);
+  const q = LAB_Q[G.idx];
+  const rod  = TRIBO.find(t => t.id === q.rodId);
+  const mat  = TRIBO.find(t => t.id === q.matId);
+  const correct = getCharge(q.rodId, q.matId);
+
+  // Update friction visual
+  const rodCharge = correct;
+  const matCharge = correct === '+' ? '−' : '+';
+  const rcEl = document.getElementById('rod-charge');
+  const mcEl = document.getElementById('mat-charge');
+  if (rcEl) { rcEl.textContent = rodCharge; rcEl.className = 'fric-charge ' + (rodCharge === '+' ? 'pos' : 'neg'); }
+  if (mcEl) { mcEl.textContent = matCharge; mcEl.className = 'fric-charge ' + (matCharge === '+' ? 'pos' : 'neg'); }
+
+  // Rebuild table with highlights
+  const subset = q.triboIds.map(id => TRIBO.find(t => t.id === id));
+  const posId = correct === '+' ? q.rodId : q.matId;
+  const negId = correct === '+' ? q.matId : q.rodId;
+  const tw = document.querySelector('.tribo-wrap');
+  if (tw) tw.innerHTML = buildTriboMini(subset, null, posId, negId);
+
+  if (charge === correct) {
+    btn.classList.add('correct'); onCorrect(); flash('g');
+    setTimeout(next, 1100);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.chg-btn').forEach(b => {
+      if ((b.classList.contains('pos-btn') && correct === '+') ||
+          (b.classList.contains('neg-btn') && correct === '−')) b.classList.add('correct');
+    });
+    onWrong(LAB_Q[G.idx].hint); flash('r');
+    if (G.hp > 0) setTimeout(next, 2800);
+  }
+}
+
+function answerLabB(matId, btn) {
+  document.querySelectorAll('.mat-btn').forEach(b => b.disabled = true);
+//峇株吧辖华仁中学蔡逸众制作
+  const q = LAB_Q[G.idx];
+  const rod = TRIBO.find(t => t.id === q.rodId);
+  const mat = TRIBO.find(t => t.id === matId);
+
+  // Update friction visual mat slot
+  const fricScene = document.querySelector('.friction-scene .fric-obj');
+  if (fricScene) {
+    fricScene.querySelector('.fric-icon').textContent = mat.icon;
+    fricScene.querySelector('.fric-name').textContent = mat.name;
+  }
+
+  // After selection, show the actual charges in friction visual
+  const actualRodCharge = getCharge(q.rodId, matId);
+  const actualMatCharge = actualRodCharge === '+' ? '−' : '+';
+  const rcEl = document.getElementById('rod-charge');
+  const mcEl = document.getElementById('mat-charge');
+  if (rcEl) { rcEl.textContent = actualRodCharge; rcEl.className = 'fric-charge ' + (actualRodCharge === '+' ? 'pos':'neg'); }
+  if (mcEl) { mcEl.textContent = actualMatCharge; mcEl.className = 'fric-charge ' + (actualMatCharge === '+' ? 'pos':'neg'); }
+
+  // Rebuild table with highlights for correct answer
+  const correctRodCharge = q.targetCharge;
+  const posId = correctRodCharge === '+' ? q.rodId : q.correctMatId;
+  const negId = correctRodCharge === '+' ? q.correctMatId : q.rodId;
+  const subset = q.triboIds.map(id => TRIBO.find(t => t.id === id));
+  const tw = document.querySelector('.tribo-wrap');
+  if (tw) tw.innerHTML = buildTriboMini(subset, null, posId, negId);
+
+  if (matId === q.correctMatId) {
+    btn.classList.add('correct'); onCorrect(); flash('g');
+    setTimeout(next, 1100);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.mat-btn').forEach(b => {
+      if (b.textContent.trim().includes(TRIBO.find(t=>t.id===q.correctMatId).name)) b.classList.add('correct');
+    });
+    onWrong(q.hint); flash('r');
+    if (G.hp > 0) setTimeout(next, 2800);
+  }
+}
+
+function onCorrect() {
+  G.combo++;
+  if (G.combo > G.maxCombo) G.maxCombo = G.combo;
+  G.score += 100 + Math.max(0, (G.combo-1)*30);
+  G.totalCorrect++;
+  if (G.phase === 1) G.ph1Correct++; else G.ph2Correct++;
+  updateHUD();
+}
+
+function onWrong(hintRaw) {
+  G.combo = 0; G.hp--;
+  // parse hint with <hl> tags
+  const hintFormatted = hintRaw.replace(/<hl>/g,'<span class="hl">').replace(/<\/hl>/g,'</span>');
+  const hintEl = $id('hint');
+  if (hintEl) { hintEl.innerHTML = '💡 ' + hintFormatted; hintEl.classList.add('show'); }
+  updateHUD();
+  if (G.hp <= 0) setTimeout(endGame, 2800);
+}
+
+function next() {
+  G.idx++;
+  renderQuestion();
+}
+
+/* ════════════════════════════════════
+   END GAME
+════════════════════════════════════ */
+function endGame() {
+  clearInterval(G.timer);
+  const total = QUIZ_Q.length + LAB_Q.length;
+  const pct = G.totalCorrect / total;
+
+  let emoji = '🎉', title = '任务完成！', sub = '你成功击退了静电怪兽！';
+  if (pct === 1)   { emoji = '🏆'; title = '完美通关！'; sub = '满分！你是终极静电特工！'; }
+  else if (pct >= .8) { emoji = '🌟'; title = '优秀表现！'; sub = '静电怪兽被大败！'; }
+  else if (pct < .5)  { emoji = '😅'; title = '继续加油！'; sub = '静电怪兽未被完全击退，再来一次！'; }
+
+  $id('r-emoji').textContent   = emoji;
+  $id('r-title').textContent   = title;
+  $id('r-sub').textContent     = sub;
+  $id('r-score').textContent   = G.score;
+  $id('r-correct').textContent = G.totalCorrect + '/' + total;
+  $id('r-time').textContent    = G.elapsed + 's';
+  $id('r-combo').textContent   = G.maxCombo;
+  $id('r-ph1').textContent     = G.ph1Correct + '/' + QUIZ_Q.length;
+  $id('r-ph2').textContent     = G.ph2Correct + '/' + LAB_Q.length;
+
+  const achs = [];
+  if (G.totalCorrect === total)          achs.push('🌟 满分达人');
+  if (G.maxCombo >= 5)                   achs.push('🔥 连击王 ×' + G.maxCombo);
+  if (G.elapsed < 120)                   achs.push('⚡ 极速特工');
+  if (G.hp === 3)                        achs.push('🛡️ 无伤通关');
+  if (G.ph2Correct === LAB_Q.length)     achs.push('🔬 实验室大师');
+  if (G.ph1Correct === QUIZ_Q.length)    achs.push('🧠 知识达人');
+
+  $id('r-achs').innerHTML = achs.map(a=>`<span class="ach-chip">${a}</span>`).join('');
+
+  showScreen('result-screen');
+}
+
+/* ════════════════════════════════════
+   CERTIFICATE
+════════════════════════════════════ */
+//华仁中学蔡逸众制作
+
+function generateCert() {
+  const name   = $id('name-inp').value.trim() || '神秘特工';
+  const canvas = $id('certCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = 540, H = 920;
+  canvas.width = W; canvas.height = H;
+
+  // Background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0,   '#07091a');
+  bgGrad.addColorStop(.5,  '#0f142a');
+  bgGrad.addColorStop(1,   '#07091a');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+  // Cosmic glow blobs
+  const g1 = ctx.createRadialGradient(120, 120, 0, 120, 120, 220);
+  g1.addColorStop(0, 'rgba(99,102,241,.22)'); g1.addColorStop(1, 'transparent');
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+  const g2 = ctx.createRadialGradient(W-100, H-100, 0, W-100, H-100, 200);
+  g2.addColorStop(0, 'rgba(34,211,238,.15)'); g2.addColorStop(1, 'transparent');
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  for (let i = 0; i < 90; i++) {
+    ctx.beginPath();
+    ctx.arc(Math.random()*W, Math.random()*H, Math.random()*1.3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Gold border (double)
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+  ctx.strokeRect(16, 16, W-32, H-32);
+  ctx.strokeStyle = 'rgba(245,158,11,.25)'; ctx.lineWidth = 1;
+  ctx.strokeRect(22, 22, W-44, H-44);
+
+  // Top / bottom accent strip
+  const strip = ctx.createLinearGradient(30, 0, W-30, 0);
+  strip.addColorStop(0, '#6366f1'); strip.addColorStop(1, '#22d3ee');
+  ctx.fillStyle = strip;
+  ctx.fillRect(28, 28, W-56, 5);
+  ctx.fillRect(28, H-33, W-56, 5);
+
+  // Corner bolts
+  ['left','right'].forEach(h => ['top','bottom'].forEach(v => {
+    const x = h==='left' ? 55 : W-55;
+    const y = v==='top'  ? 55 : H-55;
+    ctx.font = '30px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.globalAlpha = .18; ctx.fillStyle='#f59e0b';
+    ctx.fillText('⚡', x, y);
+  }));
+  ctx.globalAlpha = 1;
+
+  // School
+  ctx.textAlign = 'center'; ctx.font = 'bold 13px sans-serif';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText('峇株吧辖华仁中学 · 初中科学', W/2, 72);
+
+  // Main title
+  const titleGrad = ctx.createLinearGradient(W/2-130, 0, W/2+130, 0);
+  titleGrad.addColorStop(0, '#f59e0b'); titleGrad.addColorStop(1, '#fb923c');
+  ctx.fillStyle = titleGrad;
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillText('🏆  荣誉特工证书', W/2, 122);
+
+  ctx.font = '13px sans-serif'; ctx.fillStyle = '#475569';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT', W/2, 148);
+
+  // Divider
+  ctx.strokeStyle = 'rgba(245,158,11,.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(70,165); ctx.lineTo(W-70,165); ctx.stroke();
+
+  // "This certifies"
+  ctx.font = '15px sans-serif'; ctx.fillStyle = '#94a3b8';
+  ctx.fillText('特此证明', W/2, 196);
+
+  // Name
+  ctx.font = 'bold 40px sans-serif'; ctx.fillStyle = '#e2e8f0';
+  ctx.fillText(name, W/2, 250);
+  const nw = ctx.measureText(name).width;
+  const nameGrad = ctx.createLinearGradient(W/2-nw/2, 0, W/2+nw/2, 0);
+  nameGrad.addColorStop(0,'#6366f1'); nameGrad.addColorStop(1,'#22d3ee');
+  ctx.strokeStyle = nameGrad; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2, 262); ctx.lineTo(W/2+nw/2, 262); ctx.stroke();
+
+  // Description
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#cbd5e1';
+  const desc = [
+    '在《静电怪兽大作战 3.0》中完成知识闯关与',
+    '摩擦实验室双阶段挑战，展现出对',
+    '静电产生、摩擦电序分析与实际应用的掌握！',
+  ];
+  desc.forEach((l, i) => ctx.fillText(l, W/2, 295 + i*26));
+
+  // Divider 2
+  ctx.strokeStyle='rgba(245,158,11,.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(70,385); ctx.lineTo(W-70,385); ctx.stroke();
+
+  // Phase score boxes
+  const phases = [
+    { lbl:'🧠 知识闯关', val: G.ph1Correct + '/' + QUIZ_Q.length, x: 120 },
+    { lbl:'🔬 摩擦实验室', val: G.ph2Correct + '/' + LAB_Q.length,  x: 380 },
+  ];
+  phases.forEach(p => {
+    ctx.fillStyle = 'rgba(30,45,80,.7)';
+    rr(ctx, p.x-90, 398, 180, 70, 10); ctx.fill();
+    ctx.strokeStyle = 'rgba(99,102,241,.3)'; ctx.lineWidth=1;
+    rr(ctx, p.x-90, 398, 180, 70, 10); ctx.stroke();
+
+    ctx.font = '11px sans-serif'; ctx.fillStyle = '#94a3b8'; ctx.textAlign='center';
+    ctx.fillText(p.lbl, p.x, 420);
+    ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#fcd34d';
+    ctx.fillText(p.val, p.x, 452);
+  });
+
+  // Main stats box
+  ctx.fillStyle = 'rgba(21,30,53,.8)';
+  rr(ctx, 50, 490, W-100, 165, 12); ctx.fill();
+  ctx.strokeStyle = 'rgba(30,45,80,1)'; ctx.lineWidth = 1.5;
+  rr(ctx, 50, 490, W-100, 165, 12); ctx.stroke();
+
+  const stats = [
+    ['⭐ 总得分',   G.score],
+    ['✅ 答对题数', G.totalCorrect + ' / ' + (QUIZ_Q.length+LAB_Q.length)],
+    ['⏱️ 总用时',   G.elapsed + ' 秒'],
+    ['🔥 最大连击', G.maxCombo],
+  ];
+  stats.forEach((s, i) => {
+    const col = i % 2, row = Math.floor(i/2);
+    const bx = 105 + col*240, by = 525 + row*80;
+    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#64748b'; ctx.textAlign='left';
+    ctx.fillText(s[0], bx, by);
+    ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#fcd34d';
+    ctx.fillText(s[1], bx, by+30);
+  });
+
+  // Achievements
+  const achs = [];
+  const total = QUIZ_Q.length + LAB_Q.length;
+  if (G.totalCorrect === total)      achs.push('🌟 满分达人');
+  if (G.maxCombo >= 5)               achs.push('🔥 连击王');
+  if (G.elapsed < 120)               achs.push('⚡ 极速特工');
+  if (G.hp === 3)                    achs.push('🛡️ 无伤通关');
+  if (G.ph2Correct === LAB_Q.length) achs.push('🔬 实验室大师');
+  if (achs.length) {
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#64748b'; ctx.textAlign='center';
+    ctx.fillText('成就徽章', W/2, 685);
+    ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#a5b4fc';
+    ctx.fillText(achs.join('  '), W/2, 710);
+  }
+
+  // Encouragement
+  const pct = G.totalCorrect / total;
+  const enc = pct===1 ? '完美通关！你是真正的静电大师！' :
+              pct>=.8 ? '优秀！科学知识掌握扎实！' : '加油！下次一定更出色！';
+  const encG = ctx.createLinearGradient(W/2-110,0,W/2+110,0);
+  encG.addColorStop(0,'#6366f1'); encG.addColorStop(1,'#22d3ee');
+  ctx.fillStyle = encG; ctx.font = 'bold 19px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(enc, W/2, 745);
+
+  // Date
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#475569';
+  ctx.fillText('签发日期：' + new Date().toLocaleDateString('zh-CN'), W/2, 775);
+
+  ctx.strokeStyle='rgba(245,158,11,.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(70,795); ctx.lineTo(W-70,795); ctx.stroke();
+
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#334155';
+  ctx.fillText('蔡逸众 · 峇株吧辖华仁中学 · Made by ecchua79', W/2, 825);
+
+  showScreen('cert-screen');
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+function dlCert() {
+  const nm = $id('name-inp').value.trim() || '神秘特工';
+  const a  = document.createElement('a');
+  a.download = `静电特工证书_${nm}.png`;
+  a.href = $id('certCanvas').toDataURL('image/png');
+  a.click();
+}
+
+//Made by ecchua79
+</script>
+</body>
+</html>
