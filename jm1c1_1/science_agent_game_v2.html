@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>科学特工：实验室危机 2.0</title>
+<!--//峇株吧辖华仁中学蔡逸众制作-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+:root {
+  --neon-blue: #00d4ff;
+  --neon-green: #00ff9f;
+  --neon-red: #ff3366;
+  --neon-yellow: #ffdd00;
+  --neon-purple: #bf5fff;
+  --bg-dark: #050a18;
+  --bg-card: rgba(10, 20, 40, 0.92);
+  --border-glow: rgba(0, 212, 255, 0.4);
+  --text-main: #e8f4ff;
+  --text-dim: #7090a0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg-dark);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  color: var(--text-main);
+}
+
+/* ── 粒子背景 ── */
+#particle-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── 主容器 ── */
+#game-wrap {
+  position: relative;
+  z-index: 1;
+  width: 94%;
+  max-width: 620px;
+  padding: 6px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  border-radius: 20px;
+  padding: 32px 28px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.04), transparent);
+  animation: scanline 4s linear infinite;
+}
+@keyframes scanline { to { left: 200%; } }
+
+/* ── 屏幕切换 ── */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeSlideIn 0.4s ease; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════ 开始界面 ══════════ */
+.logo-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.mission-brief {
+  background: rgba(0, 212, 255, 0.06);
+  border-left: 3px solid var(--neon-blue);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #aac8d8;
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.difficulty-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.diff-btn {
+  flex: 1;
+  max-width: 130px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1.5px solid;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.25s;
+  color: white;
+}
+
+.diff-btn[data-diff="easy"]   { border-color: var(--neon-green); color: var(--neon-green); }
+.diff-btn[data-diff="normal"] { border-color: var(--neon-yellow); color: var(--neon-yellow); }
+.diff-btn[data-diff="hard"]   { border-color: var(--neon-red); color: var(--neon-red); }
+
+.diff-btn.selected[data-diff="easy"]   { background: rgba(0,255,159,0.15); box-shadow: 0 0 16px rgba(0,255,159,0.3); }
+.diff-btn.selected[data-diff="normal"] { background: rgba(255,221,0,0.15);  box-shadow: 0 0 16px rgba(255,221,0,0.3); }
+.diff-btn.selected[data-diff="hard"]   { background: rgba(255,51,102,0.15); box-shadow: 0 0 16px rgba(255,51,102,0.3); }
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #0077ff, #00ccff);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: all 0.25s;
+  box-shadow: 0 6px 24px rgba(0, 180, 255, 0.35);
+}
+.start-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0, 180, 255, 0.5); }
+
+/* ══════════ 游戏界面 ══════════ */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hud-pill {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-pill .val {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.hp-val   { color: var(--neon-red); }
+.score-val { color: var(--neon-green); }
+.combo-val { color: var(--neon-yellow); }
+.level-val { color: var(--neon-blue); }
+
+/* 计时条 */
+.timer-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+  transition: width 0.1s linear, background 0.5s;
+}
+
+.timer-bar.urgent { background: linear-gradient(90deg, var(--neon-red), #ff8800); }
+
+/* 题目区 */
+.q-label {
+  font-size: 0.72rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--neon-blue);
+  margin-bottom: 8px;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.q-box {
+  background: rgba(0, 180, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  min-height: 76px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* 选项按钮 */
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.opt-btn {
+  padding: 13px 10px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0, 212, 255, 0.25);
+  background: rgba(0, 212, 255, 0.04);
+  color: var(--text-main);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.opt-btn:hover:not(:disabled) {
+  border-color: var(--neon-blue);
+  background: rgba(0, 212, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.opt-btn.correct {
+  border-color: var(--neon-green) !important;
+  background: rgba(0, 255, 159, 0.18) !important;
+  color: var(--neon-green) !important;
+  box-shadow: 0 0 18px rgba(0, 255, 159, 0.3);
+}
+
+.opt-btn.wrong {
+  border-color: var(--neon-red) !important;
+  background: rgba(255, 51, 102, 0.18) !important;
+  color: var(--neon-red) !important;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* Combo 爆炸动画 */
+.combo-pop {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px rgba(255,221,0,0.8);
+  pointer-events: none;
+  animation: comboPop 0.8s ease forwards;
+  z-index: 50;
+  white-space: nowrap;
+}
+@keyframes comboPop {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+  50%  { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+}
+
+/* 反馈提示条 */
+.feedback-bar {
+  background: rgba(255, 51, 102, 0.12);
+  border: 1px solid var(--neon-red);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #ffaabb;
+  margin-bottom: 14px;
+  display: none;
+  text-align: left;
+}
+
+.feedback-bar.show { display: block; animation: fadeSlideIn 0.3s ease; }
+
+.next-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #0055cc, #0099ff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  display: none;
+}
+.next-btn.show { display: block; }
+.next-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,150,255,0.4); }
+
+/* ══════════ 进度条（关卡） ══════════ */
+.progress-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.prog-dot {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  transition: background 0.4s;
+}
+.prog-dot.done  { background: var(--neon-green); }
+.prog-dot.wrong { background: var(--neon-red); }
+.prog-dot.cur   { background: var(--neon-blue); animation: pulse 1s ease infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ══════════ 结算界面 ══════════ */
+.end-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.stat-tile {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px 10px;
+  text-align: center;
+}
+
+.stat-tile .num {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: block;
+}
+
+.stat-tile .lbl {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-top: 4px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.badge {
+  background: rgba(255,221,0,0.12);
+  border: 1.5px solid var(--neon-yellow);
+  color: var(--neon-yellow);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* 姓名输入 */
+.name-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.name-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(0, 212, 255, 0.35);
+  border-radius: 12px;
+  color: var(--text-main);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.25s;
+}
+.name-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 12px rgba(0,212,255,0.2); }
+.name-input::placeholder { color: var(--text-dim); }
+
+.cert-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #1a0066, #6600cc, #9900ff);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  transition: all 0.25s;
+  box-shadow: 0 6px 24px rgba(150, 0, 255, 0.35);
+}
+.cert-btn:hover { transform: translateY(-2px); }
+
+.replay-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.replay-btn:hover { color: white; border-color: rgba(255,255,255,0.3); }
+
+/* ══════════ 证书界面 ══════════ */
+#cert-canvas-wrap {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+#cert-canvas {
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(150, 0, 255, 0.4);
+}
+
+.dl-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #00aa55, #00ff9f);
+  color: #003322;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  transition: all 0.25s;
+  box-shadow: 0 6px 24px rgba(0, 255, 159, 0.35);
+}
+.dl-btn:hover { transform: translateY(-2px); }
+
+/* ══════════ 通用工具 ══════════ */
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--neon-blue);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.watermark-credit {
+  font-size: 0.65rem;
+  color: rgba(0, 212, 255, 0.18);
+  text-align: center;
+  margin-top: 20px;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 420px) {
+  .card { padding: 22px 16px; }
+  .options-grid { grid-template-columns: 1fr; }
+  .end-stat-grid { grid-template-columns: 1fr 1fr; }
+  .diff-btn { font-size: 0.78rem; padding: 10px 6px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<div id="game-wrap">
+<div class="card">
+
+  <!-- ══ 开始界面 ══ -->
+  <div id="start-screen" class="screen active">
+    <div style="text-align:center; margin-bottom: 24px;">
+      <div style="font-size: 2.8rem; margin-bottom: 8px;">🧪</div>
+      <div class="logo-badge">科学特工</div>
+      <div class="logo-badge" style="font-size: clamp(1.1rem,3.5vw,1.6rem);">实验室危机 2.0</div>
+      <div class="subtitle">SCIENCE AGENT CRISIS</div>
+    </div>
+
+    <div class="mission-brief">
+      ⚡ <b>任务简报：</b>实验室遭受入侵，恶棍已篡改仪器数据！
+      特工，你必须运用科学知识，答对题目，恢复系统。
+      每道题对应一道防线——答错就会损失生命值！
+    </div>
+
+    <div style="font-size: 0.82rem; color: var(--text-dim); text-align:center; margin-bottom: 12px; letter-spacing: 2px;">选择难度</div>
+    <div class="difficulty-row">
+      <button class="diff-btn selected" data-diff="easy" onclick="selectDiff(this)">🟢 新手<br><span style="font-size:0.72rem;opacity:0.7">20秒/题</span></button>
+      <button class="diff-btn" data-diff="normal" onclick="selectDiff(this)">🟡 普通<br><span style="font-size:0.72rem;opacity:0.7">15秒/题</span></button>
+      <button class="diff-btn" data-diff="hard" onclick="selectDiff(this)">🔴 硬核<br><span style="font-size:0.72rem;opacity:0.7">10秒/题</span></button>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">▶ 开始任务</button>
+    <div class="watermark-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+  </div>
+
+  <!-- ══ 游戏界面 ══ -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-pill">🎯 LEVEL <span class="val level-val" id="hud-level">1</span></div>
+      <div class="hud-pill">❤️ <span class="val hp-val" id="hud-hp">3</span></div>
+      <div class="hud-pill">⭐ <span class="val score-val" id="hud-score">0</span></div>
+      <div class="hud-pill">🔥 ×<span class="val combo-val" id="hud-combo">1</span></div>
+    </div>
+
+    <div class="progress-row" id="prog-row"></div>
+
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <div class="q-label" id="q-type-label">MISSION QUESTION</div>
+    <div class="q-box" id="q-text">正在加载任务...</div>
+
+    <div class="options-grid" id="opts"></div>
+
+    <div class="feedback-bar" id="feedback-bar">
+      <b>🧠 特工提示：</b> <span id="feedback-msg"></span>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">继续任务 →</button>
+  </div>
+
+  <!-- ══ 结算界面 ══ -->
+  <div id="end-screen" class="screen">
+    <div class="section-title" style="margin-bottom: 2px;">🏁 任务报告</div>
+    <div style="font-size:0.8rem; color:var(--text-dim); text-align:center; margin-bottom: 16px; letter-spacing:2px;">MISSION COMPLETE</div>
+
+    <div class="end-stat-grid">
+      <div class="stat-tile"><span class="num score-val" id="end-score">0</span><span class="lbl">总分</span></div>
+      <div class="stat-tile"><span class="num" style="color:var(--neon-blue)" id="end-correct">0/10</span><span class="lbl">正确率</span></div>
+      <div class="stat-tile"><span class="num" style="color:var(--neon-yellow)" id="end-combo">×1</span><span class="lbl">最高 Combo</span></div>
+      <div class="stat-tile"><span class="num" style="color:var(--neon-purple)" id="end-time">0s</span><span class="lbl">用时</span></div>
+    </div>
+
+    <div class="badge-row" id="badge-row"></div>
+
+    <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 10px; text-align:center;">输入特工代号，领取专属证书</div>
+    <div class="name-wrap">
+      <input class="name-input" type="text" id="player-name" placeholder="✏️ 输入你的名字..." maxlength="20">
+    </div>
+    <button class="cert-btn" onclick="generateCert()">🏆 领取特工证书</button>
+    <button class="replay-btn" onclick="location.reload()">↺ 再次挑战</button>
+  </div>
+
+  <!-- ══ 证书界面 ══ -->
+  <div id="cert-screen" class="screen">
+    <div class="section-title" style="margin-bottom: 16px;">🎖️ 荣誉证书</div>
+    <div id="cert-canvas-wrap">
+      <canvas id="cert-canvas" width="540" height="760"></canvas>
+    </div>
+    <button class="dl-btn" onclick="downloadCert()">⬇ 下载证书 PNG</button>
+    <button class="replay-btn" onclick="location.reload()">↺ 再次挑战</button>
+  </div>
+
+</div><!-- /card -->
+</div><!-- /game-wrap -->
+
+<!--//华仁中学蔡逸众制作-->
+<script>
+// ════════════════════════════════════
+// 粒子背景
+// ════════════════════════════════════
+(function(){
+  const c = document.getElementById('particle-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, particles=[];
+  function resize(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  for(let i=0;i<70;i++) particles.push({
+    x: Math.random()*1920, y: Math.random()*1080,
+    r: Math.random()*1.5+0.3, vx: (Math.random()-0.5)*0.35, vy: (Math.random()-0.5)*0.35,
+    a: Math.random()
+  });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      p.a += 0.008;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(0,212,255,${0.25+0.2*Math.sin(p.a)})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════
+// 题库
+// ════════════════════════════════════
+const BANK = [
+  {
+    q: "科学家在实验前，先根据观察提出一个初步的解释，这叫做：",
+    opts: ["提出假设", "收集数据", "得出结论", "分析结果"],
+    ans: 0,
+    hint: "假设是'大胆的猜测'——要在实验前提出，然后再用实验去验证！",
+    type: "概念题"
+  },
+  {
+    q: "实验室发生化学品烫伤，第一步应该：",
+    opts: ["涂抹牙膏止痛", "用大量冷水冲洗", "立刻贴胶布", "涂食用油保护"],
+    ans: 1,
+    hint: "记住口诀：冲→脱→泡→盖→送。第一步永远是冷水冲洗！",
+    type: "安全题"
+  },
+  {
+    q: "精密电子仪器旁发生小火灾，最合适用哪种灭火器？",
+    opts: ["水桶", "泡沫灭火器", "二氧化碳灭火器", "沙子"],
+    ans: 2,
+    hint: "二氧化碳灭火后不留残余物，不会损坏精密零件，是实验室首选！",
+    type: "安全题"
+  },
+  {
+    q: "宇航员飞到月球，下面哪项不会改变？",
+    opts: ["体重（重量）", "质量", "所受重力", "体积变化"],
+    ans: 1,
+    hint: "质量 = 物体含有的物质多少，位置变了，物质没变，所以质量不变！",
+    type: "物理题"
+  },
+  {
+    q: "27°C 换算成开尔文（K）等于多少？",
+    opts: ["27 K", "100 K", "300 K", "373 K"],
+    ans: 2,
+    hint: "公式：K = °C + 273，所以 27 + 273 = 300 K。很简单！",
+    type: "计算题"
+  },
+  {
+    q: "国际单位制（SI）中，质量的基本单位是：",
+    opts: ["克（g）", "千克（kg）", "公吨（t）", "毫克（mg）"],
+    ans: 1,
+    hint: "虽然日常用克，但 SI 规定的质量基本单位是千克（kg）！",
+    type: "概念题"
+  },
+  {
+    q: "看到这个标识'骷髅头和交叉骨'，代表该物质：",
+    opts: ["易燃", "有腐蚀性", "有毒", "易爆炸"],
+    ans: 2,
+    hint: "骷髅头标识代表剧毒！千万不能触碰或闻气味！",
+    type: "安全题"
+  },
+  {
+    q: "要测量一颗不规则小石头的体积，最准确的方法是：",
+    opts: ["用直尺量长宽高", "排水法（量筒）", "用秤称质量换算", "直接用眼睛估"],
+    ans: 1,
+    hint: "排水法：把石头放进量筒，上升的水位差就是石头的体积！",
+    type: "实验题"
+  },
+  {
+    q: "'想要了解新事物是如何运作的'这种态度在科学中称为：",
+    opts: ["责任感", "诚实", "开明的态度", "好奇心"],
+    ans: 3,
+    hint: "好奇心是科学的起点！牛顿因为好奇苹果为什么落下，才发现了万有引力！",
+    type: "概念题"
+  },
+  {
+    q: "下面哪项是'观察'而不是'推断'？",
+    opts: ["这块石头很古老", "这朵花是红色的", "这只鸟很饿了", "水里一定有鱼"],
+    ans: 1,
+    hint: "观察 = 用感官直接感知；推断 = 基于观察的解释。颜色可以直接看到！",
+    type: "思维题"
+  },
+  {
+    q: "科学实验中，变量分为'自变量'和'因变量'。下面实验：'增加光照强度，看植物生长速度的变化'。自变量是：",
+    opts: ["植物生长速度", "光照强度", "植物的种类", "土壤湿度"],
+    ans: 1,
+    hint: "自变量 = 你主动改变的那个。你主动改变了光照强度，所以它是自变量！",
+    type: "思维题"
+  },
+  {
+    q: "实验结束后，以下哪项实验室规则是错误的？",
+    opts: ["洗手后才能离开", "把废液倒入水槽", "收好仪器报告损坏", "关闭水电和气"],
+    ans: 1,
+    hint: "废液不能直接倒入水槽！应按规定收集处理，避免污染环境！",
+    type: "安全题"
+  }
+];
+
+// ════════════════════════════════════
+// 游戏状态
+// ════════════════════════════════════
+let state = {
+  diff: 'easy',
+  timeLimit: 20,
+  questions: [],
+  idx: 0,
+  score: 0,
+  hp: 3,
+  combo: 1,
+  maxCombo: 1,
+  correctCount: 0,
+  wrongLog: [],
+  timerInterval: null,
+  timerVal: 0,
+  startTime: null,
+  answered: false,
+  currentAns: 0
+};
+
+// ════════════════════════════════════
+// 难度选择
+// ════════════════════════════════════
+function selectDiff(btn) {
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.diff = btn.dataset.diff;
+  state.timeLimit = { easy:20, normal:15, hard:10 }[state.diff];
+}
+
+// ════════════════════════════════════
+// 开始游戏
+// ════════════════════════════════════
+function startGame() {
+  state.questions = shuffle([...BANK]).slice(0, 10);
+  state.idx = 0;
+  state.score = 0;
+  state.hp = 3;
+  state.combo = 1;
+  state.maxCombo = 1;
+  state.correctCount = 0;
+  state.wrongLog = [];
+  state.startTime = Date.now();
+
+  buildProgressDots();
+  showScreen('game-screen');
+  loadQuestion();
+}
+
+// ════════════════════════════════════
+// 进度条
+// ════════════════════════════════════
+function buildProgressDots() {
+  const row = document.getElementById('prog-row');
+  row.innerHTML = '';
+  for (let i = 0; i < state.questions.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'prog-dot' + (i === 0 ? ' cur' : '');
+    d.id = 'dot-' + i;
+    row.appendChild(d);
+  }
+}
+
+function updateDot(idx, status) {
+  const d = document.getElementById('dot-' + idx);
+  if (d) { d.className = 'prog-dot ' + status; }
+}
+
+// ════════════════════════════════════
+// 加载题目
+// ════════════════════════════════════
+function loadQuestion() {
+  if (state.idx >= state.questions.length || state.hp <= 0) {
+    endGame(); return;
+  }
+
+  state.answered = false;
+  const q = state.questions[state.idx];
+
+  document.getElementById('q-type-label').textContent = `Q${state.idx+1}/10 · ${q.type}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('feedback-bar').classList.remove('show');
+  document.getElementById('next-btn').classList.remove('show');
+
+  if (state.idx > 0) updateDot(state.idx, 'cur');
+
+  // 选项随机排列，同时追踪正确答案的新位置
+  const optIndices = shuffle([0, 1, 2, 3].slice(0, q.opts.length));
+  state.currentAns = optIndices.indexOf(q.ans);
+
+  const grid = document.getElementById('opts');
+  grid.innerHTML = '';
+  optIndices.forEach((origIdx, displayIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = q.opts[origIdx];
+    btn.onclick = () => checkAnswer(displayIdx, btn);
+    grid.appendChild(btn);
+  });
+
+  updateHUD();
+  startTimer();
+}
+
+// ════════════════════════════════════
+// 计时器
+// ════════════════════════════════════
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timerVal = state.timeLimit;
+  const bar = document.getElementById('timer-bar');
+  bar.style.width = '100%';
+  bar.classList.remove('urgent');
+
+  state.timerInterval = setInterval(() => {
+    state.timerVal -= 0.1;
+    const pct = (state.timerVal / state.timeLimit) * 100;
+    bar.style.width = Math.max(0, pct) + '%';
+    if (pct < 30) bar.classList.add('urgent');
+
+    if (state.timerVal <= 0) {
+      clearInterval(state.timerInterval);
+      if (!state.answered) timeOut();
+    }
+  }, 100);
+}
+
+function timeOut() {
+  state.answered = true;
+  state.hp--;
+  state.combo = 1;
+  updateHUD();
+  markAllBtns();
+  document.getElementById('feedback-msg').textContent = '⏰ 时间到！' + state.questions[state.idx].hint;
+  document.getElementById('feedback-bar').classList.add('show');
+  document.getElementById('next-btn').classList.add('show');
+  updateDot(state.idx, 'wrong');
+  state.wrongLog.push(state.idx);
+  if (state.hp <= 0) { setTimeout(endGame, 1500); return; }
+}
+
+// ════════════════════════════════════
+// 检查答案
+// ════════════════════════════════════
+function checkAnswer(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  clearInterval(state.timerInterval);
+
+  const q = state.questions[state.idx];
+  const allBtns = document.querySelectorAll('.opt-btn');
+
+  if (idx === state.currentAns) {
+    btn.classList.add('correct');
+    // 分数：基础100 + 速度奖励 + Combo
+    const speedBonus = Math.floor(state.timerVal / state.timeLimit * 50);
+    const gain = (100 + speedBonus) * state.combo;
+    state.score += gain;
+    state.correctCount++;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    updateDot(state.idx, 'done');
+
+    if (state.combo >= 3) showComboPop();
+    setTimeout(() => nextQuestion(), 600);
+  } else {
+    btn.classList.add('wrong');
+    allBtns[state.currentAns].classList.add('correct');
+    state.hp--;
+    state.combo = 1;
+    updateDot(state.idx, 'wrong');
+    state.wrongLog.push(state.idx);
+    document.getElementById('feedback-msg').textContent = q.hint;
+    document.getElementById('feedback-bar').classList.add('show');
+    document.getElementById('next-btn').classList.add('show');
+    if (state.hp <= 0) { setTimeout(endGame, 1600); }
+  }
+
+  allBtns.forEach(b => b.disabled = true);
+  updateHUD();
+}
+
+function markAllBtns() {
+  const allBtns = document.querySelectorAll('.opt-btn');
+  allBtns.forEach(b => b.disabled = true);
+  allBtns[state.currentAns].classList.add('correct');
+}
+
+// ════════════════════════════════════
+// Combo 动画
+// ════════════════════════════════════
+function showComboPop() {
+  const card = document.querySelector('.card');
+  const pop = document.createElement('div');
+  pop.className = 'combo-pop';
+  pop.textContent = `🔥 COMBO ×${state.combo}!`;
+  card.appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+}
+
+// ════════════════════════════════════
+// 更新 HUD
+// ════════════════════════════════════
+function updateHUD() {
+  document.getElementById('hud-level').textContent = state.idx + 1;
+  document.getElementById('hud-hp').textContent = state.hp;
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-combo').textContent = state.combo;
+}
+
+// ════════════════════════════════════
+// 下一题
+// ════════════════════════════════════
+function nextQuestion() {
+  state.idx++;
+  loadQuestion();
+}
+
+// ════════════════════════════════════
+// 结束游戏
+// ════════════════════════════════════
+function endGame() {
+  clearInterval(state.timerInterval);
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+
+  document.getElementById('end-score').textContent = state.score;
+  document.getElementById('end-correct').textContent = `${state.correctCount}/${state.questions.length}`;
+  document.getElementById('end-combo').textContent = '×' + state.maxCombo;
+  document.getElementById('end-time').textContent = elapsed + 's';
+
+  // 成就徽章
+  const badges = [];
+  if (state.hp === 3) badges.push('🛡️ 零失误');
+  if (state.correctCount === state.questions.length) badges.push('🎯 满分达人');
+  if (state.maxCombo >= 5) badges.push('🔥 连击王 ×5');
+  if (elapsed < 60) badges.push('⚡ 极速特工');
+  if (state.score >= 1500) badges.push('💎 高分精英');
+  if (badges.length === 0) badges.push('💪 继续加油！');
+
+  const row = document.getElementById('badge-row');
+  row.innerHTML = badges.map(b => `<span class="badge">${b}</span>`).join('');
+
+  showScreen('end-screen');
+}
+
+// ════════════════════════════════════
+// 生成证书（Canvas）
+// ════════════════════════════════════
+function generateCert() {
+  const name = document.getElementById('player-name').value.trim() || '无名特工';
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+  const canvas = document.getElementById('cert-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 540, H = 760;
+
+  // 背景
+  ctx.fillStyle = '#040c1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // 星星
+  for (let i = 0; i < 80; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    const r = Math.random() * 1.2 + 0.3;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,220,255,${Math.random()*0.5+0.2})`;
+    ctx.fill();
+  }
+
+  // 外框渐变
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#0044aa');
+  grad.addColorStop(0.5, '#6600cc');
+  grad.addColorStop(1, '#003388');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 8;
+  roundRect(ctx, 16, 16, W-32, H-32, 18);
+  ctx.stroke();
+
+  // 内框
+  ctx.strokeStyle = 'rgba(0,212,255,0.25)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 26, 26, W-52, H-52, 13);
+  ctx.stroke();
+
+  // 顶部发光条
+  const topGrad = ctx.createLinearGradient(60, 0, W-60, 0);
+  topGrad.addColorStop(0, 'transparent');
+  topGrad.addColorStop(0.3, '#0088ff');
+  topGrad.addColorStop(0.7, '#aa44ff');
+  topGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(60, 58, W-120, 3);
+
+  // 徽章图标
+  ctx.font = '52px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎖️', W/2, 120);
+
+  // 标题
+  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = 'rgba(0,212,255,0.7)';
+  ctx.letterSpacing = '6px';
+  ctx.fillText('SCIENCE AGENT CERTIFICATE', W/2, 152);
+
+  ctx.font = 'bold 28px serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('科学特工荣誉证书', W/2, 192);
+
+  // 副标题
+  ctx.font = '14px Arial';
+  ctx.fillStyle = 'rgba(150,190,220,0.75)';
+  ctx.fillText('实验室危机 2.0 · 任务完成', W/2, 218);
+
+  // 分割线
+  ctx.strokeStyle = 'rgba(0,212,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 234); ctx.lineTo(W-60, 234);
+  ctx.stroke();
+
+  // 姓名
+  ctx.font = '15px Arial';
+  ctx.fillStyle = 'rgba(120,160,190,0.8)';
+  ctx.fillText('特此证明', W/2, 268);
+
+  ctx.font = 'bold 34px serif';
+  ctx.fillStyle = '#00d4ff';
+  ctx.shadowColor = 'rgba(0,212,255,0.5)';
+  ctx.shadowBlur = 12;
+  ctx.fillText(name, W/2, 316);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '15px Arial';
+  ctx.fillStyle = 'rgba(150,190,220,0.8)';
+  ctx.fillText('已成功完成《实验室危机》行动，掌握科学基础知识。', W/2, 348);
+
+  // 数据格子
+  const stats = [
+    ['⭐ 总分', state.score + ' 分'],
+    ['🎯 正确率', `${state.correctCount}/${state.questions.length}`],
+    ['🔥 最高Combo', '×' + state.maxCombo],
+    ['⏱️ 用时', elapsed + ' 秒']
+  ];
+  const gx = 60, gy = 378, gw = (W-120)/2 - 6, gh = 62;
+  stats.forEach((s, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const x = gx + col * (gw + 12), y = gy + row * (gh + 10);
+    ctx.fillStyle = 'rgba(0,180,255,0.06)';
+    roundRect(ctx, x, y, gw, gh, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,180,255,0.2)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, x, y, gw, gh, 8);
+    ctx.stroke();
+    ctx.font = '11px Arial';
+    ctx.fillStyle = 'rgba(100,150,190,0.9)';
+    ctx.textAlign = 'center';
+    ctx.fillText(s[0], x + gw/2, y + 20);
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(s[1], x + gw/2, y + 47);
+  });
+
+  // 成就
+  ctx.textAlign = 'center';
+  ctx.font = '12px Arial';
+  ctx.fillStyle = 'rgba(255,221,0,0.7)';
+  ctx.fillText('🏅 ' + getBadgesText(), W/2, 530);
+
+  // 鼓励语
+  const diff = { easy: '新手初探', normal: '勇者挑战', hard: '精英硬核' }[state.diff];
+  ctx.font = 'bold 16px serif';
+  ctx.fillStyle = '#e0f4ff';
+  ctx.fillText('"科学是通往真理的钥匙。——蔡逸众"', W/2, 570);
+
+  // 难度
+  ctx.font = '13px Arial';
+  ctx.fillStyle = 'rgba(120,170,200,0.7)';
+  ctx.fillText(`难度：${diff} ｜ ${dateStr}`, W/2, 598);
+
+  // 底部线
+  ctx.strokeStyle = 'rgba(0,212,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 622); ctx.lineTo(W-60, 622);
+  ctx.stroke();
+
+  // 水印
+  ctx.font = '11px Arial';
+  ctx.fillStyle = 'rgba(80,120,160,0.5)';
+  ctx.fillText('峇株吧辖华仁中学 · Made by ecchua79', W/2, 645);
+
+  ctx.font = '10px Arial';
+  ctx.fillStyle = 'rgba(60,100,140,0.35)';
+  ctx.fillText('峇株吧辖蔡逸众制作', W/2, 662);
+
+  showScreen('cert-screen');
+}
+
+function getBadgesText() {
+  const b = [];
+  if (state.hp === 3) b.push('零失误');
+  if (state.correctCount === state.questions.length) b.push('满分达人');
+  if (state.maxCombo >= 5) b.push('连击王');
+  if (b.length === 0) b.push('继续加油');
+  return b.join(' · ');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+// ════════════════════════════════════
+// 下载证书
+// ════════════════════════════════════
+function downloadCert() {
+  const canvas = document.getElementById('cert-canvas');
+  const name = document.getElementById('player-name').value.trim() || '无名特工';
+  const link = document.createElement('a');
+  link.download = `科学特工证书_${name}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ════════════════════════════════════
+// 工具函数
+// ════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+</script>
+<!--//Made by ecchua79-->
+</body>
+</html>
