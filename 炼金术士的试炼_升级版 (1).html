@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>炼金术士的试炼 2.0</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Cinzel:wght@700&display=swap');
+
+:root {
+  --bg: #0d0d1a;
+  --panel: #12122a;
+  --accent: #f0a500;
+  --accent2: #e94560;
+  --blue: #4fc3f7;
+  --green: #69f0ae;
+  --purple: #ce93d8;
+  --text: #e8e8f0;
+  --dim: #8888aa;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* STARFIELD */
+#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+.container {
+  width: 100%;
+  max-width: 640px;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ===== SCREENS ===== */
+.screen { display: none; animation: fadeIn 0.4s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* ===== START SCREEN ===== */
+#start-screen { text-align: center; padding: 20px 0; }
+
+.game-logo {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(240,165,0,0.5);
+  margin-bottom: 4px;
+}
+.game-subtitle { color: var(--dim); font-size: 0.9rem; margin-bottom: 24px; }
+
+.story-card {
+  background: var(--panel);
+  border: 1px solid rgba(240,165,0,0.3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #b8c0d8;
+}
+.story-card .chapter-tag {
+  display: inline-block;
+  background: rgba(240,165,0,0.15);
+  color: var(--accent);
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.rule-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+.rule-item .rule-icon { font-size: 1.4rem; margin-bottom: 4px; }
+.rule-item .rule-label { color: var(--dim); font-size: 0.75rem; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #e07800);
+  color: #1a0a00;
+  font-weight: 900;
+  font-size: 1.1rem;
+  border: none;
+  padding: 16px 48px;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(240,165,0,0.4);
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.btn-primary:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(240,165,0,0.6); }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 12px 32px;
+  border-radius: 40px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: background 0.2s;
+  margin-top: 12px;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+/* ===== HUD ===== */
+#hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 12px;
+}
+.hud-hp span { font-size: 1.3rem; }
+.hud-score { text-align: center; }
+.hud-score .score-num { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+.hud-score .score-label { font-size: 0.65rem; color: var(--dim); }
+.hud-level { text-align: right; font-size: 0.85rem; color: var(--dim); }
+.hud-level strong { color: var(--text); font-size: 1rem; }
+
+/* PROGRESS BAR */
+.progress-wrap { margin-bottom: 10px; }
+.progress-bg {
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  height: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--purple));
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+.act-label {
+  font-size: 0.7rem;
+  color: var(--dim);
+  text-align: center;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* BOSS BAR */
+#boss-bar-wrap {
+  margin-bottom: 12px;
+  display: none;
+}
+.boss-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+.boss-name { color: var(--accent2); font-weight: 700; }
+.boss-hp-text { color: var(--dim); }
+.boss-bar-bg {
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(233,69,96,0.3);
+}
+.boss-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e94560, #ff8a80);
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+/* COMBO TOAST */
+#combo-toast {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: rgba(240,165,0,0.9);
+  color: #1a0a00;
+  font-weight: 900;
+  font-size: 1.8rem;
+  padding: 10px 30px;
+  border-radius: 40px;
+  z-index: 999;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+  white-space: nowrap;
+}
+#combo-toast.show { transform: translateX(-50%) scale(1); opacity: 1; }
+#combo-toast.hide { opacity: 0; }
+
+/* ACHIEVEMENT TOAST */
+#achieve-toast {
+  position: fixed;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.9rem;
+  padding: 10px 24px;
+  border-radius: var(--radius);
+  z-index: 998;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+#achieve-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== QUESTION CARD ===== */
+#game-screen { padding-bottom: 20px; }
+
+.story-banner {
+  background: rgba(79,195,247,0.08);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--blue);
+  margin-bottom: 14px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.question-card {
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.q-type-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+.q-type-badge.mcq { background: rgba(206,147,216,0.15); color: var(--purple); }
+.q-type-badge.drag { background: rgba(105,240,174,0.15); color: var(--green); }
+.q-type-badge.fill { background: rgba(240,165,0,0.15); color: var(--accent); }
+
+.question-text { font-size: 1.1rem; font-weight: 700; line-height: 1.5; }
+
+/* MCQ OPTIONS */
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.opt-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+.opt-btn:active { transform: scale(0.98); }
+.opt-btn .opt-letter {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.opt-btn.correct { background: rgba(105,240,174,0.15); border-color: var(--green); color: var(--green); }
+.opt-btn.wrong { background: rgba(233,69,96,0.15); border-color: var(--accent2); color: var(--accent2); animation: shake 0.3s ease; }
+.opt-btn.disabled { pointer-events: none; opacity: 0.5; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* DRAG & DROP */
+.drag-area {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  min-height: 64px;
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+}
+.drag-chip {
+  background: rgba(79,195,247,0.12);
+  border: 1px solid rgba(79,195,247,0.3);
+  color: var(--blue);
+  padding: 8px 16px;
+  border-radius: 30px;
+  cursor: grab;
+  font-size: 0.9rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.15s, transform 0.1s;
+}
+.drag-chip:hover { background: rgba(79,195,247,0.2); transform: scale(1.04); }
+.drag-chip.dragging { opacity: 0.5; }
+
+.drop-zones { display: flex; flex-direction: column; gap: 10px; }
+.drop-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-height: 52px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.drop-zone.drag-over { border-color: var(--blue); background: rgba(79,195,247,0.06); }
+.drop-zone .zone-label { color: var(--dim); font-size: 0.85rem; flex-shrink: 0; min-width: 80px; }
+.drop-zone .zone-slot {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+.zone-slot.filled { border: none; justify-content: flex-start; }
+
+/* FILL IN BLANK */
+.fill-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  margin-top: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.fill-input:focus { border-color: var(--accent); }
+
+/* HINT BOX */
+#hint-box {
+  background: rgba(233,69,96,0.1);
+  border: 1px solid rgba(233,69,96,0.3);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #ffb3bf;
+  line-height: 1.6;
+  display: none;
+  margin-top: 12px;
+}
+#hint-box.show { display: block; animation: fadeIn 0.3s ease; }
+
+/* TIMER BAR */
+#timer-bar-wrap { margin-bottom: 12px; }
+#timer-bar-bg {
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  height: 4px;
+}
+#timer-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.1s linear, background 0.5s;
+}
+
+/* ===== GAMEOVER ===== */
+#gameover-screen { text-align: center; padding: 40px 0; }
+.fail-icon { font-size: 5rem; margin-bottom: 16px; }
+.fail-title { font-size: 2rem; font-weight: 900; color: var(--accent2); margin-bottom: 12px; }
+
+/* ===== VICTORY ===== */
+#victory-screen { text-align: center; padding: 20px 0; }
+.victory-icon { font-size: 5rem; margin-bottom: 16px; animation: bounce 0.6s infinite alternate; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+.victory-title { font-family: 'Cinzel', serif; font-size: 2rem; color: var(--accent); margin-bottom: 8px; text-shadow: 0 0 20px rgba(240,165,0,0.5); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+.stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 14px 8px;
+}
+.stat-card .stat-num { font-size: 1.6rem; font-weight: 900; color: var(--accent); }
+.stat-card .stat-label { font-size: 0.7rem; color: var(--dim); margin-top: 2px; }
+
+.achievements-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.badge {
+  background: rgba(240,165,0,0.1);
+  border: 1px solid rgba(240,165,0,0.3);
+  color: var(--accent);
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.name-input-group { margin: 20px 0; }
+.name-input-group label { font-size: 0.85rem; color: var(--dim); display: block; margin-bottom: 8px; }
+.name-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: 'Noto Sans SC', sans-serif;
+  outline: none;
+  text-align: center;
+}
+.name-input:focus { border-color: var(--accent); }
+
+/* ===== CERTIFICATE ===== */
+#certificate-screen { text-align: center; padding: 20px 0; }
+#cert-canvas-wrap canvas { border-radius: var(--radius); max-width: 100%; }
+
+/* PARTICLES */
+.particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 999;
+  border-radius: 50%;
+  animation: particle-fly 0.8s ease-out forwards;
+}
+@keyframes particle-fly {
+  0% { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+}
+
+/* SCROLL HINT */
+.scroll-hint { font-size: 0.7rem; color: var(--dim); margin-top: 6px; }
+
+/* ===== CREDIT ===== */
+.game-credit { font-size: 0.65rem; color: rgba(255,255,255,0.08); text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="combo-toast"></div>
+<div id="achieve-toast"></div>
+
+<div class="container">
+
+  <!-- ===== START ===== -->
+  <div id="start-screen" class="screen active">
+    <div class="game-logo">🔮 炼金术士的试炼</div>
+    <div class="game-subtitle">2.0 · 元素森林危机</div>
+
+    <div class="story-card">
+      <div class="chapter-tag">📖 序章</div>
+      <p>元素森林深处，沉睡千年的<strong style="color:var(--accent2)">炎魔火龙</strong>突然暴走！它的怒火将会焚毁整座森林。</p>
+      <br>
+      <p>你，一名见习炼金术士，受皇家学院委托，只有回答沿途的化学谜题，才能收集封印材料，最终封印火龙。</p>
+      <br>
+      <p style="color:var(--accent)">⚡ 答对越快，得分越高。连续答对会触发 Combo 加成！</p>
+    </div>
+
+    <div class="rules-grid">
+      <div class="rule-item">
+        <div class="rule-icon">❤️</div>
+        <div style="font-weight:700">3条命</div>
+        <div class="rule-label">错误扣1条</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-icon">⚡</div>
+        <div style="font-weight:700">速度加分</div>
+        <div class="rule-label">越快分越高</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-icon">🔥</div>
+        <div style="font-weight:700">连击Combo</div>
+        <div class="rule-label">连对×2倍分</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-icon">🏆</div>
+        <div style="font-weight:700">成就系统</div>
+        <div class="rule-label">挑战隐藏徽章</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="startGame()">⚔️ 开始冒险</button>
+    <br>
+    <div class="game-credit">峇株吧辖华仁中学 · 蔡逸众制作</div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="game-screen" class="screen">
+    <div class="act-label" id="act-label">第一幕 · 森林之路</div>
+    <div class="progress-wrap">
+      <div class="progress-bg"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+
+    <div id="boss-bar-wrap">
+      <div class="boss-bar-header">
+        <span class="boss-name">👹 炎魔火龙</span>
+        <span class="boss-hp-text" id="boss-hp-text">HP 100/100</span>
+      </div>
+      <div class="boss-bar-bg"><div class="boss-bar-fill" id="boss-bar-fill" style="width:100%"></div></div>
+    </div>
+
+    <div id="hud">
+      <div class="hud-hp" id="hp-display">❤️❤️❤️</div>
+      <div class="hud-score">
+        <div class="score-num" id="score-display">0</div>
+        <div class="score-label">SCORE</div>
+      </div>
+      <div class="hud-level">关卡<br><strong id="level-display">1/15</strong></div>
+    </div>
+
+    <div id="timer-bar-wrap">
+      <div id="timer-bar-bg"><div id="timer-bar" style="width:100%"></div></div>
+    </div>
+
+    <div class="story-banner" id="story-banner">故事加载中...</div>
+
+    <div class="question-card">
+      <div class="q-type-badge" id="q-type-badge">选择题</div>
+      <div class="question-text" id="question-text">问题加载中...</div>
+    </div>
+
+    <div id="answer-area"></div>
+    <div id="hint-box"></div>
+  </div>
+
+  <!-- ===== GAMEOVER ===== -->
+  <div id="gameover-screen" class="screen">
+    <div class="fail-icon">💀</div>
+    <div class="fail-title">试炼失败...</div>
+    <p style="color:var(--dim);margin-bottom:24px">你的生命耗尽，被魔物赶出了森林。<br>重新挑战，打出更高分吧！</p>
+    <p style="color:var(--accent);font-size:1.4rem;font-weight:900;margin-bottom:24px">得分：<span id="fail-score">0</span></p>
+    <button class="btn-primary" onclick="location.reload()">🔄 重新挑战</button>
+  </div>
+
+  <!-- ===== VICTORY ===== -->
+  <div id="victory-screen" class="screen">
+    <div class="victory-icon">🏆</div>
+    <div class="victory-title">封印成功！</div>
+    <p style="color:var(--dim)">你击败了炎魔火龙，拯救了元素森林！</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="v-score">0</div>
+        <div class="stat-label">最终得分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="v-accuracy">0%</div>
+        <div class="stat-label">正确率</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="v-time">0s</div>
+        <div class="stat-label">通关时间</div>
+      </div>
+    </div>
+
+    <div class="achievements-row" id="achievements-row"></div>
+
+    <div class="name-input-group">
+      <label>✍️ 输入你的名字，生成专属证书</label>
+      <input class="name-input" id="player-name" type="text" maxlength="12" placeholder="见习炼金术士">
+    </div>
+
+    <button class="btn-primary" onclick="generateCertificate()">📜 生成证书</button>
+    <br>
+    <button class="btn-secondary" onclick="location.reload()">🔄 再玩一次</button>
+  </div>
+
+  <!-- ===== CERTIFICATE ===== -->
+  <div id="certificate-screen" class="screen">
+    <div id="cert-canvas-wrap" style="margin-bottom:16px;text-align:center"></div>
+    <button class="btn-primary" onclick="downloadCert()">⬇️ 下载证书 PNG</button>
+    <br>
+    <button class="btn-secondary" onclick="location.reload()">🔄 再玩一次</button>
+    <div class="scroll-hint">⬆️ 向上滚动可查看证书</div>
+  </div>
+
+</div>
+
+<!--华仁中学蔡逸众制作-->
+<script>
+// ===== STARFIELD =====
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const stars = Array.from({length:120},()=>({
+    x: Math.random()*innerWidth,
+    y: Math.random()*innerHeight,
+    r: Math.random()*1.5+0.3,
+    a: Math.random(),
+    da: (Math.random()-0.5)*0.008
+  }));
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a = Math.max(0.1, Math.min(1, s.a + s.da));
+      if(s.a<=0.1||s.a>=1) s.da *= -1;
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ===== QUESTIONS =====
+//峇株吧辖蔡逸众制作
+const allQuestions = [
+  // ACT 1: 森林之路 (Q0-4)
+  {
+    act: 1,
+    story: "🌲 你踏入元素森林，迎面遇到一只史莱姆！它挡住去路，用冰封魔法考验你……",
+    q: "水结成冰，发生了什么变化？",
+    type: "mcq",
+    options: ["物理变化（只有状态改变）", "化学变化（生成了新物质）", "核变化（能量爆炸）", "魔法变化"],
+    correct: 0,
+    hint: "💡 物理变化的关键：没有生成新物质，只是形态或状态改变。水→冰，还是水分子组成的，所以是物理变化。"
+  },
+  {
+    act: 1,
+    story: "🗡️ 你捡到一把古老的铁剑，表面布满红褐色的铁锈……",
+    q: "铁变成铁锈，这是什么变化？",
+    type: "mcq",
+    options: ["物理变化", "化学变化（铁→氧化铁，产生了新物质）", "溶解变化", "状态变化"],
+    correct: 1,
+    hint: "💡 铁锈（氧化铁）和铁是完全不同的物质！有新物质生成，就是化学变化。"
+  },
+  {
+    act: 1,
+    story: "🔥 夜幕降临，你需要点火取暖，木柴噼啪作响……",
+    q: "木柴燃烧，属于以下哪种反应？",
+    type: "mcq",
+    options: ["吸热反应（从外界吸收热量）", "放热反应（向外界释放热量）", "中性反应（不热不冷）", "物理反应"],
+    correct: 1,
+    hint: "💡 燃烧让周围变热，说明它在向外界释放热量，所以是放热反应。就像暖炉一样！"
+  },
+  {
+    act: 1,
+    story: "🧪 受伤的小精灵向你求救！你需要调配冰敷药包——将某种粉末溶于水后，袋子瞬间冰凉……",
+    q: "这种让温度下降的反应叫什么？",
+    type: "mcq",
+    options: ["放热反应", "吸热反应（吸收周围的热→变冷）", "燃烧反应", "分解反应"],
+    correct: 1,
+    hint: "💡 吸热反应会吸走周围的热，所以周围温度下降。如碱与铵盐的反应，运动员冰包就是这个原理！"
+  },
+  {
+    act: 1,
+    story: "📜 你发现一块古老石碑，上面刻着一个化学方程式……碳 + 氧气 → 二氧化碳",
+    q: "配对：把各物质拖到正确的类别",
+    type: "drag",
+    items: ["碳 (C)", "氧气 (O₂)", "二氧化碳 (CO₂)"],
+    zones: ["反应物（箭头左边）", "生成物（箭头右边）"],
+    answers: { "碳 (C)": "反应物（箭头左边）", "氧气 (O₂)": "反应物（箭头左边）", "二氧化碳 (CO₂)": "生成物（箭头右边）" },
+    hint: "💡 反应物在箭头左边，是'材料'；生成物在箭头右边，是'产品'。"
+  },
+
+  // ACT 2: 古堡迷宫 (Q5-9)
+  {
+    act: 2,
+    story: "🏰 你进入神秘古堡，大门上刻着守恒之印——这是守门人的考验！",
+    q: "化学反应中，下列哪项在反应前后保持不变？",
+    type: "mcq",
+    options: ["分子的种类（会改变）", "物质的种类（会改变）", "各物质的总质量（守恒！）", "分子的数目（不一定）"],
+    correct: 2,
+    hint: "💡 质量守恒定律：化学反应前后，所有物质的总质量相等。质量不会凭空消失或增加！"
+  },
+  {
+    act: 2,
+    story: "🧩 守门人出了一道陷阱题：'10g酒精在敞口瓶中燃烧，灰烬比原来轻多了！'",
+    q: "这违反了质量守恒定律吗？",
+    type: "mcq",
+    options: ["违反了！质量真的变少了", "没有违反——气体产物（CO₂和水蒸气）散到了空气中，总质量其实没变", "违反了，燃烧会消灭质量", "没有违反，酒精是特殊物质"],
+    correct: 1,
+    hint: "💡 用密封容器来做实验，总质量一定不变！气体跑进了空气里，所以看起来'变轻'了。"
+  },
+  {
+    act: 2,
+    story: "🔬 古堡深处有一面'微观之镜'，可以看见原子的世界……",
+    q: "化学反应遵守质量守恒的根本原因是什么？",
+    type: "mcq",
+    options: ["分子种类不变", "分子数目不变", "原子的种类、数目和质量都不变，只是重新排列组合", "物质状态不变"],
+    correct: 2,
+    hint: "💡 化学反应就像用积木重新搭建城堡——积木（原子）的数量没变，只是拼法变了！"
+  },
+  {
+    act: 2,
+    story: "📋 你拿到了一张残缺的炼金配方：2H₂S + 3O₂ → _SO₂ + _H₂O",
+    q: "填写方程式中的系数，让两边原子数相等。右边SO₂的系数是？",
+    type: "fill",
+    accepted: ["2"],
+    hint: "💡 左边有2个S原子（来自2H₂S）→ 右边SO₂也需要2个→ 系数是2。化学方程式配平就是让两边原子个数相等！"
+  },
+  {
+    act: 2,
+    story: "⚗️ 你开始制作封印武器！将两种材料融合，生成了一种全新的晶体！",
+    q: "A + B → AB（多种物质变成一种），这叫什么反应？",
+    type: "mcq",
+    options: ["分解反应", "化合反应（多变一）", "氧化反应", "燃烧反应"],
+    correct: 1,
+    hint: "💡 化合反应：多变一。分解反应：一变多。就像合体跟分裂！"
+  },
+
+  // ACT 3: 火龙巢穴·Boss战 (Q10-14)
+  {
+    act: 3,
+    story: "🐉 你抵达火龙巢穴！路上的毒气云团挡路，你用魔法把它拆成了两种无害气体……",
+    q: "一种物质分解成两种或以上新物质，这叫什么？",
+    type: "mcq",
+    options: ["化合反应", "分解反应（一变多）", "缓慢氧化", "吸热反应"],
+    correct: 1,
+    hint: "💡 AB → A + B，一种变多种，就是分解反应。例：电解水→氢气+氧气。"
+  },
+  {
+    act: 3,
+    story: "🦎 火龙的鳞片正在缓缓变色生锈，散发着微弱的热量……",
+    q: "铁生锈、食物腐败这类进行极慢的氧化叫什么？",
+    type: "mcq",
+    options: ["剧烈氧化（燃烧）", "缓慢氧化", "快速燃烧", "分解反应"],
+    correct: 1,
+    hint: "💡 氧化分缓慢和剧烈两种：缓慢氧化（生锈/腐败）vs 剧烈氧化（燃烧）。都会放热！"
+  },
+  {
+    act: 3,
+    story: "🔥 火龙深吸一口气，准备喷火！你知道它需要什么条件才能喷出火……",
+    q: "燃烧需要三个条件，请把它们配对分类",
+    type: "drag",
+    items: ["木材/天然气", "氧气（空气）", "达到着火点"],
+    zones: ["可燃物", "助燃物", "燃烧温度条件"],
+    answers: { "木材/天然气": "可燃物", "氧气（空气）": "助燃物", "达到着火点": "燃烧温度条件" },
+    hint: "💡 燃烧三要素：①可燃物②助燃物（氧气）③达到着火点。缺一不可！"
+  },
+  {
+    act: 3,
+    story: "💥 火龙喷出熊熊火焰！你需要灭火！灭火就是破坏燃烧的条件……",
+    q: "水能灭火，主要原因是？",
+    type: "mcq",
+    options: ["水能提供氧气", "水能吸收大量热→降温至着火点以下，且水蒸气能隔绝空气", "水能增加可燃物", "水是魔法的"],
+    correct: 1,
+    hint: "💡 灭火原理：移走可燃物、隔绝氧气、降低温度。水做到了后两点！"
+  },
+  {
+    act: 3,
+    story: "🌟 最后一击！你举起封印卷轴，念出化学咒语……填入正确答案，完成封印！",
+    q: "完成封印咒语：氧气是最常见的___物，没有它大多数物质无法燃烧。",
+    type: "fill",
+    accepted: ["助燃", "助燃物"],
+    hint: "💡 助燃物支持燃烧但不一定自身燃烧，氧气是最典型的助燃物！"
+  }
+];
+
+// ===== GAME STATE =====
+let currentLevel = 0;
+let hp = 3;
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let startTime;
+let timerInterval;
+let timeLeft = 30;
+let timeBonus = 0;
+let certCanvas = null;
+const achievements = new Set();
+let bossHp = 100;
+let dragState = null;
+
+const screens = {
+  start: document.getElementById('start-screen'),
+  game: document.getElementById('game-screen'),
+  gameover: document.getElementById('gameover-screen'),
+  victory: document.getElementById('victory-screen'),
+  certificate: document.getElementById('certificate-screen')
+};
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ===== AUDIO =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+function playSound(type) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'correct') {
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(); osc.stop(ctx.currentTime + 0.5);
+    } else if (type === 'wrong') {
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(); osc.stop(ctx.currentTime + 0.4);
+    } else if (type === 'combo') {
+      [523,659,784,1046].forEach((f,i) => {
+        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.frequency.setValueAtTime(f, ctx.currentTime + i*0.08);
+        g2.gain.setValueAtTime(0.2, ctx.currentTime + i*0.08);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.08 + 0.2);
+        o2.start(ctx.currentTime + i*0.08); o2.stop(ctx.currentTime + i*0.08 + 0.2);
+      });
+    } else if (type === 'victory') {
+      [523,659,784,1046,1318].forEach((f,i) => {
+        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.frequency.setValueAtTime(f, ctx.currentTime + i*0.12);
+        g2.gain.setValueAtTime(0.25, ctx.currentTime + i*0.12);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.12 + 0.3);
+        o2.start(ctx.currentTime + i*0.12); o2.stop(ctx.currentTime + i*0.12 + 0.3);
+      });
+    }
+  } catch(e) {}
+}
+
+// ===== PARTICLES =====
+function spawnParticles(x, y, color, count=12) {
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (i / count) * Math.PI * 2;
+    const dist = 60 + Math.random() * 60;
+    p.style.cssText = `
+      left:${x}px; top:${y}px;
+      width:${6+Math.random()*6}px; height:${6+Math.random()*6}px;
+      background:${color};
+      --dx:${Math.cos(angle)*dist}px;
+      --dy:${Math.sin(angle)*dist}px;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 900);
+  }
+}
+
+// ===== COMBO TOAST =====
+let comboTimeout;
+function showComboToast(n) {
+  const el = document.getElementById('combo-toast');
+  clearTimeout(comboTimeout);
+  el.textContent = n >= 5 ? `🔥 ${n}连击！LEGENDARY！` : n >= 3 ? `⚡ ${n}连击！GREAT！` : `✨ ${n}连击！`;
+  el.className = 'show';
+  comboTimeout = setTimeout(() => { el.classList.add('hide'); setTimeout(()=>el.className='',300); }, 1200);
+}
+
+// ===== ACHIEVEMENT TOAST =====
+function showAchieve(text) {
+  const el = document.getElementById('achieve-toast');
+  el.textContent = '🏅 ' + text;
+  el.className = 'show';
+  setTimeout(() => { el.className = ''; }, 2500);
+}
+
+// ===== TIMER =====
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  const bar = document.getElementById('timer-bar');
+  bar.style.width = '100%';
+  bar.style.background = 'var(--accent)';
+  timerInterval = setInterval(() => {
+    timeLeft -= 0.1;
+    const pct = Math.max(0, timeLeft / seconds * 100);
+    bar.style.width = pct + '%';
+    if (pct < 30) bar.style.background = 'var(--accent2)';
+    else if (pct < 60) bar.style.background = '#ffd54f';
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      onTimeout();
+    }
+  }, 100);
+}
+
+function onTimeout() {
+  hp--;
+  combo = 0;
+  wrongCount++;
+  updateHUD();
+  showHint(allQuestions[currentLevel].hint + "\n⏰ 时间到！");
+  if (hp <= 0) { setTimeout(()=>gameOver(), 1200); return; }
+  setTimeout(() => {
+    currentLevel++;
+    if (currentLevel >= allQuestions.length) showVictory();
+    else loadQuestion();
+  }, 2000);
+}
+
+// ===== HUD =====
+function updateHUD() {
+  const q = allQuestions[currentLevel] || allQuestions[allQuestions.length-1];
+  document.getElementById('hp-display').innerHTML = '❤️'.repeat(hp) + '<span style="opacity:0.2">❤️</span>'.repeat(3-hp);
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('level-display').textContent = `${Math.min(currentLevel+1, allQuestions.length)}/${allQuestions.length}`;
+  const pct = (currentLevel / allQuestions.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const act = q.act;
+  const acts = ['', '第一幕 · 森林之路', '第二幕 · 古堡迷宫', '第三幕 · 火龙巢穴'];
+  document.getElementById('act-label').textContent = acts[act] || '';
+
+  // Boss bar only in act 3
+  const bossWrap = document.getElementById('boss-bar-wrap');
+  if (act === 3) {
+    bossWrap.style.display = 'block';
+    const bossBar = document.getElementById('boss-bar-fill');
+    const bossHpText = document.getElementById('boss-hp-text');
+    bossBar.style.width = bossHp + '%';
+    bossHpText.textContent = `HP ${bossHp}/100`;
+  } else {
+    bossWrap.style.display = 'none';
+  }
+}
+
+// ===== LOAD QUESTION =====
+function loadQuestion() {
+  const hintBox = document.getElementById('hint-box');
+  hintBox.textContent = '';
+  hintBox.className = '';
+
+  const q = allQuestions[currentLevel];
+  updateHUD();
+
+  document.getElementById('story-banner').textContent = q.story;
+
+  const badge = document.getElementById('q-type-badge');
+  if (q.type === 'mcq') { badge.textContent = '📝 单选题'; badge.className = 'q-type-badge mcq'; }
+  else if (q.type === 'drag') { badge.textContent = '🎯 拖拽配对'; badge.className = 'q-type-badge drag'; }
+  else if (q.type === 'fill') { badge.textContent = '✏️ 填空题'; badge.className = 'q-type-badge fill'; }
+
+  document.getElementById('question-text').textContent = q.q;
+
+  const area = document.getElementById('answer-area');
+  area.innerHTML = '';
+
+  if (q.type === 'mcq') buildMCQ(q, area);
+  else if (q.type === 'drag') buildDrag(q, area);
+  else if (q.type === 'fill') buildFill(q, area);
+
+  const timeLimit = q.type === 'drag' ? 45 : q.type === 'fill' ? 35 : 25;
+  startTimer(timeLimit);
+}
+
+// ===== MCQ =====
+function buildMCQ(q, area) {
+  const letters = ['A','B','C','D'];
+  const opts = q.options.map((o,i) => ({text:o, isCorrect: i===q.correct}));
+  // Shuffle
+  for (let i = opts.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  const div = document.createElement('div');
+  div.className = 'options';
+  opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span>${opt.text}`;
+    btn.onclick = (e) => {
+      clearInterval(timerInterval);
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top + rect.height/2;
+      if (opt.isCorrect) {
+        btn.classList.add('correct');
+        spawnParticles(cx, cy, '#69f0ae', 14);
+        playSound('correct');
+        onCorrect();
+      } else {
+        btn.classList.add('wrong');
+        spawnParticles(cx, cy, '#e94560', 8);
+        playSound('wrong');
+        div.querySelectorAll('.opt-btn').forEach(b => b.classList.add('disabled'));
+        onWrong(q.hint);
+      }
+    };
+    div.appendChild(btn);
+  });
+  area.appendChild(div);
+}
+
+// ===== DRAG & DROP =====
+// zoneContents stores arrays: { zoneName: [item, ...] }
+const zoneContents = {};
+function buildDrag(q, area) {
+  Object.keys(zoneContents).forEach(k => delete zoneContents[k]);
+
+  const chipWrap = document.createElement('div');
+  chipWrap.className = 'drag-area';
+  chipWrap.id = 'chip-area';
+  const shuffled = [...q.items].sort(()=>Math.random()-0.5);
+  shuffled.forEach(item => chipWrap.appendChild(createChip(item)));
+  area.appendChild(chipWrap);
+
+  const zoneWrap = document.createElement('div');
+  zoneWrap.className = 'drop-zones';
+  q.zones.forEach(zName => {
+    zoneContents[zName] = [];
+    const zDiv = document.createElement('div');
+    zDiv.className = 'drop-zone';
+    zDiv.dataset.zone = zName;
+    zDiv.style.flexWrap = 'wrap';
+    zDiv.innerHTML = `<span class="zone-label">${zName}</span><div class="zone-slot" data-slot="${zName}" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px;flex:1">拖到这里</div>`;
+    zDiv.addEventListener('dragover', e => { e.preventDefault(); zDiv.classList.add('drag-over'); });
+    zDiv.addEventListener('dragleave', () => zDiv.classList.remove('drag-over'));
+    zDiv.addEventListener('drop', e => {
+      e.preventDefault(); zDiv.classList.remove('drag-over');
+      const item = e.dataTransfer.getData('text/plain');
+      dropToZone(item, zName);
+    });
+    zDiv.addEventListener('click', () => { if (dragState) dropToZone(dragState, zName); });
+    zoneWrap.appendChild(zDiv);
+  });
+  area.appendChild(zoneWrap);
+
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn-primary';
+  submitBtn.style = 'margin-top:14px;width:100%;font-size:1rem;padding:12px';
+  submitBtn.textContent = '✅ 确认答案';
+  submitBtn.onclick = () => checkDragAnswer(q);
+  area.appendChild(submitBtn);
+}
+
+function createChip(item) {
+  const chip = document.createElement('div');
+  chip.className = 'drag-chip';
+  chip.textContent = item;
+  chip.draggable = true;
+  chip.dataset.item = item;
+  chip.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', item);
+    chip.classList.add('dragging');
+  });
+  chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+  chip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.drag-chip').forEach(c => c.style.outline='');
+    if (dragState === item) { dragState = null; }
+    else { dragState = item; chip.style.outline = '2px solid var(--accent)'; }
+  });
+  return chip;
+}
+
+function removeItemFromCurrent(item) {
+  document.querySelectorAll('#chip-area .drag-chip').forEach(c => {
+    if (c.dataset.item === item) c.remove();
+  });
+  Object.keys(zoneContents).forEach(zName => {
+    const idx = zoneContents[zName].indexOf(item);
+    if (idx !== -1) { zoneContents[zName].splice(idx, 1); renderZoneSlot(zName); }
+  });
+}
+
+function renderZoneSlot(zName) {
+  const slot = document.querySelector(`[data-slot="${zName}"]`);
+  if (!slot) return;
+  const items = zoneContents[zName];
+  if (items.length === 0) { slot.textContent = '拖到这里'; return; }
+  slot.innerHTML = '';
+  items.forEach(it => {
+    const chip = document.createElement('div');
+    chip.className = 'drag-chip';
+    chip.style.cssText = 'margin:0;cursor:pointer';
+    chip.textContent = it;
+    chip.dataset.item = it;
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dragState = null;
+      document.querySelectorAll('.drag-chip').forEach(c => c.style.outline='');
+      removeItemFromCurrent(it);
+      document.getElementById('chip-area').appendChild(createChip(it));
+    });
+    slot.appendChild(chip);
+  });
+}
+
+function dropToZone(item, zName) {
+  removeItemFromCurrent(item);
+  zoneContents[zName].push(item);
+  renderZoneSlot(zName);
+  dragState = null;
+  document.querySelectorAll('.drag-chip').forEach(c => c.style.outline='');
+}
+
+function checkDragAnswer(q) {
+  clearInterval(timerInterval);
+  const allCorrect = q.items.every(item => {
+    const correctZone = q.answers[item];
+    return zoneContents[correctZone] && zoneContents[correctZone].includes(item);
+  });
+
+  if (allCorrect) {
+    playSound('correct');
+    spawnParticles(window.innerWidth/2, window.innerHeight/2, '#69f0ae', 20);
+    onCorrect();
+  } else {
+    playSound('wrong');
+    onWrong(q.hint);
+  }
+}
+
+// ===== FILL =====
+function buildFill(q, area) {
+  const input = document.createElement('input');
+  input.className = 'fill-input';
+  input.placeholder = '在这里输入答案...';
+  input.type = 'text';
+  area.appendChild(input);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-primary';
+  btn.style = 'margin-top:12px;width:100%;font-size:1rem;padding:12px';
+  btn.textContent = '✅ 提交答案';
+
+  const submit = () => {
+    clearInterval(timerInterval);
+    const val = input.value.trim();
+    if (!val) return;
+    const accepted = q.accepted.map(a => a.toLowerCase());
+    if (accepted.includes(val.toLowerCase())) {
+      input.style.borderColor = 'var(--green)';
+      playSound('correct');
+      spawnParticles(window.innerWidth/2, window.innerHeight/2, '#69f0ae', 16);
+      onCorrect();
+    } else {
+      input.style.borderColor = 'var(--accent2)';
+      playSound('wrong');
+      onWrong(q.hint);
+    }
+  };
+
+  btn.onclick = submit;
+  input.addEventListener('keydown', e => { if(e.key==='Enter') submit(); });
+  area.appendChild(btn);
+}
+
+// ===== CORRECT / WRONG =====
+function onCorrect() {
+  correctCount++;
+  combo++;
+  if (combo > maxCombo) maxCombo = combo;
+  const timeBonus = Math.round(timeLeft * 4);
+  const comboBonus = combo >= 2 ? 50 * (combo-1) : 0;
+  const gained = 100 + timeBonus + comboBonus;
+  score += gained;
+
+  // Boss damage
+  if (allQuestions[currentLevel] && allQuestions[currentLevel].act === 3) {
+    bossHp = Math.max(0, bossHp - 20);
+  }
+
+  if (combo >= 2) showComboToast(combo);
+  if (combo >= 5 && !achievements.has('连击王者 🔥')) { achievements.add('连击王者 🔥'); showAchieve('连击王者 🔥 解锁！'); }
+  if (score >= 1000 && !achievements.has('千分达人 ⭐')) { achievements.add('千分达人 ⭐'); showAchieve('千分达人 ⭐ 解锁！'); }
+
+  if (combo >= 2) playSound('combo');
+
+  setTimeout(() => {
+    currentLevel++;
+    if (currentLevel >= allQuestions.length) showVictory();
+    else loadQuestion();
+  }, 600);
+}
+
+function onWrong(hintText) {
+  hp--;
+  combo = 0;
+  wrongCount++;
+  updateHUD();
+  showHint(hintText);
+  if (hp <= 0) { setTimeout(()=>gameOver(), 1800); return; }
+  setTimeout(() => {
+    currentLevel++;
+    if (currentLevel >= allQuestions.length) showVictory();
+    else loadQuestion();
+  }, 2500);
+}
+
+function showHint(text) {
+  const hintBox = document.getElementById('hint-box');
+  hintBox.textContent = '❌ 答错了！' + text;
+  hintBox.className = 'show';
+}
+
+// ===== GAME FLOW =====
+function startGame() {
+  startTime = new Date();
+  showScreen('game');
+  loadQuestion();
+}
+
+function gameOver() {
+  clearInterval(timerInterval);
+  document.getElementById('fail-score').textContent = score;
+  showScreen('gameover');
+}
+
+function showVictory() {
+  clearInterval(timerInterval);
+  playSound('victory');
+  spawnParticles(window.innerWidth/2, window.innerHeight/3, '#f0a500', 30);
+
+  const elapsed = Math.round((new Date() - startTime) / 1000);
+  const accuracy = Math.round(correctCount / allQuestions.length * 100);
+
+  document.getElementById('v-score').textContent = score;
+  document.getElementById('v-accuracy').textContent = accuracy + '%';
+  document.getElementById('v-time').textContent = elapsed + 's';
+
+  if (hp === 3 && !achievements.has('完美通关 💎')) achievements.add('完美通关 💎');
+  if (elapsed < 90 && !achievements.has('闪电炼金 ⚡')) achievements.add('闪电炼金 ⚡');
+  if (accuracy === 100 && !achievements.has('全知学者 🧠')) achievements.add('全知学者 🧠');
+
+  const row = document.getElementById('achievements-row');
+  row.innerHTML = achievements.size
+    ? [...achievements].map(a => `<span class="badge">${a}</span>`).join('')
+    : '<span style="color:var(--dim);font-size:0.85rem">暂无成就，再试一次？</span>';
+
+  showScreen('victory');
+}
+
+// ===== CERTIFICATE =====
+//Made by ecchua79
+function generateCertificate() {
+  const name = document.getElementById('player-name').value.trim() || '神秘炼金术士';
+  const elapsed = Math.round((new Date() - startTime) / 1000);
+  const min = Math.floor(elapsed/60);
+  const sec = elapsed%60;
+  const accuracy = Math.round(correctCount / allQuestions.length * 100);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+  const W = 540, H = 880;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#0d0d1a';
+  ctx.fillRect(0,0,W,H);
+
+  // Stars
+  for (let i=0;i<120;i++) {
+    ctx.globalAlpha = Math.random()*0.6+0.1;
+    ctx.fillStyle='#fff';
+    ctx.beginPath();
+    ctx.arc(Math.random()*W, Math.random()*H, Math.random()*1.5+0.3, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // Outer border
+  ctx.strokeStyle='#f0a500';
+  ctx.lineWidth=4;
+  roundRect(ctx, 12, 12, W-24, H-24, 16);
+  ctx.stroke();
+  ctx.strokeStyle='rgba(240,165,0,0.3)';
+  ctx.lineWidth=1.5;
+  roundRect(ctx, 22, 22, W-44, H-44, 12);
+  ctx.stroke();
+
+  // Title
+  ctx.textAlign='center';
+  ctx.fillStyle='#f0a500';
+  ctx.font='bold 15px serif';
+  ctx.fillText('峇株吧辖华仁中学  CHINESE HIGH SCHOOL', W/2, 65);
+  ctx.fillStyle='rgba(240,165,0,0.5)';
+  ctx.fillRect(60, 74, W-120, 1);
+
+  ctx.fillStyle='#f0a500';
+  ctx.font='bold 32px serif';
+  ctx.fillText('🔮 炼金术士荣誉证书', W/2, 118);
+
+  ctx.fillStyle='rgba(184,192,216,0.7)';
+  ctx.font='14px sans-serif';
+  ctx.fillText('Certificate of Achievement', W/2, 142);
+
+  // Dragon decoration
+  ctx.font='60px serif';
+  ctx.fillText('🐉', W/2, 210);
+
+  // Recipient
+  ctx.fillStyle='rgba(184,192,216,0.8)';
+  ctx.font='15px sans-serif';
+  ctx.fillText('兹证明见习炼金术士', W/2, 248);
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 36px sans-serif';
+  ctx.fillText(name, W/2, 296);
+  ctx.fillStyle='rgba(240,165,0,0.6)';
+  ctx.fillRect(80, 308, W-160, 1.5);
+
+  ctx.fillStyle='rgba(184,192,216,0.8)';
+  ctx.font='14px sans-serif';
+  ctx.fillText('凭借卓越的化学智慧，成功封印了炎魔火龙', W/2, 338);
+  ctx.fillText('拯救了元素森林，荣获皇家炼金学院最高荣誉', W/2, 360);
+
+  // Stats
+  const sx = 60, sy = 400, sw = (W-120)/3;
+  const stats = [
+    { label:'最终得分', val: score+'分', icon:'⭐' },
+    { label:'正确率', val: accuracy+'%', icon:'🎯' },
+    { label:'通关时间', val: `${min}分${sec}秒`, icon:'⏱️' }
+  ];
+  stats.forEach((s,i) => {
+    const x = sx + i*sw + sw/2 - 20;
+    const bx = sx + i*sw;
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    roundRect(ctx, bx, sy, sw-12, 90, 10);
+    ctx.fill();
+    ctx.strokeStyle='rgba(240,165,0,0.2)';
+    ctx.lineWidth=1;
+    ctx.stroke();
+
+    ctx.font='22px serif';
+    ctx.fillStyle='#f0a500';
+    ctx.fillText(s.icon, x+20, sy+30);
+    ctx.font='bold 20px sans-serif';
+    ctx.fillStyle='#fff';
+    ctx.fillText(s.val, x+20, sy+58);
+    ctx.font='11px sans-serif';
+    ctx.fillStyle='rgba(184,192,216,0.7)';
+    ctx.fillText(s.label, x+20, sy+78);
+  });
+
+  // Max combo
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  roundRect(ctx, 60, 512, W-120, 50, 10);
+  ctx.fill();
+  ctx.strokeStyle='rgba(240,165,0,0.15)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  ctx.fillStyle='rgba(184,192,216,0.7)';
+  ctx.font='13px sans-serif';
+  ctx.fillText(`🔥 最高连击: ${maxCombo}连击   |   ❤️ 剩余生命: ${hp}条`, W/2, 544);
+
+  // Achievements
+  if (achievements.size > 0) {
+    ctx.fillStyle='#f0a500';
+    ctx.font='13px sans-serif';
+    ctx.fillText('🏅 ' + [...achievements].join('  '), W/2, 590);
+  }
+
+  // Quote
+  ctx.fillStyle='rgba(240,165,0,0.6)';
+  ctx.fillRect(80, 610, W-160, 1);
+  ctx.fillStyle='rgba(184,192,216,0.6)';
+  ctx.font='italic 13px serif';
+  ctx.fillText('"化学让我们看见看不见的世界"', W/2, 638);
+
+  // Seal
+  ctx.font='50px serif';
+  ctx.fillText('⚗️', W/2, 710);
+  ctx.fillStyle='rgba(240,165,0,0.7)';
+  ctx.font='bold 14px sans-serif';
+  ctx.fillText('皇家炼金学院  认证印章', W/2, 740);
+
+  // Footer
+  ctx.fillStyle='rgba(184,192,216,0.4)';
+  ctx.font='11px sans-serif';
+  ctx.fillText('颁发日期：' + dateStr, W/2, 786);
+  ctx.fillText('峇株吧辖华仁中学 CHINESE HIGH SCHOOL · ecchua79', W/2, 806);
+
+  certCanvas = canvas;
+
+  const wrap = document.getElementById('cert-canvas-wrap');
+  wrap.innerHTML = '';
+  wrap.appendChild(canvas);
+  canvas.style.maxWidth = '100%';
+  canvas.style.borderRadius = '12px';
+
+  showScreen('certificate');
+  setTimeout(()=>window.scrollTo(0,0),100);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function downloadCert() {
+  if (!certCanvas) return;
+  const link = document.createElement('a');
+  const name = document.getElementById('player-name')?.value.trim() || '炼金术士';
+  link.download = `炼金术士证书_${name}.png`;
+  link.href = certCanvas.toDataURL('image/png');
+  link.click();
+}
+//华仁中学蔡逸众制作
+</script>
+<!--Made by ecchua79-->
+</body>
+</html>
