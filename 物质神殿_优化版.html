@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>物质神殿：元素使者的试炼</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+/*峇株吧辖华仁中学蔡逸众制作*/
+body{
+  font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;
+  background:#0f0c29;
+  background:linear-gradient(135deg,#1a0533 0%,#0d1b4b 50%,#1a0533 100%);
+  color:#fff;
+  overflow-x:hidden;
+}
+/* 星空背景 */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 20% 50%,rgba(120,40,200,0.15) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 20%,rgba(0,80,200,0.12) 0%,transparent 50%);
+  pointer-events:none;z-index:0;
+}
+.screen{position:relative;z-index:1;width:100%;max-width:620px;margin:0 auto;}
+
+/* 玻璃面板 */
+.glass{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:24px;
+  padding:28px 24px;
+}
+
+/* 按钮基础 */
+.btn{
+  display:block;width:100%;border:none;border-radius:14px;
+  font-family:inherit;font-size:16px;font-weight:600;
+  padding:14px 20px;cursor:pointer;transition:transform 0.15s,opacity 0.15s;
+/*峇株吧辖蔡逸众制作*/
+  user-select:none;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg,#f7971e,#ffd200);color:#1a0533;}
+.btn-secondary{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+.btn-success{background:linear-gradient(135deg,#11998e,#38ef7d);color:#fff;}
+.btn-danger{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;}
+
+/* 开始界面 */
+#start-screen{text-align:center;}
+.game-title{
+  font-size:clamp(28px,6vw,42px);
+  font-weight:700;
+  background:linear-gradient(135deg,#ffd200,#f7971e,#ff6b6b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1.3;margin-bottom:8px;
+}
+.game-sub{font-size:18px;color:#c9b8ff;margin-bottom:16px;}
+.start-desc{font-size:14px;color:#a0a0c0;line-height:1.8;margin-bottom:20px;}
+.best-score-badge{
+  display:inline-block;
+  background:rgba(255,210,0,0.1);
+  border:1px solid rgba(255,210,0,0.3);
+  border-radius:12px;padding:8px 20px;
+  font-size:13px;color:#ffd200;margin-bottom:20px;
+}
+.credit{font-size:11px;color:#2a1f4a;margin-top:12px;user-select:none;}
+
+/* 游戏界面 */
+#game-screen{display:none;}
+.hud{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;padding:10px 16px;margin-bottom:12px;
+}
+.lives{display:flex;gap:4px;font-size:20px;}
+.hud-center{text-align:center;}
+.hud-label{font-size:10px;color:#888;margin-bottom:2px;}
+.hud-val{font-size:18px;font-weight:700;color:#ffd200;}
+.score-val{font-size:22px;font-weight:700;color:#ffd200;}
+
+/* 进度点 */
+.progress-dots{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;}
+.dot.done{background:#38ef7d;}
+.dot.current{background:#ffd200;box-shadow:0 0 6px #ffd200;}
+.dot.wrong{background:#e74c3c;}
+
+/* 计时条 */
+.timer-wrap{height:4px;background:rgba(255,255,255,0.1);border-radius:4px;margin-bottom:16px;overflow:hidden;}
+#timer-bar{height:100%;width:100%;border-radius:4px;background:#38ef7d;transition:width 0.1s linear,background 0.3s;}
+
+/* 剧情栏 */
+.story-box{
+  font-size:13px;color:#9bb0ff;
+  border-left:3px solid #6a5acd;
+  padding:8px 12px;margin-bottom:14px;
+  background:rgba(106,90,205,0.1);border-radius:0 10px 10px 0;
+  font-style:italic;line-height:1.6;
+}
+/*华仁中学蔡逸众制作*/
+
+/* 题目 */
+.question-text{font-size:clamp(15px,3.5vw,19px);font-weight:600;line-height:1.6;margin-bottom:18px;color:#fff;}
+
+/* 选项 */
+.options-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+.opt-btn{
+  background:rgba(255,255,255,0.07);
+  border:1.5px solid rgba(255,255,255,0.15);
+  border-radius:14px;padding:14px 16px;
+  font-family:inherit;font-size:14px;color:#e0e0f0;
+  text-align:left;cursor:pointer;
+  transition:transform 0.12s,background 0.15s,border-color 0.15s;
+  user-select:none;
+}
+.opt-btn:hover:not(:disabled){background:rgba(255,255,255,0.13);border-color:rgba(255,255,255,0.3);transform:translateY(-1px);}
+.opt-btn:active:not(:disabled){transform:scale(0.98);}
+.opt-btn.correct{background:rgba(56,239,125,0.2);border-color:#38ef7d;color:#38ef7d;}
+.opt-btn.wrong-ans{background:rgba(231,76,60,0.2);border-color:#e74c3c;color:#e74c3c;}
+.opt-btn.highlight{border-color:#ffd200;color:#ffd200;}
+
+/* 连击 */
+#combo-pop{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:36px;font-weight:700;color:#ffd200;
+  text-shadow:0 0 20px rgba(255,210,0,0.8);
+  pointer-events:none;z-index:200;opacity:0;
+  transition:opacity 0.3s;
+}
+
+/* 知识点提示（答对后显示） */
+#hint-bar{
+  display:none;
+  background:rgba(56,239,125,0.1);border:1px solid rgba(56,239,125,0.3);
+  border-radius:12px;padding:10px 14px;
+  font-size:13px;color:#38ef7d;line-height:1.6;margin-top:12px;
+}
+
+/* 弹窗 */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.85);z-index:100;
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.show{display:flex;}
+.modal-box{
+  background:#1a1035;border:1px solid rgba(255,255,255,0.15);
+  border-radius:24px;padding:28px 24px;max-width:440px;width:100%;
+  text-align:center;
+}
+/*Made by ecchua79*/
+.modal-icon{font-size:48px;margin-bottom:12px;}
+.modal-title{font-size:22px;font-weight:700;margin-bottom:10px;}
+.modal-body{font-size:14px;color:#b0b0cc;line-height:1.8;text-align:left;margin-bottom:20px;}
+
+/* 结算界面 */
+#result-screen{display:none;text-align:center;}
+.result-icon{font-size:64px;margin-bottom:12px;}
+.result-title{font-size:32px;font-weight:700;margin-bottom:8px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.stat-card{background:rgba(0,0,0,0.3);border-radius:14px;padding:12px;}
+.stat-label{font-size:11px;color:#888;margin-bottom:4px;}
+.stat-val{font-size:24px;font-weight:700;color:#ffd200;}
+
+/* 成就 */
+.achievements{margin:12px 0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+.ach-badge{
+  background:rgba(255,210,0,0.1);border:1px solid rgba(255,210,0,0.3);
+  border-radius:20px;padding:6px 14px;font-size:12px;color:#ffd200;
+}
+
+/* 名字输入 */
+.name-section{margin:16px 0;}
+.name-section label{font-size:13px;color:#a0a0c0;display:block;margin-bottom:6px;text-align:left;}
+.name-section input{
+  width:100%;background:rgba(0,0,0,0.4);
+  border:1px solid rgba(255,255,255,0.2);border-radius:12px;
+  padding:12px 16px;color:#fff;font-size:16px;font-family:inherit;
+  outline:none;transition:border-color 0.2s;
+}
+.name-section input:focus{border-color:#ffd200;}
+.btn-gap{margin-top:10px;}
+
+/* 动画 */
+@keyframes popIn{from{transform:scale(0.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}50%{transform:translateX(8px);}}
+@keyframes floatUp{0%{transform:translate(-50%,-50%);opacity:1;}100%{transform:translate(-50%,-120%);opacity:0;}}
+.pop-in{animation:popIn 0.35s cubic-bezier(0.175,0.885,0.32,1.275) forwards;}
+.shake{animation:shake 0.4s ease;}
+
+</style>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+</head>
+<body>
+
+<!-- 连击弹出 -->
+<div id="combo-pop">🔥 3连击!</div>
+
+<!-- 弹窗：答错解析 -->
+<div class="modal-overlay" id="wrong-modal">
+  <div class="modal-box pop-in">
+    <div class="modal-icon">👨‍🏫</div>
+    <div class="modal-title" style="color:#e74c3c;">魔法失误！-1生命</div>
+    <div class="modal-body" id="wrong-explain"></div>
+    <button class="btn btn-secondary" onclick="continueAfterWrong()">我明白了，继续前行！</button>
+  </div>
+</div>
+
+<!-- ===== 开始界面 ===== -->
+<div class="screen" id="start-screen">
+  <div class="glass" style="text-align:center;">
+    <div style="font-size:64px;margin-bottom:8px;">🧙‍♂️</div>
+    <div class="game-title">物质神殿</div>
+    <div class="game-sub">元素使者的试炼</div>
+    <div class="start-desc">
+      初级法师，混沌魔王打乱了微粒的秩序！<br>
+      你需要运用<strong style="color:#ffd200;">物态变化与微粒模型</strong>的知识<br>
+      闯过15重关卡，重铸三态水晶！<br><br>
+      ⚠️ 只有 <span style="color:#ff6b6b;font-weight:700;">3条命</span>，计时答题，速度越快分越高！
+    </div>
+    <div class="best-score-badge" id="best-badge" style="display:none;">
+      🏆 历史最高分：<span id="best-val">0</span> 分　能超越吗？
+    </div>
+    <button class="btn btn-primary" onclick="startGame()" style="font-size:18px;padding:16px;">
+      ▶ 开始冒险
+    </button>
+    <div class="credit">峇株吧辖华仁中学 · CHINESE HIGH SCHOOL · 蔡逸众 ecchua79 制作</div>
+  </div>
+</div>
+
+<!-- ===== 游戏界面 ===== -->
+<div class="screen" id="game-screen">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="lives" id="lives-display">❤️❤️❤️</div>
+    <div class="hud-center">
+      <div class="hud-label">关卡</div>
+      <div class="hud-val" id="level-display">1/15</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="hud-label">积分</div>
+      <div class="score-val" id="score-display">0</div>
+    </div>
+  </div>
+  <!-- 进度点 -->
+  <div class="progress-dots" id="progress-dots"></div>
+  <!-- 计时条 -->
+  <div class="timer-wrap"><div id="timer-bar"></div></div>
+  <!-- 主题区 -->
+  <div class="glass">
+    <div class="story-box" id="story-box"></div>
+    <div class="question-text" id="question-text"></div>
+    <div class="options-grid" id="options-grid"></div>
+    <div id="hint-bar"></div>
+    <div id="correct-panel" style="display:none;margin-top:14px;">
+      <div id="correct-knowledge" style="background:rgba(56,239,125,0.1);border:1px solid rgba(56,239,125,0.3);border-radius:12px;padding:12px 14px;font-size:13px;color:#38ef7d;line-height:1.7;margin-bottom:10px;"></div>
+      <div id="next-story-preview" style="background:rgba(147,112,219,0.1);border:1px solid rgba(147,112,219,0.3);border-radius:12px;padding:10px 14px;font-size:13px;color:#b39ddb;line-height:1.6;margin-bottom:12px;font-style:italic;"></div>
+      <button class="btn btn-primary" onclick="proceedNext()" style="font-size:15px;padding:13px;">⚔️ 继续前行！</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 结算界面 ===== -->
+<div class="screen" id="result-screen">
+  <div class="glass">
+    <div class="result-icon" id="result-icon">🏆</div>
+    <div class="result-title" id="result-title"></div>
+    <div style="font-size:14px;color:#a0a0c0;margin-bottom:12px;" id="result-desc"></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">最终积分</div><div class="stat-val" id="res-score">0</div></div>
+      <div class="stat-card"><div class="stat-label">答对题数</div><div class="stat-val" id="res-correct">0</div></div>
+      <div class="stat-card"><div class="stat-label">耗时</div><div class="stat-val" id="res-time">0:00</div></div>
+      <div class="stat-card"><div class="stat-label">剩余生命</div><div class="stat-val" id="res-lives">0</div></div>
+    </div>
+    <div class="achievements" id="ach-display"></div>
+    <div class="name-section" id="cert-section">
+      <label>输入你的名字，领取专属法师证书：</label>
+      <input type="text" id="player-name" placeholder="例如：李小明" maxlength="20">
+      <button class="btn btn-success btn-gap" onclick="downloadCert()">🎓 下载证书 (PNG)</button>
+    </div>
+    <button class="btn btn-secondary btn-gap" onclick="location.reload()">🔄 重新挑战</button>
+  </div>
+</div>
+
+
+<script>
+
+// ===== 题库 =====
+//峇株吧辖蔡逸众制作
+const RAW_QUESTIONS = [
+  {
+    q:"什么是物质？以下哪个描述最准确？",
+    opts:["具有质量和体积的东西","只有质量没有体积的东西","只有体积没有质量的东西","看不见摸不着的东西"],
+    ans:0,
+    explain:"物质必须同时具有质量（含有多少东西）和体积（占有空间）。空气看不见但有质量和体积，也是物质！"
+  },
+  {
+    q:"闻到远处飘来的花香，这说明微粒有什么特性？",
+    opts:["微粒在不断地运动","微粒的体积很大","微粒之间没有间隙","微粒的种类会自己改变"],
+    ans:0,
+    explain:"花香能从远处飘来，是因为构成花香的微粒在不停地做无规则运动，就像小精灵四处乱跑！"
+  },
+  {
+    q:"水加热变成水蒸气时，发生改变的是什么？",
+    opts:["微粒之间的间隙变大","微粒本身的体积变大","微粒的种类改变了","微粒停止了运动"],
+    ans:0,
+    explain:"物态变化时，微粒本身大小绝对不变！改变的只是微粒间的间隙。受热后间隙变大，微粒跑得更分散。"
+  },
+  {
+    q:"烧水时壶嘴冒出的【白气】究竟是什么状态？",
+    opts:["液态的极小水滴","气态的水蒸气","固态的冰晶","空气中的灰尘"],
+    ans:0,
+    explain:"真正的水蒸气是无色透明的，肉眼看不见！【白气】是水蒸气遇冷液化成的液态小水珠，飘在空中就像微型云朵。"
+  },
+  {
+    q:"为什么气体比固体和液体更容易被压缩？",
+    opts:["气体微粒之间的间隙极大","气体微粒的质量很小","气体微粒完全不运动","气体微粒排列非常整齐"],
+    ans:0,
+    explain:"气体微粒就像在大广场上乱跑的几个人，空旷得很，当然容易挤压。固体和液体微粒之间几乎没什么空间了！"
+  },
+  {
+    q:"衣柜里的樟脑丸慢慢变小消失，属于哪种物态变化？",
+    opts:["升华（固→气）","熔化（固→液）","汽化（液→气）","液化（气→液）"],
+    ans:0,
+    explain:"樟脑丸没有先变成液体，而是直接从固态跳到气态飘走了，这就是升华，是固体直接变气体的过程。"
+  },
+  {
+    q:"冬天树枝上漂亮的雾凇（白霜）是如何形成的？",
+    opts:["水蒸气凝华直接变为固态","水蒸气液化后再结冰","液态水结冰凝固而成","树枝自己产生的物质"],
+    ans:0,
+    explain:"雾凇和霜都是空气中的水蒸气遇冷，跨过液态，直接变成固态冰晶，这叫凝华，过程中会放出热量。"
+  },
+  {
+    q:"冰块能保持固定形状，是因为它的微粒……？",
+    opts:["排列紧密且位置固定（但仍振动）","完全停止了一切运动","微粒之间毫无间隙","微粒可以自由滑动"],
+    ans:0,
+    explain:"固体微粒就像坐在固定座位上的学生，紧密排列、不能乱跑，但他们还是会在原地抖动（振动），从未完全静止！"
+  },
+  {
+    q:"固态物质里的微粒，是完全静止不动的吗？",
+    opts:["不是，它们在固定位置上振动","是的，完全静止","某些温度下才静止","不是，可以随意乱跑"],
+    ans:0,
+    explain:"微粒永远不会完全停止！即使是坚硬的铁块，里面的微粒也在固定位置上不停【发抖】（振动），只是幅度很小。"
+  },
+  {
+    q:"液体微粒的排列特点是？",
+    opts:["靠得较近，但能互相滑动","完全散开、距离极远","像士兵阵列一样固定排好","忽大忽小，不断变化"],
+    ans:0,
+    explain:"液体微粒就像下课在走廊里走动的学生，大家挨得近，但可以互相穿梭，所以液体能流动，没有固定形状。"
+  },
+  {
+    q:"夏天冰镇饮料瓶外壁【出汗】，原因是？",
+    opts:["空气中的水蒸气遇冷液化","瓶内的水渗透出来了","空气中水蒸气凝华成霜","冷饮本身发生了熔化"],
+    ans:0,
+    explain:"空气里一直存在看不见的水蒸气，一碰到冰冷的瓶壁就液化成小水珠附着在上面，和瓶子里的水完全没关系！"
+  },
+  {
+    q:"冰熔化成水的过程中，热量如何变化？",
+    opts:["需要吸收热量（吸热过程）","需要放出热量（放热过程）","热量不变","热量完全消失"],
+    ans:0,
+    explain:"冰变成水，微粒要克服彼此的束缚力，需要从外界吸收能量（热量），所以熔化是吸热过程，温度先保持不变。"
+  },
+  {
+    q:"古希腊人认为万物由【水火土气】组成，这个说法正确吗？",
+    opts:["错误，物质由微粒（原子/分子）构成","完全正确","只在地球上正确","只在古代才正确"],
+    ans:0,
+    explain:"现代科学证明【四元素说】是错误的。物质的本质是肉眼看不见的微细粒子（如原子、分子）。这也是科学不断进步的体现！"
+  },
+  {
+    q:"下列哪种状态的物质，既没有固定形状，又没有固定体积？",
+    opts:["气态","固态","液态","以上皆有"],
+    ans:0,
+    explain:"气体微粒四处乱飞，充满整个容器，所以气体的形状和体积都跟容器一样——没有固定的形状和体积。"
+  },
+  {
+    q:"把水放进冰箱冷冻变成冰块，这个过程的科学名称是？",
+    opts:["凝固（液→固）","熔化（固→液）","液化（气→液）","凝华（气→固）"],
+    ans:0,
+    explain:"液态变固态叫凝固，是放热过程（热量从水传到冰箱里），和熔化相反。记住：凝固放热，熔化吸热！"
+  }
+];
+
+const STORY_LINES = [
+  "【第1层】你踏入冰封洞穴，一只冰霜史莱姆挡住去路！",
+  "【第2层】洞穴深处飘来神秘花香迷雾……",
+  "【第3层】前方出现咕噜冒泡的沸水潭！",
+  "【第4层】大量白色气体喷涌，遮蔽视线！",
+  "【第5层】强力空气墙挡住了前进的门。",
+//华仁中学蔡逸众制作
+  "【第6层】高温走廊里，魔法樟脑丸正在缩小……",
+  "【第7层】温度骤降，墙壁瞬间结出美丽雾凇！",
+  "【第8层】寒冰巨石怪苏醒，坚固地冲向你！",
+  "【第9层】被你定住的巨石表面仍在微微颤动……",
+  "【第10层】冰块融化，液态小妖在地板滑行！",
+  "【第11层】冰冷的法杖周围竟然凝出了水珠……",
+  "【第12层】烈焰之墙前，你需要吸热之术通过！",
+  "【第13层】古希腊幽灵坚持只有水火土气……",
+  "【第14层】云端大厅，漂浮着无固定形状的神秘物质。",
+  "【第15层】混沌魔王现身！迎接最终一击——"
+];
+
+// ===== 游戏状态 =====
+let questions=[], qIdx=0, score=0, lives=3, combo=0;
+let correctCount=0, timerSec=15, timerRAF=null, startMs=0, totalSec=0;
+let dotStates=[]; // 'pending','done','wrong'
+let won=false;
+const MAX_Q=15;
+
+// ===== 音效（Web Audio API，完全离线）=====
+let audioCtx=null;
+function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function beep(freq,dur,type='sine',vol=0.3){
+  try{
+    const ac=getAC();
+    const osc=ac.createOscillator();
+    const gain=ac.createGain();
+    osc.connect(gain);gain.connect(ac.destination);
+    osc.type=type;osc.frequency.value=freq;
+    gain.gain.setValueAtTime(vol,ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dur);
+    osc.start(ac.currentTime);osc.stop(ac.currentTime+dur);
+  }catch(e){}
+}
+function sfxCorrect(){beep(660,0.12,'sine',0.3);setTimeout(()=>beep(880,0.18,'sine',0.3),100);}
+function sfxWrong(){beep(200,0.4,'sawtooth',0.2);}
+function sfxCombo(){beep(880,0.1,'sine',0.4);setTimeout(()=>beep(1100,0.15,'sine',0.4),90);}
+
+// ===== Fisher-Yates 打乱 =====
+function shuffle(arr){
+  let a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// ===== 最高分 =====
+function getBest(){return parseInt(localStorage.getItem('mztsd_best')||'0');}
+function saveBest(s){if(s>getBest())localStorage.setItem('mztsd_best',s);}
+
+// ===== 开始界面初始化 =====
+(function initStart(){
+  const best=getBest();
+  if(best>0){
+    document.getElementById('best-badge').style.display='inline-block';
+    document.getElementById('best-val').textContent=best;
+  }
+})();
+
+// ===== 开始游戏 =====
+function startGame(){
+  score=0;lives=3;combo=0;qIdx=0;correctCount=0;
+  questions=RAW_QUESTIONS.slice(0,MAX_Q); // 题目按关卡顺序固定，不打乱
+  dotStates=Array(MAX_Q).fill('pending');
+  startMs=Date.now();
+  won=false;
+
+  show('game-screen');
+//Made by ecchua79
+  hide('start-screen');
+  buildDots();
+  loadQ();
+}
+
+function buildDots(){
+  const c=document.getElementById('progress-dots');
+  c.innerHTML='';
+  for(let i=0;i<MAX_Q;i++){
+    const d=document.createElement('div');
+    d.className='dot';d.id='dot'+i;
+    c.appendChild(d);
+  }
+  updateDots();
+}
+
+function updateDots(){
+  for(let i=0;i<MAX_Q;i++){
+    const d=document.getElementById('dot'+i);
+    if(!d)continue;
+    d.className='dot '+(dotStates[i]==='done'?'done':dotStates[i]==='wrong'?'wrong':i===qIdx?'current':'');
+  }
+}
+
+function updateHUD(){
+  const hearts=['❤️','❤️','❤️'].slice(0,lives).join('')+['🖤','🖤','🖤'].slice(0,3-lives).join('');
+  document.getElementById('lives-display').textContent=hearts;
+  document.getElementById('score-display').textContent=score;
+  document.getElementById('level-display').textContent=(qIdx+1)+'/'+MAX_Q;
+}
+
+// ===== 加载题目 =====
+function loadQ(){
+  if(qIdx>=MAX_Q||lives<=0){endGame();return;}
+  document.getElementById('hint-bar').style.display='none';
+  document.getElementById('correct-panel').style.display='none';
+
+  const q=questions[qIdx];
+  document.getElementById('story-box').textContent=STORY_LINES[qIdx]||'';
+  document.getElementById('question-text').textContent=q.q;
+
+  // 打乱选项但记录正确答案
+  const idxArr=shuffle([0,1,2,3]);
+  const correctText=q.opts[q.ans];
+
+  const grid=document.getElementById('options-grid');
+  grid.innerHTML='';
+  idxArr.forEach(origIdx=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn';
+    btn.textContent=q.opts[origIdx];
+//峇株吧辖华仁中学蔡逸众制作
+    btn.onclick=()=>checkAns(btn,origIdx===q.ans,q);
+    grid.appendChild(btn);
+  });
+
+  updateHUD();
+  updateDots();
+  startTimer();
+}
+
+// ===== 计时器 =====
+function startTimer(){
+  cancelAnimationFrame(timerRAF);
+  timerSec=15;
+  const bar=document.getElementById('timer-bar');
+  const t0=performance.now();
+  function tick(now){
+    const elapsed=(now-t0)/1000;
+    timerSec=Math.max(0,15-elapsed);
+    const pct=(timerSec/15)*100;
+    bar.style.width=pct+'%';
+    bar.style.background=pct>50?'#38ef7d':pct>20?'#ffd200':'#e74c3c';
+    if(timerSec<=0){onTimeout();return;}
+    timerRAF=requestAnimationFrame(tick);
+  }
+  timerRAF=requestAnimationFrame(tick);
+}
+
+function stopTimer(){cancelAnimationFrame(timerRAF);timerRAF=null;}
+
+function onTimeout(){
+  stopTimer();sfxWrong();
+  lives--;combo=0;
+  if(qIdx<MAX_Q)dotStates[qIdx]='wrong';
+  disableOpts();highlightCorrect();
+  updateHUD();
+  showWrongModal("⏰ 时间到了！",questions[qIdx]);
+}
+
+// ===== 检查答案 =====
+function checkAns(btn,isCorrect,q){
+  stopTimer();
+  disableOpts();
+
+  if(isCorrect){
+    sfxCorrect();
+    btn.classList.add('correct');
+    combo++;correctCount++;
+    const timeBonus=Math.floor(timerSec*10);
+    const comboBonus=combo>1?combo*20:0;
+    score+=100+timeBonus+comboBonus;
+    dotStates[qIdx]='done';
+    updateHUD();
+    if(combo>1)showComboPop(combo);
+
+    // 显示知识点 + 下一关预告 + 继续按钮
+    document.getElementById('hint-bar').style.display='none';
+    const kEl=document.getElementById('correct-knowledge');
+    kEl.innerHTML='<strong>✓ 知识点：</strong>'+q.explain;
+
+    const nextIdx=qIdx+1;
+    const nspEl=document.getElementById('next-story-preview');
+    if(nextIdx<MAX_Q){
+      nspEl.textContent='👁 下一关预告：'+STORY_LINES[nextIdx];
+      nspEl.style.display='block';
+    }else{
+      nspEl.textContent='🏆 你已到达最终关卡！准备好击败混沌魔王了吗？';
+      nspEl.style.display='block';
+    }
+
+    document.getElementById('correct-panel').style.display='block';
+
+  }else{
+    sfxWrong();
+    btn.classList.add('wrong-ans');
+    lives--;combo=0;
+    dotStates[qIdx]='wrong';
+    highlightCorrect();
+    updateHUD();
+    setTimeout(()=>showWrongModal("❌ 答错了！",q),600);
+  }
+}
+
+function disableOpts(){
+  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+}
+
+function highlightCorrect(){
+  const q=questions[qIdx];
+  document.querySelectorAll('.opt-btn').forEach(btn=>{
+    if(btn.textContent===q.opts[q.ans]) btn.classList.add('highlight');
+  });
+}
+
+// ===== 连击动画 =====
+function showComboPop(n){
+  sfxCombo();
+  const el=document.getElementById('combo-pop');
+  el.textContent=['🔥','⚡','💥','✨'][Math.min(n-2,3)]+' '+n+'连击！';
+  el.style.opacity='1';
+  el.style.animation='none';
+  void el.offsetWidth;
+  el.style.animation='floatUp 1.2s ease forwards';
+  setTimeout(()=>el.style.opacity='0',1100);
+}
+
+// ===== 错误弹窗 =====
+function showWrongModal(title,q){
+  document.getElementById('wrong-explain').innerHTML='<strong>'+title+'</strong><br><br>'+q.explain;
+  document.getElementById('wrong-modal').classList.add('show');
+}
+
+function continueAfterWrong(){
+  document.getElementById('wrong-modal').classList.remove('show');
+  if(lives<=0){endGame();return;}
+  qIdx++;loadQ();
+}
+
+// 答对后点"继续前行"按钮触发
+function proceedNext(){
+  document.getElementById('correct-panel').style.display='none';
+  qIdx++;loadQ();
+}
+
+// ===== 结算 =====
+function endGame(){
+  stopTimer();
+  totalSec=Math.floor((Date.now()-startMs)/1000);
+  won=lives>0&&qIdx>=MAX_Q;
+  saveBest(score);
+
+  hide('game-screen');show('result-screen');
+
+  document.getElementById('result-icon').textContent=won?'🏆':'💀';
+  document.getElementById('result-title').textContent=won?'试炼完美通关！':'试炼失败……';
+  document.getElementById('result-title').style.color=won?'#ffd200':'#e74c3c';
+  document.getElementById('result-desc').textContent=won?'伟大的元素使者，你击退了混沌魔王！':'你的生命值耗尽了，混沌魔王在嘲笑你……';
+
+//峇株吧辖蔡逸众制作
+  const m=Math.floor(totalSec/60),s=totalSec%60;
+  document.getElementById('res-score').textContent=score;
+  document.getElementById('res-correct').textContent=correctCount+'/'+MAX_Q;
+  document.getElementById('res-time').textContent=m+'分'+String(s).padStart(2,'0')+'秒';
+  document.getElementById('res-lives').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives)||'0';
+
+  // 成就
+  const achs=[];
+  if(correctCount===MAX_Q) achs.push('🌟 满分达人');
+  if(lives===3) achs.push('🛡️ 铁血勇士');
+  if(totalSec<90) achs.push('⚡ 极速之星');
+  if(score>2000) achs.push('👑 传说法师');
+  const achDiv=document.getElementById('ach-display');
+  achDiv.innerHTML=achs.map(a=>'<div class="ach-badge">'+a+'</div>').join('');
+
+  // 失败也给证书区，但标题不同
+  document.getElementById('cert-section').style.display='block';
+}
+
+// ===== Canvas 证书 PNG 下载 =====
+function downloadCert(){
+  const name=(document.getElementById('player-name').value||'').trim();
+  if(!name){alert('请先输入你的名字！');return;}
+
+  const W=600,H=900;
+  const cvs=document.createElement('canvas');
+  cvs.width=W;cvs.height=H;
+  const ctx=cvs.getContext('2d');
+
+  // 背景
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0d0820');
+  bg.addColorStop(0.5,'#1a0c40');
+  bg.addColorStop(1,'#0d0820');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // 星点装饰
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  for(let i=0;i<60;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.5,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // 外框
+  ctx.strokeStyle='#ffd200';ctx.lineWidth=4;
+  roundRect(ctx,14,14,W-28,H-28,20);ctx.stroke();
+  ctx.strokeStyle='rgba(255,210,0,0.3)';ctx.lineWidth=1.5;
+  roundRect(ctx,22,22,W-44,H-44,16);ctx.stroke();
+
+  // 顶部装饰条
+  const gold=ctx.createLinearGradient(0,0,W,0);
+  gold.addColorStop(0,'#b8860b');
+  gold.addColorStop(0.5,'#ffd700');
+  gold.addColorStop(1,'#b8860b');
+  ctx.fillStyle=gold;ctx.fillRect(40,50,W-80,3);
+  ctx.fillRect(40,H-53,W-80,3);
+
+  // 奖章emoji
+  ctx.font='56px serif';ctx.textAlign='center';
+  ctx.fillText('🏆',W/2,130);
+
+  // 标题
+  ctx.fillStyle='#ffd200';
+  ctx.font='bold 32px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('荣 誉 证 书',W/2,185);
+
+  ctx.fillStyle='rgba(255,210,0,0.6)';
+  ctx.font='13px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.letterSpacing='4px';
+  ctx.fillText('CERTIFICATE OF ACHIEVEMENT',W/2,210);
+  ctx.letterSpacing='0px';
+
+  // 细线
+  ctx.strokeStyle='rgba(255,210,0,0.4)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,225);ctx.lineTo(W-80,225);ctx.stroke();
+
+  // 兹证明
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.font='16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('兹证明',W/2,270);
+
+  // 姓名
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 42px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(name,W/2,325);
+
+  // 下划线
+  const nw=ctx.measureText(name).width;
+  ctx.strokeStyle='#ffd200';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(W/2-nw/2-20,335);ctx.lineTo(W/2+nw/2+20,335);ctx.stroke();
+
+  // 正文
+  ctx.fillStyle='rgba(200,190,255,0.85)';
+  ctx.font='15px "PingFang SC","Microsoft YaHei",sans-serif';
+  wrapText(ctx,'在《物质神殿：元素使者的试炼》挑战中，',W/2,375,W-100,26);
+  wrapText(ctx,'运用扎实的科学知识，展现出色的反应能力，',W/2,401,W-100,26);
+  wrapText(ctx,'成功掌握"物态变化"与"微粒模型"的核心奥秘！',W/2,427,W-100,26);
+
+  // 分割线
+  ctx.strokeStyle='rgba(255,210,0,0.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,460);ctx.lineTo(W-80,460);ctx.stroke();
+
+  // 数据格子
+  const stats=[
+    ['最终积分',score+'分'],
+    ['答对题数',correctCount+'/'+MAX_Q],
+    ['挑战耗时',(Math.floor(totalSec/60))+'分'+(totalSec%60)+'秒'],
+    ['剩余生命','❤️'.repeat(lives)||'0']
+  ];
+  const cols=2,rows=2,cw=(W-120)/cols,ch=70;
+  stats.forEach((s,i)=>{
+    const cx=60+(i%cols)*cw+cw/2;
+    const cy=480+Math.floor(i/cols)*ch;
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    roundRect(ctx,cx-cw/2+4,cy-8,cw-8,ch-6,10);ctx.fill();
+    ctx.strokeStyle='rgba(255,210,0,0.2)';ctx.lineWidth=1;
+    roundRect(ctx,cx-cw/2+4,cy-8,cw-8,ch-6,10);ctx.stroke();
+    ctx.fillStyle='rgba(255,210,0,0.6)';
+    ctx.font='12px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(s[0],cx,cy+14);
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(s[1],cx,cy+44);
+  });
+
+  // 成就
+  const achs=[];
+  if(correctCount===MAX_Q)achs.push('🌟满分达人');
+  if(lives===3)achs.push('🛡️铁血勇士');
+//华仁中学蔡逸众制作
+  if(totalSec<90)achs.push('⚡极速之星');
+  if(score>2000)achs.push('👑传说法师');
+  if(achs.length){
+    ctx.fillStyle='rgba(255,210,0,0.8)';
+    ctx.font='13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('🏅 获得成就：'+achs.join(' '),W/2,640);
+  }
+
+  // 鼓励语
+  ctx.strokeStyle='rgba(255,210,0,0.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(80,660);ctx.lineTo(W-80,660);ctx.stroke();
+
+  const encourage=won?'Excellent Work! 继续探索科学的奥秘！':'虽败犹荣！下次一定能成为传说法师！';
+  ctx.fillStyle='rgba(255,200,100,0.9)';
+  ctx.font='italic 16px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(encourage,W/2,695);
+
+  // 日期与机构
+  const today=new Date();
+  const dateStr=today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日';
+
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='13px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign='left';ctx.fillText('颁发机构：峇株吧辖华仁中学',60,760);
+  ctx.fillText('CHINESE HIGH SCHOOL',60,778);
+  ctx.textAlign='right';ctx.fillText('颁发日期：'+dateStr,W-60,760);
+  ctx.fillText('制作：蔡逸众 ecchua79',W-60,778);
+
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.font='10px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79 · CHINESE HIGH SCHOOL',W/2,840);
+
+  // 触发下载
+  const link=document.createElement('a');
+  link.download=name+'-物质神殿证书.png';
+  link.href=cvs.toDataURL('image/png');
+  link.click();
+}
+
+// ===== Canvas 辅助 =====
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+function wrapText(ctx,text,x,y,maxW,lh){
+//Made by ecchua79
+  const chars=text.split('');let line='';
+  for(const ch of chars){
+    const test=line+ch;
+    if(ctx.measureText(test).width>maxW){ctx.fillText(line,x,y);line=ch;y+=lh;}
+    else line=test;
+  }
+  ctx.fillText(line,x,y);
+}
+
+// ===== 工具 =====
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+</script>
+</body>
+</html>
