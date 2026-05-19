@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<!--//峇株吧辖华仁中学蔡逸众制作-->
+<title>气压大师 v3 — 极限生存挑战</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+:root{
+  /*//峇株吧辖蔡逸众制作*/
+--ink:#0a0e1a; --sky:#0d1b3e; --glow:#00d4ff;
+  --fire:#ff6b35; --acid:#39ff14; --gold:#ffd700;
+  --danger:#ff2d55; --mist:rgba(255,255,255,0.07);
+  --glass:rgba(255,255,255,0.10); --r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100vh;font-family:'Noto Sans SC',sans-serif;background:var(--ink);overflow-x:hidden;}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── SCREENS ── */
+.screen{display:none;position:relative;z-index:1;min-height:100vh;padding:20px 15px 40px;max-width:640px;margin:0 auto;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ── WELCOME ── */
+#sw{align-items:center;justify-content:center;text-align:center;gap:0;}
+.logo-ring{position:relative;width:120px;height:120px;margin:0 auto 18px;}
+.logo-ring svg{width:100%;height:100%;animation:spin 12s linear infinite;}
+.logo-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.game-title{font-family:'Orbitron',sans-serif;font-size:clamp(20px,6vw,30px);font-weight:900;color:#fff;text-shadow:0 0 20px var(--glow),0 0 40px var(--glow);letter-spacing:2px;margin-bottom:6px;}
+.game-sub{color:rgba(255,255,255,0.45);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;}
+.story-box{background:var(--glass);border:1px solid rgba(0,212,255,0.2);border-radius:var(--r);padding:16px 18px;color:rgba(255,255,255,0.8);font-size:13px;line-height:1.8;text-align:left;margin-bottom:22px;backdrop-filter:blur(10px);}
+.story-box b{color:var(--glow);}
+.levels-prev{display:flex;gap:8px;margin-bottom:24px;width:100%;}
+.lchip{flex:1;background:var(--mist);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 6px;text-align:center;font-size:11px;color:rgba(255,255,255,0.6);}
+.lchip .ci{font-size:20px;display:block;margin-bottom:3px;}
+.lchip.l1{border-color:rgba(255,107,53,0.4);}
+.lchip.l2{border-color:rgba(0,212,255,0.4);}
+.lchip.l3{border-color:rgba(57,255,20,0.4);}
+.btn-start{background:linear-gradient(135deg,var(--glow),#0077ff);color:var(--ink);border:none;padding:15px 45px;font-size:17px;font-weight:900;font-family:'Noto Sans SC',sans-serif;border-radius:50px;cursor:pointer;letter-spacing:2px;box-shadow:0 0 30px rgba(0,212,255,0.5);transition:all 0.2s;position:relative;overflow:hidden;}
+.btn-start::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);transform:translateX(-100%);animation:shimmer 2s infinite;}
+@keyframes shimmer{to{transform:translateX(100%);}}
+.btn-start:active{transform:scale(0.96);}
+.credit-line{margin-top:18px;font-size:11px;color:rgba(255,255,255,0.12);letter-spacing:1px;}
+
+/* ── LEVEL TRANSITION ── */
+#st{align-items:center;justify-content:center;text-align:center;}
+.trans-card{background:var(--glass);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:36px 28px;width:100%;max-width:480px;backdrop-filter:blur(20px);animation:popUp 0.4s cubic-bezier(0.175,0.885,0.32,1.275);}
+@keyframes popUp{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.trans-emoji{font-size:64px;margin-bottom:16px;display:block;}
+.trans-lvl{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;}
+.trans-lvl.l1c{color:var(--fire);}
+.trans-lvl.l2c{color:var(--glow);}
+.trans-lvl.l3c{color:var(--acid);}
+.trans-title{font-size:26px;font-weight:900;color:#fff;margin-bottom:12px;}
+.trans-desc{color:rgba(255,255,255,0.65);font-size:14px;line-height:1.7;margin-bottom:24px;}
+.trans-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;}
+.pill{background:var(--mist);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:5px 14px;font-size:12px;color:rgba(255,255,255,0.6);}
+.btn-go{background:linear-gradient(135deg,var(--gold),#e67e00);color:var(--ink);border:none;padding:14px 40px;font-size:16px;font-weight:900;font-family:'Noto Sans SC',sans-serif;border-radius:50px;cursor:pointer;letter-spacing:2px;box-shadow:0 0 20px rgba(255,215,0,0.35);transition:all 0.2s;}
+.btn-go:active{transform:scale(0.97);}
+
+/* ── GAME HUD ── */
+#sg{justify-content:flex-start;}
+.hud{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;background:var(--glass);border:1px solid rgba(255,255,255,0.1);border-radius:var(--r);backdrop-filter:blur(10px);margin-bottom:10px;}
+.hud-score{font-family:'Orbitron',sans-serif;font-size:19px;font-weight:700;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,0.5);}
+.hud-score small{font-size:9px;color:rgba(255,255,255,0.35);display:block;text-align:center;font-family:'Noto Sans SC',sans-serif;font-weight:400;letter-spacing:1px;}
+.hud-hearts{display:flex;gap:2px;}
+.heart{font-size:19px;transition:all 0.3s;}
+.heart.lost{opacity:0.18;transform:scale(0.7);filter:grayscale(1);}
+.hud-combo{text-align:right;font-size:10px;color:rgba(255,255,255,0.4);min-width:55px;}
+.hud-combo .cn{font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:var(--fire);text-shadow:0 0 10px var(--fire);display:block;transition:all 0.2s;}
+.prog-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.prog-track{flex:1;height:4px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--fire),var(--gold));border-radius:10px;transition:width 0.4s ease;}
+.prog-txt{font-size:10px;color:rgba(255,255,255,0.3);white-space:nowrap;font-family:'Orbitron',sans-serif;}
+.timer-track{height:5px;background:rgba(255,255,255,0.08);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.timer-fill{height:100%;width:100%;border-radius:10px;background:linear-gradient(90deg,var(--acid),var(--glow));transition:width 0.1s linear,background 0.5s;box-shadow:0 0 8px var(--glow);}
+.scene-banner{border-radius:var(--r);padding:12px 16px;margin-bottom:11px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.13);}
+.scene-banner.sl1{background:linear-gradient(135deg,#2d1a0a,#5a2d0c);}
+.scene-banner.sl2{background:linear-gradient(135deg,#001a3d,#003366);}
+.scene-banner.sl3{background:linear-gradient(135deg,#001a10,#003320);}
+.scene-tag{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:3px;}
+.sl1 .scene-tag{color:var(--fire);}
+.sl2 .scene-tag{color:var(--glow);}
+.sl3 .scene-tag{color:var(--acid);}
+.scene-desc{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;}
+.scene-ej{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:30px;opacity:0.45;}
+.qnum{font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-bottom:5px;font-family:'Orbitron',sans-serif;}
+.qtext{font-size:clamp(13px,3.5vw,16px);font-weight:700;color:#fff;line-height:1.6;margin-bottom:16px;min-height:55px;}
+
+/* ── MCQ OPTIONS ── */
+.opts{display:flex;flex-direction:column;gap:9px;margin-bottom:12px;}
+.opt-btn{background:var(--mist);border:1.5px solid rgba(255,255,255,0.12);border-radius:13px;padding:12px 16px;color:rgba(255,255,255,0.85);font-size:13px;font-family:'Noto Sans SC',sans-serif;cursor:pointer;text-align:left;transition:all 0.18s;position:relative;overflow:hidden;}
+.opt-btn::before{content:attr(data-l);display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.1);font-size:10px;font-weight:700;margin-right:9px;color:rgba(255,255,255,0.45);flex-shrink:0;vertical-align:middle;transition:all 0.18s;}
+.opt-btn:hover,.opt-btn:active{border-color:var(--glow);background:rgba(0,212,255,0.08);transform:translateX(3px);box-shadow:-3px 0 0 var(--glow);}
+.opt-btn.correct{border-color:var(--acid)!important;background:rgba(57,255,20,0.12)!important;transform:none!important;box-shadow:0 0 18px rgba(57,255,20,0.2)!important;}
+.opt-btn.wrong{border-color:var(--danger)!important;background:rgba(255,45,85,0.12)!important;transform:none!important;}
+.opt-btn.disabled{pointer-events:none;opacity:0.5;}
+
+/* ── MATCH QUESTION ── */
+.match-area{margin-bottom:12px;}
+.match-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.match-left{background:rgba(255,107,53,0.12);border:1.5px solid rgba(255,107,53,0.35);color:rgba(255,255,255,0.85);border-radius:10px;padding:9px 14px;font-size:13px;min-width:100px;flex-shrink:0;}
+.match-arrow{color:rgba(255,255,255,0.3);font-size:16px;flex-shrink:0;}
+.match-drop{flex:1;min-width:100px;min-height:40px;background:var(--mist);border:1.5px dashed rgba(0,212,255,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;transition:all 0.2s;padding:6px 10px;text-align:center;}
+.match-drop.filled{border-color:var(--glow);color:var(--glow);background:rgba(0,212,255,0.08);font-weight:700;}
+.match-drop.over{border-color:var(--gold);background:rgba(255,215,0,0.05);}
+.chips-pool{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:var(--mist);border:1.5px dashed rgba(255,255,255,0.1);border-radius:var(--r);min-height:52px;margin-bottom:10px;}
+.chip{background:rgba(0,212,255,0.13);border:1.5px solid var(--glow);color:var(--glow);padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;user-select:none;transition:all 0.2s;touch-action:none;}
+.chip:active{transform:scale(1.06);box-shadow:0 0 12px rgba(0,212,255,0.4);}
+.chip.selected{background:rgba(255,215,0,0.18);border-color:var(--gold);color:var(--gold);}
+
+/* ── ORDER QUESTION ── */
+.order-area{margin-bottom:12px;}
+.order-info{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px;}
+.order-slots{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.order-slot{display:flex;align-items:center;gap:8px;background:var(--mist);border:1.5px dashed rgba(255,255,255,0.15);border-radius:12px;padding:9px 14px;min-height:42px;cursor:pointer;transition:all 0.2s;}
+.order-slot.over{border-color:var(--glow);background:rgba(0,212,255,0.06);}
+.order-slot.filled{border-color:rgba(255,255,255,0.2);}
+.slot-num{font-family:'Orbitron',sans-serif;font-size:11px;color:rgba(255,255,255,0.25);min-width:20px;}
+.slot-content{font-size:13px;color:var(--glow);font-weight:700;}
+.order-chips{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--mist);border:1.5px dashed rgba(255,255,255,0.1);border-radius:var(--r);min-height:52px;margin-bottom:10px;}
+
+/* ── SUBMIT BTN ── */
+.btn-submit{background:var(--glass);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:11px 24px;border-radius:9px;font-size:13px;font-family:'Noto Sans SC',sans-serif;font-weight:700;cursor:pointer;width:100%;transition:all 0.2s;letter-spacing:1px;margin-top:4px;}
+.btn-submit:hover{background:rgba(255,255,255,0.13);}
+
+/* ── FEEDBACK ── */
+.fb-inline{border-radius:var(--r);padding:13px 15px;margin-top:6px;font-size:13px;line-height:1.6;animation:slideUp 0.3s ease;display:none;}
+@keyframes slideUp{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+.fb-inline.correct{background:rgba(57,255,20,0.08);border:1px solid rgba(57,255,20,0.3);color:rgba(255,255,255,0.8);}
+.fb-inline.wrong{background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);color:rgba(255,255,255,0.8);}
+.fb-inline.timeout{background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.3);color:rgba(255,255,255,0.8);}
+.fb-hd{font-size:14px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+.btn-next{background:var(--glass);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-family:'Noto Sans SC',sans-serif;font-weight:700;cursor:pointer;margin-top:11px;width:100%;transition:all 0.2s;letter-spacing:1px;}
+.btn-next:hover{background:rgba(255,255,255,0.13);}
+
+/* ── TOASTS / POPUPS ── */
+.combo-pop{position:fixed;left:50%;top:44%;transform:translateX(-50%) scale(0);z-index:99;font-family:'Orbitron',sans-serif;font-size:clamp(26px,8vw,46px);font-weight:900;color:var(--fire);text-shadow:0 0 30px var(--fire),0 0 60px rgba(255,107,53,0.5);pointer-events:none;opacity:0;}
+.combo-pop.bang{animation:comboBang 0.85s ease forwards;}
+@keyframes comboBang{0%{transform:translateX(-50%) scale(0);opacity:1;}40%{transform:translateX(-50%) scale(1.25);opacity:1;}70%{transform:translateX(-50%) scale(0.9) translateY(-18px);opacity:0.8;}100%{transform:translateX(-50%) scale(1) translateY(-55px);opacity:0;}}
+.ach-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-90px);z-index:100;background:rgba(10,14,26,0.95);border:1.5px solid var(--gold);border-radius:var(--r);padding:11px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 0 28px rgba(255,215,0,0.3);transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);min-width:240px;backdrop-filter:blur(20px);}
+.ach-toast.show{transform:translateX(-50%) translateY(0);}
+.ach-icon{font-size:28px;}
+.ach-lbl{font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;font-family:'Orbitron',sans-serif;}
+.ach-ttl{font-size:14px;font-weight:700;color:#fff;}
+
+/* ── SETTLEMENT ── */
+#ss{align-items:center;justify-content:center;}
+.settle-card{background:var(--glass);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:28px 22px;backdrop-filter:blur(20px);width:100%;max-width:480px;}
+.settle-card.failed{border-color:rgba(255,45,85,0.4);background:rgba(255,45,85,0.05);}
+.settle-title.fail-txt{color:var(--danger);text-shadow:0 0 20px rgba(255,45,85,0.5);}
+.settle-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:#fff;margin-bottom:5px;}
+.settle-sub{color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:22px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px;}
+.stat-box{background:var(--mist);border:1px solid rgba(255,255,255,0.08);border-radius:13px;padding:13px 10px;}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,0.35);}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;}
+.rank-badge{display:inline-block;background:linear-gradient(135deg,var(--gold),#ff8c00);color:var(--ink);font-weight:900;font-size:13px;padding:7px 18px;border-radius:28px;margin-bottom:22px;letter-spacing:1px;}
+.name-input{width:100%;background:var(--mist);border:1.5px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px 16px;font-size:15px;color:#fff;font-family:'Noto Sans SC',sans-serif;text-align:center;outline:none;margin-bottom:14px;transition:border-color 0.2s;}
+.name-input::placeholder{color:rgba(255,255,255,0.22);}
+.name-input:focus{border-color:var(--glow);box-shadow:0 0 14px rgba(0,212,255,0.14);}
+.btn-cert{width:100%;background:linear-gradient(135deg,var(--gold),#e67e00);color:var(--ink);border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:900;font-family:'Noto Sans SC',sans-serif;cursor:pointer;letter-spacing:2px;box-shadow:0 0 18px rgba(255,215,0,0.28);transition:all 0.2s;margin-bottom:9px;}
+.btn-cert:active{transform:scale(0.98);}
+.btn-retry{width:100%;background:var(--mist);border:1px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.65);padding:11px;border-radius:12px;font-size:13px;font-family:'Noto Sans SC',sans-serif;cursor:pointer;transition:all 0.2s;}
+.btn-retry:hover{background:rgba(255,255,255,0.1);color:#fff;}
+
+/* ── CERTIFICATE ── */
+#sc{align-items:center;justify-content:flex-start;}
+.cert-area{width:100%;max-width:540px;text-align:center;margin-bottom:18px;}
+canvas#cert-canvas{width:100%;border-radius:12px;box-shadow:0 10px 38px rgba(0,0,0,0.6);display:block;}
+.cert-btns{display:flex;gap:9px;width:100%;max-width:540px;}
+.cert-btns button{flex:1;padding:13px;border-radius:12px;font-size:13px;font-weight:700;font-family:'Noto Sans SC',sans-serif;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-dl{background:linear-gradient(135deg,var(--glow),#0077ff);color:var(--ink);}
+.btn-re{background:var(--mist);border:1px solid rgba(255,255,255,0.14)!important;color:rgba(255,255,255,0.65);}
+.cert-hint{font-size:10px;color:rgba(255,255,255,0.22);margin-top:10px;text-align:center;}
+
+/*//峇株吧辖华仁中学蔡逸众制作*/
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<!--//Made by ecchua79-->
+<div class="combo-pop" id="combo-pop">COMBO!</div>
+<div class="ach-toast" id="ach-toast">
+  <div class="ach-icon" id="ach-icon">🏆</div>
+  <div><div class="ach-lbl">成就解锁</div><div class="ach-ttl" id="ach-ttl">满分达人</div></div>
+</div>
+
+<!-- ═══ WELCOME ═══ -->
+<div class="screen active" id="sw">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="logo-ring">
+      <svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="55" stroke="url(#lg1)" stroke-width="3" stroke-dasharray="8 4"/>
+      <defs><linearGradient id="lg1" x1="0" y1="0" x2="120" y2="120"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#ff6b35"/></linearGradient></defs></svg>
+      <div class="logo-icon">💥</div>
+    </div>
+    <div class="game-title">气压大师 v3</div>
+    <div class="game-sub">EXTREME SURVIVAL CHALLENGE</div>
+    <div class="story-box">
+      科学探测船「华仁号」遭遇未知风暴！你需要运用<b>压强与气压</b>的知识，依次穿越<b>固体工坊</b>、<b>万米深海</b>和<b>稀薄高空</b>三大险境……<br>
+      本次任务共 <b>21 题</b>，每关 <b>7 题</b>，含选择、配对、排序三种题型！<br>
+      <b>3次失误即告失败</b>，祝你好运！
+    </div>
+    <div class="levels-prev">
+      <div class="lchip l1"><span class="ci">🔥</span>固体工坊<br><small>7题</small></div>
+      <div class="lchip l2"><span class="ci">🌊</span>深海潜航<br><small>7题</small></div>
+      <div class="lchip l3"><span class="ci">🚀</span>冲出天际<br><small>7题</small></div>
+    </div>
+    <button class="btn-start" onclick="startGame()">▶ 开始大冒险</button>
+    <div class="credit-line">©峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</div>
+  </div>
+</div>
+
+<!-- ═══ LEVEL TRANSITION ═══ -->
+<div class="screen" id="st">
+  <div class="trans-card" id="trans-card" style="margin:auto;">
+    <span class="trans-emoji" id="trans-emoji">🔥</span>
+    <div class="trans-lvl" id="trans-lvl">LEVEL 1</div>
+    <div class="trans-title" id="trans-title">固体工坊</div>
+    <div class="trans-desc" id="trans-desc">引擎室警报触发！</div>
+    <div class="trans-pills" id="trans-pills"></div>
+    <button class="btn-go" id="btn-go" onclick="startLevel()">出发！</button>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div class="screen" id="sg">
+  <div class="hud">
+    <div style="text-align:center"><div class="hud-score" id="score-d">0</div><small>SCORE</small></div>
+    <div class="hud-hearts" id="hearts-d">
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    </div>
+    <div class="hud-combo"><span class="cn" id="combo-n">0</span>COMBO</div>
+  </div>
+  <div class="prog-row">
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-txt" id="prog-txt">0/21</div>
+  </div>
+  <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+  <div class="scene-banner sl1" id="scene-banner">
+    <div class="scene-tag" id="scene-tag">LEVEL 1</div>
+    <div class="scene-desc" id="scene-desc">引擎室压力异常！</div>
+    <div class="scene-ej" id="scene-ej">🔥</div>
+  </div>
+  <div class="qnum" id="qnum">QUESTION 1/21</div>
+  <div class="qtext" id="qtext">加载中...</div>
+  <div class="opts" id="opts-area"></div>
+  <div id="match-area" class="match-area" style="display:none"></div>
+  <div id="order-area" class="order-area" style="display:none"></div>
+  <button class="btn-submit" id="btn-submit" style="display:none" onclick="checkInteractive()">✓ 确认答案</button>
+  <div class="fb-inline" id="fb-inline">
+    <div class="fb-hd" id="fb-hd"></div>
+    <div id="fb-body"></div>
+    <div id="btn-next-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══ SETTLEMENT ═══ -->
+<div class="screen" id="ss">
+  <div class="settle-card">
+    <div class="settle-title" id="settle-title">任务完成！🎉</div>
+    <div class="settle-sub" id="settle-sub">「华仁号」科研任务结算报告</div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="st-score">0</div><div class="stat-lbl">最终得分</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-corr">0/21</div><div class="stat-lbl">答对题数</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-time">0s</div><div class="stat-lbl">作战时间</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-combo">0</div><div class="stat-lbl">最大连击</div></div>
+    </div>
+    <div class="rank-badge" id="rank-badge">🥉 初级探索者</div>
+    <input class="name-input" id="student-name" placeholder="✏️ 输入你的大名，生成专属证书" maxlength="16">
+    <button class="btn-cert" id="btn-cert" onclick="generateCertificate()">🏆 生成荣誉证书</button>
+    <button class="btn-retry" onclick="restartGame()">↺ 重新挑战</button>
+  </div>
+</div>
+
+<!-- ═══ CERTIFICATE ═══ -->
+<div class="screen" id="sc">
+  <div class="cert-area"><canvas id="cert-canvas"></canvas></div>
+  <div class="cert-btns">
+    <button class="btn-dl" onclick="downloadCert()">⬇ 下载证书 PNG</button>
+    <button class="btn-re" onclick="restartGame()">↺ 再战一局</button>
+  </div>
+  <div class="cert-hint">手机用户：长按图片可直接保存 📱</div>
+</div>
+
+
+<script>
+
+/* ══════════════════════════════════════════
+   BG PARTICLES
+══════════════════════════════════════════ */
+const bgC=document.getElementById('bg-canvas');
+const bgX=bgC.getContext('2d');
+let pts=[];
+let bgTheme='default';
+const themes={
+  default:{bg1:'#0a0e1a',bg2:'#0d1b3e',dot:'rgba(0,212,255,0.45)'},
+  deep:{bg1:'#000d1a',bg2:'#001a3d',dot:'rgba(0,150,255,0.38)'},
+  space:{bg1:'#050010',bg2:'#0d0028',dot:'rgba(180,120,255,0.38)'}
+};
+function resizeBg(){bgC.width=window.innerWidth;bgC.height=window.innerHeight;}
+resizeBg(); window.addEventListener('resize',resizeBg);
+function initPts(){
+  pts=[];
+  const n=Math.min(55,Math.floor(window.innerWidth*window.innerHeight/14000));
+  for(let i=0;i<n;i++) pts.push({x:Math.random()*bgC.width,y:Math.random()*bgC.height,r:Math.random()*1.4+0.3,vx:(Math.random()-0.5)*0.28,vy:(Math.random()-0.5)*0.28,a:Math.random()*0.5+0.1});
+}
+initPts();
+//华仁中学蔡逸众制作
+function drawBg(){
+  const tc=themes[bgTheme]||themes.default;
+  const g=bgX.createLinearGradient(0,0,bgC.width,bgC.height);
+  g.addColorStop(0,tc.bg1); g.addColorStop(1,tc.bg2);
+  bgX.fillStyle=g; bgX.fillRect(0,0,bgC.width,bgC.height);
+  for(const p of pts){
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=bgC.width; if(p.x>bgC.width)p.x=0;
+    if(p.y<0)p.y=bgC.height; if(p.y>bgC.height)p.y=0;
+    bgX.beginPath(); bgX.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgX.fillStyle=tc.dot; bgX.globalAlpha=p.a; bgX.fill(); bgX.globalAlpha=1;
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ══════════════════════════════════════════
+   QUESTION BANK — 21 QUESTIONS
+   Level 1: Solid (7) | Level 2: Liquid (7) | Level 3: Gas (7)
+══════════════════════════════════════════ */
+//峇株吧辖蔡逸众制作
+const BANK = [
+
+  /* ──────────── LEVEL 1: SOLID (7) ──────────── */
+  {
+    lv:1, type:'mcq',
+    scene:'💥 引擎室警报触发！舱内压力表读数飙升！',
+    q:'将手指按在铅笔两端，按在笔尖的手指更痛。关于"两根手指所受的压力"，正确的是：',
+    opts:['笔尖端受到的压力更大','平滑端受到的压力更大','两端受到的压力完全相同','压力的大小无法比较'],
+    ans:2,
+    hint:'💡 两根手指夹住铅笔时，受到的压力（作用力）完全相同！痛感差异来自"受力面积"——笔尖面积极小，所以压强（效果）更大。'
+  },
+  {
+    lv:1, type:'mcq',
+    scene:'🔧 工具室紧急维修，需要判断压强大小！',
+    q:'运动员质量60 kg，踩两块滑雪板总面积0.3 m²，雪地受到的平均压强是？(g=10 N/kg)',
+    opts:['200 Pa','600 Pa','2000 Pa','6000 Pa'],
+    ans:2,
+    hint:'💡 压力F = mg = 60×10 = 600 N；压强 p = F/A = 600÷0.3 = 2000 Pa。记住：先算重力（压力），再除以面积！'
+  },
+  {
+    lv:1, type:'mcq',
+    scene:'🔪 厨房切割设备故障，刀具变钝了！',
+    q:'菜刀变钝后切肉费力。这是因为刀变钝后，与物体接触面积增大，导致：',
+    opts:['相同压力下压强增大，切割更容易','相同压力下压强减小，切割变困难','刀的质量减小，压力变小','大气压对刀产生了阻力'],
+    ans:1,
+    hint:'💡 接触面积越大，压强越小。p = F/A，A变大 → p变小 → 切割效果变差。想增大压强：减小面积或加大力！'
+  },
+  {
+    lv:1, type:'mcq',
+    scene:'🧊 冰原探索，必须减小雪地压强！',
+    q:'下列哪种方法能有效"减小"对雪地的压强？',
+    opts:['穿窄底登山靴','穿宽底滑雪板','减少携带的装备重量','站得更直'],
+    ans:1,
+    hint:'💡 减小压强的方法：①减小压力（减重）②增大受力面积（宽底）。滑雪板面积大，所以能在雪地上滑行而不深陷。'
+  },
+  {
+    lv:1, type:'mcq',
+    scene:'🏗️ 工程验收，地基压强要符合标准！',
+    q:'同一块砖，平放与竖放在地面上，关于砖对地面的压力和压强，正确的是：',
+    opts:['压力和压强都相同','压力相同，竖放时压强更大','压力相同，平放时压强更大','压强相同，压力不同'],
+    ans:1,
+    hint:'💡 压力大小 = 砖的重力，不论怎么放，重力不变，压力相同。但竖放时受力面积更小，所以压强更大！'
+  },
+  {
+    lv:1, type:'match',
+    scene:'🔩 零件分类台：把增大/减小压强的方法配对！',
+    q:'将下列"日常应用"与其对应的"压强策略"正确配对：',
+    pairs:[
+      {left:'图钉尖端做得很尖锐',right:'减小面积→增大压强'},
+      {left:'宽大的坦克履带',right:'增大面积→减小压强'},
+      {left:'锋利的手术刀',right:'减小面积→增大压强'},
+      {left:'建筑物用宽大地基',right:'增大面积→减小压强'}
+    ],
+    hint:'💡 增大压强：减小受力面积；减小压强：增大受力面积。生活中两类例子都很常见！'
+  },
+  {
+    lv:1, type:'order',
+    scene:'📐 计算任务：按正确步骤计算压强！',
+    q:'计算压强的正确步骤顺序是（从第一步到最后一步）：',
+    steps:['写出已知量：质量m、面积A','用F=mg计算压力F','代入公式 p=F/A','得出压强答案，写上单位 Pa'],
+    hint:'💡 解题顺序：①整理已知量 → ②算压力（重力）→ ③用压强公式 → ④写答案带单位。这是物理解题的标准格式！'
+  },
+
+  /* ──────────── LEVEL 2: LIQUID (7) ──────────── */
+  {
+    lv:2, type:'mcq',
+    scene:'🌊 潜艇下潜500米！船体压力传感器报警！',
+    q:'水坝截面设计成"上窄下宽"，这是因为：',
+    opts:['上面造价高所以节省材料','下层受到的液体压强更大，需要更厚实','水流从上往下速度快，需要收窄','这只是建筑美观需求'],
+    ans:1,
+    hint:'💡 液体压强随深度增加！水坝越深，水压越大，所以底部墙体需要做厚做宽来抵抗更大的压强，这是物理原理决定的工程设计。'
+  },
+  {
+    lv:2, type:'mcq',
+    scene:'🚿 生命维持管道破裂，水封失效！',
+    q:'洗手台U形弯管的"水封"能阻止臭气，其原理是：',
+    opts:['U管内水密度比臭气大，能阻隔','同一深度液体各方向压强相等，水柱平衡形成封闭','水分子停止运动阻断气体','U管制造了真空区域'],
+    ans:1,
+    hint:'💡 液体在同一深度各方向压强相等。U管两侧液柱在相同深度压强相等，保持平衡，形成"水封"隔绝臭气。这是液体压强的实际应用！'
+  },
+  {
+    lv:2, type:'mcq',
+    scene:'🚢 华仁号从内河驶向大洋，浮力系统调校中！',
+    q:'轮船从淡水河驶入密度更大的海水中，轮船的状态变化是：',
+    opts:['沉得更深，吃水深度变深','浮得更高，吃水深度变浅','完全没有变化','船体因受压而收缩'],
+    ans:1,
+    hint:'💡 浮力来自上下表面的压强差。海水密度大 → 同深度压强更大 → 浮力更大 → 船浮得更高，吃水变浅。这就是为什么万吨货轮在海上不会沉！'
+  },
+  {
+    lv:2, type:'mcq',
+    scene:'🏊 深海生物实验舱：液体压强研究！',
+    q:'将压强计的橡皮膜分别放入盐水和淡水的相同深度，结果是：',
+    opts:['淡水中U管液柱高度差更大，淡水压强更大','盐水中U管液柱高度差更大，盐水压强更大','两者液柱高度差相同，压强相等','无法通过压强计判断'],
+    ans:1,
+    hint:'💡 密度越大的液体，在相同深度下产生的压强越大。盐水密度 > 淡水密度，所以盐水中压强更大，U管高度差更大。'
+  },
+  {
+    lv:2, type:'mcq',
+    scene:'💧 水下机器人定位失误，需要判断压强来源！',
+    q:'潜水员在水中感受到的水压，根本原因是：',
+    opts:['水分子太重，重力直接向下压','水的粒子不断与潜水员身体碰撞，产生持续压力','深海没有大气压，只有水压','水温低使皮肤感受到压迫感'],
+    ans:1,
+    hint:'💡 液体压强产生的原因：液体粒子不断运动，与接触面持续碰撞，产生压力。这和气体压强的原理是一样的！'
+  },
+  {
+    lv:2, type:'match',
+    scene:'🌊 深海资料室：液体压强知识大配对！',
+    q:'将下列"现象或应用"与对应的"液体压强规律"配对：',
+    pairs:[
+      {left:'水坝底部比顶部厚',right:'压强随深度增加而增大'},
+      {left:'U形管水封防臭',right:'同一深度各方向压强相等'},
+      {left:'船入海水吃水变浅',right:'密度大的液体压强更大'},
+      {left:'潜水员越深越难受',right:'压强随深度增加而增大'}
+    ],
+    hint:'💡 液体压强三大规律：①越深越大；②同深度各向相等；③密度越大压强越大。记住这三点！'
+  },
+  {
+    lv:2, type:'order',
+    scene:'🔬 实验室：正确排列液体压强的影响因素！',
+    q:'按照影响液体压强的关键因素，将以下描述从"最基础原理"到"实际应用"排序：',
+    steps:['液体粒子不断运动，与接触面碰撞产生压力','液体压强随深度增加而增大','密度大的液体在同深度压强更大','水坝底部设计成宽厚形状'],
+    hint:'💡 理解顺序：先知道压强怎么产生（粒子碰撞）→ 再了解深度影响 → 再了解密度影响 → 最后才是工程实际应用（水坝设计）。'
+  },
+
+  /* ──────────── LEVEL 3: GAS (7) ──────────── */
+  {
+    lv:3, type:'mcq',
+    scene:'🏔️ 紧急迫降高原！稀薄空气令人窒息！',
+    q:'在高山上跑步容易气喘的正确原因是：',
+    opts:['高山空气中氧气的比例大幅降低','高山气压高，压迫肺部','空气稀薄，单位体积里氧气分子更少','高山重力小导致血液循环变慢'],
+    ans:2,
+    hint:'💡 注意区分"比例"和"数量"！高山空气中氧气比例（约21%）和山脚一样。但空气稀薄，单位体积分子数更少，每次呼吸的氧气分子量减少了。'
+  },
+  {
+    lv:3, type:'mcq',
+    scene:'🎈 气压舱密封检测！气球正在被按压！',
+    q:'温度不变时，挤压气球使体积变小，气球内部气压变大的原因是：',
+    opts:['粒子间距减小，与壁碰撞频率增加','粒子运动速度突然加快','外部大气压突然消失','气体质量增大了'],
+    ans:0,
+    hint:'💡 温度不变 = 粒子速度不变。体积缩小 → 粒子间距减小 → 与容器壁碰撞频率增加 → 单位时间撞击力增大 → 压强增大。'
+  },
+  {
+    lv:3, type:'mcq',
+    scene:'🥤 补给站饮料机故障！用物理解决！',
+    q:'用吸管吸取饮料，饮料能进入嘴里的根本原因是：',
+    opts:['嘴巴产生了向上的强大拉力','管内空气被吸走，外部大气压将饮料压入','管内饮料分子自行向上运动','包装盒内液体压强突然增大'],
+    ans:1,
+    hint:'💡 这是"推力"不是"吸力"！吸走管内空气 → 管内气压降低 → 管外大气压（约10⁵ Pa）将饮料活生生"压"入嘴里。大气压在默默帮忙！'
+  },
+  {
+    lv:3, type:'mcq',
+    scene:'🍚 高原营地炊事困难，压力锅来救场！',
+    q:'压力锅能快速煮熟食物，利用的原理是：',
+    opts:['高压可以直接砸熟食物','液体沸点随气压增大而升高，锅内水温可达约120℃','锅内形成完全真空降低沸点','隔绝了重力使食物更快熟'],
+    ans:1,
+    hint:'💡 压力锅内气压约2×10⁵ Pa，使水的沸点升至约120℃，比普通100℃高20度！温度更高，煮得更快。高原上正好相反：气压低→沸点低→难煮熟。'
+  },
+  {
+    lv:3, type:'mcq',
+    scene:'🌬️ 大气压测量任务！托里拆利实验！',
+    q:'关于大气压的标准值，以下正确的是：',
+    opts:['约为1.01×10³ Pa，相当于760 mm水柱高','约为1.01×10⁵ Pa，相当于760 mm水银柱高','约为1.01×10⁷ Pa，相当于760 mm汞柱高','大气压没有固定标准值'],
+    ans:1,
+    hint:'💡 标准大气压 = 1.01×10⁵ Pa = 760 mmHg（水银柱高度）。这是托里拆利用水银柱实验测出的！注意是水银不是水。'
+  },
+  {
+    lv:3, type:'match',
+    scene:'🚀 太空实验室：气体压强大配对！',
+    q:'将下列"气体现象/应用"与对应的"物理原理"配对：',
+    pairs:[
+      {left:'用吸管喝饮料',right:'大气压将液体压入低压区'},
+      {left:'吸盘贴在墙上',right:'外部大气压将吸盘压紧'},
+      {left:'压力锅快速煮熟',right:'气压增大使沸点升高'},
+      {left:'高山上易气喘',right:'空气稀薄，单位体积氧分子少'}
+    ],
+    hint:'💡 气体压强无处不在！大气压的应用：吸管、吸盘；气压与沸点：压力锅；气压与高度：高山呼吸困难。'
+  },
+  {
+    lv:3, type:'order',
+    scene:'🌡️ 高原生存指南：气压、沸点、高度关系排序！',
+    q:'将下列关于"海拔升高"的连锁反应，按正确的因果顺序排列：',
+    steps:['海拔升高，空气变稀薄','大气压随海拔升高而降低','液体的沸点随气压降低而降低','高原上用普通锅难以将饭煮熟'],
+    hint:'💡 因果链：海拔升高 → 空气稀薄 → 大气压降低 → 液体沸点降低 → 普通锅水100℃以下就沸腾了，米没熟！所以需要压力锅。'
+  }
+];
+
+/* ══════════════════════════════════════════
+   LEVEL CONFIG
+══════════════════════════════════════════ */
+const LV_CONFIG = {
+  1:{ tag:'LEVEL 1 · 固体工坊', cls:'sl1', ej:'🔥', bg:'deep',
+      transEmoji:'🔥', transLvl:'LEVEL 1', transLvlCls:'l1c',
+      transTitle:'固体工坊', transDesc:'「华仁号」引擎室压力异常，舱壁随时可能崩裂！\n运用固体压强知识稳住局面，完成 7 道挑战！',
+      pills:['压强公式 p=F/A','增大/减小压强','单位：Pa'] },
+  2:{ tag:'LEVEL 2 · 深海潜航', cls:'sl2', ej:'🌊', bg:'deep',
+      transEmoji:'🌊', transLvl:'LEVEL 2', transLvlCls:'l2c',
+      transTitle:'深海潜航', transDesc:'华仁号下潜至马里亚纳海沟！水压极限测试开始！\n液体压强知识将决定你的生死，完成 7 道挑战！',
+      pills:['压强随深度增大','各向压强相等','密度影响压强'] },
+  3:{ tag:'LEVEL 3 · 冲出天际', cls:'sl3', ej:'🚀', bg:'space',
+      transEmoji:'🚀', transLvl:'LEVEL 3', transLvlCls:'l3c',
+      transTitle:'冲出天际', transDesc:'紧急迫降高原！空气稀薄，大气压急剧下降！\n气体压强是你最后的武器，完成 7 道挑战！',
+      pills:['大气压约1.01×10⁵Pa','气压与体积/温度','压力锅原理'] }
+};
+
+/* ══════════════════════════════════════════
+   SHUFFLE
+══════════════════════════════════════════ */
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+/* ══════════════════════════════════════════
+   GAME STATE
+══════════════════════════════════════════ */
+let qList=[]; // randomized per-level
+let qGlobal=[]; // all 21 in order
+let qIdx=0;    // global question index
+let score=0, combo=0, maxCombo=0, hearts=3, correctCnt=0;
+let startTime=0, qStartTime=0, timerRAF=null, answered=false;
+const TIME_LIMIT=25;
+const achDone=new Set();
+let pendingLevel=0; // which level to transition into next
+
+/* ══════════════════════════════════════════
+   BUILD QUESTION LIST
+══════════════════════════════════════════ */
+//华仁中学蔡逸众制作
+function buildQList(){
+  qGlobal=[];
+  [1,2,3].forEach(lv=>{
+    const lvQs=BANK.filter(q=>q.lv===lv);
+    const shuffled=shuffle(lvQs);
+    qGlobal.push(...shuffled);
+  });
+}
+
+/* ══════════════════════════════════════════
+   SCREENS
+══════════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ══════════════════════════════════════════
+   START GAME
+══════════════════════════════════════════ */
+function startGame(){
+  score=0;combo=0;maxCombo=0;hearts=3;correctCnt=0;qIdx=0;
+  achDone.clear();
+  buildQList();
+  startTime=Date.now();
+  // Show level 1 transition
+  showTransition(1);
+}
+
+/* ══════════════════════════════════════════
+   LEVEL TRANSITION
+══════════════════════════════════════════ */
+/*//Made by ecchua79*/
+function showTransition(lv){
+  pendingLevel=lv;
+  const cfg=LV_CONFIG[lv];
+  bgTheme=cfg.bg;
+
+  document.getElementById('trans-emoji').textContent=cfg.transEmoji;
+  const lvEl=document.getElementById('trans-lvl');
+  lvEl.textContent=cfg.transLvl;
+  lvEl.className='trans-lvl '+cfg.transLvlCls;
+  document.getElementById('trans-title').textContent=cfg.transTitle;
+  document.getElementById('trans-desc').textContent=cfg.transDesc;
+
+  const pillsEl=document.getElementById('trans-pills');
+  pillsEl.innerHTML='';
+  cfg.pills.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='pill';
+    el.textContent=p;
+    pillsEl.appendChild(el);
+  });
+
+  // Re-animate
+  const card=document.getElementById('trans-card');
+  card.style.animation='none';
+  card.offsetHeight;
+  card.style.animation='popUp 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
+
+  showScreen('st');
+}
+
+function startLevel(){
+  showScreen('sg');
+  renderQ();
+}
+
+/* ══════════════════════════════════════════
+   RENDER QUESTION
+══════════════════════════════════════════ */
+function renderQ(){
+  answered=false;
+  if(qIdx>=qGlobal.length){endGame();return;}
+
+  const q=qGlobal[qIdx];
+  const lv=q.lv;
+  const cfg=LV_CONFIG[lv];
+  bgTheme=cfg.bg;
+
+  // Scene banner
+  const sb=document.getElementById('scene-banner');
+  sb.className='scene-banner '+cfg.cls;
+  document.getElementById('scene-tag').textContent=cfg.tag;
+  document.getElementById('scene-desc').textContent=q.scene;
+  document.getElementById('scene-ej').textContent=cfg.ej;
+
+  // Q number & text
+  document.getElementById('qnum').textContent=`QUESTION ${qIdx+1} / ${qGlobal.length}`;
+  document.getElementById('qtext').textContent=q.q;
+
+  // Progress
+  const pct=(qIdx/qGlobal.length)*100;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-txt').textContent=`${qIdx}/${qGlobal.length}`;
+
+  // Hide feedback & submit
+  document.getElementById('fb-inline').style.display='none';
+  document.getElementById('btn-submit').style.display='none';
+
+  // Render by type
+  document.getElementById('opts-area').style.display='flex';
+  document.getElementById('match-area').style.display='none';
+  document.getElementById('order-area').style.display='none';
+  document.getElementById('opts-area').innerHTML='';
+
+  if(q.type==='mcq') renderMCQ(q);
+  else if(q.type==='match') renderMatch(q);
+  else if(q.type==='order') renderOrder(q);
+
+  const qTimeLimit = (q.type==='match'||q.type==='order') ? TIME_LIMIT+5 : TIME_LIMIT;
+  startTimer(qTimeLimit);
+  qStartTime=Date.now();
+}
+
+/* ── MCQ ── */
+const LETS=['A','B','C','D'];
+function renderMCQ(q){
+  const area=document.getElementById('opts-area');
+  // Randomize options
+  const idxs=shuffle([0,1,2,3]);
+  const newAns=idxs.indexOf(q.ans); // new position of correct answer
+  q._renderedAns=newAns;
+  idxs.forEach((origIdx,newIdx)=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn';
+    btn.setAttribute('data-l',LETS[newIdx]);
+    btn.textContent=q.opts[origIdx];
+    btn.onclick=()=>handleMCQ(newIdx,q,btn,area);
+    area.appendChild(btn);
+  });
+}
+
+function handleMCQ(chosen,q,btn,area){
+  if(answered)return;
+  answered=true; stopTimer();
+  const allBtns=area.querySelectorAll('.opt-btn');
+  allBtns.forEach(b=>b.classList.add('disabled'));
+  if(chosen===q._renderedAns){
+    btn.classList.add('correct');
+    processCorrect(q);
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q._renderedAns].classList.add('correct');
+    processWrong(q);
+  }
+}
+
+/* ── MATCH ── */
+let matchSlotValues={}; // slotIdx -> value
+let matchSelectedChip=null;
+let matchPairsCount=0;
+
+function renderMatch(q){
+  document.getElementById('opts-area').style.display='none';
+  const matchEl=document.getElementById('match-area');
+  matchEl.style.display='block';
+  matchEl.innerHTML='';
+  matchSlotValues={};
+  matchSelectedChip=null;
+  matchPairsCount=q.pairs.length;
+
+  // Shuffle right-side values
+  const rightVals=shuffle(q.pairs.map(p=>p.right));
+
+  // Build rows
+  q.pairs.forEach((pair,i)=>{
+    const row=document.createElement('div');
+    row.className='match-row';
+    const left=document.createElement('div');
+    left.className='match-left'; left.textContent=pair.left;
+    const arrow=document.createElement('div');
+    arrow.className='match-arrow'; arrow.textContent='→';
+    const drop=document.createElement('div');
+    drop.className='match-drop'; drop.dataset.idx=i;
+    drop.textContent='点击芯片填入';
+    drop.addEventListener('click',()=>dropClick(drop,i));
+    drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+    drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+    drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');dropReceive(drop,i,e.dataTransfer.getData('val'));});
+    row.appendChild(left); row.appendChild(arrow); row.appendChild(drop);
+    matchEl.appendChild(row);
+  });
+
+  // Chips pool
+  const poolLabel=document.createElement('div');
+  poolLabel.style.cssText='font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:6px;margin-top:12px;';
+  poolLabel.textContent='▼ 芯片池（点击选中后再点击配对槽）';
+  matchEl.appendChild(poolLabel);
+
+  const pool=document.createElement('div');
+  pool.className='chips-pool'; pool.id='chips-pool';
+  rightVals.forEach(val=>{
+    const chip=document.createElement('div');
+    chip.className='chip'; chip.dataset.val=val; chip.textContent=val;
+    chip.draggable=true;
+    chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('val',val);});
+    chip.addEventListener('click',()=>chipClick(chip));
+    pool.appendChild(chip);
+  });
+  matchEl.appendChild(pool);
+
+  document.getElementById('btn-submit').style.display='block';
+  document.getElementById('btn-submit').textContent='✓ 确认配对';
+}
+
+function chipClick(chip){
+  // deselect previous
+  if(matchSelectedChip) matchSelectedChip.classList.remove('selected');
+  if(matchSelectedChip===chip){matchSelectedChip=null;return;}
+  matchSelectedChip=chip;
+  chip.classList.add('selected');
+}
+
+function dropClick(drop,i){
+  if(!matchSelectedChip)return;
+  dropReceive(drop,i,matchSelectedChip.dataset.val);
+  matchSelectedChip.classList.remove('selected');
+  matchSelectedChip=null;
+}
+
+function dropReceive(drop,i,val){
+  // Return previous chip if any
+  if(matchSlotValues[i]){
+    returnChipToPool(matchSlotValues[i]);
+  }
+  // Remove chip from pool
+  const pool=document.getElementById('chips-pool');
+  const existing=pool.querySelector(`.chip[data-val="${CSS.escape(val)}"]`);
+  if(existing) existing.remove();
+  matchSlotValues[i]=val;
+  drop.textContent=val;
+  drop.classList.add('filled');
+}
+
+function returnChipToPool(val){
+  const pool=document.getElementById('chips-pool');
+  const chip=document.createElement('div');
+  chip.className='chip'; chip.dataset.val=val; chip.textContent=val;
+  chip.draggable=true;
+  chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('val',val);});
+  chip.addEventListener('click',()=>chipClick(chip));
+  pool.appendChild(chip);
+}
+
+/* ── ORDER ── */
+let orderSlotValues=[];
+let orderSelectedChip=null;
+
+function renderOrder(q){
+  document.getElementById('opts-area').style.display='none';
+  const orderEl=document.getElementById('order-area');
+  orderEl.style.display='block';
+  orderEl.innerHTML='';
+  orderSlotValues=Array(q.steps.length).fill(null);
+  orderSelectedChip=null;
+
+  const info=document.createElement('div');
+  info.className='order-info'; info.textContent='将步骤按正确顺序填入空格（点击芯片，再点击序号格）';
+  orderEl.appendChild(info);
+
+  // Slots
+  const slotsEl=document.createElement('div');
+  slotsEl.className='order-slots'; slotsEl.id='order-slots';
+  q.steps.forEach((_,i)=>{
+    const slot=document.createElement('div');
+    slot.className='order-slot'; slot.dataset.idx=i;
+    const num=document.createElement('div');
+    num.className='slot-num'; num.textContent=(i+1)+'.';
+    const content=document.createElement('div');
+    content.className='slot-content'; content.textContent='？';
+    slot.appendChild(num); slot.appendChild(content);
+    slot.addEventListener('click',()=>orderSlotClick(slot,i));
+    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('over');});
+    slot.addEventListener('dragleave',()=>slot.classList.remove('over'));
+    slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('over');orderDropReceive(slot,i,e.dataTransfer.getData('val'));});
+    slotsEl.appendChild(slot);
+  });
+  orderEl.appendChild(slotsEl);
+
+  // Chips pool
+  const poolLabel=document.createElement('div');
+  poolLabel.style.cssText='font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:6px;';
+  poolLabel.textContent='▼ 步骤芯片（点击选中后再点击序号格）';
+  orderEl.appendChild(poolLabel);
+
+  const pool=document.createElement('div');
+  pool.className='order-chips'; pool.id='order-chips';
+  const shuffledSteps=shuffle(q.steps);
+  shuffledSteps.forEach(step=>{
+    const chip=document.createElement('div');
+    chip.className='chip'; chip.dataset.val=step; chip.textContent=step;
+    chip.draggable=true;
+    chip.style.maxWidth='100%'; chip.style.whiteSpace='normal'; chip.style.lineHeight='1.4';
+    chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('val',step);});
+    chip.addEventListener('click',()=>orderChipClick(chip));
+    pool.appendChild(chip);
+  });
+  orderEl.appendChild(pool);
+
+  document.getElementById('btn-submit').style.display='block';
+  document.getElementById('btn-submit').textContent='✓ 确认顺序';
+}
+
+function orderChipClick(chip){
+  if(orderSelectedChip) orderSelectedChip.classList.remove('selected');
+  if(orderSelectedChip===chip){orderSelectedChip=null;return;}
+  orderSelectedChip=chip;
+  chip.classList.add('selected');
+}
+
+function orderSlotClick(slot,i){
+  if(!orderSelectedChip)return;
+  orderDropReceive(slot,i,orderSelectedChip.dataset.val);
+  orderSelectedChip.classList.remove('selected');
+  orderSelectedChip=null;
+}
+
+function orderDropReceive(slot,i,val){
+  if(orderSlotValues[i]) returnOrderChipToPool(orderSlotValues[i]);
+  const pool=document.getElementById('order-chips');
+  const existing=pool.querySelector(`.chip[data-val="${CSS.escape(val)}"]`);
+  if(existing) existing.remove();
+  orderSlotValues[i]=val;
+  const content=slot.querySelector('.slot-content');
+  content.textContent=val;
+  slot.classList.add('filled');
+}
+
+function returnOrderChipToPool(val){
+  const pool=document.getElementById('order-chips');
+  const chip=document.createElement('div');
+  chip.className='chip'; chip.dataset.val=val; chip.textContent=val;
+  chip.draggable=true; chip.style.maxWidth='100%'; chip.style.whiteSpace='normal'; chip.style.lineHeight='1.4';
+  chip.addEventListener('dragstart',e=>{e.dataTransfer.setData('val',val);});
+  chip.addEventListener('click',()=>orderChipClick(chip));
+  pool.appendChild(chip);
+}
+
+/* ── CHECK INTERACTIVE ── */
+function checkInteractive(){
+  if(answered)return;
+  const q=qGlobal[qIdx];
+  stopTimer();
+  if(q.type==='match'){
+    // Check all slots filled
+    const allFilled=Object.keys(matchSlotValues).length===matchPairsCount;
+    if(!allFilled){alert('请先填满所有配对槽！');startTimer();return;}
+    // Check correctness
+    const correct=q.pairs.every((pair,i)=>matchSlotValues[i]===pair.right);
+    answered=true;
+    document.getElementById('btn-submit').style.display='none';
+    if(correct) processCorrect(q); else processWrong(q);
+  } else if(q.type==='order'){
+    const allFilled=orderSlotValues.every(v=>v!==null);
+    if(!allFilled){alert('请先填满所有顺序格！');startTimer();return;}
+    const correct=q.steps.every((step,i)=>orderSlotValues[i]===step);
+    answered=true;
+    document.getElementById('btn-submit').style.display='none';
+    if(correct) processCorrect(q); else processWrong(q);
+  }
+}
+
+/* ══════════════════════════════════════════
+   PROCESS CORRECT / WRONG
+══════════════════════════════════════════ */
+function processCorrect(q){
+  combo++; if(combo>maxCombo)maxCombo=combo; correctCnt++;
+  const base=100, cm=combo>=2?combo:1;
+  const spd=Math.round(Math.max(0,TIME_LIMIT-(Date.now()-qStartTime)/1000)*4);
+  score+=base*cm+spd;
+  updateHUD();
+  if(combo>=2) showComboPop(combo);
+  checkAch();
+  showFeedback(true,`🎉 答对！+${base*cm}分${combo>=2?` (${combo}连击🔥)`:''} 速度+${spd}`,q.hint);
+}
+
+function processWrong(q){
+  combo=0; hearts=Math.max(0,hearts-1);
+  updateHUD(); shakeHUD();
+  showFeedback(false,'❌ 护盾受损！再仔细想想……',q.hint);
+}
+
+function handleTimeout(){
+  if(answered)return;
+  answered=true; combo=0; hearts=Math.max(0,hearts-1);
+  updateHUD(); shakeHUD();
+  const q=qGlobal[qIdx];
+  document.getElementById('btn-submit').style.display='none';
+  showFeedback(false,'⏱️ 时间耗尽！氧气告急！',q.hint,'timeout');
+}
+
+/* ══════════════════════════════════════════
+   NEXT Q (with level transition check)
+══════════════════════════════════════════ */
+function nextQ(){
+  document.getElementById('fb-inline').style.display='none';
+  if(hearts<=0){endGame();return;}
+  qIdx++;
+  if(qIdx>=qGlobal.length){endGame();return;}
+
+  const prev=qGlobal[qIdx-1];
+  const curr=qGlobal[qIdx];
+  if(curr.lv!==prev.lv){
+    // Level transition
+    showTransition(curr.lv);
+  } else {
+    renderQ();
+  }
+}
+
+/* ══════════════════════════════════════════
+   HUD
+══════════════════════════════════════════ */
+function updateHUD(){
+  document.getElementById('score-d').textContent=score;
+  document.getElementById('combo-n').textContent=combo;
+  const hh=document.getElementById('hearts-d');
+  hh.querySelectorAll('.heart').forEach((h,i)=>h.classList.toggle('lost',i>=hearts));
+}
+function shakeHUD(){
+  const hud=document.querySelector('.hud');
+  hud.style.animation='none'; hud.offsetHeight; hud.style.animation='shake 0.4s ease';
+}
+
+/* ══════════════════════════════════════════
+   TIMER
+══════════════════════════════════════════ */
+function startTimer(limit){
+  const lim = limit || TIME_LIMIT;
+  stopTimer();
+  const fill=document.getElementById('timer-fill');
+  fill.style.width='100%';
+  fill.style.background='linear-gradient(90deg,var(--acid),var(--glow))';
+  fill.style.boxShadow='0 0 8px var(--glow)';
+  const s=Date.now();
+  function tick(){
+    const e=(Date.now()-s)/1000;
+    const pct=Math.max(0,100-(e/lim)*100);
+    fill.style.width=pct+'%';
+    if(pct<30){fill.style.background='linear-gradient(90deg,var(--danger),#ff6b35)';fill.style.boxShadow='0 0 8px var(--danger)';}
+    else if(pct<60){fill.style.background='linear-gradient(90deg,#ffd700,var(--fire))';fill.style.boxShadow='0 0 8px var(--fire)';}
+    if(e>=lim){stopTimer();handleTimeout();return;}
+    timerRAF=requestAnimationFrame(tick);
+  }
+  timerRAF=requestAnimationFrame(tick);
+}
+function stopTimer(){if(timerRAF){cancelAnimationFrame(timerRAF);timerRAF=null;}}
+
+/* ══════════════════════════════════════════
+   FEEDBACK
+══════════════════════════════════════════ */
+function showFeedback(ok,hd,hint,cls){
+  const fb=document.getElementById('fb-inline');
+  fb.className='fb-inline '+(cls||(ok?'correct':'wrong'));
+  document.getElementById('fb-hd').textContent=hd;
+  document.getElementById('fb-body').textContent=hint;
+
+  const wrap = document.getElementById('btn-next-wrap');
+  wrap.innerHTML = '';
+  const btnNext = document.createElement('button');
+  btnNext.className = 'btn-next';
+  if(hearts <= 0){
+    btnNext.textContent = '💀 查看任务终止报告';
+    btnNext.onclick = () => endGame();
+  } else {
+    btnNext.textContent = '继续任务 →';
+    btnNext.onclick = () => nextQ();
+  }
+  wrap.appendChild(btnNext);
+
+  fb.style.display='block';
+  fb.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ══════════════════════════════════════════
+   COMBO POP
+══════════════════════════════════════════ */
+function showComboPop(n){
+  const el=document.getElementById('combo-pop');
+  el.textContent=`${n}× COMBO!`;
+  el.classList.remove('bang'); el.offsetHeight; el.classList.add('bang');
+}
+
+/* ══════════════════════════════════════════
+   ACHIEVEMENTS
+══════════════════════════════════════════ */
+const ACHS=[
+  {id:'perfect',icon:'💯',title:'满分达人！全题答对'},
+  {id:'speed',  icon:'⚡',title:'极速王！5秒内答对'},
+  {id:'combo5', icon:'🔥',title:'五连击！Combo ×5'},
+  {id:'combo3', icon:'🌟',title:'三连击！Combo ×3'}
+];
+function checkAch(){
+  const elapsed=(Date.now()-qStartTime)/1000;
+  if(!achDone.has('speed')&&elapsed<5){achDone.add('speed');showAch(ACHS[1]);}
+  if(!achDone.has('combo3')&&combo>=3){achDone.add('combo3');showAch(ACHS[3]);}
+  if(!achDone.has('combo5')&&combo>=5){achDone.add('combo5');showAch(ACHS[2]);}
+}
+let achTO=null;
+function showAch(a){
+  const t=document.getElementById('ach-toast');
+  document.getElementById('ach-icon').textContent=a.icon;
+  document.getElementById('ach-ttl').textContent=a.title;
+  t.classList.add('show');
+  clearTimeout(achTO); achTO=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ══════════════════════════════════════════
+   END GAME
+══════════════════════════════════════════ */
+//峇株吧辖华仁中学蔡逸众制作
+function endGame(){
+  stopTimer();
+  const totalT=Math.round((Date.now()-startTime)/1000);
+  const failed = hearts<=0;
+  let rank;
+  if(score>=1800)rank='🏆 气压宗师';
+  else if(score>=1200)rank='🥇 资深探索者';
+  else if(score>=700)rank='🥈 中级勇士';
+  else rank='🥉 初级探索者';
+  document.getElementById('st-score').textContent=score;
+  document.getElementById('st-corr').textContent=`${correctCnt}/${qGlobal.length}`;
+  document.getElementById('st-time').textContent=totalT+'s';
+  document.getElementById('st-combo').textContent=maxCombo;
+  document.getElementById('rank-badge').textContent=rank;
+
+  if(failed){
+    document.getElementById('settle-title').textContent='探索失败 💀';
+    document.getElementById('settle-title').className='settle-title fail-txt';
+    document.getElementById('settle-sub').textContent='「华仁号」科研任务被终止……';
+    document.querySelector('.settle-card').classList.add('failed');
+    document.getElementById('btn-cert').style.display='none';
+    document.getElementById('student-name').style.display='none';
+  } else {
+    document.getElementById('settle-title').textContent='任务完成！🎉';
+    document.getElementById('settle-title').className='settle-title';
+    document.getElementById('settle-sub').textContent='「华仁号」科研任务结算报告';
+    document.querySelector('.settle-card').classList.remove('failed');
+    document.getElementById('btn-cert').style.display='block';
+    document.getElementById('student-name').style.display='block';
+  }
+
+  bgTheme='default';
+  showScreen('ss');
+  if(!failed && correctCnt===qGlobal.length) showAch(ACHS[0]);
+}
+
+/* ══════════════════════════════════════════
+   CERTIFICATE
+══════════════════════════════════════════ */
+//峇株吧辖蔡逸众制作
+function generateCertificate(){
+  const name=document.getElementById('student-name').value.trim()||'科学探索者';
+  const totalT=Math.round((Date.now()-startTime)/1000);
+  showScreen('sc');
+
+  const canvas=document.getElementById('cert-canvas');
+  const W=540,H=920; canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // BG
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0a0e1a'); bg.addColorStop(0.5,'#0d1b3e'); bg.addColorStop(1,'#001a10');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.save();
+  for(let i=0;i<130;i++){
+    ctx.globalAlpha=Math.random()*0.6+0.1; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.2+0.2,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1; ctx.restore();
+
+  // Borders
+  ctx.strokeStyle='rgba(0,212,255,0.5)'; ctx.lineWidth=3;
+  rr(ctx,10,10,W-20,H-20,16); ctx.stroke();
+  ctx.strokeStyle='rgba(255,215,0,0.22)'; ctx.lineWidth=1;
+  rr(ctx,22,22,W-44,H-44,12); ctx.stroke();
+
+  // Header band
+  const hband=ctx.createLinearGradient(0,60,W,130);
+  hband.addColorStop(0,'rgba(0,212,255,0.07)'); hband.addColorStop(0.5,'rgba(0,212,255,0.17)'); hband.addColorStop(1,'rgba(0,212,255,0.07)');
+  ctx.fillStyle=hband; ctx.fillRect(30,60,W-60,90);
+
+  ctx.font='bold 13px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(0,212,255,0.7)'; ctx.textAlign='center';
+  ctx.fillText('峇株吧辖华仁中学 · CHINESE HIGH SCHOOL',W/2,95);
+  ctx.font='bold 30px "Noto Sans SC",sans-serif'; ctx.fillStyle='#fff';
+  ctx.shadowColor='rgba(0,212,255,0.8)'; ctx.shadowBlur=18;
+  ctx.fillText('科学荣誉证书',W/2,136); ctx.shadowBlur=0;
+  ctx.font='11px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,255,255,0.38)';
+  ctx.fillText('SCIENCE ACHIEVEMENT CERTIFICATE',W/2,158);
+
+  // Divider
+  ctx.strokeStyle='rgba(0,212,255,0.28)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(60,175); ctx.lineTo(W-60,175); ctx.stroke();
+
+  // Medal
+  ctx.font='54px serif'; ctx.textAlign='center'; ctx.fillText('🏆',W/2,248);
+
+  // Name
+  ctx.font='bold 28px "Noto Sans SC",sans-serif'; ctx.fillStyle='#ffd700';
+  ctx.shadowColor='rgba(255,215,0,0.55)'; ctx.shadowBlur=14;
+  ctx.fillText(name,W/2,296); ctx.shadowBlur=0;
+
+  // Body
+  ctx.font='14px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,255,255,0.72)'; ctx.textAlign='center';
+  wt(ctx,'同学在《气压与压强》极限生存挑战中',W/2,334,W-100,24);
+  wt(ctx,'运用物理知识穿越固体工坊、深海潜航与高空三大险境',W/2,360,W-100,24);
+  wt(ctx,'成功守护了「华仁号」科研飞船！特发此证以资鼓励。',W/2,386,W-100,24);
+
+  // Stats grid
+  const stats=[
+    {l:'最终得分',v:String(score)+'分'},
+    {l:'答对题数',v:`${correctCnt}/21`},
+    {l:'作战时长',v:totalT+'秒'},
+    {l:'最大连击',v:maxCombo+'×'}
+  ];
+  const gx=46,gy=420,gw=(W-92)/2-8,gh=68;
+  stats.forEach((s,i)=>{
+    const cx=gx+(i%2)*(gw+16), cy=gy+Math.floor(i/2)*(gh+10);
+    ctx.fillStyle='rgba(255,255,255,0.05)'; rr(ctx,cx,cy,gw,gh,10); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.09)'; ctx.lineWidth=1; rr(ctx,cx,cy,gw,gh,10); ctx.stroke();
+    ctx.font='bold 20px "Noto Sans SC",sans-serif'; ctx.fillStyle='#ffd700'; ctx.textAlign='center';
+    ctx.fillText(s.v,cx+gw/2,cy+34);
+    ctx.font='11px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,255,255,0.38)';
+    ctx.fillText(s.l,cx+gw/2,cy+55);
+  });
+
+  // Rank
+  let rankStr=score>=1800?'🏆 气压宗师':score>=1200?'🥇 资深探索者':score>=700?'🥈 中级勇士':'🥉 初级探索者';
+  ctx.font='bold 17px "Noto Sans SC",sans-serif'; ctx.fillStyle='#ffd700'; ctx.textAlign='center';
+  ctx.fillText(rankStr,W/2,600);
+
+  // Divider 2
+  ctx.strokeStyle='rgba(255,215,0,0.22)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(80,620); ctx.lineTo(W-80,620); ctx.stroke();
+
+  // Date & school
+  const now=new Date();
+  const ds=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  ctx.font='12px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,255,255,0.38)';
+  ctx.textAlign='left'; ctx.fillText('认证日期：'+ds,68,650);
+  ctx.textAlign='right'; ctx.fillText('峇株吧辖华仁中学',W-68,650);
+
+  // Red stamp
+  ctx.save(); ctx.translate(W-95,H-125); ctx.rotate(-0.2);
+  ctx.strokeStyle='rgba(255,45,85,0.8)'; ctx.lineWidth=2.5;
+  ctx.strokeRect(-45,-24,90,48);
+  ctx.font='bold 13px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,45,85,0.9)';
+  ctx.textAlign='center'; ctx.fillText('通关认证',0,6); ctx.restore();
+
+  // Watermark
+  ctx.font='9px "Noto Sans SC",sans-serif'; ctx.fillStyle='rgba(255,255,255,0.13)';
+  ctx.textAlign='center'; ctx.fillText('Made by ecchua79 · 蔡逸众制作',W/2,H-28);
+}
+
+/*//Made by ecchua79*/
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
+  ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+function wt(ctx,text,x,y,mw,lh){
+  const chars=text.split(''); let line='',ly=y;
+  for(const c of chars){
+    const t=line+c;
+    if(ctx.measureText(t).width>mw&&line!==''){ctx.fillText(line,x,ly);line=c;ly+=lh;}
+    else line=t;
+  }
+  if(line)ctx.fillText(line,x,ly);
+}
+//华仁中学蔡逸众制作
+function downloadCert(){
+  const canvas=document.getElementById('cert-canvas');
+  const name=document.getElementById('student-name')?.value.trim()||'科学探索者';
+  const a=document.createElement('a');
+  a.download=`气压大师证书_${name}.png`;
+  a.href=canvas.toDataURL('image/png'); a.click();
+}
+function restartGame(){bgTheme='default';showScreen('sw');}
+
+</script>
+</body>
+</html>
