@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚡ 星际科学士：能量纪元 RPG</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root {
+  --bg0: #080c14;
+  --bg1: #0e1520;
+  --bg2: #141e2e;
+  --bg3: #1a2540;
+  --border: rgba(80,140,255,0.2);
+  --blue: #4fa3ff;
+  --cyan: #00d4ff;
+  --gold: #ffc44d;
+  --red: #ff5252;
+  --green: #4cff91;
+  --purple: #b060ff;
+  --orange: #ff8c42;
+  --text: #c8d8f0;
+  --muted: #5a7090;
+  --font-hd: 'Orbitron', monospace;
+  --font-bd: 'Noto Sans SC', sans-serif;
+  --glow-blue: 0 0 20px rgba(79,163,255,0.5);
+  --glow-gold: 0 0 20px rgba(255,196,77,0.5);
+  --glow-red: 0 0 20px rgba(255,82,82,0.5);
+  --glow-green: 0 0 20px rgba(76,255,145,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg0);
+  color: var(--text);
+  font-family: var(--font-bd);
+}
+
+/* ── CANVAS LAYER ── */
+#bg-canvas {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 10; padding: 16px;
+  overflow-y: auto;
+}
+.hidden { display: none !important; }
+
+/* ════════ START SCREEN ════════ */
+#start-screen { gap: 0; }
+
+.title-wrap { text-align: center; margin-bottom: 28px; animation: titleReveal 1.2s ease both; }
+@keyframes titleReveal {
+  from { opacity:0; transform: translateY(-30px) scale(0.9); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+.title-sub {
+  font-family: var(--font-hd);
+  font-size: clamp(0.55rem, 2vw, 0.75rem);
+  letter-spacing: 4px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.title-main {
+  font-family: var(--font-hd);
+  font-size: clamp(1.6rem, 6vw, 3rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 40%, var(--purple) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px rgba(79,163,255,0.4));
+}
+
+.title-jp {
+  font-size: clamp(0.9rem, 3vw, 1.15rem);
+  color: var(--gold);
+  margin-top: 6px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.story-box {
+  max-width: 460px;
+  background: rgba(14,21,32,0.9);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+  animation: fadeUp 0.8s 0.4s ease both;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.story-text {
+  font-size: clamp(0.85rem, 2.8vw, 0.95rem);
+  line-height: 1.8;
+  color: var(--text);
+}
+.story-text em { color: var(--cyan); font-style: normal; font-weight: 700; }
+
+.map-preview {
+  display: flex; align-items: center; gap: 0;
+  justify-content: center;
+  margin: 18px 0;
+  flex-wrap: wrap; gap: 4px;
+}
+.map-node {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px;
+}
+.map-dot {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.3s;
+}
+.map-arrow { color: var(--muted); font-size: 0.9rem; padding: 0 2px; margin-top: -18px; }
+.map-label { font-size: 0.6rem; color: var(--muted); text-align: center; max-width: 44px; line-height: 1.2; }
+
+.btn-start {
+  font-family: var(--font-hd);
+  font-size: clamp(0.85rem, 3vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #1a3a6e, #0e2040);
+  border: 2px solid var(--blue);
+  border-radius: 50px;
+  color: var(--cyan);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--glow-blue), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: fadeUp 0.8s 0.7s ease both;
+  text-transform: uppercase;
+}
+.btn-start:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 0 35px rgba(79,163,255,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+  background: linear-gradient(135deg, #1e4a8e, #122660);
+}
+
+.watermark-start {
+  font-size: 0.55rem;
+  color: rgba(14,21,32,0.01);
+  position: fixed; bottom: 6px; right: 10px;
+  user-select: none; pointer-events: none;
+}
+
+/* ════════ BATTLE SCREEN ════════ */
+#battle-screen {
+  justify-content: flex-start;
+  padding: 0;
+  gap: 0;
+}
+
+/* Scene area */
+.scene-area {
+  width: 100%;
+  height: 52vmin;
+  max-height: 260px;
+  min-height: 160px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.scene-bg {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 0.8s ease;
+}
+
+/* Scene: Mine */
+.scene-mine {
+  background: radial-gradient(ellipse at 50% 100%, #1a0e04 0%, #0a0804 60%, #050304 100%);
+}
+.scene-mine::before {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    60deg, transparent, transparent 40px,
+    rgba(80,40,0,0.06) 40px, rgba(80,40,0,0.06) 41px
+  );
+}
+
+/* Scene: Storm */
+.scene-storm {
+  background: radial-gradient(ellipse at 50% 0%, #0a1a30 0%, #040810 70%, #020408 100%);
+}
+.scene-storm::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,80,160,0.2) 0%, transparent 60%);
+  animation: stormFlash 3s infinite;
+}
+@keyframes stormFlash {
+  0%,90%,100% { opacity: 0.3; }
+  92% { opacity: 1; background: linear-gradient(180deg, rgba(100,150,255,0.5) 0%, transparent 60%); }
+}
+
+/* Scene: Mountain */
+.scene-mountain {
+  background: radial-gradient(ellipse at 50% 80%, #101820 0%, #060c14 60%, #030608 100%);
+}
+
+/* Scene: Factory */
+.scene-factory {
+  background: radial-gradient(ellipse at 30% 60%, #1a1208 0%, #0c0a04 60%, #060504 100%);
+}
+
+/* Scene: Core */
+.scene-core {
+  background: radial-gradient(ellipse at 50% 50%, #1a0a2e 0%, #0a0414 60%, #050208 100%);
+}
+
+/* Enemy sprite */
+.enemy-wrap {
+  position: absolute;
+  right: 12%;
+  bottom: 20%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px;
+  transition: transform 0.3s ease;
+}
+
+.enemy-sprite {
+  font-size: clamp(3rem, 12vmin, 5.5rem);
+  line-height: 1;
+  filter: drop-shadow(0 0 16px currentColor);
+  animation: enemyFloat 3s ease-in-out infinite;
+  cursor: default;
+}
+@keyframes enemyFloat {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-8px) rotate(2deg); }
+}
+
+.enemy-name-tag {
+  font-family: var(--font-hd);
+  font-size: clamp(0.55rem, 1.8vw, 0.75rem);
+  font-weight: 700;
+  color: var(--red);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,82,82,0.4);
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+/* Enemy HP bar */
+.enemy-hp-wrap {
+  position: absolute;
+  top: 14px; right: 14px;
+  min-width: 130px;
+}
+.enemy-hp-label {
+  font-size: 0.65rem;
+  font-family: var(--font-hd);
+  color: var(--red);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.hp-bar-track {
+  height: 8px;
+  background: rgba(255,82,82,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,82,82,0.3);
+}
+.hp-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  background: linear-gradient(90deg, var(--red), #ff8a80);
+  box-shadow: 0 0 8px rgba(255,82,82,0.6);
+}
+
+/* Player sprite (bottom-left) */
+.player-wrap {
+  position: absolute;
+  left: 8%; bottom: 14%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px;
+}
+.player-sprite {
+  font-size: clamp(2rem, 8vmin, 3.5rem);
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(79,163,255,0.8));
+  animation: playerIdle 2s ease-in-out infinite;
+}
+@keyframes playerIdle {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.player-name-tag {
+  font-family: var(--font-hd);
+  font-size: 0.6rem;
+  color: var(--cyan);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(0,212,255,0.3);
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Attack effect overlay */
+.atk-flash {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  border-radius: 0;
+  opacity: 0;
+}
+.atk-flash.correct-flash {
+  background: radial-gradient(circle at 65% 40%, rgba(76,255,145,0.4) 0%, transparent 60%);
+  animation: atkFlash 0.6s ease forwards;
+}
+.atk-flash.wrong-flash {
+  background: radial-gradient(circle at 20% 50%, rgba(255,82,82,0.35) 0%, transparent 60%);
+  animation: atkFlash 0.6s ease forwards;
+}
+@keyframes atkFlash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Damage number */
+.dmg-num {
+  position: absolute;
+  font-family: var(--font-hd);
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 50;
+  animation: dmgFly 1s ease forwards;
+}
+@keyframes dmgFly {
+  0%   { opacity:1; transform: translate(0,0) scale(1); }
+  40%  { opacity:1; transform: translate(-10px,-40px) scale(1.4); }
+  100% { opacity:0; transform: translate(-20px,-80px) scale(0.8); }
+}
+
+/* Stage badge */
+.stage-badge {
+  position: absolute;
+  top: 14px; left: 14px;
+  font-family: var(--font-hd);
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--gold);
+  background: rgba(0,0,0,0.75);
+  border: 1px solid rgba(255,196,77,0.35);
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+/* ── DIALOGUE BOX ── */
+.dialogue-panel {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(8,12,20,0.97) 0%, rgba(10,16,26,0.99) 100%);
+  border-top: 2px solid var(--border);
+  padding: 14px 16px 10px;
+  flex-shrink: 0;
+}
+
+.dialogue-speaker {
+  font-family: var(--font-hd);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.dialogue-text {
+  font-size: clamp(0.82rem, 2.8vw, 0.95rem);
+  line-height: 1.7;
+  min-height: 42px;
+  color: var(--text);
+}
+.dialogue-text em { color: var(--gold); font-style: normal; font-weight: 700; }
+.cursor-blink {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--cyan);
+  vertical-align: middle;
+  margin-left: 2px;
+  animation: blink 0.8s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ── PLAYER STATUS BAR ── */
+.player-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(8,12,20,0.95);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.stat-block { flex: 1; }
+.stat-label {
+  font-family: var(--font-hd);
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.stat-bar-track {
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.stat-bar-hp {
+  height: 100%;
+  background: linear-gradient(90deg, #ff5252, #ff8a80);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 6px rgba(255,82,82,0.5);
+}
+.stat-bar-mp {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 6px rgba(79,163,255,0.5);
+}
+.stat-val {
+  font-family: var(--font-hd);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.score-badge {
+  font-family: var(--font-hd);
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+  white-space: nowrap;
+}
+.score-lbl {
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* ── QUESTION PANEL ── */
+.question-panel {
+  width: 100%;
+  background: rgba(8,12,20,0.98);
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  flex-shrink: 0;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.q-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.q-tag {
+  font-family: var(--font-hd);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  border: 1px solid rgba(0,212,255,0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.q-timer {
+  font-family: var(--font-hd);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 32px;
+  text-align: right;
+  transition: color 0.3s;
+}
+.q-timer.urgent { color: var(--red); animation: timerPulse 0.5s infinite; }
+@keyframes timerPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+.timer-bar-wrap {
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.timer-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.1s linear, background 0.5s;
+  background: var(--gold);
+}
+
+.q-text {
+  font-size: clamp(0.9rem, 3vw, 1.05rem);
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media(max-width: 400px) {
+  .options-grid { grid-template-columns: 1fr; }
+}
+
+.opt-btn {
+  background: rgba(20,30,50,0.8);
+  border: 1.5px solid rgba(80,140,255,0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--font-bd);
+  font-size: clamp(0.8rem, 2.6vw, 0.9rem);
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+.opt-btn:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: rgba(79,163,255,0.1);
+  transform: translateX(3px);
+}
+.opt-letter {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(80,140,255,0.15);
+  border: 1px solid rgba(80,140,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-hd);
+  font-size: 0.6rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--blue);
+  transition: all 0.15s;
+}
+.opt-btn.correct {
+  border-color: var(--green);
+  background: rgba(76,255,145,0.1);
+}
+.opt-btn.correct .opt-letter { background: var(--green); border-color: var(--green); color: #000; }
+.opt-btn.wrong {
+  border-color: var(--red);
+  background: rgba(255,82,82,0.1);
+  animation: optShake 0.35s ease;
+}
+.opt-btn.wrong .opt-letter { background: var(--red); border-color: var(--red); color: white; }
+@keyframes optShake {
+  0%,100%{transform:translateX(0);}
+  25%{transform:translateX(-5px);}
+  75%{transform:translateX(5px);}
+}
+
+/* Hint */
+.hint-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(255,196,77,0.07);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--gold);
+  animation: fadeUp 0.3s ease;
+}
+
+/* Next btn */
+.btn-next {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  font-family: var(--font-hd);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  background: rgba(0,212,255,0.06);
+  border: 1.5px solid rgba(0,212,255,0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+.btn-next:hover { background: rgba(0,212,255,0.12); border-color: var(--cyan); transform: translateY(-2px); }
+
+/* ════════ STAGE CLEAR ════════ */
+#stage-clear-screen {
+  text-align: center; gap: 16px;
+}
+.clear-icon { font-size: 5rem; animation: clearBounce 0.6s ease; }
+@keyframes clearBounce {
+  0%{transform:scale(0);} 60%{transform:scale(1.3);} 80%{transform:scale(0.9);} 100%{transform:scale(1);}
+}
+.clear-title {
+  font-family: var(--font-hd);
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+  letter-spacing: 2px;
+}
+.clear-lore {
+  max-width: 400px;
+  background: rgba(14,21,32,0.9);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+.clear-lore em { color: var(--green); font-style: normal; font-weight: 700; }
+.clear-stats {
+  display: flex; gap: 16px;
+  flex-wrap: wrap; justify-content: center;
+}
+.clear-stat {
+  background: rgba(20,30,50,0.9);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 20px;
+  text-align: center;
+  min-width: 90px;
+}
+.clear-stat-val { font-family: var(--font-hd); font-size: 1.4rem; font-weight: 900; }
+.clear-stat-lbl { font-size: 0.65rem; color: var(--muted); margin-top: 3px; letter-spacing: 1px; }
+
+/* ════════ GAME OVER ════════ */
+#gameover-screen { text-align: center; gap: 16px; }
+.go-title {
+  font-family: var(--font-hd);
+  font-size: clamp(1.8rem, 7vw, 3rem);
+  font-weight: 900;
+  color: var(--red);
+  text-shadow: var(--glow-red);
+  letter-spacing: 3px;
+}
+
+/* ════════ VICTORY SCREEN ════════ */
+#victory-screen { text-align: center; gap: 14px; overflow-y: auto; }
+.vic-title {
+  font-family: var(--font-hd);
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--orange));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+}
+.final-score-big {
+  font-family: var(--font-hd);
+  font-size: clamp(3rem, 12vw, 5rem);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+  line-height: 1;
+}
+
+.name-row { width: 100%; max-width: 380px; display: flex; gap: 10px; }
+.name-input {
+  flex: 1;
+  background: rgba(14,21,32,0.95);
+  border: 1.5px solid rgba(80,140,255,0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: var(--font-bd);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.name-input:focus { border-color: var(--cyan); }
+.name-input::placeholder { color: var(--muted); font-weight: 400; }
+.btn-cert {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3a2a00, #1a1200);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  font-family: var(--font-hd);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gold);
+  cursor: pointer;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: var(--glow-gold);
+}
+.btn-cert:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255,196,77,0.6); }
+
+/* ════════ CERT SCREEN ════════ */
+#cert-screen { gap: 14px; }
+#cert-canvas { width: 100%; max-width: 640px; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); display: block; }
+.btn-dl {
+  padding: 13px 32px;
+  background: linear-gradient(135deg, #1a3060, #0e1c40);
+  border: 2px solid var(--blue);
+  border-radius: 50px;
+  font-family: var(--font-hd);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cyan);
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-shadow: var(--glow-blue);
+}
+.btn-dl:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(79,163,255,0.6); }
+.btn-replay {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  font-family: var(--font-hd);
+  font-size: 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-replay:hover { color: var(--text); border-color: rgba(80,140,255,0.4); }
+
+/* Float pts */
+.float-pts {
+  position: fixed;
+  font-family: var(--font-hd);
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 999;
+  animation: floatPts 1.2s ease forwards;
+}
+@keyframes floatPts {
+  0%   { opacity:1; transform:translateY(0) scale(1); }
+  50%  { opacity:1; transform:translateY(-50px) scale(1.3); }
+  100% { opacity:0; transform:translateY(-90px) scale(0.9); }
+}
+
+/* Combo burst */
+.combo-burst {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-family: var(--font-hd);
+  font-weight: 900;
+  font-size: clamp(1.4rem, 6vw, 2.2rem);
+  color: var(--orange);
+  text-shadow: 0 0 30px rgba(255,140,66,0.8);
+  pointer-events: none;
+  z-index: 998;
+  animation: comboBurst 1s ease forwards;
+  text-align: center;
+  white-space: nowrap;
+}
+@keyframes comboBurst {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+  30%  { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
+  60%  { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-50%) scale(0.8) translateY(-30px); }
+}
+
+/* Scrollable victory/cert inner */
+.scroll-inner {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 16px;
+}
+
+/* Generic utility */
+.btn-ghost {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  font-family: var(--font-hd);
+  font-size: 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { color: var(--text); border-color: rgba(80,140,255,0.4); }
+</style>
+</head>
+<body>
+<!--峇株吧辖蔡逸众制作-->
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- ══ START ══ -->
+<div class="screen" id="start-screen">
+  <div class="title-wrap">
+    <div class="title-sub">Science RPG · Form 1 · Energy</div>
+    <div class="title-main">星际科学士</div>
+    <div class="title-jp">⚡ 能量纪元 ⚡</div>
+  </div>
+
+  <div class="story-box">
+    <div class="story-text">
+      公元 3077 年，你是联盟最后一名<em>星际科学士</em>。<br>
+      飞船坠落在神秘星球「艾纳吉」——<br>
+      这里的五个守卫用<em>能量谜题</em>封印了返回地球的传送门。<br><br>
+      用你的<em>物理知识</em>击败守卫，解开封印，拯救自己！
+    </div>
+    <div class="map-preview" id="map-preview">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startGame()">▶ 开始冒险</button>
+  <div class="watermark-start">峇株吧辖华仁中学 Made by ecchua79</div>
+</div>
+
+<!-- ══ BATTLE ══ -->
+<div class="screen hidden" id="battle-screen">
+  <!-- Scene -->
+  <div class="scene-area" id="scene-area">
+    <div class="scene-bg" id="scene-bg"></div>
+    <div class="stage-badge" id="stage-badge">Stage 1</div>
+
+    <div class="player-wrap">
+      <div class="player-sprite" id="player-sprite">🧑‍🚀</div>
+      <div class="player-name-tag" id="player-name-tag">科学士</div>
+    </div>
+
+    <div class="enemy-wrap" id="enemy-wrap">
+      <div class="enemy-sprite" id="enemy-sprite">👹</div>
+      <div class="enemy-name-tag" id="enemy-name-tag">守卫</div>
+    </div>
+
+    <div class="enemy-hp-wrap">
+      <div class="enemy-hp-label" id="enemy-hp-label">HP 5/5</div>
+      <div class="hp-bar-track">
+        <div class="hp-bar-fill" id="enemy-hp-bar" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div class="atk-flash" id="atk-flash"></div>
+  </div>
+
+  <!-- Dialogue -->
+  <div class="dialogue-panel" id="dialogue-panel">
+    <div class="dialogue-speaker" id="dialogue-speaker" style="color:var(--red)">守卫</div>
+    <div class="dialogue-text" id="dialogue-text">…</div>
+  </div>
+
+  <!-- Player status -->
+  <div class="player-status">
+    <div class="stat-block">
+      <div class="stat-label">HP</div>
+      <div class="hp-bar-track stat-bar-track">
+        <div class="stat-bar-hp" id="player-hp-bar" style="width:100%"></div>
+      </div>
+      <div class="stat-val" id="player-hp-val">30 / 30</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-label">MP（连击能量）</div>
+      <div class="hp-bar-track stat-bar-track">
+        <div class="stat-bar-mp" id="player-mp-bar" style="width:0%"></div>
+      </div>
+      <div class="stat-val" id="player-mp-val">0 / 50</div>
+    </div>
+    <div>
+      <div class="score-badge" id="score-disp">0</div>
+      <div class="score-lbl">分</div>
+    </div>
+  </div>
+
+  <!-- Question -->
+  <div class="question-panel hidden" id="question-panel">
+    <div class="q-header">
+      <div class="q-tag" id="q-tag">谜题</div>
+      <div class="q-timer" id="q-timer">20</div>
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar-fill" id="timer-bar-fill" style="width:100%"></div>
+    </div>
+    <div class="q-text" id="q-text">…</div>
+    <div class="options-grid" id="options-grid"></div>
+    <div id="hint-area"></div>
+    <button class="btn-next hidden" id="next-btn" onclick="handleNext()">继续 ▶</button>
+  </div>
+</div>
+
+<!-- ══ STAGE CLEAR ══ -->
+<div class="screen hidden" id="stage-clear-screen">
+  <div class="clear-icon" id="clear-icon">⭐</div>
+  <div class="clear-title" id="clear-title">关卡清除！</div>
+  <div class="clear-lore" id="clear-lore">…</div>
+  <div class="clear-stats">
+    <div class="clear-stat">
+      <div class="clear-stat-val" id="cs-score" style="color:var(--gold)">0</div>
+      <div class="clear-stat-lbl">本关得分</div>
+    </div>
+    <div class="clear-stat">
+      <div class="clear-stat-val" id="cs-acc" style="color:var(--green)">0%</div>
+      <div class="clear-stat-lbl">正确率</div>
+    </div>
+    <div class="clear-stat">
+      <div class="clear-stat-val" id="cs-combo" style="color:var(--orange)">0</div>
+      <div class="clear-stat-lbl">最高连击</div>
+    </div>
+  </div>
+  <button class="btn-next" id="clear-next-btn" onclick="nextStage()">前往下一关 ▶</button>
+</div>
+
+<!-- ══ GAME OVER ══ -->
+<div class="screen hidden" id="gameover-screen">
+  <div class="go-title">GAME OVER</div>
+  <div style="font-size:5rem;">💀</div>
+  <div style="color:var(--muted);font-size:0.95rem;max-width:320px;text-align:center;line-height:1.7;">
+    你的星际科学士倒下了...<br>能量的力量压制了你。<br>但科学从不服输！
+  </div>
+  <div style="font-family:var(--font-hd);font-size:1.8rem;font-weight:900;color:var(--gold);" id="go-score">0 分</div>
+  <button class="btn-start" onclick="location.reload()">🔄 重新启航</button>
+</div>
+
+<!-- ══ VICTORY ══ -->
+<div class="screen hidden" id="victory-screen">
+  <div class="scroll-inner">
+    <div style="font-size:4rem;">🏆</div>
+    <div class="vic-title">传送门已开启！</div>
+    <div style="color:var(--muted);font-size:0.9rem;text-align:center;line-height:1.8;max-width:380px;">
+      五个守卫全部击败，你的科学知识拯救了自己！<br>星际联盟将永远铭记这位<span style="color:var(--gold);font-weight:700;">能量大师</span>。
+    </div>
+    <div style="color:var(--muted);font-size:0.65rem;letter-spacing:2px;font-family:var(--font-hd);">FINAL SCORE</div>
+    <div class="final-score-big" id="final-score-big">0</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <div class="clear-stat">
+        <div class="clear-stat-val" id="v-accuracy" style="color:var(--green)">0%</div>
+        <div class="clear-stat-lbl">正确率</div>
+      </div>
+      <div class="clear-stat">
+        <div class="clear-stat-val" id="v-combo" style="color:var(--orange)">0</div>
+        <div class="clear-stat-lbl">最高连击</div>
+      </div>
+      <div class="clear-stat">
+        <div class="clear-stat-val" id="v-time" style="color:var(--cyan)">0s</div>
+        <div class="clear-stat-lbl">游戏时长</div>
+      </div>
+      <div class="clear-stat">
+        <div class="clear-stat-val" id="v-grade" style="color:var(--gold)">S</div>
+        <div class="clear-stat-lbl">评级</div>
+      </div>
+    </div>
+    <div id="achiev-row" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;"></div>
+    <div class="name-row">
+      <input class="name-input" type="text" id="player-name-input" placeholder="输入你的大名" maxlength="14">
+      <button class="btn-cert" onclick="genCert()">生成证书</button>
+    </div>
+    <button class="btn-ghost" onclick="location.reload()">重新挑战</button>
+  </div>
+</div>
+
+<!-- ══ CERT ══ -->
+<div class="screen hidden" id="cert-screen">
+  <div class="scroll-inner">
+    <canvas id="cert-canvas"></canvas>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn-dl" onclick="dlCert()">📥 下载证书</button>
+      <button class="btn-replay" onclick="location.reload()">🔄 重新挑战</button>
+    </div>
+    <div style="color:var(--muted);font-size:0.75rem;">图片已生成，点击下载保存到设备</div>
+  </div>
+</div>
+
+<script>
+//华仁中学蔡逸众制作
+
+/* ═══════════════════════════════════════
+   STARFIELD BACKGROUND
+═══════════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('bg-canvas');
+  const cx = cv.getContext('2d');
+  let W, H, stars = [];
+  function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+  function initStars(){
+    stars = [];
+    for(let i=0;i<160;i++) stars.push({
+      x: Math.random()*W, y: Math.random()*H,
+      r: Math.random()*1.5+0.2,
+      a: Math.random(), da: (Math.random()-0.5)*0.005,
+      vx: (Math.random()-0.5)*0.1, vy: (Math.random()-0.5)*0.1
+    });
+  }
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    stars.forEach(s=>{
+      s.a += s.da;
+      if(s.a<0.1||s.a>1){ s.da*=-1; }
+      s.x = (s.x+s.vx+W)%W; s.y = (s.y+s.vy+H)%H;
+      cx.beginPath(); cx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      cx.fillStyle = `rgba(180,210,255,${s.a})`;
+      cx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); initStars(); draw();
+  window.addEventListener('resize', ()=>{ resize(); initStars(); });
+})();
+
+/* ═══════════════════════════════════════
+   GAME DATA
+═══════════════════════════════════════ */
+const STAGES = [
+  {
+    id: 1,
+    name: "黑暗矿洞",
+    sceneCls: "scene-mine",
+    enemyEmoji: "⛏️",
+    enemyName: "机械能守卫·岩魔",
+    enemyColor: "var(--orange)",
+    enemyHpMax: 4,
+    bgm: "mine",
+    intro: [
+      { who:"岩魔", color:"var(--orange)", text:"哈哈哈！想通过我的矿洞？先回答这道关于「机械能」的谜题！" },
+      { who:"科学士", color:"var(--cyan)", text:"机械能？这是我的专长！来吧！" }
+    ],
+    clearLore: "岩魔被你的知识击倒，碎石中露出了第一枚传送门碎片！<em>机械能 = 动能 + 势能</em>，这是宇宙的基本法则。",
+    questions: [
+      { tag:"⚡ 机械能", q:"流星划过天空、汽车行驶、运动员跑步——这些都拥有哪种能量？",
+        opts:["化学能","核能","机械能","热能"], ans:2,
+        hint:"💡 与物体「运动」和「位置高度」有关的能量统称机械能！动能+势能=机械能。" },
+      { tag:"🏹 弹性势能", q:"弓箭手把弓拉满，弓储存了什么能量，等待释放？",
+        opts:["动能","重力势能","弹性势能","热能"], ans:2,
+        hint:"💡 物体发生弹性形变时储存的能量叫「弹性势能」。拉满的弦、压缩的弹簧都是例子！" },
+      { tag:"🎳 动能比较", q:"保龄球(质量大)和网球(质量小)以相同速度滚动，谁动能更大？",
+        opts:["网球","一样大","保龄球","无法比较"], ans:2,
+        hint:"💡 动能 = ½mv²。速度相同，质量越大动能越大！保龄球胜出。" },
+      { tag:"🎢 势能转化", q:"水电站里，水从高处流到低处推动水轮机发电，能量变化是？",
+        opts:["动能→重力势能","重力势能→动能","化学能→电能","热能→动能"], ans:1,
+        hint:"💡 水从高处落下，高度减少（重力势能↓），速度加快（动能↑）。重力势能→动能！" }
+    ]
+  },
+  {
+    id: 2,
+    name: "雷电峡谷",
+    sceneCls: "scene-storm",
+    enemyEmoji: "⚡",
+    enemyName: "能量转化法师·雷皇",
+    enemyColor: "var(--cyan)",
+    enemyHpMax: 4,
+    bgm: "storm",
+    intro: [
+      { who:"雷皇", color:"var(--cyan)", text:"轰！电闪雷鸣！你敢穿越我的峡谷？证明你懂得「能量转化」！" },
+      { who:"科学士", color:"var(--gold)", text:"能量守恒是我最熟悉的定律。接招！" }
+    ],
+    clearLore: "雷皇的闪电哑火了！<em>能量只会转化，永不消失</em>——这个道理让他无话可说。第二枚碎片到手！",
+    questions: [
+      { tag:"🌿 光合作用", q:"植物光合作用：阳光+水+CO₂→葡萄糖。光能转化为？",
+        opts:["动能","电能","化学能","热能"], ans:2,
+        hint:"💡 食物和燃料里储存的是「化学能」。光合作用把光能变成化学能储存起来！" },
+      { tag:"🔥 能量转化链", q:"人吃饭→跑步，正确的能量转化链是？",
+        opts:["动能→化学能→机械能","化学能→机械能+热能","热能→动能→势能","电能→化学能→热能"], ans:1,
+        hint:"💡 食物=化学能→肌肉运动（机械能）+体热（热能）。跑步时身体会发热！" },
+      { tag:"💡 电能转化", q:"电灯工作时，电能主要转化为什么？（有一个是「主要」哦）",
+        opts:["全部变成光能","全部变成热能","光能和少量热能","化学能"], ans:2,
+        hint:"💡 灯泡会发亮（光能）也会发热（热能）。但普通灯泡大部分变成热能，LED灯大部分变光能。" },
+      { tag:"🌌 守恒定律", q:"能量从一种形式转化为另一种形式时，总能量会？",
+        opts:["增加","减少","保持不变","有时增有时减"], ans:2,
+        hint:"💡 这就是「能量守恒定律」：能量不会凭空产生，也不会凭空消失，只是转化形式！" }
+    ]
+  },
+  {
+    id: 3,
+    name: "重力高峰",
+    sceneCls: "scene-mountain",
+    enemyEmoji: "🗻",
+    enemyName: "重力巨人·峰王",
+    enemyColor: "var(--green)",
+    enemyHpMax: 4,
+    bgm: "mountain",
+    intro: [
+      { who:"峰王", color:"var(--green)", text:"想翻越我的山峰？先解开「功」的奥秘！做功，需要力，还需要？" },
+      { who:"科学士", color:"var(--cyan)", text:"位移！没有位移，就没有做功！我懂！" }
+    ],
+    clearLore: "<em>W = F × s</em>，峰王被这个公式震慑，轰然倒地！第三枚碎片在山顶闪闪发光。",
+    questions: [
+      { tag:"⚠️ 做功判断", q:"举重运动员举着100kg杠铃静止不动5秒钟，他对杠铃做了多少功？",
+        opts:["4900 J","0 J","9800 J","980 J"], ans:1,
+        hint:"💡 W = F × s。杠铃没有移动（s = 0），所以 W = 0！有力不代表做功。" },
+      { tag:"🧮 功的计算", q:"用50N的力水平推箱子前进10m，做了多少功？(W = Fs)",
+        opts:["5 J","60 J","500 J","50 J"], ans:2,
+        hint:"💡 W = F × s = 50N × 10m = 500 J。力的方向要与位移方向一致！" },
+      { tag:"🚀 做功条件", q:"搬运工背着重物走平地（不上不下），他对重物做功了吗？",
+        opts:["做功，因为他在用力","没做功，因为力与位移垂直","做功，因为走了路程","没做功，人太累了"] ,ans:1,
+        hint:"💡 重力（向下）与位移（水平）垂直时，重力不做功。做功要求力与位移同向或有夹角！" },
+      { tag:"📐 斜坡做功", q:"用200N的力沿斜坡把货物推上去，斜坡长5m，做了多少功？",
+        opts:["40 J","1000 J","200 J","40000 J"], ans:1,
+        hint:"💡 W = F × s = 200N × 5m = 1000 J。沿斜坡方向的力和位移方向一致！" }
+    ]
+  },
+  {
+    id: 4,
+    name: "机械工厂",
+    sceneCls: "scene-factory",
+    enemyEmoji: "🤖",
+    enemyName: "功率机器人·钢铁帝",
+    enemyColor: "var(--purple)",
+    enemyHpMax: 4,
+    bgm: "factory",
+    intro: [
+      { who:"钢铁帝", color:"var(--purple)", text:"嗡嗡嗡——我是计算功率的机器人！告诉我「功率」是什么，否则你走不出去！" },
+      { who:"科学士", color:"var(--gold)", text:"功率是做功的快慢！P = W ÷ t，来挑战吧！" }
+    ],
+    clearLore: "钢铁帝的电路过载崩溃了！<em>P = W / t（瓦特）</em>，功率描述做功的快慢。第四枚碎片落入你手！",
+    questions: [
+      { tag:"⚡ 功率概念", q:"去食堂，「慢慢走」和「全速冲刺」相比，哪个功率更大？（路程相同）",
+        opts:["慢慢走","功率一样大","全速冲刺","无法判断"], ans:2,
+        hint:"💡 P = W/t。做功相同（走一样的路），时间越短功率越大。冲刺时间短，功率更大！" },
+      { tag:"🏗️ 功率计算", q:"起重机30秒内做了90000J的功，功率是多少？(P = W/t)",
+        opts:["30000 W","3000 W","300 W","9000 W"], ans:1,
+        hint:"💡 P = W ÷ t = 90000 J ÷ 30 s = 3000 W（瓦特）。" },
+      { tag:"🧮 反推计算", q:"一台功率500W的机器工作2分钟，做了多少功？(W = Pt)",
+        opts:["1000 J","60000 J","250 J","1000000 J"], ans:1,
+        hint:"💡 W = P × t = 500W × 120s = 60000 J。注意2分钟 = 120秒！" },
+      { tag:"🚗 功率比较", q:"汽车和自行车做了相同的功，汽车用时较短。谁的功率更大？",
+        opts:["自行车","一样大","汽车","看质量"], ans:2,
+        hint:"💡 P = W/t。功相同，时间越短功率越大。汽车更快完成，功率更大！" }
+    ]
+  },
+  {
+    id: 5,
+    name: "能量核心",
+    sceneCls: "scene-core",
+    enemyEmoji: "🌌",
+    enemyName: "最终Boss·能量守恒神",
+    enemyColor: "var(--gold)",
+    enemyHpMax: 5,
+    bgm: "core",
+    intro: [
+      { who:"守恒神", color:"var(--gold)", text:"…小小的星际科学士。你通过了四道关卡，值得敬佩。" },
+      { who:"守恒神", color:"var(--gold)", text:"但是！最后的挑战将考验你对「能量」的全部理解！准备好了吗？" },
+      { who:"科学士", color:"var(--cyan)", text:"我学习了机械能、能量转化、功、功率……我准备好了！" }
+    ],
+    clearLore: "守恒神缓缓微笑：「你真正理解了能量的本质。<em>能量守恒，永不消失</em>——就像你的求知精神。」传送门全开！",
+    questions: [
+      { tag:"🌟 综合判断", q:"以下哪个例子说明了「重力势能转化为动能」？",
+        opts:["拉弓准备放箭","瀑布从高处落下","推动静止的车","烧水壶烧水"], ans:1,
+        hint:"💡 瀑布从高处（高重力势能）落下，速度增加（动能↑）。高度→速度！" },
+      { tag:"⚡ 综合计算", q:"质量60kg的人爬上5m高的楼梯，克服重力做了多少功？(g=10N/kg)",
+        opts:["300 J","3000 J","600 J","30 J"], ans:1,
+        hint:"💡 W = F × s = mg × h = 60×10×5 = 3000 J。重力方向向下，爬楼是克服重力做功！" },
+      { tag:"🔋 能量效率", q:"某机器消耗1000J的电能，对外做了700J有用功，有多少能量以热能散失？",
+        opts:["700 J","1700 J","300 J","100 J"], ans:2,
+        hint:"💡 能量守恒：输入=有用功+散失。散失 = 1000-700 = 300 J！" },
+      { tag:"🚀 终极思考", q:"火箭升空时，燃料化学能→火焰热能→推力动能→高度势能，这体现了？",
+        opts:["能量消失定律","能量凭空产生","能量守恒定律（转化不消失）","能量减少定律"], ans:2,
+        hint:"💡 无论多少次转化，总能量不变。化学能→热能→动能→势能，每步守恒！" },
+      { tag:"🌌 Boss终问", q:"以下说法正确的是？",
+        opts:["能量可以凭空创造","能量在转化中会消失一部分","能量的形式可变，总量不变","功率越大做的功越多"], ans:2,
+        hint:"💡 能量守恒定律：能量总量永远不变！功率大只代表做功快，不代表做功多。" }
+    ]
+  }
+];
+
+/* ═══════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════ */
+let stageIdx = 0;
+let qIdx = 0;
+let score = 0;
+let totalCorrect = 0;
+let totalAnswered = 0;
+let maxCombo = 0;
+let combo = 0;
+let stageScore = 0;
+let stageCorrect = 0;
+let playerHp = 30;
+let playerHpMax = 30;
+let playerMp = 0;
+let playerMpMax = 50;
+let enemyHp = 0;
+let enemyHpMax = 0;
+let timerVal = 0;
+let timerInterval = null;
+let answering = false;
+let dialogueQueue = [];
+let dialogueIdx = 0;
+let dialogueMode = false;
+let startTime = 0;
+let shuffledQuestions = [];
+
+//峇株吧辖华仁中学蔡逸众制作
+
+/* ═══════════════════════════════════════
+   UTILS
+═══════════════════════════════════════ */
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function playSound(type){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    if(type==='correct'){
+      o.frequency.setValueAtTime(523,ac.currentTime);
+      o.frequency.setValueAtTime(659,ac.currentTime+0.12);
+      o.frequency.setValueAtTime(880,ac.currentTime+0.24);
+      g.gain.setValueAtTime(0.12,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.55);
+      o.start();o.stop(ac.currentTime+0.55);
+    } else if(type==='wrong'){
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(280,ac.currentTime);
+      o.frequency.linearRampToValueAtTime(160,ac.currentTime+0.3);
+      g.gain.setValueAtTime(0.1,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.35);
+      o.start();o.stop(ac.currentTime+0.35);
+    } else if(type==='boss'){
+      [220,277,330,370].forEach((f,i)=>{
+        const o2=ac.createOscillator(),g2=ac.createGain();
+        o2.connect(g2);g2.connect(ac.destination);
+        o2.type='square'; o2.frequency.value=f;
+        g2.gain.setValueAtTime(0.05,ac.currentTime+i*0.08);
+        g2.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.08+0.3);
+        o2.start(ac.currentTime+i*0.08);
+        o2.stop(ac.currentTime+i*0.08+0.3);
+      });
+    } else if(type==='win'){
+      [523,659,784,1047,1318].forEach((f,i)=>{
+        const o2=ac.createOscillator(),g2=ac.createGain();
+        o2.connect(g2);g2.connect(ac.destination);
+        o2.frequency.value=f;
+        g2.gain.setValueAtTime(0.1,ac.currentTime+i*0.1);
+        g2.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.1+0.4);
+        o2.start(ac.currentTime+i*0.1);
+        o2.stop(ac.currentTime+i*0.1+0.4);
+      });
+    } else if(type==='timeout'){
+      o.type='triangle';
+      o.frequency.setValueAtTime(440,ac.currentTime);
+      o.frequency.linearRampToValueAtTime(220,ac.currentTime+0.4);
+      g.gain.setValueAtTime(0.1,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.5);
+      o.start();o.stop(ac.currentTime+0.5);
+    } else if(type==='stageclear'){
+      [659,784,880,1047].forEach((f,i)=>{
+        const o2=ac.createOscillator(),g2=ac.createGain();
+        o2.connect(g2);g2.connect(ac.destination);
+        o2.frequency.value=f;
+        g2.gain.setValueAtTime(0.08,ac.currentTime+i*0.12);
+        g2.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.12+0.5);
+        o2.start(ac.currentTime+i*0.12);
+        o2.stop(ac.currentTime+i*0.12+0.5);
+      });
+    }
+  }catch(e){}
+}
+
+function floatPts(txt, color, el){
+  const r = el ? el.getBoundingClientRect() : {top:window.innerHeight/2, left:window.innerWidth/2, width:0};
+  const d = document.createElement('div');
+  d.className='float-pts';
+  d.textContent=txt;
+  d.style.cssText=`top:${r.top+window.scrollY-10}px;left:${r.left+r.width/2-20}px;color:${color};font-size:clamp(1rem,4vw,1.4rem);`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1300);
+}
+
+function comboBurst(n){
+  const d=document.createElement('div');
+  d.className='combo-burst';
+  d.innerHTML=`🔥 ${n} COMBO!`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1100);
+}
+
+/* ═══════════════════════════════════════
+   START
+═══════════════════════════════════════ */
+function buildMapPreview(){
+  const wrap = document.getElementById('map-preview');
+  wrap.innerHTML = '';
+  STAGES.forEach((s,i)=>{
+    const node = document.createElement('div');
+    node.className = 'map-node';
+    node.innerHTML = `<div class="map-dot" style="font-size:1.3rem">${s.enemyEmoji}</div><div class="map-label">${s.name}</div>`;
+    wrap.appendChild(node);
+    if(i < STAGES.length-1){
+      const arr = document.createElement('span');
+      arr.className = 'map-arrow';
+      arr.textContent = '→';
+      arr.style.cssText = 'align-self:center;margin-bottom:18px;';
+      wrap.appendChild(arr);
+    }
+  });
+}
+
+function startGame(){
+  buildMapPreview();
+  stageIdx=0; score=0; totalCorrect=0; totalAnswered=0; maxCombo=0; combo=0;
+  playerHp=30; playerMp=0;
+  startTime=Date.now();
+  loadStage();
+}
+
+/* ═══════════════════════════════════════
+   STAGE LOADING
+═══════════════════════════════════════ */
+function loadStage(){
+  const st = STAGES[stageIdx];
+  stageScore=0; stageCorrect=0; qIdx=0;
+  shuffledQuestions = shuffle(st.questions);
+  enemyHpMax = st.enemyHpMax;
+  enemyHp = enemyHpMax;
+
+  // Setup scene
+  const sceneBg = document.getElementById('scene-bg');
+  sceneBg.className = 'scene-bg ' + st.sceneCls;
+  document.getElementById('stage-badge').textContent = `Stage ${st.id} · ${st.name}`;
+  document.getElementById('enemy-sprite').textContent = st.enemyEmoji;
+  document.getElementById('enemy-sprite').style.color = st.enemyColor;
+  document.getElementById('enemy-name-tag').textContent = st.enemyName;
+  document.getElementById('enemy-name-tag').style.color = st.enemyColor;
+  document.getElementById('enemy-name-tag').style.borderColor = st.enemyColor.replace(')',',0.4)').replace('var','rgba').replace('--','');
+
+  updateEnemyHp();
+  updatePlayerStatus();
+
+  showScreen('battle-screen');
+  document.getElementById('question-panel').classList.add('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+
+  // Start intro dialogue
+  if(st.id===5) playSound('boss');
+  startDialogue(st.intro, ()=>{ startQuestion(); });
+}
+
+/* ═══════════════════════════════════════
+   DIALOGUE SYSTEM
+═══════════════════════════════════════ */
+let dialogueCallback = null;
+let typeInterval = null;
+let currentFullText = '';
+let typedSoFar = 0;
+
+function startDialogue(lines, cb){
+  dialogueQueue = lines;
+  dialogueIdx = 0;
+  dialogueCallback = cb;
+  dialogueMode = true;
+  showDialogueLine();
+  // Click anywhere on scene/dialogue to advance
+  document.getElementById('scene-area').onclick = advanceDialogue;
+  document.getElementById('dialogue-panel').onclick = advanceDialogue;
+}
+
+function showDialogueLine(){
+  if(dialogueIdx >= dialogueQueue.length){
+    endDialogue();
+    return;
+  }
+  const line = dialogueQueue[dialogueIdx];
+  document.getElementById('dialogue-speaker').textContent = line.who;
+  document.getElementById('dialogue-speaker').style.color = line.color;
+  typeText(line.text);
+}
+
+function typeText(fullText){
+  clearInterval(typeInterval);
+  currentFullText = fullText;
+  typedSoFar = 0;
+  const el = document.getElementById('dialogue-text');
+  el.innerHTML = '';
+  typeInterval = setInterval(()=>{
+    typedSoFar++;
+    const raw = currentFullText.slice(0, typedSoFar);
+    const display = raw.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+    el.innerHTML = display + (typedSoFar < currentFullText.length ? '<span class="cursor-blink"></span>' : '');
+    if(typedSoFar >= currentFullText.length) clearInterval(typeInterval);
+  }, 28);
+}
+
+function advanceDialogue(){
+  if(typedSoFar < currentFullText.length){
+    // Skip typing
+    clearInterval(typeInterval);
+    typedSoFar = currentFullText.length;
+    const raw = currentFullText;
+    document.getElementById('dialogue-text').innerHTML = raw.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+    return;
+  }
+  dialogueIdx++;
+  showDialogueLine();
+}
+
+function endDialogue(){
+  dialogueMode = false;
+  document.getElementById('scene-area').onclick = null;
+  document.getElementById('dialogue-panel').onclick = null;
+  if(dialogueCallback) dialogueCallback();
+}
+
+/* ═══════════════════════════════════════
+   QUESTION FLOW
+═══════════════════════════════════════ */
+function startQuestion(){
+  if(qIdx >= shuffledQuestions.length){
+    stageClear();
+    return;
+  }
+  answering = false;
+  const qdata = shuffledQuestions[qIdx];
+  const panel = document.getElementById('question-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+  document.getElementById('hint-area').innerHTML='';
+  document.getElementById('q-tag').textContent = qdata.tag;
+  document.getElementById('q-text').textContent = qdata.q;
+
+  // Show enemy "challenge" dialogue
+  document.getElementById('dialogue-speaker').textContent = STAGES[stageIdx].enemyName;
+  document.getElementById('dialogue-speaker').style.color = STAGES[stageIdx].enemyColor;
+  const challenges = [
+    '来！回答这道谜题！',
+    '哼！这题难倒你了吗？',
+    '让我看看你有多厉害！',
+    '这一关没那么简单！',
+    '最后一题！全力出击！'
+  ];
+  document.getElementById('dialogue-text').textContent = challenges[qIdx % challenges.length];
+
+  // Shuffle options
+  const indices = [0,1,2,3];
+  const shuffled = shuffle(indices.slice(0, qdata.opts.length));
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML='';
+  const labels = ['A','B','C','D'];
+  shuffled.forEach((origIdx, di)=>{
+    const btn = document.createElement('button');
+    btn.className='opt-btn';
+    btn.innerHTML=`<span class="opt-letter">${labels[di]}</span><span>${qdata.opts[origIdx]}</span>`;
+    btn.dataset.orig = origIdx;
+    btn.onclick = ()=>checkAnswer(origIdx, btn, qdata, shuffled);
+    grid.appendChild(btn);
+  });
+
+  // Timer
+  startTimer(20, qdata);
+  totalAnswered++;
+}
+
+function startTimer(secs, qdata){
+  clearInterval(timerInterval);
+  timerVal = secs;
+  const timerEl = document.getElementById('q-timer');
+  const barEl = document.getElementById('timer-bar-fill');
+  let elapsed = 0;
+  timerEl.textContent = secs;
+  timerEl.classList.remove('urgent');
+  barEl.style.width='100%';
+  barEl.style.background='var(--gold)';
+  timerInterval = setInterval(()=>{
+    elapsed += 0.1;
+    const rem = Math.max(0, secs - elapsed);
+    const pct = (rem/secs)*100;
+    timerEl.textContent = Math.ceil(rem);
+    barEl.style.width = pct+'%';
+    if(pct<30){ barEl.style.background='var(--red)'; timerEl.classList.add('urgent'); }
+    else if(pct<60){ barEl.style.background='var(--orange)'; }
+    if(rem<=0 && !answering){
+      clearInterval(timerInterval);
+      handleTimeout(qdata);
+    }
+  }, 100);
+}
+
+function handleTimeout(qdata){
+  if(answering) return;
+  answering = true;
+  playSound('timeout');
+  // Show correct
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b=>{ b.disabled=true; if(parseInt(b.dataset.orig)===qdata.ans) b.classList.add('correct'); });
+  combo=0;
+  takeDamage(8);
+  document.getElementById('hint-area').innerHTML=`<div class="hint-panel">⏰ 时间到！<br>${qdata.hint}</div>`;
+  document.getElementById('dialogue-speaker').textContent='科学士';
+  document.getElementById('dialogue-speaker').style.color='var(--red)';
+  document.getElementById('dialogue-text').textContent='不好……超时了！';
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+function checkAnswer(origIdx, btnEl, qdata, shuffled){
+  if(answering) return;
+  answering = true;
+  clearInterval(timerInterval);
+
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b=>b.disabled=true);
+
+  const timeLeft = timerVal;
+  const flash = document.getElementById('atk-flash');
+
+  if(origIdx === qdata.ans){
+    btnEl.classList.add('correct');
+    combo++;
+    if(combo>maxCombo) maxCombo=combo;
+    stageCorrect++;
+    totalCorrect++;
+
+    let base=100, speed=0, comboB=0;
+    const elapsed = 20 - parseFloat(document.getElementById('q-timer').textContent||'0');
+    if(elapsed<5) speed=60; else if(elapsed<10) speed=30;
+    comboB = (combo-1)*15;
+    const earned = base+speed+comboB;
+    score+=earned; stageScore+=earned;
+
+    playSound('correct');
+    floatPts(`+${earned}`, 'var(--gold)', btnEl);
+    if(combo>=2) comboBurst(combo);
+
+    flash.className='atk-flash correct-flash';
+    setTimeout(()=>flash.className='atk-flash',700);
+
+    // Enemy takes damage
+    enemyHp--;
+    updateEnemyHp();
+
+    // Damage number on enemy
+    const ew = document.getElementById('enemy-wrap');
+    const er = ew.getBoundingClientRect();
+    const dmg = document.createElement('div');
+    dmg.className='dmg-num';
+    dmg.textContent='-1 HP';
+    dmg.style.cssText=`top:${er.top+window.scrollY}px;left:${er.left+er.width/2-30}px;color:var(--green);font-size:1.2rem;`;
+    document.body.appendChild(dmg);
+    setTimeout(()=>dmg.remove(),1100);
+
+    playerMp = Math.min(playerMpMax, playerMp+10);
+    updatePlayerStatus();
+
+    document.getElementById('dialogue-speaker').textContent='科学士';
+    document.getElementById('dialogue-speaker').style.color='var(--cyan)';
+    const wins=['正确！科学的力量！⚡','太棒了！知识就是武器！','精准！能量守恒！','完美！继续前进！'];
+    document.getElementById('dialogue-text').textContent=wins[Math.floor(Math.random()*wins.length)];
+
+    document.getElementById('hint-area').innerHTML='';
+    document.getElementById('next-btn').classList.remove('hidden');
+  } else {
+    btnEl.classList.add('wrong');
+    btns.forEach(b=>{ if(parseInt(b.dataset.orig)===qdata.ans) b.classList.add('correct'); });
+    combo=0;
+
+    flash.className='atk-flash wrong-flash';
+    setTimeout(()=>flash.className='atk-flash',700);
+
+    takeDamage(10);
+    playSound('wrong');
+
+    document.getElementById('hint-area').innerHTML=`<div class="hint-panel">${qdata.hint}</div>`;
+    document.getElementById('dialogue-speaker').textContent=STAGES[stageIdx].enemyName;
+    document.getElementById('dialogue-speaker').style.color=STAGES[stageIdx].enemyColor;
+    const loses=['哈！答错了！受到我的攻击！','不对！你的知识还不够！','错误！能量反击你！'];
+    document.getElementById('dialogue-text').textContent=loses[Math.floor(Math.random()*loses.length)];
+
+    document.getElementById('next-btn').classList.remove('hidden');
+  }
+
+  updateScoreDisplay();
+}
+
+function handleNext(){
+  if(playerHp<=0){ gameOver(); return; }
+  qIdx++;
+  if(qIdx >= shuffledQuestions.length){
+    stageClear();
+  } else {
+    startQuestion();
+  }
+}
+
+function takeDamage(dmg){
+  playerHp = Math.max(0, playerHp-dmg);
+  updatePlayerStatus();
+  // Screen shake
+  const sc = document.getElementById('battle-screen');
+  sc.style.animation='none';
+  sc.style.transform='translateX(-6px)';
+  setTimeout(()=>{ sc.style.transform='translateX(4px)'; }, 80);
+  setTimeout(()=>{ sc.style.transform='translateX(0)'; }, 160);
+  if(playerHp<=0){ gameOver(); }
+}
+
+function updateEnemyHp(){
+  const pct = (enemyHp/enemyHpMax)*100;
+  document.getElementById('enemy-hp-bar').style.width=pct+'%';
+  document.getElementById('enemy-hp-label').textContent=`HP ${enemyHp}/${enemyHpMax}`;
+  if(pct<35) document.getElementById('enemy-hp-bar').style.background='linear-gradient(90deg,#ff8a80,#ff5252)';
+}
+
+function updatePlayerStatus(){
+  const hpPct=(playerHp/playerHpMax)*100;
+  const mpPct=(playerMp/playerMpMax)*100;
+  document.getElementById('player-hp-bar').style.width=hpPct+'%';
+  document.getElementById('player-mp-bar').style.width=mpPct+'%';
+  document.getElementById('player-hp-val').textContent=`${playerHp} / ${playerHpMax}`;
+  document.getElementById('player-mp-val').textContent=`${playerMp} / ${playerMpMax}`;
+}
+
+function updateScoreDisplay(){
+  document.getElementById('score-disp').textContent=score;
+}
+
+/* ═══════════════════════════════════════
+   STAGE CLEAR
+═══════════════════════════════════════ */
+function stageClear(){
+  clearInterval(timerInterval);
+  playSound('stageclear');
+  const st=STAGES[stageIdx];
+  const acc = stageCorrect > 0 ? Math.round((stageCorrect/shuffledQuestions.length)*100) : 0;
+
+  document.getElementById('clear-icon').textContent=st.enemyEmoji;
+  document.getElementById('clear-title').textContent=`${st.name} 通关！`;
+  document.getElementById('clear-lore').innerHTML=st.clearLore;
+  document.getElementById('cs-score').textContent=stageScore;
+  document.getElementById('cs-acc').textContent=acc+'%';
+  document.getElementById('cs-combo').textContent=maxCombo;
+
+  const nxtBtn=document.getElementById('clear-next-btn');
+  if(stageIdx >= STAGES.length-1){
+    nxtBtn.textContent='前往最终结算 ★';
+  } else {
+    nxtBtn.textContent=`前往第${stageIdx+2}关：${STAGES[stageIdx+1].name} ▶`;
+  }
+
+  showScreen('stage-clear-screen');
+}
+
+function nextStage(){
+  stageIdx++;
+  if(stageIdx >= STAGES.length){
+    showVictory();
+  } else {
+    // HP recovery
+    playerHp = Math.min(playerHpMax, playerHp+8);
+    playerMp = 0;
+    loadStage();
+  }
+}
+
+/* ═══════════════════════════════════════
+   GAME OVER
+═══════════════════════════════════════ */
+function gameOver(){
+  clearInterval(timerInterval);
+  playSound('wrong');
+  setTimeout(()=>{
+    showScreen('gameover-screen');
+    document.getElementById('go-score').textContent=score+' 分';
+  }, 600);
+}
+
+/* ═══════════════════════════════════════
+   VICTORY
+═══════════════════════════════════════ */
+//峇株吧辖蔡逸众制作
+//华仁中学蔡逸众制作
+//Made by ecchua79
+function showVictory(){
+  playSound('win');
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  const acc=Math.round((totalCorrect/totalAnswered)*100)||0;
+  let grade='D'; let gradeColor='var(--red)';
+  if(score>=2000){grade='S';gradeColor='var(--gold)';}
+  else if(score>=1500){grade='A';gradeColor='var(--green)';}
+  else if(score>=1000){grade='B';gradeColor='var(--cyan)';}
+  else if(score>=600){grade='C';gradeColor='var(--purple)';}
+
+  document.getElementById('final-score-big').textContent=score;
+  document.getElementById('v-accuracy').textContent=acc+'%';
+  document.getElementById('v-combo').textContent=maxCombo;
+  document.getElementById('v-time').textContent=elapsed+'s';
+  document.getElementById('v-grade').textContent=grade;
+  document.getElementById('v-grade').style.color=gradeColor;
+
+  // Achievements
+  const ach=[];
+  if(totalCorrect===totalAnswered) ach.push('🌟 全知全能');
+  if(maxCombo>=5) ach.push('🔥 连击大师 ×'+maxCombo);
+  if(elapsed<90) ach.push('⚡ 闪电科学士');
+  if(playerHp>=20) ach.push('🛡️ 铁甲护盾');
+  if(score>=2000) ach.push('👑 S级宇宙英雄');
+  const arow=document.getElementById('achiev-row');
+  arow.innerHTML=ach.map(a=>`<div style="background:rgba(255,196,77,0.1);border:1px solid rgba(255,196,77,0.35);color:var(--gold);font-size:0.78rem;font-weight:700;padding:5px 12px;border-radius:20px;">${a}</div>`).join('');
+
+  showScreen('victory-screen');
+}
+
+/* ═══════════════════════════════════════
+   CERTIFICATE
+═══════════════════════════════════════ */
+function genCert(){
+  let name=document.getElementById('player-name-input').value.trim()||'无名星际英雄';
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  const acc=Math.round((totalCorrect/Math.max(totalAnswered,1))*100);
+  let grade='D'; let gradeColor='#ff5252';
+  if(score>=2000){grade='S';gradeColor='#ffc44d';}
+  else if(score>=1500){grade='A';gradeColor='#4cff91';}
+  else if(score>=1000){grade='B';gradeColor='#4fa3ff';}
+  else if(score>=600){grade='C';gradeColor='#b060ff';}
+
+  const cv=document.getElementById('cert-canvas');
+  // Portrait: 560 × 800
+  const W=560, H=800;
+  cv.width=W*2; cv.height=H*2;
+  cv.style.width='100%'; cv.style.height='auto';
+  const ctx=cv.getContext('2d');
+  ctx.scale(2,2);
+  ctx.textAlign='center';
+
+  // ── Background ──
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#060b14');
+  bg.addColorStop(0.4,'#0b1628');
+  bg.addColorStop(0.7,'#0e1a30');
+  bg.addColorStop(1,'#060b14');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  const rng=(()=>{ let s=42; return ()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; }; })();
+  for(let i=0;i<120;i++){
+    ctx.beginPath();
+    ctx.arc(rng()*W, rng()*H, rng()*1.3+0.2, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(180,210,255,${rng()*0.55+0.2})`;
+    ctx.fill();
+  }
+
+  // Center glow (top area)
+  const glowT=ctx.createRadialGradient(W/2,160,0,W/2,160,220);
+  glowT.addColorStop(0,'rgba(79,163,255,0.10)');
+  glowT.addColorStop(1,'transparent');
+  ctx.fillStyle=glowT; ctx.fillRect(0,0,W,H);
+
+  // Bottom glow (gold)
+  const glowB=ctx.createRadialGradient(W/2,H-80,0,W/2,H-80,200);
+  glowB.addColorStop(0,'rgba(255,196,77,0.07)');
+  glowB.addColorStop(1,'transparent');
+  ctx.fillStyle=glowB; ctx.fillRect(0,0,W,H);
+
+  // ── Outer double border ──
+  ctx.strokeStyle='rgba(79,163,255,0.55)'; ctx.lineWidth=2;
+  rr(ctx,14,14,W-28,H-28,18); ctx.stroke();
+  ctx.strokeStyle='rgba(255,196,77,0.28)'; ctx.lineWidth=1;
+  rr(ctx,22,22,W-44,H-44,14); ctx.stroke();
+
+  // Corner ornaments
+  const corners=[[34,34],[W-34,34],[W-34,H-34],[34,H-34]];
+  corners.forEach(([cx,cy])=>{
+    ctx.save();
+    ctx.translate(cx,cy);
+    // diamond shape
+    ctx.beginPath();
+    ctx.moveTo(0,-9); ctx.lineTo(6,0); ctx.lineTo(0,9); ctx.lineTo(-6,0);
+    ctx.closePath();
+    ctx.fillStyle='rgba(255,196,77,0.75)'; ctx.fill();
+    ctx.restore();
+  });
+  // Side mid-ornaments (left & right)
+  [[14,H/2],[W-14,H/2]].forEach(([cx,cy])=>{
+    ctx.beginPath();
+    ctx.moveTo(cx,cy-6); ctx.lineTo(cx+5*(cx<W/2?1:-1),cy); ctx.lineTo(cx,cy+6);
+    ctx.closePath();
+    ctx.fillStyle='rgba(79,163,255,0.5)'; ctx.fill();
+  });
+
+  // ── Top header band ──
+  const hband=ctx.createLinearGradient(0,38,0,130);
+  hband.addColorStop(0,'rgba(79,163,255,0.13)');
+  hband.addColorStop(1,'transparent');
+  ctx.fillStyle=hband; ctx.fillRect(0,38,W,92);
+
+  // School name (top)
+  ctx.font='700 10px Orbitron, monospace';
+  ctx.fillStyle='rgba(0,212,255,0.65)';
+  ctx.letterSpacing='3px';
+  ctx.fillText('STELLAR SCIENCE ACADEMY · ENERGY ERA', W/2, 60);
+
+  // ── Trophy icon ──
+  ctx.font='44px serif';
+  ctx.fillText('🏆', W/2, 118);
+
+  // ── Certificate title ──
+  ctx.font='900 26px Orbitron, monospace';
+  ctx.fillStyle='#ffc44d';
+  ctx.shadowColor='rgba(255,196,77,0.6)'; ctx.shadowBlur=18;
+  ctx.fillText('星际科学士证书', W/2, 162);
+  ctx.shadowBlur=0;
+
+  ctx.font='700 9px Orbitron, monospace';
+  ctx.fillStyle='rgba(79,163,255,0.55)';
+  ctx.fillText('INTERSTELLAR SCIENCE MASTER CERTIFICATE', W/2, 180);
+
+  // ── Decorative rule ──
+  function hRule(y, c='rgba(79,163,255,0.25)', w2=200){
+    ctx.strokeStyle=c; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(W/2-w2,y); ctx.lineTo(W/2+w2,y); ctx.stroke();
+    // tiny diamond in center
+    ctx.beginPath(); ctx.arc(W/2,y,3,0,Math.PI*2);
+    ctx.fillStyle=c; ctx.fill();
+  }
+  hRule(194, 'rgba(255,196,77,0.35)', 180);
+
+  // ── 兹证明 ──
+  ctx.font='500 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='rgba(200,216,240,0.55)';
+  ctx.fillText('兹  证  明', W/2, 228);
+
+  // ── Player name ──
+  ctx.font='700 36px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='#4fa3ff';
+  ctx.shadowColor='rgba(79,163,255,0.55)'; ctx.shadowBlur=22;
+  ctx.fillText(name, W/2, 278);
+  ctx.shadowBlur=0;
+  // underline
+  const nw=ctx.measureText(name).width;
+  const ug=ctx.createLinearGradient(W/2-nw/2-16,0,W/2+nw/2+16,0);
+  ug.addColorStop(0,'transparent'); ug.addColorStop(0.3,'rgba(79,163,255,0.6)');
+  ug.addColorStop(0.7,'rgba(79,163,255,0.6)'); ug.addColorStop(1,'transparent');
+  ctx.strokeStyle=ug; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2-16,288); ctx.lineTo(W/2+nw/2+16,288); ctx.stroke();
+
+  // ── Achievement text ──
+  ctx.font='500 13px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='rgba(200,216,240,0.82)';
+  ctx.fillText('成功完成「星际科学士：能量纪元」RPG冒险', W/2, 318);
+  ctx.fillText('击败五大守卫，掌握能量、功与功率的核心奥义', W/2, 340);
+
+  hRule(360, 'rgba(79,163,255,0.2)', 160);
+
+  // ── Stats: 2×2 grid ──
+  const boxes=[
+    {lbl:'最终得分', val:score+'分',   c:'#ffc44d', icon:'⭐'},
+    {lbl:'正确率',   val:acc+'%',      c:'#4cff91', icon:'🎯'},
+    {lbl:'游戏时长', val:elapsed+'s',  c:'#4fa3ff', icon:'⏱️'},
+    {lbl:'评级',     val:grade+' 级',  c:gradeColor, icon:'🏅'}
+  ];
+  const bw=112, bh=72, gapX=16, gapY=12;
+  const gridW=bw*2+gapX, gridX=(W-gridW)/2;
+  const gridY=376;
+  boxes.forEach((b,i)=>{
+    const col=i%2, row=Math.floor(i/2);
+    const bx=gridX+col*(bw+gapX);
+    const by=gridY+row*(bh+gapY);
+    // box bg
+    const boxGrad=ctx.createLinearGradient(bx,by,bx,by+bh);
+    boxGrad.addColorStop(0,'rgba(255,255,255,0.05)');
+    boxGrad.addColorStop(1,'rgba(255,255,255,0.02)');
+    ctx.fillStyle=boxGrad;
+    ctx.strokeStyle=`${b.c}44`; ctx.lineWidth=1;
+    rr(ctx,bx,by,bw,bh,12); ctx.fill(); ctx.stroke();
+    // icon
+    ctx.font='16px serif';
+    ctx.fillText(b.icon, bx+bw/2, by+24);
+    // value
+    ctx.font=`900 18px Orbitron, monospace`;
+    ctx.fillStyle=b.c; ctx.shadowColor=b.c; ctx.shadowBlur=8;
+    ctx.fillText(b.val, bx+bw/2, by+46); ctx.shadowBlur=0;
+    // label
+    ctx.font='500 10px "Noto Sans SC", sans-serif';
+    ctx.fillStyle='rgba(140,160,180,0.85)';
+    ctx.fillText(b.lbl, bx+bw/2, by+62);
+  });
+
+  hRule(556, 'rgba(79,163,255,0.18)', 160);
+
+  // ── Quote ──
+  ctx.font='italic 500 12px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='rgba(0,212,255,0.55)';
+  ctx.fillText('"能量守恒，永不消失；知识永恒，永无止境。"', W/2, 584);
+
+  // ── Seal (center bottom) ──
+  const sx=W/2, sy=648;
+  // outer ring
+  ctx.beginPath(); ctx.arc(sx,sy,46,0,Math.PI*2);
+  const sealRing=ctx.createLinearGradient(sx-46,sy-46,sx+46,sy+46);
+  sealRing.addColorStop(0,'rgba(255,196,77,0.9)');
+  sealRing.addColorStop(1,'rgba(255,140,30,0.6)');
+  ctx.strokeStyle=sealRing; ctx.lineWidth=2.5; ctx.stroke();
+  // inner ring
+  ctx.beginPath(); ctx.arc(sx,sy,38,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,196,77,0.3)'; ctx.lineWidth=1; ctx.stroke();
+  // fill
+  ctx.beginPath(); ctx.arc(sx,sy,37,0,Math.PI*2);
+  const sealFill=ctx.createRadialGradient(sx,sy-10,0,sx,sy,37);
+  sealFill.addColorStop(0,'rgba(255,196,77,0.12)');
+  sealFill.addColorStop(1,'rgba(255,100,0,0.06)');
+  ctx.fillStyle=sealFill; ctx.fill();
+  // icon
+  ctx.font='28px serif';
+  ctx.fillText('⚡',sx,sy+10);
+  // text arc around seal
+  ctx.font='700 7px Orbitron, monospace';
+  ctx.fillStyle='rgba(255,196,77,0.8)';
+  const arcText='CERTIFIED · ENERGY MASTER ·';
+  const arcR=42, startAngle=-Math.PI*0.75;
+  arcText.split('').forEach((ch,i)=>{
+    const angle=startAngle+(i/arcText.length)*Math.PI*1.5;
+    ctx.save();
+    ctx.translate(sx+arcR*Math.cos(angle), sy+arcR*Math.sin(angle));
+    ctx.rotate(angle+Math.PI/2);
+    ctx.fillText(ch,0,0);
+    ctx.restore();
+  });
+
+  // ── Date ──
+  const now=new Date();
+  const ds=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  ctx.font='500 11px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='rgba(140,160,180,0.55)';
+  ctx.fillText('颁发日期：'+ds, W/2, 716);
+
+  // ── School watermark ──
+  ctx.font='700 9.5px Orbitron, monospace';
+  ctx.fillStyle='rgba(79,163,255,0.38)';
+  ctx.fillText('峇株吧辖华仁中学 · CHINESE HIGH SCHOOL', W/2, 748);
+  ctx.font='500 9px "Noto Sans SC", sans-serif';
+  ctx.fillStyle='rgba(79,163,255,0.28)';
+  ctx.fillText('Made by ecchua79', W/2, 765);
+
+  // Bottom rule
+  hRule(778, 'rgba(255,196,77,0.2)', 160);
+
+  showScreen('cert-screen');
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r); ctx.lineTo(x+w,y+h-r);
+  ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function dlCert(){
+  const cv=document.getElementById('cert-canvas');
+  const a=document.createElement('a');
+  a.download='星际科学士证书.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+}
+
+//峇株吧辖华仁中学蔡逸众制作
+//华仁中学蔡逸众制作
+//Made by ecchua79
+/* ── INIT ── */
+buildMapPreview();
+
+//峇株吧辖蔡逸众制作
+</script>
+<!--Made by ecchua79-->
+</body>
+</html>
