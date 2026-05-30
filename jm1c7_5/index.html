@@ -316,8 +316,25 @@ input[type=range].cslider::-webkit-slider-thumb{-webkit-appearance:none;width:14
           <canvas id="cmyStage"></canvas>
           <div class="cmy-drag-hint" id="cmyDragHint">🖱 拖动颜料圈 · 观察减色混合</div>
           <div class="cmy-badge"><span class="bs2" id="cmyBadgeSwatch"></span><span id="cmyBadgeText">拖动颜料圈开始混色</span></div>
+          <div class="tgt-overlay" id="cmyTgtOverlay">
+            <div class="tgt-label">🎯 目标颜色</div>
+            <div class="tgt-swatch" id="cmyTgtSwatch"></div>
+            <div class="tgt-name" id="cmyTgtName">—</div>
+            <div class="tgt-timer" id="cmyTgtTimer">0s</div>
+            <div class="sim-wrap"><div class="sim-bar" id="cmySimBar"></div></div>
+            <div class="sim-pct" id="cmySimPct">0%</div>
+          </div>
+          <div class="success-flash" id="cmySuccessFlash"></div>
         </div>
         <div class="cmy-panel">
+          <div class="chal-bar">
+            <button class="chal-btn primary" onclick="cmyChalStart()" id="cmyChalStartBtn">🎯 颜色挑战</button>
+            <button class="chal-btn success" id="cmyChalJudgeBtn" onclick="cmyChalJudge()" style="display:none">判定 ✓</button>
+            <button class="chal-btn next" id="cmyChalNextBtn" onclick="cmyChalNext()">继续 →</button>
+            <span class="chal-label" id="cmyChalLabel">随机出10题，调出目标颜色！</span>
+            <span class="chal-prog" id="cmyChalProg">0/10</span>
+            <span class="chal-score-disp" id="cmyChalScoreDisp">分 <span id="cmyScoreNum">0</span></span>
+          </div>
           <div class="ptitle">颜料控制</div>
           <div class="channel">
             <div class="ch-header">
@@ -372,8 +389,25 @@ input[type=range].cslider::-webkit-slider-thumb{-webkit-appearance:none;width:14
           <canvas id="rybStage"></canvas>
           <div class="cmy-drag-hint" id="rybDragHint">🖱 拖动颜料圈 · 观察美术混色</div>
           <div class="cmy-badge"><span class="bs2" id="rybBadgeSwatch"></span><span id="rybBadgeText">拖动颜料圈开始混色</span></div>
+          <div class="tgt-overlay" id="rybTgtOverlay">
+            <div class="tgt-label">🎯 目标颜色</div>
+            <div class="tgt-swatch" id="rybTgtSwatch"></div>
+            <div class="tgt-name" id="rybTgtName">—</div>
+            <div class="tgt-timer" id="rybTgtTimer">0s</div>
+            <div class="sim-wrap"><div class="sim-bar" id="rybSimBar"></div></div>
+            <div class="sim-pct" id="rybSimPct">0%</div>
+          </div>
+          <div class="success-flash" id="rybSuccessFlash"></div>
         </div>
         <div class="cmy-panel">
+          <div class="chal-bar">
+            <button class="chal-btn primary" onclick="rybChalStart()" id="rybChalStartBtn">🎯 颜色挑战</button>
+            <button class="chal-btn success" id="rybChalJudgeBtn" onclick="rybChalJudge()" style="display:none">判定 ✓</button>
+            <button class="chal-btn next" id="rybChalNextBtn" onclick="rybChalNext()">继续 →</button>
+            <span class="chal-label" id="rybChalLabel">随机出10题，调出目标颜色！</span>
+            <span class="chal-prog" id="rybChalProg">0/10</span>
+            <span class="chal-score-disp" id="rybChalScoreDisp">分 <span id="rybScoreNum">0</span></span>
+          </div>
           <div class="ptitle">颜料控制</div>
           <div class="channel">
             <div class="ch-header">
@@ -953,7 +987,7 @@ function cmyDraw(){
     var g=cCtx.createRadialGradient(c.x,c.y,0,c.x,c.y,Cr);
     g.addColorStop(0,hexColor);
     g.addColorStop(0.75,hexColor);
-    g.addColorStop(1,'rgba(0,0,0,0)');
+    g.addColorStop(1,'rgba(248,244,238,0)');
     cCtx.globalAlpha=a;
     cCtx.beginPath();
     cCtx.arc(c.x,c.y,Cr,0,Math.PI*2);
@@ -966,6 +1000,7 @@ function cmyDraw(){
   drawPigment('y','#f5c200');
   cCtx.globalCompositeOperation='source-over';
   updateCMYUI();
+  cmyChalUpdateSim();
 }
 
 function updateCMYUI(){
@@ -1055,7 +1090,7 @@ function rybDraw(){
     var g=rCtx2.createRadialGradient(c.x,c.y,0,c.x,c.y,RYr);
     g.addColorStop(0,hexColor);
     g.addColorStop(0.75,hexColor);
-    g.addColorStop(1,'rgba(0,0,0,0)');
+    g.addColorStop(1,'rgba(248,244,238,0)');
     rCtx2.globalAlpha=a;
     rCtx2.beginPath();
     rCtx2.arc(c.x,c.y,RYr,0,Math.PI*2);
@@ -1068,6 +1103,7 @@ function rybDraw(){
   drawPigment('b','#1a5ccc');
   rCtx2.globalCompositeOperation='source-over';
   updateRYBUI();
+  rybChalUpdateSim();
 }
 
 function updateRYBUI(){
@@ -1119,6 +1155,270 @@ requestAnimationFrame(function(){requestAnimationFrame(function(){
   cmyInitPos();cmyDraw();
   rybInitPos();rybDraw();
 });});
+
+
+// Helper: render target pigments offscreen and sample center pixel
+function cmySampleTarget(cd,md,yd){
+  var oc=document.createElement('canvas');
+  oc.width=200;oc.height=200;
+  var ox=oc.getContext('2d');
+  ox.fillStyle='#f8f4ee';ox.fillRect(0,0,200,200);
+  ox.globalCompositeOperation='multiply';
+  var cx=100,cy=100,r=70;
+  function dp(hex,den){
+    if(den<=0)return;
+    var a=den/100;
+    var g=ox.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,hex);g.addColorStop(0.75,hex);g.addColorStop(1,'rgba(248,244,238,0)');
+    ox.globalAlpha=a;ox.beginPath();ox.arc(cx,cy,r,0,Math.PI*2);ox.fillStyle=g;ox.fill();ox.globalAlpha=1;
+  }
+  dp('#00bcd4',cd);dp('#e91e8c',md);dp('#f5c200',yd);
+  var px=ox.getImageData(100,100,1,1).data;
+  return{r:px[0],g:px[1],b:px[2]};
+}
+
+function rybSampleTarget(rd,yd,bd){
+  var oc=document.createElement('canvas');
+  oc.width=200;oc.height=200;
+  var ox=oc.getContext('2d');
+  ox.fillStyle='#f8f4ee';ox.fillRect(0,0,200,200);
+  ox.globalCompositeOperation='multiply';
+  var cx=100,cy=100,r=70;
+  function dp(hex,den){
+    if(den<=0)return;
+    var a=den/100;
+    var g=ox.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,hex);g.addColorStop(0.75,hex);g.addColorStop(1,'rgba(248,244,238,0)');
+    ox.globalAlpha=a;ox.beginPath();ox.arc(cx,cy,r,0,Math.PI*2);ox.fillStyle=g;ox.fill();ox.globalAlpha=1;
+  }
+  dp('#e8192c',rd);dp('#f5c200',yd);dp('#1a5ccc',bd);
+  var px=ox.getImageData(100,100,1,1).data;
+  return{r:px[0],g:px[1],b:px[2]};
+}
+
+// ══ CMY CHALLENGE ══
+var CMY_COLOURS=[
+  {name:'青色',c:100,m:0,y:0},{name:'品红色',c:0,m:100,y:0},
+  {name:'黄色',c:0,m:0,y:100},{name:'红色',c:0,m:100,y:100},
+  {name:'绿色',c:100,m:0,y:100},{name:'蓝色',c:100,m:100,y:0},
+  {name:'黑色',c:100,m:100,y:100},{name:'橙色',c:0,m:50,y:100},
+  {name:'紫色',c:50,m:100,y:0},{name:'深绿',c:100,m:0,y:50},
+  {name:'粉红',c:0,m:60,y:20},{name:'天蓝',c:80,m:30,y:0}
+];
+var cmyChalActive=false,cmyChalTarget=null,cmyChalScore=0;
+var cmyChalQueue=[],cmyChalIdx=0,cmyChalJudged=false,cmyChalResults=[];
+var cmyQStart=0,cmyChalTotalStart=0,cmyChalTimer=null;
+var CMY_TOTAL=10;
+
+function cmyChalStart(){
+  cmyChalActive=true;cmyChalScore=0;cmyChalIdx=0;cmyChalJudged=false;cmyChalResults=[];
+  cmyChalQueue=shuffle(CMY_COLOURS).slice(0,CMY_TOTAL);
+  cmyChalTotalStart=Date.now();
+  document.getElementById('cmyChalScoreDisp').style.display='inline';
+  document.getElementById('cmyScoreNum').textContent='0';
+  document.getElementById('cmyChalProg').style.display='inline';
+  document.getElementById('cmyChalStartBtn').textContent='🔄 重新开始';
+  document.getElementById('cmyTgtOverlay').classList.add('show');
+  document.getElementById('cmyChalNextBtn').style.display='none';
+  document.getElementById('cmyChalJudgeBtn').style.display='inline';
+  cmyChalLoadQ();
+}
+
+function cmyChalLoadQ(){
+  cmyChalJudged=false;
+  cmyChalTarget=cmyChalQueue[cmyChalIdx];
+  cmyQStart=Date.now();
+  // Sample target color from offscreen canvas using same multiply blend
+  var tCol=cmySampleTarget(cmyChalTarget.c,cmyChalTarget.m,cmyChalTarget.y);
+  document.getElementById('cmyTgtSwatch').style.background='rgb('+tCol.r+','+tCol.g+','+tCol.b+')';
+  document.getElementById('cmyTgtName').textContent=cmyChalTarget.name;
+  document.getElementById('cmyChalProg').textContent=(cmyChalIdx+1)+'/'+CMY_TOTAL;
+  document.getElementById('cmyChalLabel').textContent='调节 CMY 滑块，混出目标颜色！';
+  document.getElementById('cmyChalNextBtn').style.display='none';
+  document.getElementById('cmyChalJudgeBtn').style.display='inline';
+  document.getElementById('cmySimBar').style.width='0%';
+  document.getElementById('cmySimPct').classList.remove('show');
+  ['c','m','y'].forEach(function(k){cmy[k].on=true;cmy[k].den=0;document.getElementById('cden-'+k).value=0;document.getElementById('cval-'+k).textContent='0';document.getElementById('ctog-'+k).className='tog on';});
+  if(cmyChalTimer)clearInterval(cmyChalTimer);
+  cmyChalTimer=setInterval(function(){document.getElementById('cmyTgtTimer').textContent=((Date.now()-cmyQStart)/1000).toFixed(1)+'s';},100);
+  cmyDraw();
+}
+
+function cmyChalJudge(){
+  if(!cmyChalActive||!cmyChalTarget||cmyChalJudged)return;
+  cmyChalJudged=true;clearInterval(cmyChalTimer);
+  var elapsed=(Date.now()-cmyQStart)/1000;
+  // Sample canvas center for current color
+  var px=cCtx.getImageData(Math.round(CW/2),Math.round(CH/2),1,1).data;
+  var cR=px[0],cG=px[1],cB=px[2];
+  // Target color
+  var tCol=cmySampleTarget(cmyChalTarget.c,cmyChalTarget.m,cmyChalTarget.y);
+  var tR=tCol.r,tG=tCol.g,tB=tCol.b;
+  var dr=(cR-tR)/255,dg=(cG-tG)/255,db=(cB-tB)/255;
+  var dist=Math.sqrt(.30*dr*dr+.59*dg*dg+.11*db*db);
+  var sim=Math.max(0,Math.round((1-dist)*100));
+  var base=0,simLabel='';
+  if(sim===100){base=30;simLabel='完美！+30分';}
+  else if(sim>=95){base=20;simLabel='非常接近！+20分';}
+  else if(sim>=90){base=10;simLabel='很好！+10分';}
+  else{simLabel=sim+'% · 未达标（需≥90%）';}
+  var mult=1,multLabel='';
+  if(base>0){if(elapsed<=5){mult=1.5;multLabel=' × 1.5（5秒内）';}else if(elapsed<=10){mult=1.2;multLabel=' × 1.2（10秒内）';}}
+  var earned=Math.round(base*mult);
+  cmyChalScore+=earned;
+  document.getElementById('cmyScoreNum').textContent=cmyChalScore;
+  cmyChalResults.push({name:cmyChalTarget.name,sim:sim,earned:earned,mult:mult,time:elapsed});
+  var hue=Math.round(sim*1.2);
+  document.getElementById('cmySimBar').style.width=sim+'%';
+  document.getElementById('cmySimBar').style.background='hsl('+hue+',88%,52%)';
+  document.getElementById('cmySimPct').textContent=sim+'%';
+  document.getElementById('cmySimPct').classList.add('show');
+  document.getElementById('cmyChalLabel').textContent=simLabel+(earned?multLabel:'');
+  if(sim>=90){var f=document.getElementById('cmySuccessFlash');f.style.background='rgba('+tCol.r+','+tCol.g+','+tCol.b+',.35)';f.style.opacity='1';setTimeout(function(){f.style.opacity='0';},500);}
+  document.getElementById('cmyChalJudgeBtn').style.display='none';
+  document.getElementById('cmyChalNextBtn').style.display='inline';
+  document.getElementById('cmyChalNextBtn').textContent=cmyChalIdx+1>=CMY_TOTAL?'完成 🎉':'继续 →';
+}
+
+function cmyChalNext(){
+  cmyChalIdx++;
+  if(cmyChalIdx>=CMY_TOTAL){cmyChalFinish();return;}
+  cmyChalLoadQ();
+}
+
+function cmyChalFinish(){
+  cmyChalActive=false;clearInterval(cmyChalTimer);
+  document.getElementById('cmyTgtOverlay').classList.remove('show');
+  document.getElementById('cmyChalJudgeBtn').style.display='none';
+  document.getElementById('cmyChalNextBtn').style.display='none';
+  document.getElementById('cmyChalLabel').textContent='挑战完成！🎊 得分：'+cmyChalScore;
+}
+
+function cmyChalUpdateSim(){
+  if(!cmyChalActive||!cmyChalTarget||cmyChalJudged)return;
+  var px=cCtx.getImageData(Math.round(CW/2),Math.round(CH/2),1,1).data;
+  var cR=px[0],cG=px[1],cB=px[2];
+  var tCol=cmySampleTarget(cmyChalTarget.c,cmyChalTarget.m,cmyChalTarget.y);
+  var tR=tCol.r,tG=tCol.g,tB=tCol.b;
+  var dr=(cR-tR)/255,dg=(cG-tG)/255,db=(cB-tB)/255;
+  var dist=Math.sqrt(.30*dr*dr+.59*dg*dg+.11*db*db);
+  var sim=Math.max(0,Math.round((1-dist)*100));
+  document.getElementById('cmySimBar').style.width=sim+'%';
+  document.getElementById('cmySimBar').style.background='hsl('+Math.round(sim*1.2)+',88%,52%)';
+  if(sim>=80){document.getElementById('cmySimPct').textContent=sim+'%';document.getElementById('cmySimPct').classList.add('show');}
+  else{document.getElementById('cmySimPct').classList.remove('show');}
+}
+
+function rybChalUpdateSim(){
+  if(!rybChalActive||!rybChalTarget||rybChalJudged)return;
+  var px=rCtx2.getImageData(Math.round(RYW/2),Math.round(RYH/2),1,1).data;
+  var cR=px[0],cG=px[1],cB=px[2];
+  var tCol=rybSampleTarget(rybChalTarget.r,rybChalTarget.y,rybChalTarget.b);
+  var tR=tCol.r,tG=tCol.g,tB=tCol.b;
+  var dr=(cR-tR)/255,dg=(cG-tG)/255,db=(cB-tB)/255;
+  var dist=Math.sqrt(.30*dr*dr+.59*dg*dg+.11*db*db);
+  var sim=Math.max(0,Math.round((1-dist)*100));
+  document.getElementById('rybSimBar').style.width=sim+'%';
+  document.getElementById('rybSimBar').style.background='hsl('+Math.round(sim*1.2)+',88%,52%)';
+  if(sim>=80){document.getElementById('rybSimPct').textContent=sim+'%';document.getElementById('rybSimPct').classList.add('show');}
+  else{document.getElementById('rybSimPct').classList.remove('show');}
+}
+
+// ══ RYB CHALLENGE ══
+var RYB_COLOURS=[
+  {name:'红色',r:100,y:0,b:0},{name:'黄色',r:0,y:100,b:0},
+  {name:'蓝色',r:0,y:0,b:100},{name:'橙色',r:100,y:100,b:0},
+  {name:'绿色',r:0,y:100,b:100},{name:'紫色',r:100,y:0,b:100},
+  {name:'深褐',r:100,y:100,b:100},{name:'浅橙',r:80,y:50,b:0},
+  {name:'黄绿',r:0,y:80,b:40},{name:'深紫',r:60,y:0,b:80},
+  {name:'朱红',r:100,y:30,b:0},{name:'青绿',r:0,y:60,b:80}
+];
+var rybChalActive=false,rybChalTarget=null,rybChalScore=0;
+var rybChalQueue=[],rybChalIdx=0,rybChalJudged=false,rybChalResults=[];
+var rybQStart=0,rybChalTotalStart=0,rybChalTimer=null;
+var RYB_TOTAL=10;
+
+function rybChalStart(){
+  rybChalActive=true;rybChalScore=0;rybChalIdx=0;rybChalJudged=false;rybChalResults=[];
+  rybChalQueue=shuffle(RYB_COLOURS).slice(0,RYB_TOTAL);
+  rybChalTotalStart=Date.now();
+  document.getElementById('rybChalScoreDisp').style.display='inline';
+  document.getElementById('rybScoreNum').textContent='0';
+  document.getElementById('rybChalProg').style.display='inline';
+  document.getElementById('rybChalStartBtn').textContent='🔄 重新开始';
+  document.getElementById('rybTgtOverlay').classList.add('show');
+  document.getElementById('rybChalNextBtn').style.display='none';
+  document.getElementById('rybChalJudgeBtn').style.display='inline';
+  rybChalLoadQ();
+}
+
+function rybChalLoadQ(){
+  rybChalJudged=false;
+  rybChalTarget=rybChalQueue[rybChalIdx];
+  rybQStart=Date.now();
+  var tCol2=rybSampleTarget(rybChalTarget.r,rybChalTarget.y,rybChalTarget.b);
+  document.getElementById('rybTgtSwatch').style.background='rgb('+tCol2.r+','+tCol2.g+','+tCol2.b+')';
+  document.getElementById('rybTgtName').textContent=rybChalTarget.name;
+  document.getElementById('rybChalProg').textContent=(rybChalIdx+1)+'/'+RYB_TOTAL;
+  document.getElementById('rybChalLabel').textContent='调节 RYB 滑块，混出目标颜色！';
+  document.getElementById('rybChalNextBtn').style.display='none';
+  document.getElementById('rybChalJudgeBtn').style.display='inline';
+  document.getElementById('rybSimBar').style.width='0%';
+  document.getElementById('rybSimPct').classList.remove('show');
+  ['r','y','b'].forEach(function(k){ryb[k].on=true;ryb[k].den=0;document.getElementById('rden-'+k).value=0;document.getElementById('rval-'+k).textContent='0';document.getElementById('rtog-'+k).className='tog on';});
+  if(rybChalTimer)clearInterval(rybChalTimer);
+  rybChalTimer=setInterval(function(){document.getElementById('rybTgtTimer').textContent=((Date.now()-rybQStart)/1000).toFixed(1)+'s';},100);
+  rybDraw();
+}
+
+function rybChalJudge(){
+  if(!rybChalActive||!rybChalTarget||rybChalJudged)return;
+  rybChalJudged=true;clearInterval(rybChalTimer);
+  var elapsed=(Date.now()-rybQStart)/1000;
+  var px=rCtx2.getImageData(Math.round(RYW/2),Math.round(RYH/2),1,1).data;
+  var cR=px[0],cG=px[1],cB2=px[2];
+  var tCol2=rybSampleTarget(rybChalTarget.r,rybChalTarget.y,rybChalTarget.b);
+  var tR=tCol2.r,tG=tCol2.g,tB=tCol2.b;
+  var dr=(cR-tR)/255,dg=(cG-tG)/255,db=(cB2-tB)/255;
+  var dist=Math.sqrt(.30*dr*dr+.59*dg*dg+.11*db*db);
+  var sim=Math.max(0,Math.round((1-dist)*100));
+  var base=0,simLabel='';
+  if(sim===100){base=30;simLabel='完美！+30分';}
+  else if(sim>=95){base=20;simLabel='非常接近！+20分';}
+  else if(sim>=90){base=10;simLabel='很好！+10分';}
+  else{simLabel=sim+'% · 未达标（需≥90%）';}
+  var mult=1,multLabel='';
+  if(base>0){if(elapsed<=5){mult=1.5;multLabel=' × 1.5（5秒内）';}else if(elapsed<=10){mult=1.2;multLabel=' × 1.2（10秒内）';}}
+  var earned=Math.round(base*mult);
+  rybChalScore+=earned;
+  document.getElementById('rybScoreNum').textContent=rybChalScore;
+  rybChalResults.push({name:rybChalTarget.name,sim:sim,earned:earned,mult:mult,time:elapsed});
+  var hue=Math.round(sim*1.2);
+  document.getElementById('rybSimBar').style.width=sim+'%';
+  document.getElementById('rybSimBar').style.background='hsl('+hue+',88%,52%)';
+  document.getElementById('rybSimPct').textContent=sim+'%';
+  document.getElementById('rybSimPct').classList.add('show');
+  document.getElementById('rybChalLabel').textContent=simLabel+(earned?multLabel:'');
+  if(sim>=90){var f=document.getElementById('rybSuccessFlash');f.style.background='rgba('+tCol2.r+','+tCol2.g+','+tCol2.b+',.35)';f.style.opacity='1';setTimeout(function(){f.style.opacity='0';},500);}
+  document.getElementById('rybChalJudgeBtn').style.display='none';
+  document.getElementById('rybChalNextBtn').style.display='inline';
+  document.getElementById('rybChalNextBtn').textContent=rybChalIdx+1>=RYB_TOTAL?'完成 🎉':'继续 →';
+}
+
+function rybChalNext(){
+  rybChalIdx++;
+  if(rybChalIdx>=RYB_TOTAL){rybChalFinish();return;}
+  rybChalLoadQ();
+}
+
+function rybChalFinish(){
+  rybChalActive=false;clearInterval(rybChalTimer);
+  document.getElementById('rybTgtOverlay').classList.remove('show');
+  document.getElementById('rybChalJudgeBtn').style.display='none';
+  document.getElementById('rybChalNextBtn').style.display='none';
+  document.getElementById('rybChalLabel').textContent='挑战完成！🎊 得分：'+rybChalScore;
+}
+
 </script>
 </body>
 </html>
