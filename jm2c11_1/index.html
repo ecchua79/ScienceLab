@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生态网络守护者 · 第11章</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+:root {
+  --forest: #1a3a2a;
+  --leaf: #2d7a4f;
+  --lime: #6abf5e;
+  --sun: #f5c842;
+  --soil: #7a4f2d;
+  --water: #3a7fbf;
+  --sky: #b8e0f7;
+  --danger: #e05050;
+  --cream: #f9f5e8;
+  --dark: #111a13;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--forest);
+  color: var(--cream);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(45,122,79,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(58,127,191,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(26,58,42,0.8) 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating particles */
+.particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.15; }
+  90% { opacity: 0.15; }
+  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+}
+
+/* ─── SCREENS ─── */
+.screen {
+  display: none;
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ─── TITLE SCREEN ─── */
+#title-screen {
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.game-title {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  color: var(--lime);
+  text-shadow: 0 0 40px rgba(106,191,94,0.5), 2px 2px 0 var(--forest);
+  line-height: 1.1;
+  margin-bottom: 8px;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+@keyframes titlePulse {
+  0%,100% { text-shadow: 0 0 40px rgba(106,191,94,0.5), 2px 2px 0 var(--forest); }
+  50% { text-shadow: 0 0 80px rgba(106,191,94,0.9), 2px 2px 0 var(--forest); }
+}
+.subtitle {
+  font-size: 1rem;
+  color: rgba(249,245,232,0.6);
+  margin-bottom: 50px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.level-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  width: 100%;
+}
+.level-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(106,191,94,0.3);
+  border-radius: 16px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+.level-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(106,191,94,0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.level-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: var(--lime);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(106,191,94,0.2);
+}
+.level-card:hover::before { opacity: 1; }
+.level-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.level-num {
+  font-size: 0.7rem;
+  color: var(--lime);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.level-name {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 1.4rem;
+  color: var(--sun);
+  margin-bottom: 8px;
+}
+.level-desc { font-size: 0.85rem; color: rgba(249,245,232,0.7); line-height: 1.5; }
+.level-badge {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: var(--leaf);
+  color: var(--sun);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.level-badge.locked { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+
+/* ─── GAME HEADER ─── */
+.game-header {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.btn-back {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--cream);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-back:hover { background: rgba(255,255,255,0.15); }
+.header-title {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 1.3rem;
+  color: var(--lime);
+  flex: 1;
+}
+.score-display {
+  background: rgba(245,200,66,0.15);
+  border: 1px solid rgba(245,200,66,0.4);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  color: var(--sun);
+  font-weight: 700;
+}
+
+/* ─── INSTRUCTIONS ─── */
+.instructions {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(106,191,94,0.25);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin: 0 24px 16px;
+  font-size: 0.9rem;
+  color: rgba(249,245,232,0.8);
+  line-height: 1.6;
+  max-width: 910px;
+  width: calc(100% - 48px);
+  text-align: center;
+}
+.instructions strong { color: var(--lime); }
+
+/* ─── PROGRESS BAR ─── */
+.progress-wrap {
+  width: calc(100% - 48px);
+  max-width: 910px;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--leaf), var(--lime));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* ─── LEVEL 1: FOOD CHAIN ─── */
+#level1-screen {
+  padding-bottom: 40px;
+}
+.chain-area {
+  width: calc(100% - 48px);
+  max-width: 910px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 24px;
+}
+.slots-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chain-slot {
+  width: 110px;
+  height: 110px;
+  border: 2px dashed rgba(106,191,94,0.4);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.chain-slot.highlight { border-color: var(--lime); background: rgba(106,191,94,0.1); }
+.chain-slot.filled {
+  border-color: var(--leaf);
+  background: rgba(45,122,79,0.2);
+  border-style: solid;
+}
+.chain-slot.correct { border-color: var(--lime); background: rgba(106,191,94,0.25); animation: correctPop 0.4s; }
+.chain-slot.wrong { border-color: var(--danger); background: rgba(224,80,80,0.15); animation: shake 0.4s; }
+@keyframes correctPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.slot-emoji { font-size: 2.2rem; line-height: 1; }
+.slot-label { font-size: 0.65rem; margin-top: 2px; color: rgba(249,245,232,0.7); text-align: center; }
+.slot-role {
+  position: absolute;
+  bottom: 4px;
+  font-size: 0.55rem;
+  color: var(--lime);
+  letter-spacing: 1px;
+}
+
+.arrow-between {
+  font-size: 1.4rem;
+  color: rgba(106,191,94,0.5);
+  margin: 0 2px;
+  align-self: center;
+  flex-shrink: 0;
+  animation: arrowPulse 1.5s ease-in-out infinite;
+}
+@keyframes arrowPulse {
+  0%,100% { opacity: 0.5; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(3px); }
+}
+
+.cards-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.bio-card {
+  width: 100px;
+  height: 100px;
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(106,191,94,0.35);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  user-select: none;
+  position: relative;
+}
+.bio-card:hover {
+  transform: scale(1.08) translateY(-4px);
+  border-color: var(--lime);
+  background: rgba(106,191,94,0.12);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.bio-card:active { cursor: grabbing; transform: scale(1.05); }
+.bio-card.dragging { opacity: 0.5; transform: scale(0.95); }
+.bio-card.used { opacity: 0.25; pointer-events: none; filter: grayscale(0.7); }
+.card-emoji { font-size: 2.2rem; }
+.card-name { font-size: 0.7rem; margin-top: 3px; text-align: center; color: rgba(249,245,232,0.8); }
+
+.chain-question {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+.q-num {
+  font-size: 0.7rem;
+  color: var(--sun);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.q-text {
+  font-size: 1rem;
+  color: var(--cream);
+  line-height: 1.5;
+}
+
+/* ─── LEVEL 2: RELATIONSHIP QUIZ ─── */
+#level2-screen { padding-bottom: 40px; }
+.quiz-container {
+  width: calc(100% - 48px);
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.quiz-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(106,191,94,0.2);
+  border-radius: 16px;
+  padding: 28px 24px;
+}
+.scenario-visual {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: 4px;
+}
+.scenario-text {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(249,245,232,0.9);
+  text-align: center;
+  margin-bottom: 20px;
+}
+.relation-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rel-btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(106,191,94,0.3);
+  background: rgba(255,255,255,0.05);
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.rel-btn:hover { background: rgba(106,191,94,0.15); border-color: var(--lime); }
+.rel-btn.correct-ans {
+  background: rgba(106,191,94,0.25);
+  border-color: var(--lime);
+  color: var(--lime);
+  animation: correctPop 0.4s;
+}
+.rel-btn.wrong-ans {
+  background: rgba(224,80,80,0.15);
+  border-color: var(--danger);
+  color: #e07070;
+  animation: shake 0.4s;
+}
+.rel-btn:disabled { cursor: default; }
+.feedback-box {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  display: none;
+}
+.feedback-box.show { display: block; }
+.feedback-box.correct { background: rgba(106,191,94,0.15); color: var(--lime); }
+.feedback-box.incorrect { background: rgba(224,80,80,0.1); color: #e08080; }
+.next-btn {
+  display: none;
+  margin-top: 12px;
+  padding: 10px 24px;
+  background: var(--leaf);
+  color: var(--cream);
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.next-btn:hover { background: var(--lime); color: var(--dark); }
+.next-btn.show { display: block; }
+
+/* ─── LEVEL 3: ECOSYSTEM BALANCE ─── */
+#level3-screen { padding-bottom: 40px; }
+.eco-container {
+  width: calc(100% - 48px);
+  max-width: 910px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.eco-web {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(106,191,94,0.2);
+  border-radius: 16px;
+  padding: 20px;
+}
+.web-title {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 1rem;
+  color: var(--sun);
+  margin-bottom: 16px;
+  text-align: center;
+}
+.species-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trophic-level {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.species-node {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(106,191,94,0.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 72px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.species-node:hover { border-color: var(--danger); background: rgba(224,80,80,0.1); }
+.species-node.extinct {
+  opacity: 0.2;
+  filter: grayscale(1);
+  pointer-events: none;
+  text-decoration: line-through;
+}
+.species-node .sp-emoji { font-size: 1.8rem; }
+.species-node .sp-name { font-size: 0.6rem; color: rgba(249,245,232,0.7); }
+.species-node .sp-pop {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-top: 2px;
+}
+.sp-pop.normal { background: rgba(106,191,94,0.2); color: var(--lime); }
+.sp-pop.boom { background: rgba(245,200,66,0.25); color: var(--sun); }
+.sp-pop.crash { background: rgba(224,80,80,0.2); color: #e07070; }
+.level-label {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.trophic-divider {
+  border: none;
+  border-top: 1px dashed rgba(255,255,255,0.1);
+  margin: 2px 0;
+}
+
+.eco-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.eco-event-log {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 14px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 260px;
+}
+.log-title {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.log-entry {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: rgba(249,245,232,0.7);
+  animation: fadeSlideIn 0.4s ease;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.log-entry .log-icon { font-size: 0.9rem; margin-right: 6px; }
+.log-entry.event-warning { color: #f5a742; }
+.log-entry.event-danger { color: #e07070; }
+.log-entry.event-good { color: var(--lime); }
+
+.eco-question-wrap {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(106,191,94,0.2);
+  border-radius: 12px;
+  padding: 16px;
+}
+.eco-q-text {
+  font-size: 0.9rem;
+  color: var(--cream);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.eco-choices { display: flex; flex-direction: column; gap: 8px; }
+.eco-choice {
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+.eco-choice:hover { background: rgba(106,191,94,0.12); border-color: var(--lime); }
+.eco-choice.correct-ans { background: rgba(106,191,94,0.2); border-color: var(--lime); color: var(--lime); }
+.eco-choice.wrong-ans { background: rgba(224,80,80,0.15); border-color: var(--danger); color: #e07070; }
+
+.remove-hint {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  margin-top: -8px;
+}
+
+/* ─── RESULT SCREEN ─── */
+#result-screen {
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.result-badge {
+  font-size: 6rem;
+  animation: badgePop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  margin-bottom: 16px;
+}
+@keyframes badgePop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.result-title {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  color: var(--lime);
+  margin-bottom: 8px;
+}
+.result-score {
+  font-size: 1.1rem;
+  color: rgba(249,245,232,0.7);
+  margin-bottom: 12px;
+}
+.result-score span { color: var(--sun); font-size: 2rem; font-weight: 700; }
+.result-grade {
+  display: inline-block;
+  background: rgba(245,200,66,0.2);
+  border: 1px solid var(--sun);
+  border-radius: 12px;
+  padding: 6px 20px;
+  color: var(--sun);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+.result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  padding: 12px 28px;
+  background: var(--leaf);
+  color: var(--cream);
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.btn-primary:hover { background: var(--lime); color: var(--dark); transform: scale(1.05); }
+.btn-secondary {
+  padding: 12px 28px;
+  background: transparent;
+  color: var(--cream);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+/* ─── TOOLTIP ─── */
+.tooltip {
+  position: fixed;
+  background: rgba(17,26,19,0.95);
+  border: 1px solid var(--lime);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--cream);
+  max-width: 200px;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.tooltip.show { opacity: 1; }
+
+/* ─── WATERMARK ─── */
+.watermark {
+  position: fixed;
+  bottom: 12px;
+  right: 16px;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.18);
+  z-index: 100;
+  letter-spacing: 1px;
+  pointer-events: none;
+  user-select: none;
+}
+.wm-diagonal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+.wm-diagonal span {
+  position: absolute;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.045);
+  white-space: nowrap;
+  transform: rotate(-30deg);
+  user-select: none;
+  letter-spacing: 1px;
+}
+
+/* ─── MOBILE ─── */
+@media (max-width: 640px) {
+  .eco-container { grid-template-columns: 1fr; }
+  .relation-options { grid-template-columns: 1fr; }
+  .chain-slot { width: 88px; height: 88px; }
+  .bio-card { width: 80px; height: 80px; }
+  .card-emoji, .slot-emoji { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+<div class="tooltip" id="tooltip"></div>
+<!-- 防盗版水印：四种归属变体 -->
+<div class="watermark" id="wm-corner"></div>
+<div class="wm-diagonal" id="wm-diagonal"></div>
+
+<script>
+(function(){
+  const variants = [
+    '峇株吧辖华仁中学蔡逸众制作',
+    '峇株吧辖蔡逸众制作',
+    '华仁中学蔡逸众制作',
+    'Made by ecchua79'
+  ];
+  const corner = document.getElementById('wm-corner');
+  let vi = 0;
+  corner.textContent = variants[vi];
+  setInterval(()=>{ vi=(vi+1)%variants.length; corner.textContent=variants[vi]; }, 8000);
+
+  const diag = document.getElementById('wm-diagonal');
+  const cols = 4, rows = 7;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const sp = document.createElement('span');
+      sp.textContent = variants[(r*cols+c)%variants.length];
+      sp.style.left = (c*26+(r%2)*13)+'%';
+      sp.style.top  = (r*14+2)+'%';
+      diag.appendChild(sp);
+    }
+  }
+})();
+</script>
+
+<!-- ══ TITLE SCREEN ══ -->
+<div class="screen active" id="title-screen">
+  <div class="game-title">🌿 生态网络守护者</div>
+  <div class="subtitle">初二科学 · 第11章 · 生态系统与生物多样性</div>
+  <div class="level-select">
+    <div class="level-card" onclick="startLevel(1)">
+      <div class="level-badge">关卡一</div>
+      <div class="level-icon">🔗</div>
+      <div class="level-num">Level 01</div>
+      <div class="level-name">食物链大师</div>
+      <div class="level-desc">把生物拖拽到正确位置，排列出完整的食物链！练习生产者、消费者概念。</div>
+    </div>
+    <div class="level-card" onclick="startLevel(2)">
+      <div class="level-badge">关卡二</div>
+      <div class="level-icon">🕸️</div>
+      <div class="level-num">Level 02</div>
+      <div class="level-name">生物关系侦探</div>
+      <div class="level-desc">判断生物之间是捕食、竞争、寄生还是共生关系？快来挑战！</div>
+    </div>
+    <div class="level-card" onclick="startLevel(3)">
+      <div class="level-badge">关卡三</div>
+      <div class="level-icon">⚖️</div>
+      <div class="level-num">Level 03</div>
+      <div class="level-name">生态平衡模拟</div>
+      <div class="level-desc">移除一个物种，观察食物网的连锁反应！理解生态平衡的重要性。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LEVEL 1: FOOD CHAIN ══ -->
+<div class="screen" id="level1-screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← 返回</button>
+    <div class="header-title">🔗 食物链大师</div>
+    <div class="score-display" id="l1-score">得分: 0</div>
+  </div>
+  <div class="instructions">
+    <strong>游戏规则：</strong>把下方的生物卡牌<strong>拖拽</strong>到上方对应的槽位，按食物链顺序排列。
+    箭头方向 → 代表「能量流动」方向（被吃者 → 捕食者）。
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="l1-progress" style="width:0%"></div></div>
+  <div class="chain-area" id="chain-area">
+    <!-- dynamically generated -->
+  </div>
+</div>
+
+<!-- ══ LEVEL 2: RELATIONSHIP QUIZ ══ -->
+<div class="screen" id="level2-screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← 返回</button>
+    <div class="header-title">🕸️ 生物关系侦探</div>
+    <div class="score-display" id="l2-score">得分: 0</div>
+  </div>
+  <div class="instructions">
+    <strong>游戏规则：</strong>阅读情景描述，判断两种生物之间是哪一种关系。共有 <strong>8</strong> 道题。
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="l2-progress" style="width:0%"></div></div>
+  <div class="quiz-container" id="quiz-container">
+    <!-- dynamically generated -->
+  </div>
+</div>
+
+<!-- ══ LEVEL 3: ECOSYSTEM BALANCE ══ -->
+<div class="screen" id="level3-screen">
+  <div class="game-header">
+    <button class="btn-back" onclick="goHome()">← 返回</button>
+    <div class="header-title">⚖️ 生态平衡模拟</div>
+    <div class="score-display" id="l3-score">得分: 0</div>
+  </div>
+  <div class="instructions">
+    <strong>游戏规则：</strong>点击食物网中的某个生物将其<strong>移除</strong>，观察连锁反应，然后回答问题。共有 <strong>4</strong> 个场景。
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="l3-progress" style="width:0%"></div></div>
+  <div class="eco-container" id="eco-container">
+    <!-- dynamically generated -->
+  </div>
+</div>
+
+<!-- ══ RESULT SCREEN ══ -->
+<div class="screen" id="result-screen">
+  <div class="result-badge" id="result-badge">🏆</div>
+  <div class="result-title" id="result-title">太棒了！</div>
+  <div class="result-score">你的得分：<span id="final-score">0</span> / <span id="max-score">100</span></div>
+  <div class="result-grade" id="result-grade">A</div>
+  <div id="result-summary" style="font-size:0.9rem;color:rgba(249,245,232,0.6);max-width:420px;margin-bottom:24px;line-height:1.6;"></div>
+  <div class="result-actions">
+    <button class="btn-primary" id="retry-btn" onclick="">🔄 再玩一次</button>
+    <button class="btn-secondary" onclick="goHome()">🏠 返回主页</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  PARTICLES
+// ══════════════════════════════════════════
+(function(){
+  const container = document.getElementById('particles');
+  const colors = ['#2d7a4f','#6abf5e','#f5c842','#3a7fbf','#7a4f2d'];
+  for(let i=0;i<22;i++){
+    const p = document.createElement('div');
+    p.className='particle';
+    const sz=Math.random()*18+6;
+    p.style.cssText=`
+      width:${sz}px;height:${sz}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*20+12}s;
+      animation-delay:${Math.random()*20}s;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let currentLevel = 0;
+let score = 0;
+let maxScore = 0;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goHome(){
+  showScreen('title-screen');
+}
+
+// ══════════════════════════════════════════
+//  LEVEL 1 — FOOD CHAIN DRAG & DROP
+// ══════════════════════════════════════════
+const CHAINS = [
+  {
+    question: '请按正确顺序排列下面的热带雨林食物链（从生产者到顶级消费者）：',
+    hint: '能量从植物开始流动，依次流向草食动物、肉食动物……',
+    organisms: [
+      {name:'树叶',emoji:'🌿',role:'生产者',order:0},
+      {name:'毛毛虫',emoji:'🐛',role:'一级消费者',order:1},
+      {name:'小鸟',emoji:'🐦',role:'二级消费者',order:2},
+      {name:'猫头鹰',emoji:'🦉',role:'三级消费者',order:3},
+    ]
+  },
+  {
+    question: '请排列这条水稻田食物链（黑翅鸢是顶级消费者）：',
+    hint: '水稻→老鼠→黑翅鸢，这是稻田里常见的食物链！',
+    organisms: [
+      {name:'水稻',emoji:'🌾',role:'生产者',order:0},
+      {name:'蚱蜢',emoji:'🦗',role:'一级消费者',order:1},
+      {name:'青蛙',emoji:'🐸',role:'二级消费者',order:2},
+      {name:'黑翅鸢',emoji:'🦅',role:'三级消费者',order:3},
+    ]
+  },
+  {
+    question: '排列珊瑚礁食物链（鲨鱼是顶级消费者）：',
+    hint: '藻类光合作用储存能量，再传给小鱼，再传给大鱼……',
+    organisms: [
+      {name:'珊瑚藻',emoji:'🪸',role:'生产者',order:0},
+      {name:'小鱼',emoji:'🐠',role:'一级消费者',order:1},
+      {name:'海龟',emoji:'🐢',role:'二级消费者',order:2},
+      {name:'鲨鱼',emoji:'🦈',role:'三级消费者',order:3},
+    ]
+  },
+  {
+    question: '排列森林食物链，真菌是什么角色？把分解者也放进去！',
+    hint: '分解者把有机物还原为无机物，是生态系统的"清道夫"！',
+    organisms: [
+      {name:'草',emoji:'🌱',role:'生产者',order:0},
+      {name:'兔子',emoji:'🐰',role:'一级消费者',order:1},
+      {name:'狐狸',emoji:'🦊',role:'二级消费者',order:2},
+      {name:'蘑菇',emoji:'🍄',role:'分解者',order:3},
+    ]
+  }
+];
+
+let l1State = { chainIndex: 0, score: 0, slots: [], dragging: null };
+
+function startLevel(n){
+  currentLevel = n;
+  score = 0;
+  if(n===1){ initLevel1(); showScreen('level1-screen'); }
+  else if(n===2){ initLevel2(); showScreen('level2-screen'); }
+  else if(n===3){ initLevel3(); showScreen('level3-screen'); }
+}
+
+function initLevel1(){
+  l1State = { chainIndex: 0, score: 0, slots: [], dragging: null };
+  renderChain(0);
+}
+
+function renderChain(idx){
+  if(idx >= CHAINS.length){
+    showResult(l1State.score, CHAINS.length*20, 1);
+    return;
+  }
+  const chain = CHAINS[idx];
+  const area = document.getElementById('chain-area');
+  document.getElementById('l1-score').textContent = `得分: ${l1State.score}`;
+  document.getElementById('l1-progress').style.width = (idx/CHAINS.length*100)+'%';
+
+  // shuffle cards
+  const shuffled = [...chain.organisms].sort(()=>Math.random()-0.5);
+
+  area.innerHTML = `
+    <div class="chain-question">
+      <div class="q-num">第 ${idx+1} / ${CHAINS.length} 题</div>
+      <div class="q-text">❓ ${chain.question}</div>
+    </div>
+    <div class="slots-row" id="slots-row">
+      ${chain.organisms.map((_,i)=>`
+        <div class="chain-slot" id="slot-${i}" data-slot="${i}" 
+          ondragover="dragOver(event,${i})" ondrop="dropOnSlot(event,${i})" ondragleave="dragLeave(${i})">
+          <span style="font-size:0.7rem;opacity:0.4">${i+1}</span>
+        </div>
+        ${i<chain.organisms.length-1?'<div class="arrow-between">→</div>':''}
+      `).join('')}
+    </div>
+    <div style="font-size:0.75rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:-8px">
+      （箭头代表能量流动方向）
+    </div>
+    <div class="cards-pool" id="cards-pool">
+      ${shuffled.map(org=>`
+        <div class="bio-card" id="card-${org.order}" draggable="true"
+          ondragstart="dragStart(event,${org.order})"
+          ondragend="dragEnd(event)">
+          <span class="card-emoji">${org.emoji}</span>
+          <span class="card-name">${org.name}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="text-align:center;font-size:0.8rem;color:rgba(255,255,255,0.4)">💡 提示：${chain.hint}</div>
+  `;
+
+  l1State.slots = new Array(chain.organisms.length).fill(null);
+}
+
+function dragStart(e, cardOrder){
+  l1State.dragging = cardOrder;
+  e.dataTransfer.setData('text/plain', cardOrder);
+  setTimeout(()=>document.getElementById('card-'+cardOrder).classList.add('dragging'), 0);
+}
+function dragEnd(e){
+  if(l1State.dragging !== null){
+    const el = document.getElementById('card-'+l1State.dragging);
+    if(el) el.classList.remove('dragging');
+  }
+}
+function dragOver(e, slotIdx){
+  e.preventDefault();
+  document.getElementById('slot-'+slotIdx).classList.add('highlight');
+}
+function dragLeave(slotIdx){
+  document.getElementById('slot-'+slotIdx).classList.remove('highlight');
+}
+function dropOnSlot(e, slotIdx){
+  e.preventDefault();
+  const cardOrder = parseInt(e.dataTransfer.getData('text/plain'));
+  const chain = CHAINS[l1State.chainIndex];
+  const slotEl = document.getElementById('slot-'+slotIdx);
+  slotEl.classList.remove('highlight');
+
+  // Already occupied? swap
+  if(l1State.slots[slotIdx] !== null){
+    const prev = l1State.slots[slotIdx];
+    document.getElementById('card-'+prev).classList.remove('used');
+  }
+
+  l1State.slots[slotIdx] = cardOrder;
+  const org = chain.organisms.find(o=>o.order===cardOrder);
+  slotEl.classList.add('filled');
+  slotEl.innerHTML = `<span class="slot-emoji">${org.emoji}</span><span class="slot-label">${org.name}</span><span class="slot-role">${org.role}</span>`;
+  document.getElementById('card-'+cardOrder).classList.add('used');
+
+  // Check if all slots filled
+  if(l1State.slots.every(s=>s!==null)){
+    setTimeout(()=>checkChain(), 200);
+  }
+}
+
+function checkChain(){
+  const chain = CHAINS[l1State.chainIndex];
+  let allCorrect = true;
+  chain.organisms.forEach((org,i)=>{
+    const slotEl = document.getElementById('slot-'+i);
+    if(l1State.slots[i] === org.order){
+      slotEl.classList.add('correct');
+    } else {
+      slotEl.classList.add('wrong');
+      allCorrect = false;
+    }
+  });
+
+  if(allCorrect){
+    l1State.score += 20;
+    document.getElementById('l1-score').textContent = `得分: ${l1State.score}`;
+    setTimeout(()=>{
+      l1State.chainIndex++;
+      renderChain(l1State.chainIndex);
+    }, 1200);
+  } else {
+    // Reset after showing error
+    setTimeout(()=>{
+      l1State.slots = new Array(chain.organisms.length).fill(null);
+      renderChain(l1State.chainIndex);
+    }, 1400);
+  }
+}
+
+// ══════════════════════════════════════════
+//  LEVEL 2 — RELATIONSHIP QUIZ
+// ══════════════════════════════════════════
+const QUIZZES = [
+  {
+    emoji:'🦁🦓',
+    text:'雌狮悄悄靠近斑马群，等待时机扑向落单的幼年斑马。斑马因此受伤，而狮子获得了食物。',
+    options:['捕食关系','竞争关系','寄生关系','共生关系'],
+    answer:0,
+    explain:'捕食关系：捕食者（狮子）通过捕杀猎物（斑马）获取能量，猎物受害，捕食者受益。捕食关系有助于控制种群数量。'
+  },
+  {
+    emoji:'🐠🌊',
+    text:'小丑鱼在海葵有毒的触手间自由穿梭，不会被刺伤；它的活动帮助清除海葵的寄生虫，粪便也为海葵提供养分。',
+    options:['捕食关系','竞争关系','寄生关系','互利共生'],
+    answer:3,
+    explain:'互利共生：小丑鱼和海葵双方都获得好处——小丑鱼得到保护，海葵获得清洁和养分。'
+  },
+  {
+    emoji:'🦟💉',
+    text:'雌蚊子叮咬人类时，将口器插入皮肤，吸取血液作为产卵的营养来源。人类会感到瘙痒，并可能传染疾病。',
+    options:['捕食关系','竞争关系','寄生关系','共生关系'],
+    answer:2,
+    explain:'寄生关系：蚊子是寄生物，以人类（宿主）的血液为食，对宿主有害，对蚊子有利。'
+  },
+  {
+    emoji:'🦀🦀',
+    text:'两只同种的雄招潮蟹在同一片滩涂上相遇，它们挥舞着大螯，互相推挤，争夺用于筑巢的最佳领域。',
+    options:['捕食关系','种内竞争','寄生关系','互利共生'],
+    answer:1,
+    explain:'种内竞争：同种生物之间争夺相同资源（如领域、食物），称为种内竞争（intraspecific competition）。'
+  },
+  {
+    emoji:'🌳🐛',
+    text:'一种蚜虫大量聚集在植物的嫩芽上，刺穿植物组织吸取汁液，导致植物叶片卷曲变黄，生长受阻。',
+    options:['捕食关系','竞争关系','寄生关系','共生关系'],
+    answer:2,
+    explain:'寄生关系：蚜虫（寄生物）依附在植物（宿主）上汲取养分，对植物有害，蚜虫有利。'
+  },
+  {
+    emoji:'🐦🦅',
+    text:'麻雀和山雀生活在同一片果园里，它们都喜欢捕食树上的毛毛虫。当虫源减少时，两种鸟都会争抢剩余的食物。',
+    options:['捕食关系','种间竞争','寄生关系','共生关系'],
+    answer:1,
+    explain:'种间竞争：不同物种（麻雀与山雀）争夺同一资源（毛毛虫），称为种间竞争（interspecific competition）。'
+  },
+  {
+    emoji:'🦠🌱',
+    text:'豆科植物的根部有根瘤，里面住着根瘤菌。根瘤菌为植物固定空气中的氮，提供养分；植物则为根瘤菌提供有机物作为能量来源。',
+    options:['捕食关系','竞争关系','寄生关系','互利共生'],
+    answer:3,
+    explain:'互利共生：根瘤菌与豆科植物各获其利——根瘤菌获得有机物，植物获得可用的氮元素，土壤也因此变肥沃。'
+  },
+  {
+    emoji:'🐆🦌',
+    text:'豹子潜伏在草丛中，等待鹿群接近水源，然后迅速扑出，攻击其中一只。被捕到的鹿成为豹子的食物。',
+    options:['捕食关系','竞争关系','寄生关系','共生关系'],
+    answer:0,
+    explain:'捕食关系：豹子（捕食者）捕杀鹿（猎物），捕食关系推动了物种进化，也维持了生态系统的物种数量平衡。'
+  },
+];
+
+let l2State = { qIndex: 0, score: 0, answered: false };
+
+function initLevel2(){
+  l2State = { qIndex: 0, score: 0, answered: false };
+  renderQuiz(0);
+}
+
+function renderQuiz(idx){
+  if(idx >= QUIZZES.length){
+    showResult(l2State.score, QUIZZES.length*10, 2);
+    return;
+  }
+  const q = QUIZZES[idx];
+  document.getElementById('l2-score').textContent = `得分: ${l2State.score}`;
+  document.getElementById('l2-progress').style.width = (idx/QUIZZES.length*100)+'%';
+  l2State.answered = false;
+
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = `
+    <div class="quiz-card">
+      <div class="q-num">第 ${idx+1} / ${QUIZZES.length} 题</div>
+      <div class="scenario-visual">${q.emoji}</div>
+      <div class="scenario-text">${q.text}</div>
+      <div class="relation-options">
+        ${q.options.map((opt,i)=>`
+          <button class="rel-btn" id="opt-${i}" onclick="answerQuiz(${i})">
+            ${['🦷','⚔️','🩸','🤝'][i]} ${opt}
+          </button>
+        `).join('')}
+      </div>
+      <div class="feedback-box" id="feedback"></div>
+      <button class="next-btn" id="next-btn" onclick="nextQuiz()">继续 →</button>
+    </div>
+  `;
+}
+
+function answerQuiz(choice){
+  if(l2State.answered) return;
+  l2State.answered = true;
+  const q = QUIZZES[l2State.qIndex];
+  const btns = document.querySelectorAll('.rel-btn');
+  btns.forEach(b=>b.disabled=true);
+  const feedback = document.getElementById('feedback');
+  const nextBtn = document.getElementById('next-btn');
+
+  if(choice === q.answer){
+    document.getElementById('opt-'+choice).classList.add('correct-ans');
+    feedback.className = 'feedback-box show correct';
+    feedback.innerHTML = `✅ <strong>正确！</strong> ${q.explain}`;
+    l2State.score += 10;
+    document.getElementById('l2-score').textContent = `得分: ${l2State.score}`;
+  } else {
+    document.getElementById('opt-'+choice).classList.add('wrong-ans');
+    document.getElementById('opt-'+q.answer).classList.add('correct-ans');
+    feedback.className = 'feedback-box show incorrect';
+    feedback.innerHTML = `❌ <strong>答错了。</strong> 正确答案是「${q.options[q.answer]}」。${q.explain}`;
+  }
+  nextBtn.classList.add('show');
+}
+
+function nextQuiz(){
+  l2State.qIndex++;
+  renderQuiz(l2State.qIndex);
+}
+
+// ══════════════════════════════════════════
+//  LEVEL 3 — ECOSYSTEM BALANCE
+// ══════════════════════════════════════════
+const ECO_SCENARIOS = [
+  {
+    title: '热带雨林食物网',
+    web: {
+      producers: [{name:'树木',emoji:'🌳',pop:'normal'}],
+      primary: [{name:'毛毛虫',emoji:'🐛',pop:'normal'},{name:'鹿',emoji:'🦌',pop:'normal'}],
+      secondary: [{name:'小鸟',emoji:'🐦',pop:'normal'},{name:'老虎',emoji:'🐅',pop:'normal'}],
+      top: [{name:'猎鹰',emoji:'🦅',pop:'normal'}],
+    },
+    removeTarget: '老虎',
+    events: [
+      '⚠️ 老虎被移除——鹿失去了顶级天敌',
+      '📈 鹿的数量开始急速增加（种群爆炸）',
+      '🌳 大量的鹿啃食树木幼苗，树木再生受阻',
+      '📉 树木减少 → 毛毛虫食物来源减少',
+      '📉 小鸟的食物（毛毛虫）减少 → 小鸟数量下降',
+      '💀 生态失衡！整个食物网受到冲击',
+    ],
+    afterPop: {
+      '鹿': 'boom',
+      '树木': 'crash',
+      '毛毛虫': 'crash',
+      '小鸟': 'crash',
+    },
+    question: '老虎在食物网中扮演什么角色？移除老虎后，最先爆炸式增加的物种是？',
+    options: ['鹿（一级消费者）','毛毛虫（一级消费者）','小鸟（二级消费者）','猎鹰（顶级消费者）'],
+    answer: 0,
+    explain: '老虎是二级消费者，以鹿为食。老虎消失后，鹿失去天敌制约，数量爆炸式增长，进而过度消耗树木，引发连锁生态失衡。'
+  },
+  {
+    title: '珊瑚礁食物网',
+    web: {
+      producers: [{name:'珊瑚藻',emoji:'🪸',pop:'normal'}],
+      primary: [{name:'海胆',emoji:'🦔',pop:'normal'},{name:'小鱼',emoji:'🐠',pop:'normal'}],
+      secondary: [{name:'章鱼',emoji:'🐙',pop:'normal'},{name:'海龟',emoji:'🐢',pop:'normal'}],
+      top: [{name:'鲨鱼',emoji:'🦈',pop:'normal'}],
+    },
+    removeTarget: '珊瑚藻',
+    events: [
+      '⚠️ 珊瑚藻被破坏——生产者消失！',
+      '📉 海胆失去主要食物来源，数量下降',
+      '📉 小鱼失去食物与栖息地，数量下降',
+      '📉 章鱼和海龟的食物减少，数量锐减',
+      '📉 鲨鱼食物链断裂，顶级消费者也受到威胁',
+      '💀 整个珊瑚礁生态系统崩溃！',
+    ],
+    afterPop: {
+      '海胆': 'crash',
+      '小鱼': 'crash',
+      '章鱼': 'crash',
+      '海龟': 'crash',
+      '鲨鱼': 'crash',
+    },
+    question: '为什么生产者（珊瑚藻）是食物网中最关键的角色？',
+    options: ['因为它们数量最多','因为所有消费者都直接或间接依靠生产者获取能量','因为它们可以自行繁殖','因为它们是顶级消费者'],
+    answer: 1,
+    explain: '生产者通过光合作用将太阳能转化为有机物，是整个食物网能量的唯一来源。生产者消失，所有消费者都会失去食物，生态系统将会崩溃。'
+  },
+  {
+    title: '稻田生态系统',
+    web: {
+      producers: [{name:'水稻',emoji:'🌾',pop:'normal'}],
+      primary: [{name:'蚱蜢',emoji:'🦗',pop:'normal'},{name:'老鼠',emoji:'🐭',pop:'normal'}],
+      secondary: [{name:'青蛙',emoji:'🐸',pop:'normal'}],
+      top: [{name:'黑翅鸢',emoji:'🦅',pop:'normal'}],
+    },
+    removeTarget: '青蛙',
+    events: [
+      '⚠️ 稻田中的青蛙被过量捕捉——数量骤减',
+      '📈 蚱蜢失去天敌制约，大量繁殖',
+      '🌾 大量蚱蜢啃食水稻，庄稼严重受损',
+      '📉 黑翅鸢的食物（青蛙）大量减少',
+      '📈 老鼠因失去竞争者（食物更充足），数量增加',
+      '💀 稻田生态失衡，农作物减产！',
+    ],
+    afterPop: {
+      '蚱蜢': 'boom',
+      '老鼠': 'boom',
+      '水稻': 'crash',
+      '黑翅鸢': 'crash',
+    },
+    question: '青蛙被大量捕捉后，哪种生物数量会"爆炸式"增加，直接威胁水稻？',
+    options: ['老鼠','蚱蜢','黑翅鸢','水稻本身'],
+    answer: 1,
+    explain: '青蛙主要以蚱蜢等昆虫为食。青蛙消失后，蚱蜢失去天敌，数量爆炸式增长，大量啃食水稻，造成农业损失。这说明保护青蛙对农业生产至关重要！'
+  },
+  {
+    title: '温带森林食物网',
+    web: {
+      producers: [{name:'草',emoji:'🌿',pop:'normal'},{name:'坚果',emoji:'🌰',pop:'normal'}],
+      primary: [{name:'兔子',emoji:'🐰',pop:'normal'},{name:'松鼠',emoji:'🐿️',pop:'normal'}],
+      secondary: [{name:'狐狸',emoji:'🦊',pop:'normal'}],
+      top: [{name:'老鹰',emoji:'🦅',pop:'normal'}],
+    },
+    removeTarget: '草',
+    events: [
+      '⚠️ 草地被破坏，生产者减少一半',
+      '📉 兔子失去主要食物来源，数量减少',
+      '📉 狐狸的主要猎物（兔子）减少',
+      '📈 松鼠暂时增加（竞争者兔子减少）',
+      '📉 但随着整体生产者减少，松鼠终究也会下降',
+      '💀 食物网断裂，森林生态失稳！',
+    ],
+    afterPop: {
+      '兔子': 'crash',
+      '狐狸': 'crash',
+      '松鼠': 'boom',
+    },
+    question: '生态系统中的分解者（如蘑菇、细菌）在这个过程中扮演什么角色？',
+    options: [
+      '使有机物分解为无机物，归还给土壤，供生产者重新利用',
+      '直接为消费者提供食物',
+      '与消费者竞争食物资源',
+      '产生氧气供动物呼吸'
+    ],
+    answer: 0,
+    explain: '分解者（真菌、细菌）将死亡生物的遗体和排泄物分解为无机物，使物质回归土壤，供植物（生产者）重新吸收利用，完成物质循环。没有分解者，生态系统的物质循环将无法维持！'
+  },
+];
+
+let l3State = { scenIndex: 0, score: 0, removed: false, answered: false };
+
+function initLevel3(){
+  l3State = { scenIndex: 0, score: 0, removed: false, answered: false };
+  renderEcoScenario(0);
+}
+
+function renderEcoScenario(idx){
+  if(idx >= ECO_SCENARIOS.length){
+    showResult(l3State.score, ECO_SCENARIOS.length*20, 3);
+    return;
+  }
+  const sc = ECO_SCENARIOS[idx];
+  document.getElementById('l3-score').textContent = `得分: ${l3State.score}`;
+  document.getElementById('l3-progress').style.width = (idx/ECO_SCENARIOS.length*100)+'%';
+  l3State.removed = false;
+  l3State.answered = false;
+
+  const container = document.getElementById('eco-container');
+  container.innerHTML = `
+    <div class="eco-web">
+      <div class="web-title">🌐 ${sc.title}（第 ${idx+1} / ${ECO_SCENARIOS.length} 场景）</div>
+      <div class="species-grid" id="species-grid-${idx}">
+        <div class="level-label">顶级消费者</div>
+        <div class="trophic-level">${renderSpeciesNodes(sc.web.top, sc, idx)}</div>
+        <hr class="trophic-divider">
+        <div class="level-label">二级消费者</div>
+        <div class="trophic-level">${renderSpeciesNodes(sc.web.secondary, sc, idx)}</div>
+        <hr class="trophic-divider">
+        <div class="level-label">一级消费者</div>
+        <div class="trophic-level">${renderSpeciesNodes(sc.web.primary, sc, idx)}</div>
+        <hr class="trophic-divider">
+        <div class="level-label">生产者</div>
+        <div class="trophic-level">${renderSpeciesNodes(sc.web.producers, sc, idx)}</div>
+      </div>
+      <div class="remove-hint" id="remove-hint-${idx}">👆 点击「${sc.removeTarget}」将其移除，观察连锁反应</div>
+    </div>
+    <div class="eco-panel">
+      <div class="eco-event-log" id="event-log-${idx}">
+        <div class="log-title">📋 生态事件记录</div>
+        <div class="log-entry" style="color:rgba(255,255,255,0.4)">（等待移除物种……）</div>
+      </div>
+      <div class="eco-question-wrap" id="eco-q-wrap-${idx}" style="display:none">
+        <div class="eco-q-text">❓ ${sc.question}</div>
+        <div class="eco-choices">
+          ${sc.options.map((opt,i)=>`
+            <button class="eco-choice" id="ec-${i}" onclick="answerEco(${i},${idx})">${opt}</button>
+          `).join('')}
+        </div>
+        <div id="eco-feedback-${idx}" class="feedback-box"></div>
+        <button class="next-btn" id="eco-next-${idx}" onclick="nextEco()">下一场景 →</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSpeciesNodes(arr, sc, idx){
+  return arr.map(sp=>`
+    <div class="species-node" id="sp-${sp.name.replace(/[^a-z\u4e00-\u9fa5]/gi,'')}-${idx}"
+      onclick="removeSpecies('${sp.name}',${idx})"
+      title="点击移除 ${sp.name}">
+      <span class="sp-emoji">${sp.emoji}</span>
+      <span class="sp-name">${sp.name}</span>
+      <span class="sp-pop normal" id="pop-${sp.name.replace(/[^a-z\u4e00-\u9fa5]/gi,'')}-${idx}">正常</span>
+    </div>
+  `).join('');
+}
+
+function removeSpecies(name, idx){
+  if(l3State.removed) return;
+  const sc = ECO_SCENARIOS[idx];
+  if(name !== sc.removeTarget){
+    // Wrong species removed — show hint
+    const hint = document.getElementById('remove-hint-'+idx);
+    hint.innerHTML = `⚠️ 请点击「${sc.removeTarget}」来触发本场景！`;
+    hint.style.color = '#f5a742';
+    return;
+  }
+  l3State.removed = true;
+
+  // Mark as extinct
+  const safeId = name.replace(/[^a-z\u4e00-\u9fa5]/gi,'');
+  const node = document.getElementById(`sp-${safeId}-${idx}`);
+  if(node) node.classList.add('extinct');
+  const hint = document.getElementById('remove-hint-'+idx);
+  hint.innerHTML = `💥 ${name} 已被移除！观察连锁反应……`;
+  hint.style.color = '#e07070';
+
+  // Animate log events
+  const logEl = document.getElementById(`event-log-${idx}`);
+  logEl.innerHTML = '<div class="log-title">📋 生态事件记录</div>';
+  sc.events.forEach((ev, i)=>{
+    setTimeout(()=>{
+      const entry = document.createElement('div');
+      const isWarn = ev.includes('⚠️');
+      const isDanger = ev.includes('💀') || ev.includes('📉');
+      const isGood = ev.includes('📈');
+      entry.className = `log-entry ${isWarn?'event-warning':isDanger?'event-danger':isGood?'event-warning':''}`;
+      entry.innerHTML = ev;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      // Update populations
+      Object.entries(sc.afterPop).forEach(([spName, popClass])=>{
+        const sid = spName.replace(/[^a-z\u4e00-\u9fa5]/gi,'');
+        const popEl = document.getElementById(`pop-${sid}-${idx}`);
+        if(popEl){
+          popEl.className = `sp-pop ${popClass}`;
+          popEl.textContent = popClass==='boom'?'📈爆增':popClass==='crash'?'📉骤减':'正常';
+        }
+      });
+    }, i*700);
+  });
+
+  // Show question after all events
+  setTimeout(()=>{
+    document.getElementById(`eco-q-wrap-${idx}`).style.display='block';
+  }, sc.events.length * 700 + 300);
+}
+
+function answerEco(choice, idx){
+  if(l3State.answered) return;
+  l3State.answered = true;
+  const sc = ECO_SCENARIOS[idx];
+  const btns = document.querySelectorAll('.eco-choice');
+  btns.forEach(b=>b.disabled=true);
+  const feedback = document.getElementById(`eco-feedback-${idx}`);
+  const nextBtn = document.getElementById(`eco-next-${idx}`);
+
+  if(choice === sc.answer){
+    document.getElementById('ec-'+choice).classList.add('correct-ans');
+    feedback.className = 'feedback-box show correct';
+    feedback.innerHTML = `✅ <strong>正确！</strong> ${sc.explain}`;
+    l3State.score += 20;
+    document.getElementById('l3-score').textContent = `得分: ${l3State.score}`;
+  } else {
+    document.getElementById('ec-'+choice).classList.add('wrong-ans');
+    document.getElementById('ec-'+sc.answer).classList.add('correct-ans');
+    feedback.className = 'feedback-box show incorrect';
+    feedback.innerHTML = `❌ <strong>答错了。</strong> ${sc.explain}`;
+  }
+  nextBtn.classList.add('show');
+}
+
+function nextEco(){
+  l3State.scenIndex++;
+  l3State.removed = false;
+  l3State.answered = false;
+  renderEcoScenario(l3State.scenIndex);
+}
+
+// ══════════════════════════════════════════
+//  RESULT SCREEN
+// ══════════════════════════════════════════
+function showResult(pts, max, level){
+  const pct = pts/max;
+  let badge, title, grade, summary;
+  if(pct>=0.9){ badge='🏆'; title='满分大师！'; grade='A+'; }
+  else if(pct>=0.7){ badge='🌟'; title='非常出色！'; grade='A'; }
+  else if(pct>=0.5){ badge='🌿'; title='继续加油！'; grade='B'; }
+  else { badge='📚'; title='需要复习哦！'; grade='C'; }
+
+  const summaries = [
+    '你已掌握食物链的排列顺序，了解生产者、消费者和分解者的角色！',
+    '你能识别捕食、竞争、寄生和共生关系，这是生态学的核心概念！',
+    '你理解了生态平衡的重要性，知道物种移除会引发连锁反应！',
+  ];
+  summary = summaries[level-1] || '';
+
+  document.getElementById('result-badge').textContent = badge;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('final-score').textContent = pts;
+  document.getElementById('max-score').textContent = max;
+  document.getElementById('result-grade').textContent = grade;
+  document.getElementById('result-summary').textContent = summary;
+
+  document.getElementById('retry-btn').onclick = ()=>startLevel(level);
+
+  showScreen('result-screen');
+}
+</script>
+</body>
+</html>
