@@ -72,6 +72,49 @@
             user-select: none;
             white-space: nowrap;
         }
+
+        /* 可收起侧边栏 */
+        #side-panel {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.35s ease;
+            transform-origin: top left;
+        }
+        #side-panel.collapsed {
+            transform: translateX(-110%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 展开/收起按钮 */
+        #panel-toggle {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 50;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: background 0.2s, border-color 0.2s, left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #panel-toggle:hover {
+            background: rgba(30, 40, 80, 0.95);
+            border-color: rgba(100, 140, 255, 0.4);
+        }
+        /* 面板展开时按钮跟随移动（桌面端） */
+        @media (min-width: 768px) {
+            #panel-toggle.open {
+                left: calc(24rem + 32px);
+            }
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-blue-500/30">
@@ -81,12 +124,22 @@
         <canvas id="starCanvas"></canvas>
     </div>
 
+    <!-- 展开/收起按钮（始终可见） -->
+    <button id="panel-toggle" title="展开/收起面板">
+        <svg id="icon-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="rgba(150,180,255,0.9)" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="rgba(150,180,255,0.9)" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+    </button>
+
     <!-- UI 控制层 -->
-    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col md:flex-row">
-        
-        <!-- 左侧/顶部 控制面板 -->
-        <div class="pointer-events-auto p-6 md:w-[24rem] flex flex-col gap-4 max-h-screen">
-            <div class="glass-panel rounded-2xl p-5 shadow-2xl flex-shrink-0">
+    <div class="absolute inset-0 z-10 pointer-events-none">
+
+        <!-- 侧边面板（可收起） -->
+        <div id="side-panel" class="collapsed absolute top-0 left-0 h-full pointer-events-auto p-4 md:p-6 md:w-96 flex flex-col gap-4 max-h-screen" style="width: min(85vw, 24rem);">
+            <div class="glass-panel rounded-2xl p-5 shadow-2xl flex-shrink-0" style="margin-top: 56px;">
                 <h1 class="text-2xl font-bold mb-1 tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300">
                     高清星空投影
                 </h1>
@@ -132,7 +185,7 @@
             </div>
         </div>
 
-        <!-- 右下角 悬浮提示框 -->
+        <!-- 悬浮提示框 -->
         <div id="tooltip" class="absolute pointer-events-none opacity-0 transition-opacity duration-200 glass-panel rounded-xl p-4 shadow-lg transform -translate-x-1/2 -translate-y-full mb-4 z-50 border-l-4 border-l-blue-400">
             <h4 id="tt-name" class="font-bold text-lg text-white mb-1"></h4>
             <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-300">
@@ -144,7 +197,7 @@
                 <span class="text-slate-500">归一化 Y:</span> <span id="tt-y" class="font-mono text-right text-blue-300"></span>
             </div>
         </div>
-        
+
     </div>
 
     <!-- 底部低调版权标注 -->
@@ -865,6 +918,30 @@ function highlightStar(star, mouseX, mouseY) {
 // 启动程序
 initUI();
 resizeCanvas();
+
+// 面板收起/展开逻辑
+(function() {
+    const panel = document.getElementById('side-panel');
+    const toggleBtn = document.getElementById('panel-toggle');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+    let isOpen = false;
+
+    toggleBtn.addEventListener('click', () => {
+        isOpen = !isOpen;
+        if (isOpen) {
+            panel.classList.remove('collapsed');
+            toggleBtn.classList.add('open');
+            iconOpen.style.display = 'none';
+            iconClose.style.display = 'block';
+        } else {
+            panel.classList.add('collapsed');
+            toggleBtn.classList.remove('open');
+            iconOpen.style.display = 'block';
+            iconClose.style.display = 'none';
+        }
+    });
+})();
 
 // 默认点击第一个白羊座进行展示
 document.querySelector('#nav-buttons button').click();
