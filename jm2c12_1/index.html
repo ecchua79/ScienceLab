@@ -392,16 +392,15 @@ body {
   height: 56px;
   border-radius: var(--r8);
   background: linear-gradient(to right,
-    #ff6030 0%,   /* M 橙红 */
-    #ff9050 8%,
-    #ffcc60 16%,  /* K 橙 */
-    #ffe880 24%,  /* G 黄 */
-    #fff4b0 32%,
-    #ffffcc 40%,  /* F 黄白 */
-    #e8f4ff 52%,  /* A 白 */
-    #c8e8ff 64%,  /* B 蓝白 */
-    #a0c8ff 80%,  /* O 蓝 */
-    #8090ff 100%
+    #8090ff 0%,   /* O 蓝 */
+    #a0c8ff 12%,  /* B 蓝白 */
+    #c8e8ff 24%,  /* A 白 */
+    #e8f4ff 36%,
+    #ffffcc 48%,  /* F 黄白 */
+    #ffe880 60%,  /* G 黄 */
+    #ffcc60 72%,  /* K 橙 */
+    #ff9050 84%,
+    #ff6030 100%  /* M 橙红 */
   );
   position: relative;
   cursor: pointer;
@@ -1068,16 +1067,16 @@ footer {
   <div style="width:100%;max-width:760px;padding:30px 0 10px;position:relative;">
     <!-- spectrum labels -->
     <div style="position:relative;height:24px;max-width:760px;margin-bottom:4px;">
-      <span class="spectrum-label" style="left:4%">M型<br>橙红</span>
-      <span class="spectrum-label" style="left:20%">K型<br>橙</span>
-      <span class="spectrum-label" style="left:32%">G型<br>黄</span>
+      <span class="spectrum-label" style="left:4%">O型<br>蓝</span>
+      <span class="spectrum-label" style="left:18%">B型<br>蓝白</span>
+      <span class="spectrum-label" style="left:33%">A型<br>白</span>
       <span class="spectrum-label" style="left:48%">F型<br>黄白</span>
-      <span class="spectrum-label" style="left:62%">A型<br>白</span>
-      <span class="spectrum-label" style="left:76%">B型<br>蓝白</span>
-      <span class="spectrum-label" style="left:92%">O型<br>蓝</span>
+      <span class="spectrum-label" style="left:62%">G型<br>黄</span>
+      <span class="spectrum-label" style="left:76%">K型<br>橙</span>
+      <span class="spectrum-label" style="left:91%">M型<br>橙红</span>
     </div>
     <div class="star-spectrum-bar" id="spectrumBar">
-      <div class="spectrum-cursor" id="specCursor" style="left:32%"></div>
+      <div class="spectrum-cursor" id="specCursor" style="left:64%"></div>
     </div>
   </div>
 
@@ -1353,36 +1352,194 @@ function selectObject(i, el) {
 // ═══════════════════════
 // SECTION 2 — SKY / CONSTELLATIONS
 // ═══════════════════════
+// ═══════════════════════════════════════════════════════
+// 真实星座数据 — RA/Dec来自依巴谷星表(Hipparcos)
+// 每颗星: { ra(度), dec(度), mag(视星等), spec(光谱型), zh(中文名), en(英文名) }
+// ═══════════════════════════════════════════════════════
+
+// 光谱型 → 颜色（近似真实黑体辐射颜色）
+const SPEC_COLOR = {
+  'O': '#9bb0ff',  // 蓝
+  'B': '#aabfff',  // 蓝白
+  'A': '#f0f4ff',  // 白
+  'F': '#fff4e8',  // 黄白
+  'G': '#ffddb4',  // 黄
+  'K': '#ffbd6f',  // 橙
+  'M': '#ff7040'   // 橙红
+};
+
 const SEASON_CONSTELLATIONS = [
   {
     name:'狮子座', en:'Leo', season:'春',
-    stars: [[0.35,0.3],[0.42,0.22],[0.52,0.2],[0.6,0.25],[0.65,0.4],[0.55,0.5],[0.45,0.55],[0.35,0.5],[0.3,0.4]],
-    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[7,8],[8,4]],
-    color: '#ffd080', desc:'春季代表星座，形似狮子。最亮星为轩辕十四（Regulus）。'
+    desc:'春季代表星座，形似侧卧雄狮。镰刀形"狮头"（反问号形）由轩辕诸星组成，轩辕十四（Regulus）是最亮星，位于狮心。五帝座一（Denebola）代表狮尾。',
+    stars: [
+      // 赤经范围约148°~178°，赤纬+10°~+27°（Hipparcos数据）
+      { ra:152.09, dec:11.97, mag:1.36, spec:'B', zh:'轩辕十四', en:'Regulus'   }, // 0 α
+      { ra:177.26, dec:14.57, mag:2.14, spec:'A', zh:'五帝座一', en:'Denebola'  }, // 1 β 狮尾
+      { ra:154.90, dec:19.84, mag:2.01, spec:'K', zh:'轩辕十二', en:'Algieba'   }, // 2 γ
+      { ra:168.53, dec:20.52, mag:2.56, spec:'A', zh:'西上相',   en:'Zosma'     }, // 3 δ
+      { ra:168.53, dec:15.43, mag:3.33, spec:'A', zh:'西次相',   en:'Chertan'   }, // 4 θ
+      { ra:154.21, dec:23.42, mag:3.43, spec:'F', zh:'轩辕十一', en:'Adhafera'  }, // 5 ζ
+      { ra:148.12, dec:26.01, mag:3.88, spec:'K', zh:'轩辕十',   en:'Rasalas'   }, // 6 μ
+      { ra:146.46, dec:23.78, mag:2.97, spec:'G', zh:'轩辕九',   en:'Epsilon Leo'}, // 7 ε
+      { ra:151.77, dec:16.76, mag:3.48, spec:'A', zh:'轩辕十三', en:'Eta Leo'   }, // 8 η
+    ],
+    lines: [
+      [7,6],[6,5],[5,2],[2,8],[8,0], // 镰刀：ε→μ→ζ→γ→η→α
+      [2,3],[3,4],[4,1],              // 身体：γ→δ→θ→β(尾)
+      [3,1]                           // 背线
+    ]
   },
   {
     name:'天蝎座', en:'Scorpius', season:'夏',
-    stars: [[0.25,0.2],[0.3,0.3],[0.35,0.35],[0.45,0.38],[0.5,0.3],[0.55,0.25],[0.42,0.5],[0.45,0.6],[0.5,0.7],[0.55,0.75],[0.6,0.72],[0.58,0.65]],
-    lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[3,6],[6,7],[7,8],[8,9],[9,10],[10,11]],
-    color: '#ff8844', desc:'夏季代表星座，形似蝎子。最亮星为心宿二（Antares），呈橙红色，温度约2400–3700K。'
+    desc:'夏季代表星座，形似大蝎子。心宿二（Antares）是M型橙红超巨星，半径约700倍太阳，视星等约1.06。蝎尾向南大幅弯曲，末端有双星尾宿八（Shaula）和尾宿九（Lesath）形成的"蝎钩"。',
+    stars: [
+      // 赤经约239°~266°，赤纬约-20°~-43°
+      { ra:247.35, dec:-26.43, mag:1.06, spec:'M', zh:'心宿二',  en:'Antares'  }, // 0 α ★最亮橙红
+      { ra:241.36, dec:-19.80, mag:2.56, spec:'B', zh:'房宿四',  en:'Graffias' }, // 1 β 蝎头
+      { ra:240.08, dec:-22.62, mag:2.29, spec:'B', zh:'房宿三',  en:'Dschubba' }, // 2 δ
+      { ra:245.25, dec:-25.59, mag:2.90, spec:'B', zh:'心宿一',  en:'Alniyat'  }, // 3 σ
+      { ra:248.88, dec:-28.21, mag:2.82, spec:'B', zh:'心宿三',  en:'Tau Sco'  }, // 4 τ
+      { ra:252.50, dec:-34.29, mag:2.29, spec:'K', zh:'尾宿二',  en:'Wei'      }, // 5 ε
+      { ra:253.08, dec:-37.10, mag:3.00, spec:'B', zh:'尾宿三',  en:'Mu1 Sco'  }, // 6 μ
+      { ra:253.50, dec:-42.36, mag:3.62, spec:'O', zh:'尾宿四',  en:'Zeta Sco' }, // 7 ζ
+      { ra:258.00, dec:-43.24, mag:3.32, spec:'F', zh:'尾宿五',  en:'Eta Sco'  }, // 8 η
+      { ra:264.32, dec:-42.99, mag:1.86, spec:'F', zh:'尾宿六',  en:'Sargas'   }, // 9 θ 亮
+      { ra:265.50, dec:-39.03, mag:2.39, spec:'B', zh:'尾宿七',  en:'Kappa Sco'}, // 10 κ
+      { ra:263.40, dec:-37.10, mag:1.62, spec:'B', zh:'尾宿八',  en:'Shaula'   }, // 11 λ ★蝎钩
+      { ra:262.50, dec:-37.29, mag:2.70, spec:'B', zh:'尾宿九',  en:'Lesath'   }, // 12 υ 蝎钩
+      { ra:239.50, dec:-26.11, mag:2.89, spec:'B', zh:'房宿一',  en:'Pi Sco'   }, // 13 π 蝎头右
+    ],
+    lines: [
+      [13,2],[2,1],             // 蝎头：π→δ→β
+      [2,3],[3,0],[0,4],        // 心脏区：δ→σ→α→τ
+      [4,5],[5,6],[6,7],        // 蝎身：τ→ε→μ→ζ
+      [7,8],[8,9],[9,10],       // 尾部弯曲：ζ→η→θ→κ
+      [10,11],[11,12]           // 蝎钩：κ→λ→υ
+    ]
   },
   {
     name:'飞马座', en:'Pegasus', season:'秋',
-    stars: [[0.25,0.3],[0.6,0.3],[0.6,0.65],[0.25,0.65],[0.72,0.18],[0.78,0.1],[0.82,0.25],[0.15,0.18],[0.08,0.1]],
-    lines: [[0,1],[1,2],[2,3],[3,0],[1,4],[4,5],[5,6],[0,7],[7,8]],
-    color: '#88ccff', desc:'秋季代表星座，其"秋季四边形"是秋夜星空的重要路标。'
+    desc:'秋季代表星座。最显眼特征是"秋季四边形"——由飞马座三颗亮星加上仙女座α星（壁宿二/Alpheratz）组成，是秋夜星空最重要的导航路标。Enif（危宿三）是最亮的橙色星，代表马嘴。',
+    stars: [
+      // 赤经约320°~365°，赤纬约+8°~+34°
+      { ra:346.19, dec:15.21, mag:2.49, spec:'B', zh:'室宿一',  en:'Markab'    }, // 0 α 四边形右下
+      { ra:345.94, dec:28.08, mag:2.44, spec:'M', zh:'室宿二',  en:'Scheat'    }, // 1 β 四边形右上 ★橙红
+      { ra:  2.06, dec:15.18, mag:2.83, spec:'B', zh:'壁宿一',  en:'Algenib'   }, // 2 γ 四边形左下
+      { ra:  2.10, dec:29.09, mag:2.07, spec:'B', zh:'壁宿二',  en:'Alpheratz' }, // 3 仙女α 四边形左上
+      { ra:326.05, dec: 9.87, mag:2.38, spec:'K', zh:'危宿三',  en:'Enif'      }, // 4 ε ★马嘴，最亮橙色
+      { ra:340.75, dec:10.83, mag:3.41, spec:'B', zh:'雷电一',  en:'Homam'     }, // 5 ζ
+      { ra:332.55, dec: 6.20, mag:3.52, spec:'A', zh:'危宿二',  en:'Theta Peg' }, // 6 θ
+      { ra:340.66, dec:30.22, mag:2.93, spec:'G', zh:'离宫二',  en:'Matar'     }, // 7 η 马颈
+      { ra:353.79, dec:33.17, mag:3.76, spec:'A', zh:'离宫一',  en:'Baham'     }, // 8 θ And 四边形上延
+    ],
+    lines: [
+      [3,1],[1,0],[0,2],[2,3], // 秋季四边形（逆时针）
+      [1,7],[7,4],              // 马颈→马嘴
+      [0,5],[5,6],[6,4],        // 马头下轮廓
+      [3,8]                     // 向仙女方向延伸
+    ]
   },
   {
     name:'猎户座', en:'Orion', season:'冬',
-    stars: [[0.3,0.15],[0.7,0.15],[0.75,0.35],[0.6,0.42],[0.65,0.55],[0.35,0.55],[0.4,0.42],[0.25,0.35],[0.42,0.6],[0.5,0.62],[0.58,0.6]],
-    lines: [[0,1],[0,7],[1,2],[2,3],[3,4],[3,6],[6,5],[5,7],[4,9],[8,9],[9,10],[6,8]],
-    color: '#c8e8ff', desc:'冬季代表星座，最易辨认。参宿七（Rigel）呈蓝白色（10000–30000K），参宿四（Betelgeuse）呈橙红色（2400–3700K）。'
+    desc:'冬季最壮观星座，形如持盾猎人。参宿四（Betelgeuse，M型橙红，约3500K）与参宿七（Rigel，B型蓝白，约12000K）形成强烈色温对比。腰带三星（参宿一二三）几乎完美等间距排成一线。',
+    stars: [
+      // 赤经约75°~90°，赤纬约-10°~+10°
+      { ra: 88.79, dec: 7.41, mag:0.42, spec:'M', zh:'参宿四',  en:'Betelgeuse' }, // 0 α ★左肩橙红
+      { ra: 78.63, dec:-8.20, mag:0.18, spec:'B', zh:'参宿七',  en:'Rigel'      }, // 1 β ★右脚蓝白，全天第7亮
+      { ra: 81.28, dec: 6.35, mag:1.64, spec:'B', zh:'参宿五',  en:'Bellatrix'  }, // 2 γ 右肩蓝白
+      { ra: 86.94, dec:-9.67, mag:2.07, spec:'B', zh:'参宿六',  en:'Saiph'      }, // 3 κ 左脚
+      { ra: 83.00, dec:-0.30, mag:2.25, spec:'O', zh:'参宿三',  en:'Mintaka'    }, // 4 δ 腰带左
+      { ra: 84.05, dec:-1.20, mag:1.69, spec:'B', zh:'参宿二',  en:'Alnilam'    }, // 5 ε 腰带中
+      { ra: 85.19, dec:-1.94, mag:1.74, spec:'O', zh:'参宿一',  en:'Alnitak'    }, // 6 ζ 腰带右
+      { ra: 83.86, dec: 9.93, mag:3.39, spec:'O', zh:'觜宿一',  en:'Meissa'     }, // 7 λ 猎人头
+      { ra: 84.91, dec:-5.91, mag:2.75, spec:'O', zh:'伐一',    en:'Hatysa'     }, // 8 ι 剑
+      { ra: 83.82, dec:-5.39, mag:3.77, spec:'O', zh:'猎户θ1',  en:'Theta1 Ori' }, // 9 θ 猎户大星云
+      { ra: 76.63, dec: 5.60, mag:3.19, spec:'B', zh:'参宿增廿二',en:'Pi3 Ori'  }, // 10 π3 盾
+    ],
+    lines: [
+      [7,0],[7,2],              // 猎人头→双肩
+      [0,2],                    // 双肩连线
+      [0,4],[2,6],              // 肩→腰带两端
+      [4,5],[5,6],              // 腰带三星
+      [0,3],[1,3],              // 左脚两线
+      [2,1],                    // 右侧身体
+      [6,8],[8,9],              // 宝剑
+      [10,0]                    // 盾牌
+    ]
   }
 ];
+
+// ═══════════════════════════════════════════════════════
+// 核心投影算法：真实RA/Dec → Canvas坐标
+// 参考：Hipparcos星表 + cos(dec)赤经修正（等面积投影）
+// ═══════════════════════════════════════════════════════
+function projectConstellation(con, W, H) {
+  const stars = con.stars;
+
+  // 1. 找边界
+  let minRA = Infinity, maxRA = -Infinity;
+  let minDec = Infinity, maxDec = -Infinity;
+  stars.forEach(s => {
+    if (s.ra < minRA) minRA = s.ra;
+    if (s.ra > maxRA) maxRA = s.ra;
+    if (s.dec < minDec) minDec = s.dec;
+    if (s.dec > maxDec) maxDec = s.dec;
+  });
+
+  // 飞马座跨越0°/360°边界，需要修正
+  if (maxRA - minRA > 180) {
+    stars.forEach(s => { if (s.ra < 180) s._ra = s.ra + 360; else s._ra = s.ra; });
+    minRA = Infinity; maxRA = -Infinity;
+    stars.forEach(s => {
+      if (s._ra < minRA) minRA = s._ra;
+      if (s._ra > maxRA) maxRA = s._ra;
+    });
+  } else {
+    stars.forEach(s => { s._ra = s.ra; });
+  }
+
+  const avgDec = (minDec + maxDec) / 2;
+  // 2. cos(dec)修正：赤经在中纬度会"压缩"，还原真实形状
+  const raScale = Math.cos(avgDec * Math.PI / 180);
+  const trueW = (maxRA - minRA) * raScale;
+  const trueH = maxDec - minDec;
+
+  // 3. 映射到画布（留15%边距）
+  const padX = W * 0.15, padY = H * 0.15;
+  const drawW = W - padX * 2;
+  const drawH = H - padY * 2;
+  const sc = Math.min(drawW / (trueW || 1), drawH / (trueH || 1));
+
+  // 居中偏移
+  const offX = (W - trueW * sc) / 2;
+  const offY = (H - trueH * sc) / 2;
+
+  return stars.map(s => {
+    // 星图惯例：RA增大→向西（左），Dec增大→向北（上）
+    const px = offX + (maxRA - s._ra) * raScale * sc;
+    const py = offY + (maxDec - s.dec) * sc;
+    return { ...s, x: px, y: py };
+  });
+}
 
 let skyLayers = { stars:true, lines:true, labels:true, moon:false };
 let activeSeason = 0;
 let skyCanvas, skyCtx, skyW, skyH;
+
+function magToRadius(mag, scale) {
+  return Math.max(1.5, (5.2 - mag) * 2.2) * scale;
+}
+
+function magToAlpha(mag, moonOn) {
+  if (!moonOn) return 1.0;
+  return Math.max(0.05, 1.0 - (mag - 1.0) * 0.38);
+}
+
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '255,255,255';
+}
 
 function initSky() {
   skyCanvas = document.getElementById('skyCanvas');
@@ -1417,93 +1574,134 @@ function drawSky() {
   if (!skyCtx) return;
   const ctx = skyCtx;
   const W = skyW, H = skyH;
+  const scale = Math.min(W, H) / 400;
 
-  // background
+  // ── 背景 ──
   const bg = ctx.createRadialGradient(W/2, H, 0, W/2, H, H*1.2);
   bg.addColorStop(0, '#0a1840');
   bg.addColorStop(1, '#010510');
   ctx.fillStyle = bg;
   ctx.fillRect(0,0,W,H);
 
-  // moon light pollution
+  // ── 月亮光污染 ──
   if (skyLayers.moon) {
-    const moon = ctx.createRadialGradient(W*0.85, H*0.15, 0, W*0.85, H*0.15, W*0.6);
-    moon.addColorStop(0, 'rgba(200,220,255,0.22)');
+    const moon = ctx.createRadialGradient(W*0.88, H*0.12, 0, W*0.88, H*0.12, W*0.65);
+    moon.addColorStop(0, 'rgba(200,220,255,0.30)');
     moon.addColorStop(1, 'rgba(200,220,255,0)');
     ctx.fillStyle = moon;
     ctx.fillRect(0,0,W,H);
-    // draw moon
     ctx.beginPath();
-    ctx.arc(W*0.85, H*0.15, 22, 0, Math.PI*2);
+    ctx.arc(W*0.88, H*0.12, 18*scale, 0, Math.PI*2);
     ctx.fillStyle = '#eeeedd';
-    ctx.shadowColor = '#aaaabb';
-    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#bbbbcc';
+    ctx.shadowBlur = 24;
     ctx.fill();
     ctx.shadowBlur = 0;
   }
 
-  // background stars
+  // ── 背景微星 ──
   if (skyLayers.stars) {
-    const seed = 42;
-    const brightness = skyLayers.moon ? 0.35 : 1;
-    for (let i = 0; i < 180; i++) {
-      const rx = ((i * 137.508 + seed) % 1) || 0;
-      const ry = ((i * 83.721 + seed*2) % 1) || 0;
-      const x = (Math.sin(i * 2.3) * 0.5 + 0.5) * W;
-      const y = (Math.sin(i * 1.7 + 1) * 0.5 + 0.5) * H;
-      const r = (i % 5 === 0) ? 1.4 : 0.7;
+    const dim = skyLayers.moon ? 0.25 : 1;
+    for (let i = 0; i < 160; i++) {
+      const x = (Math.sin(i*2.399)*0.5+0.5)*W;
+      const y = (Math.sin(i*1.618+1.1)*0.5+0.5)*H;
+      const r = (i%7===0)?1.1:0.5;
+      const a = dim*(0.10+(i%9)*0.05);
+      const tints=['255,255,255','200,220,255','255,240,200','255,210,220'];
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${brightness * (0.2 + (i%7)*0.07)})`;
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${tints[i%4]},${a})`;
       ctx.fill();
     }
   }
 
+  // ── 投影计算 ──
   const con = SEASON_CONSTELLATIONS[activeSeason];
-  const pts = con.stars.map(([fx,fy]) => [fx*W, fy*H]);
+  const projected = projectConstellation(con, W, H);
 
-  // lines
+  // ── 连线（颜色渐变：两端恒星各自光谱色） ──
   if (skyLayers.lines) {
-    ctx.strokeStyle = con.color + '55';
-    ctx.lineWidth = 1.5;
-    con.lines.forEach(([a,b]) => {
+    con.lines.forEach(([a, b]) => {
+      const sa = projected[a], sb = projected[b];
+      if (!sa || !sb) return;
+      const dimmerMag = Math.max(sa.mag, sb.mag);
+      const lineAlpha = skyLayers.moon ? Math.max(0.04, 0.45 - dimmerMag*0.07) : 0.38;
+      const grad = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y);
+      const ca = SPEC_COLOR[sa.spec] || '#ffffff';
+      const cb = SPEC_COLOR[sb.spec] || '#ffffff';
+      grad.addColorStop(0, `rgba(${hexToRgb(ca)},${lineAlpha})`);
+      grad.addColorStop(1, `rgba(${hexToRgb(cb)},${lineAlpha})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.3 * scale;
       ctx.beginPath();
-      ctx.moveTo(pts[a][0], pts[a][1]);
-      ctx.lineTo(pts[b][0], pts[b][1]);
+      ctx.moveTo(sa.x, sa.y);
+      ctx.lineTo(sb.x, sb.y);
       ctx.stroke();
     });
   }
 
-  // stars
+  // ── 恒星（大小=视星等，颜色=光谱型） ──
   if (skyLayers.stars) {
-    pts.forEach(([x,y], i) => {
-      const r = i === 0 ? 4.5 : (i%3===0 ? 3 : 2);
+    projected.forEach(s => {
+      const color = SPEC_COLOR[s.spec] || '#ffffff';
+      const r = magToRadius(s.mag, scale);
+      const alpha = magToAlpha(s.mag, skyLayers.moon);
+
+      // 光晕（亮星）
+      if (s.mag < 2.5 && alpha > 0.25) {
+        const glowR = r * 4;
+        const glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowR);
+        glow.addColorStop(0, `rgba(${hexToRgb(color)},${0.55*alpha})`);
+        glow.addColorStop(1, `rgba(${hexToRgb(color)},0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, glowR, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // 星体（白色核心 → 光谱色边缘）
+      ctx.globalAlpha = alpha;
+      const starGrad = ctx.createRadialGradient(s.x-r*0.3, s.y-r*0.3, 0, s.x, s.y, r);
+      starGrad.addColorStop(0, '#ffffff');
+      starGrad.addColorStop(0.45, color);
+      starGrad.addColorStop(1, color+'bb');
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI*2);
-      ctx.fillStyle = con.color;
-      ctx.shadowColor = con.color;
-      ctx.shadowBlur = skyLayers.moon ? 4 : 12;
+      ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+      ctx.fillStyle = starGrad;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = r * 2.2;
       ctx.fill();
       ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      // 亮星标签（mag < 2.2）
+      if (skyLayers.labels && s.mag < 2.2 && alpha > 0.4) {
+        const fs = Math.max(9, 10*scale);
+        ctx.font = `${fs}px 'Microsoft YaHei',sans-serif`;
+        ctx.fillStyle = color + 'dd';
+        ctx.textAlign = 'left';
+        ctx.shadowColor = '#000011';
+        ctx.shadowBlur = 4;
+        ctx.fillText(s.zh, s.x + r + 4, s.y + fs*0.38);
+        ctx.shadowBlur = 0;
+      }
     });
   }
 
-  // labels
+  // ── 星座名称 ──
   if (skyLayers.labels) {
-    ctx.font = `bold ${Math.max(13, W*0.025)}px 'Microsoft YaHei',sans-serif`;
-    ctx.fillStyle = con.color;
+    const fs = Math.max(13, W*0.028);
+    ctx.font = `bold ${fs}px 'Microsoft YaHei',sans-serif`;
+    ctx.fillStyle = 'rgba(180,215,255,0.88)';
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 4;
-    ctx.fillText(con.name, W*0.5, H*0.88);
+    ctx.shadowColor = '#000022';
+    ctx.shadowBlur = 6;
+    ctx.fillText(con.name, W*0.5, H*0.94);
     ctx.shadowBlur = 0;
-    ctx.font = `${Math.max(10, W*0.018)}px sans-serif`;
-    ctx.fillStyle = con.color + 'aa';
-    ctx.fillText(con.en, W*0.5, H*0.88 + 18);
+    ctx.font = `${Math.max(10,fs*0.68)}px sans-serif`;
+    ctx.fillStyle = 'rgba(140,180,220,0.55)';
+    ctx.fillText(con.en, W*0.5, H*0.94 + fs + 2);
   }
-
-  // description
-  // (rendered in info below sky)
 }
 
 // Magnitude demo
@@ -1538,20 +1736,20 @@ const MAG_DATA = [
 // ═══════════════════════
 /* 峇株吧辖华仁中学蔡逸众制作 */
 const SPECTRAL_TYPES = [
-  { type:'M', color:'#ff5522', colorName:'橙红色', tempRange:'2400–3700 K', minT:2400, maxT:3700,
-    examples:'参宿四(Betelgeuse)、心宿二(Antares)' },
-  { type:'K', color:'#ff9933', colorName:'淡橙色', tempRange:'3700–5200 K', minT:3700, maxT:5200,
-    examples:'大角星(Arcturus)、五车二(Capella)' },
-  { type:'G', color:'#ffdd44', colorName:'黄色',   tempRange:'5200–6000 K', minT:5200, maxT:6000,
-    examples:'太阳(Sun)、南门二(Rigil Kent)' },
-  { type:'F', color:'#ffffaa', colorName:'黄白色', tempRange:'6000–7500 K', minT:6000, maxT:7500,
-    examples:'老人星(Canopus)' },
-  { type:'A', color:'#e8f4ff', colorName:'白色',   tempRange:'7500–10000 K', minT:7500, maxT:10000,
-    examples:'天狼星(Sirius)、织女星(Vega)、牛郎星(Altair)' },
+  { type:'O', color:'#8090ff', colorName:'蓝色',   tempRange:'> 30000 K',    minT:30000, maxT:50000,
+    examples:'宇宙中最热的恒星' },
   { type:'B', color:'#b0d8ff', colorName:'蓝白色', tempRange:'10000–30000 K', minT:10000, maxT:30000,
     examples:'参宿七(Rigel)、角宿一(Spica)' },
-  { type:'O', color:'#8090ff', colorName:'蓝色',   tempRange:'> 30000 K', minT:30000, maxT:50000,
-    examples:'宇宙中最热的恒星' },
+  { type:'A', color:'#e8f4ff', colorName:'白色',   tempRange:'7500–10000 K',  minT:7500,  maxT:10000,
+    examples:'天狼星(Sirius)、织女星(Vega)、牛郎星(Altair)' },
+  { type:'F', color:'#ffffaa', colorName:'黄白色', tempRange:'6000–7500 K',   minT:6000,  maxT:7500,
+    examples:'老人星(Canopus)' },
+  { type:'G', color:'#ffdd44', colorName:'黄色',   tempRange:'5200–6000 K',   minT:5200,  maxT:6000,
+    examples:'太阳(Sun)、南门二(Rigil Kent)' },
+  { type:'K', color:'#ff9933', colorName:'淡橙色', tempRange:'3700–5200 K',   minT:3700,  maxT:5200,
+    examples:'大角星(Arcturus)、五车二(Capella)' },
+  { type:'M', color:'#ff5522', colorName:'橙红色', tempRange:'2400–3700 K',   minT:2400,  maxT:3700,
+    examples:'参宿四(Betelgeuse)、心宿二(Antares)' },
 ];
 
 const STAR_TABLE_DATA = [
@@ -1616,10 +1814,10 @@ const STAR_TABLE_DATA = [
   bar.addEventListener('click', e => update(e.clientX));
   bar.addEventListener('touchmove', e => { e.preventDefault(); update(e.touches[0].clientX); }, {passive:false});
 
-  // init at G type
+  // init at G type (index 4 of 7, ~64%)
   setTimeout(() => {
     const rect = bar.getBoundingClientRect();
-    update(rect.left + rect.width * 0.32);
+    update(rect.left + rect.width * 0.64);
   }, 400);
 })();
 
