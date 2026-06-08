@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酸碱实验室大冒险</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Microsoft YaHei',sans-serif;background:#070b18;color:#d0e4ff;min-height:100vh;overflow-x:hidden;}
+:root{
+  --acid:#ff3a3a;--base:#3a8fff;--neutral:#3aff88;
+  --acid2:#ff8800;--purple:#cc44ff;
+  --card:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.12);
+  --glow-a:0 0 18px #ff3a3a88;--glow-b:0 0 18px #3a8fff88;--glow-n:0 0 18px #3aff8888;
+}
+/* Bubbles bg */
+.bgs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.bub{position:absolute;bottom:-80px;border-radius:50%;border:1px solid;animation:rise linear infinite;opacity:0;}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:.7;}100%{transform:translateY(-110vh) scale(1.3);opacity:0;}}
+/* Screen system */
+.screen{display:none;position:relative;z-index:1;min-height:100vh;padding:16px;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+/* Progress bar */
+.progress-bar{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,.1);z-index:100;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#ff3a3a,#3a8fff);transition:width .6s ease;}
+/* Buttons */
+.btn{
+  padding:12px 28px;border:none;border-radius:12px;font-size:1rem;font-family:inherit;
+  cursor:pointer;font-weight:bold;transition:all .2s;letter-spacing:.5px;
+}
+.btn-primary{background:linear-gradient(135deg,#3a8fff,#6644ff);color:#fff;box-shadow:0 4px 20px #3a8fff44;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px #3a8fff66;}
+.btn-danger{background:linear-gradient(135deg,#ff3a3a,#ff8800);color:#fff;box-shadow:0 4px 20px #ff3a3a44;}
+.btn-danger:hover{transform:translateY(-2px);}
+.btn-success{background:linear-gradient(135deg,#3aff88,#00ccaa);color:#070b18;box-shadow:0 4px 20px #3aff8844;}
+.btn-success:hover{transform:translateY(-2px);}
+.btn-neutral{background:rgba(255,255,255,.1);color:#d0e4ff;border:1px solid rgba(255,255,255,.2);}
+.btn-neutral:hover{background:rgba(255,255,255,.18);}
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;}
+/* Glow text */
+.glow-text-a{color:var(--acid);text-shadow:0 0 12px #ff3a3a;}
+.glow-text-b{color:var(--base);text-shadow:0 0 12px #3a8fff;}
+.glow-text-n{color:var(--neutral);text-shadow:0 0 12px #3aff88;}
+/* Animations */
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+@keyframes pop{0%{transform:scale(1);}50%{transform:scale(1.15);}100%{transform:scale(1);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes floatup{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-60px);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.animate-pop{animation:pop .3s ease;}
+.animate-shake{animation:shake .4s ease;}
+.animate-fadein{animation:fadeIn .4s ease;}
+/* Stage badges */
+.stage-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:5px 14px;font-size:.85rem;margin-bottom:12px;
+}
+/* Score display */
+.score-chip{
+  position:fixed;top:14px;right:16px;z-index:200;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:6px 14px;font-size:.9rem;
+  display:flex;align-items:center;gap:6px;backdrop-filter:blur(8px);
+}
+/* Correct/wrong feedback overlay */
+.feedback-overlay{
+  position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.feedback-msg{
+  font-size:3rem;font-weight:bold;animation:floatup 1.2s ease forwards;
+  text-shadow:0 0 20px currentColor;
+}
+
+/* ===== TITLE SCREEN ===== */
+#screen-title{justify-content:center;gap:20px;}
+.title-logo{
+  font-size:2.8rem;font-weight:900;text-align:center;line-height:1.1;
+  background:linear-gradient(135deg,#ff6644 0%,#ff3a3a 30%,#cc44ff 60%,#3a8fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 20px rgba(100,150,255,.4));
+  animation:pulse 3s ease infinite;
+}
+.title-subtitle{text-align:center;color:rgba(200,220,255,.7);font-size:1.05rem;}
+.stage-overview{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:440px;}
+.stage-item{
+  display:flex;align-items:center;gap:10px;padding:12px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+}
+.stage-icon{font-size:1.6rem;}
+.stage-info{font-size:.85rem;}
+.stage-name{font-weight:bold;color:#d0e4ff;}
+.stage-desc{color:rgba(200,220,255,.6);font-size:.78rem;}
+
+/* ===== STAGE 1: pH Drag Drop ===== */
+#screen-s1{gap:12px;}
+.ph-scale-container{width:100%;max-width:600px;}
+.ph-scale-label{text-align:center;font-size:.9rem;color:rgba(200,220,255,.7);margin-bottom:8px;}
+.ph-scale-bar{
+  height:36px;border-radius:18px;
+  background:linear-gradient(90deg,
+    #ff0000 0%,#ff4400 10%,#ff8800 20%,#ffcc00 25%,
+    #aacc00 30%,#66cc00 35%,#44ff44 43%,
+    #33ff88 50%,#00ffcc 57%,
+    #00ccff 63%,#0088ff 70%,#4444ff 80%,#8800ff 90%,#cc00ff 100%
+  );
+  position:relative;box-shadow:0 0 20px rgba(100,200,255,.2);
+  display:flex;align-items:stretch;
+}
+.ph-zones{display:flex;width:100%;max-width:600px;gap:4px;margin-top:4px;}
+.ph-zone{
+  flex:1;height:64px;border-radius:10px;border:2px dashed;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:bold;transition:all .2s;cursor:default;
+  position:relative;
+}
+.ph-zone[data-zone="strong-acid"]{border-color:var(--acid);color:var(--acid);}
+.ph-zone[data-zone="weak-acid"]{border-color:var(--acid2);color:var(--acid2);}
+.ph-zone[data-zone="neutral"]{border-color:var(--neutral);color:var(--neutral);}
+.ph-zone[data-zone="weak-base"]{border-color:#44aaff;color:#44aaff;}
+.ph-zone[data-zone="strong-base"]{border-color:var(--purple);color:var(--purple);}
+.ph-zone.drag-over{transform:scale(1.05);background:rgba(255,255,255,.1);}
+.ph-zone.correct{background:rgba(58,255,136,.15);border-style:solid;}
+.ph-zone.wrong{animation:shake .4s ease;background:rgba(255,58,58,.15);}
+.zone-label{font-size:.7rem;text-align:center;line-height:1.2;}
+.zone-range{font-size:.65rem;opacity:.7;}
+.zone-items{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:3px;}
+
+.drag-items{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px;max-width:600px;}
+.drag-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 14px;border-radius:12px;border:2px solid;
+  cursor:grab;user-select:none;font-size:.82rem;font-weight:bold;
+  transition:all .2s;background:rgba(0,0,0,.3);
+  animation:fadeIn .3s ease;
+}
+.drag-item:active{cursor:grabbing;transform:scale(1.05);}
+.drag-item.dragging{opacity:.4;}
+.drag-item.placed{opacity:.3;pointer-events:none;}
+.drag-item .item-emoji{font-size:1.6rem;}
+.drag-item .item-name{text-align:center;line-height:1.2;}
+
+/* placed chips in zones */
+.zone-chip{
+  font-size:.65rem;padding:2px 6px;border-radius:6px;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);
+  white-space:nowrap;
+}
+
+/* numbers on pH bar */
+.ph-numbers{display:flex;justify-content:space-between;max-width:600px;width:100%;padding:0 2px;font-size:.72rem;color:rgba(200,220,255,.5);}
+
+/* ===== STAGE 2: Indicators ===== */
+#screen-s2{gap:14px;}
+.indicator-selector{display:flex;gap:10px;justify-content:center;}
+.indicator-btn{
+  padding:10px 20px;border-radius:12px;border:2px solid;
+  cursor:pointer;font-weight:bold;font-size:.9rem;transition:all .2s;
+  font-family:inherit;background:transparent;color:inherit;
+}
+.indicator-btn[data-ind="litmus"]{border-color:#cc44ff;color:#cc44ff;}
+.indicator-btn[data-ind="litmus"].selected{background:#cc44ff22;box-shadow:0 0 16px #cc44ff44;}
+.indicator-btn[data-ind="phenol"]{border-color:#ff88cc;color:#ff88cc;}
+.indicator-btn[data-ind="phenol"].selected{background:#ff88cc22;box-shadow:0 0 16px #ff88cc44;}
+.tubes-row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+.tube-wrapper{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+.tube-wrapper:hover .tube-body{filter:brightness(1.2);}
+.tube-label{font-size:.85rem;font-weight:bold;text-align:center;}
+.tube-sublabel{font-size:.72rem;color:rgba(200,220,255,.6);text-align:center;}
+.tube-svg{width:70px;height:160px;}
+.tube-result{font-size:.78rem;font-weight:bold;text-align:center;min-height:18px;transition:all .3s;}
+/* Indicator reference table */
+.indicator-table{width:100%;max-width:440px;border-collapse:collapse;font-size:.82rem;}
+.indicator-table th{background:rgba(255,255,255,.1);padding:7px;text-align:center;border:1px solid var(--border);}
+.indicator-table td{padding:7px;text-align:center;border:1px solid var(--border);}
+.color-cell{border-radius:6px;font-weight:bold;}
+
+/* ===== STAGE 3: Quiz ===== */
+#screen-s3{gap:14px;}
+.quiz-header{text-align:center;}
+.quiz-qnum{color:rgba(200,220,255,.6);font-size:.85rem;}
+.quiz-question{font-size:1.1rem;font-weight:bold;text-align:center;line-height:1.5;max-width:500px;}
+.quiz-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:500px;}
+.quiz-option{
+  padding:12px 16px;border-radius:12px;border:2px solid var(--border);
+  background:var(--card);cursor:pointer;font-family:inherit;font-size:.9rem;
+  color:#d0e4ff;text-align:center;transition:all .2s;line-height:1.4;
+}
+.quiz-option:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);}
+.quiz-option.correct{border-color:var(--neutral);background:rgba(58,255,136,.15);color:var(--neutral);}
+.quiz-option.wrong{border-color:var(--acid);background:rgba(255,58,58,.15);color:var(--acid);}
+.quiz-explanation{
+  max-width:500px;width:100%;padding:12px 16px;border-radius:12px;
+  background:rgba(58,255,136,.08);border:1px solid rgba(58,255,136,.25);
+  font-size:.88rem;line-height:1.6;color:#aaffcc;display:none;
+}
+.quiz-equation{font-family:monospace;font-size:.85rem;background:rgba(0,0,0,.3);padding:6px 10px;border-radius:6px;margin-top:6px;display:block;}
+.quiz-progress{
+  display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+}
+.q-dot{
+  width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.2);
+  transition:background .3s;
+}
+.q-dot.done-correct{background:var(--neutral);}
+.q-dot.done-wrong{background:var(--acid);}
+.q-dot.current{background:#fff;animation:pulse 1s infinite;}
+
+/* ===== STAGE 4: Titration ===== */
+#screen-s4{gap:12px;}
+.titration-layout{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.ph-gauge-area{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.beaker-area{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.dropper-btn{
+  padding:12px 24px;font-size:1rem;border:none;border-radius:14px;
+  background:linear-gradient(135deg,#4466ff,#6644ff);color:#fff;
+  cursor:pointer;font-family:inherit;font-weight:bold;transition:all .2s;
+  box-shadow:0 4px 20px rgba(100,100,255,.3);
+}
+.dropper-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(100,100,255,.5);}
+.dropper-btn:active{transform:scale(.96);}
+.titration-info{font-size:.88rem;color:rgba(200,220,255,.7);text-align:center;line-height:1.5;}
+.drop-counter{font-size:1.2rem;font-weight:bold;text-align:center;}
+.ph-reading{font-size:2.2rem;font-weight:900;text-align:center;transition:color .5s,text-shadow .5s;}
+.titration-hint{
+  max-width:400px;padding:10px 16px;border-radius:10px;font-size:.82rem;
+  background:rgba(255,200,50,.08);border:1px solid rgba(255,200,50,.25);color:#ffcc44;
+  text-align:center;
+}
+/* Beaker SVG */
+.beaker-svg{filter:drop-shadow(0 0 12px rgba(100,150,255,.3));}
+/* Drop animation */
+.drop-anim{position:absolute;width:8px;height:12px;border-radius:50%;background:#4488ff;animation:dropfall .6s ease forwards;}
+@keyframes dropfall{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(80px);opacity:0;}}
+
+/* Win panel */
+.win-panel{
+  text-align:center;padding:24px;border-radius:20px;
+  background:rgba(58,255,136,.08);border:2px solid rgba(58,255,136,.3);
+  max-width:400px;animation:fadeIn .5s ease;
+}
+.win-emoji{font-size:3rem;}
+.win-title{font-size:1.5rem;font-weight:bold;color:var(--neutral);margin:8px 0;}
+
+/* ===== STAGE 5: Safety ===== */
+#screen-s5{gap:14px;}
+.safety-scenario{
+  max-width:500px;padding:16px;border-radius:14px;
+  background:rgba(255,100,50,.08);border:1px solid rgba(255,100,50,.25);
+  font-size:.95rem;line-height:1.6;text-align:center;
+}
+.safety-icon{font-size:2.5rem;display:block;margin-bottom:8px;}
+.safety-options{display:flex;flex-direction:column;gap:9px;width:100%;max-width:500px;}
+.safety-option{
+  padding:12px 18px;border-radius:12px;border:2px solid var(--border);
+  background:var(--card);cursor:pointer;font-family:inherit;font-size:.9rem;
+  color:#d0e4ff;text-align:left;transition:all .2s;
+}
+.safety-option:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.09);}
+.safety-option.correct{border-color:var(--neutral);background:rgba(58,255,136,.12);}
+.safety-option.wrong{border-color:var(--acid);background:rgba(255,58,58,.12);}
+
+/* ===== CERTIFICATE ===== */
+#screen-cert{justify-content:center;gap:16px;}
+.cert-canvas-wrap{border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(100,150,255,.3);}
+.final-stats{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;}
+.stat-card{
+  padding:16px 22px;border-radius:14px;background:var(--card);
+  border:1px solid var(--border);text-align:center;min-width:100px;
+}
+.stat-val{font-size:2rem;font-weight:900;}
+.stat-label{font-size:.78rem;color:rgba(200,220,255,.6);}
+
+/* Responsive */
+@media(max-width:480px){
+  .title-logo{font-size:2rem;}
+  .stage-overview{grid-template-columns:1fr;}
+  .quiz-options{grid-template-columns:1fr;}
+  .ph-zones{gap:2px;}
+  .ph-zone{font-size:.7rem;height:56px;}
+  .titration-layout{flex-direction:column;align-items:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+<!-- Score chip -->
+<div class="score-chip" id="score-chip" style="display:none">⭐ <span id="score-display">0</span></div>
+
+<!-- Bubbles background -->
+<div class="bgs" id="bgs"></div>
+
+<!-- Feedback overlay -->
+<div class="feedback-overlay" id="feedback-overlay"></div>
+
+<!-- ======== TITLE SCREEN ======== -->
+<div class="screen active" id="screen-title">
+  <div style="height:30px"></div>
+  <div class="title-logo">🧪 酸碱实验室<br>大冒险</div>
+  <div class="title-subtitle">探索酸与碱的神奇世界 · 初二科学第6章</div>
+  <div style="height:10px"></div>
+  <div class="stage-overview">
+    <div class="stage-item"><span class="stage-icon">🔍</span><div class="stage-info"><div class="stage-name">pH大侦探</div><div class="stage-desc">拖拽分类酸碱物质</div></div></div>
+    <div class="stage-item"><span class="stage-icon">🎨</span><div class="stage-info"><div class="stage-name">指示剂魔法</div><div class="stage-desc">预测颜色变化</div></div></div>
+    <div class="stage-item"><span class="stage-icon">⚡</span><div class="stage-info"><div class="stage-name">通性大挑战</div><div class="stage-desc">酸碱反应知识测验</div></div></div>
+    <div class="stage-item"><span class="stage-icon">⚗️</span><div class="stage-info"><div class="stage-name">中和滴定实验</div><div class="stage-desc">动手做中和反应</div></div></div>
+    <div class="stage-item"><span class="stage-icon">🛡️</span><div class="stage-info"><div class="stage-name">安全小卫士</div><div class="stage-desc">安全使用酸和碱</div></div></div>
+    <div class="stage-item"><span class="stage-icon">🏆</span><div class="stage-info"><div class="stage-name">荣誉证书</div><div class="stage-desc">完成挑战获得证书</div></div></div>
+  </div>
+  <div style="height:10px"></div>
+  <button class="btn btn-primary" style="font-size:1.1rem;padding:14px 40px;" onclick="startGame()">🚀 开始冒险！</button>
+  <div style="font-size:.75rem;color:rgba(200,220,255,.4);margin-top:12px;">峇株吧辖华仁中学蔡逸众制作</div>
+</div>
+
+<!-- ======== STAGE 1: pH大侦探 ======== -->
+<div class="screen" id="screen-s1">
+  <div class="stage-badge">🔍 第1关 · pH大侦探</div>
+  <h2 style="font-size:1.3rem;text-align:center;">将物质拖拽到正确的pH区域！</h2>
+  <div class="ph-scale-label">pH值越低酸性越强 · pH=7中性 · pH值越高碱性越强</div>
+  <div class="ph-scale-bar" style="width:100%;max-width:600px;">
+    <div style="position:absolute;left:4px;top:50%;transform:translateY(-50%);font-size:.7rem;font-weight:bold;color:#ff0;text-shadow:0 0 6px #ff0;">强酸</div>
+    <div style="position:absolute;left:50%;transform:translate(-50%,-50%);top:50%;font-size:.7rem;font-weight:bold;color:#3aff88;text-shadow:0 0 6px #3aff88;">中性</div>
+    <div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:.7rem;font-weight:bold;color:#cc44ff;text-shadow:0 0 6px #cc44ff;">强碱</div>
+  </div>
+  <div class="ph-numbers">
+    <span>0</span><span>2</span><span>4</span><span>6</span><span>7</span><span>8</span><span>10</span><span>12</span><span>14</span>
+  </div>
+  <div class="ph-zones" id="ph-zones">
+    <div class="ph-zone" data-zone="strong-acid" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropOnZone(event,this)">
+      <div class="zone-label">强酸</div><div class="zone-range">pH 0-3</div>
+      <div class="zone-items" id="zone-items-strong-acid"></div>
+    </div>
+    <div class="ph-zone" data-zone="weak-acid" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropOnZone(event,this)">
+      <div class="zone-label">弱酸</div><div class="zone-range">pH 4-6</div>
+      <div class="zone-items" id="zone-items-weak-acid"></div>
+    </div>
+    <div class="ph-zone" data-zone="neutral" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropOnZone(event,this)">
+      <div class="zone-label">中性</div><div class="zone-range">pH 7</div>
+      <div class="zone-items" id="zone-items-neutral"></div>
+    </div>
+    <div class="ph-zone" data-zone="weak-base" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropOnZone(event,this)">
+      <div class="zone-label">弱碱</div><div class="zone-range">pH 8-10</div>
+      <div class="zone-items" id="zone-items-weak-base"></div>
+    </div>
+    <div class="ph-zone" data-zone="strong-base" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropOnZone(event,this)">
+      <div class="zone-label">强碱</div><div class="zone-range">pH 11-14</div>
+      <div class="zone-items" id="zone-items-strong-base"></div>
+    </div>
+  </div>
+  <div class="drag-items" id="drag-items"></div>
+  <div id="s1-result" style="text-align:center;min-height:40px;"></div>
+  <button class="btn btn-primary" id="s1-next-btn" style="display:none" onclick="goStage(2)">下一关 ➡️</button>
+</div>
+
+<!-- ======== STAGE 2: 指示剂魔法 ======== -->
+<div class="screen" id="screen-s2">
+  <div class="stage-badge">🎨 第2关 · 指示剂魔法</div>
+  <h2 style="font-size:1.2rem;text-align:center;">选一种指示剂，再点击试管观察变色！</h2>
+  <div style="text-align:center;font-size:.82rem;color:rgba(200,220,255,.6)">先预测颜色，再点击验证！</div>
+
+  <div class="indicator-selector">
+    <button class="indicator-btn" data-ind="litmus" onclick="selectIndicator('litmus',this)">💜 石蕊试液</button>
+    <button class="indicator-btn" data-ind="phenol" onclick="selectIndicator('phenol',this)">🌸 酚酞试液</button>
+  </div>
+
+  <div class="tubes-row" id="tubes-row">
+    <!-- tubes rendered by JS -->
+  </div>
+
+  <div class="card" style="max-width:440px;width:100%;">
+    <div style="font-size:.88rem;font-weight:bold;margin-bottom:10px;text-align:center;">📋 指示剂颜色参考表</div>
+    <table class="indicator-table">
+      <tr><th>指示剂</th><th style="color:var(--acid)">酸性溶液</th><th style="color:var(--neutral)">中性溶液</th><th style="color:var(--base)">碱性溶液</th></tr>
+      <tr>
+        <td>石蕊试液</td>
+        <td class="color-cell" style="background:#ff3a3a22;color:#ff6666">🔴 红色</td>
+        <td class="color-cell" style="background:#cc44ff22;color:#cc88ff">🟣 紫色</td>
+        <td class="color-cell" style="background:#3a8fff22;color:#66aaff">🔵 蓝色</td>
+      </tr>
+      <tr>
+        <td>酚酞试液</td>
+        <td class="color-cell" style="color:rgba(200,220,255,.5)">⬜ 无色</td>
+        <td class="color-cell" style="color:rgba(200,220,255,.5)">⬜ 无色</td>
+        <td class="color-cell" style="background:#ff44aa22;color:#ff88cc">🩷 红色</td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="s2-score-msg" style="text-align:center;font-size:1rem;min-height:24px;"></div>
+  <button class="btn btn-primary" id="s2-next-btn" style="display:none" onclick="goStage(3)">下一关 ➡️</button>
+</div>
+
+<!-- ======== STAGE 3: Quiz ======== -->
+<div class="screen" id="screen-s3">
+  <div class="stage-badge">⚡ 第3关 · 通性大挑战</div>
+  <div class="quiz-progress" id="quiz-dots"></div>
+  <div class="quiz-header">
+    <div class="quiz-qnum" id="q-num">第 1 题 / 共 7 题</div>
+  </div>
+  <div class="quiz-question" id="q-text"></div>
+  <div class="quiz-options" id="q-options"></div>
+  <div class="quiz-explanation" id="q-explain"></div>
+  <button class="btn btn-primary" id="q-next-btn" style="display:none;" onclick="nextQuestion()">下一题 ➡️</button>
+</div>
+
+<!-- ======== STAGE 4: Titration ======== -->
+<div class="screen" id="screen-s4">
+  <div class="stage-badge">⚗️ 第4关 · 中和滴定实验</div>
+  <h2 style="font-size:1.2rem;text-align:center;">向盐酸中滴加NaOH溶液，使溶液恰好中和！</h2>
+  <div class="titration-info">烧杯中含有盐酸(HCl)和石蕊指示剂<br>目标：使pH达到7（溶液变紫/蓝色 = 中和成功！）</div>
+  
+  <div class="titration-layout">
+    <!-- pH Gauge canvas -->
+    <div class="ph-gauge-area">
+      <canvas id="ph-gauge" width="160" height="200"></canvas>
+      <div style="font-size:.82rem;color:rgba(200,220,255,.6)">pH计读数</div>
+      <div class="ph-reading" id="ph-reading">pH: 1.0</div>
+    </div>
+
+    <!-- Beaker -->
+    <div class="beaker-area" style="position:relative;">
+      <svg id="beaker-svg" class="beaker-svg" width="150" height="200" viewBox="0 0 150 200">
+        <!-- Beaker body -->
+        <path d="M25,10 L25,160 Q25,185 50,185 L100,185 Q125,185 125,160 L125,10 Z" fill="rgba(150,200,255,0.08)" stroke="rgba(150,200,255,0.4)" stroke-width="2"/>
+        <!-- Liquid -->
+        <path id="beaker-liquid" d="M27,80 L27,160 Q27,183 50,183 L100,183 Q123,183 123,160 L123,80 Z" fill="rgba(255,80,80,0.7)" opacity="0.85"/>
+        <!-- Bubbles inside -->
+        <circle id="bub1" cx="60" cy="140" r="4" fill="rgba(255,255,255,0.3)" opacity="0"><animate attributeName="cy" values="140;60" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.6;0" dur="2s" repeatCount="indefinite"/></circle>
+        <circle id="bub2" cx="90" cy="155" r="3" fill="rgba(255,255,255,0.3)" opacity="0"><animate attributeName="cy" values="155;70" dur="2.5s" begin="0.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.5;0" dur="2.5s" begin="0.8s" repeatCount="indefinite"/></circle>
+        <circle id="bub3" cx="75" cy="145" r="2.5" fill="rgba(255,255,255,0.3)" opacity="0"><animate attributeName="cy" values="145;55" dur="1.8s" begin="1.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.5;0" dur="1.8s" begin="1.4s" repeatCount="indefinite"/></circle>
+        <!-- Glass highlight -->
+        <line x1="35" y1="15" x2="35" y2="170" stroke="rgba(255,255,255,0.15)" stroke-width="3" stroke-linecap="round"/>
+        <!-- Beaker lip -->
+        <path d="M15,10 L135,10" stroke="rgba(150,200,255,0.5)" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <!-- Measurement lines -->
+        <line x1="115" y1="80" x2="123" y2="80" stroke="rgba(150,200,255,0.3)" stroke-width="1"/>
+        <line x1="115" y1="110" x2="123" y2="110" stroke="rgba(150,200,255,0.3)" stroke-width="1"/>
+        <line x1="115" y1="140" x2="123" y2="140" stroke="rgba(150,200,255,0.3)" stroke-width="1"/>
+      </svg>
+      <!-- Drop container -->
+      <div id="drop-container" style="position:absolute;top:0;left:0;width:150px;height:200px;pointer-events:none;"></div>
+      
+      <button class="dropper-btn" id="dropper-btn" onclick="addDrop()">💧 滴加NaOH</button>
+      <div class="drop-counter">已滴加：<span id="drop-count">0</span> 滴</div>
+    </div>
+  </div>
+
+  <div class="titration-hint" id="titration-hint" style="display:none"></div>
+  <div id="s4-win" style="display:none">
+    <div class="win-panel">
+      <div class="win-emoji">🎉</div>
+      <div class="win-title">中和成功！</div>
+      <div style="font-size:.88rem;line-height:1.6;color:rgba(200,220,255,.8)">HCl + NaOH → NaCl + H₂O<br>酸和碱恰好完全反应，溶液变为中性！</div>
+      <br>
+      <button class="btn btn-success" onclick="goStage(5)">继续冒险 ➡️</button>
+    </div>
+  </div>
+  <div id="s4-controls">
+    <div class="titration-hint" id="titration-hint2" style="display:none;max-width:400px;padding:10px;font-size:.82rem;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- ======== STAGE 5: Safety ======== -->
+<div class="screen" id="screen-s5">
+  <div class="stage-badge">🛡️ 第5关 · 安全小卫士</div>
+  <div style="font-size:1rem;text-align:center;font-weight:bold;">实验室安全知识</div>
+  <div class="quiz-progress" id="safety-dots"></div>
+  <div class="safety-scenario" id="safety-scenario"></div>
+  <div class="safety-options" id="safety-options"></div>
+  <div class="quiz-explanation" id="safety-explain"></div>
+  <button class="btn btn-primary" id="safety-next-btn" style="display:none" onclick="nextSafety()">下一题 ➡️</button>
+</div>
+
+<!-- ======== CERTIFICATE ======== -->
+<div class="screen" id="screen-cert">
+  <div class="stage-badge">🏆 冒险完成！</div>
+  <div class="final-stats" id="final-stats"></div>
+  <div class="cert-canvas-wrap">
+    <canvas id="cert-canvas" width="500" height="340"></canvas>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn btn-success" onclick="downloadCert()">💾 保存证书</button>
+    <button class="btn btn-neutral" onclick="startGame()">🔄 再玩一次</button>
+  </div>
+  <div style="font-size:.72rem;color:rgba(200,220,255,.3);margin-top:8px;">峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79</div>
+</div>
+
+
+<script>
+// ===== GLOBAL STATE =====
+let totalScore = 0;
+let currentStage = 0;
+const MAX_PROGRESS = 5;
+
+// ===== BUBBLES BACKGROUND =====
+(function initBubbles(){
+  const c = document.getElementById('bgs');
+  for(let i=0;i<18;i++){
+    const b = document.createElement('div');
+    b.className = 'bub';
+    const sz = 20 + Math.random()*60;
+    b.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;`
+      +`animation-duration:${6+Math.random()*10}s;animation-delay:${Math.random()*8}s;`
+      +`border-color:rgba(${Math.random()>0.5?'100,150,255':'100,255,200'},.15)`;
+    c.appendChild(b);
+  }
+})();
+
+// ===== SCREEN MANAGEMENT =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateProgress(stage){
+  const pct = (stage/MAX_PROGRESS)*100;
+  document.getElementById('progress-fill').style.width = pct+'%';
+}
+
+function addScore(pts){
+  totalScore += pts;
+  document.getElementById('score-display').textContent = totalScore;
+  showFloatingScore('+'+pts);
+}
+
+function showFloatingScore(text){
+  const el = document.getElementById('feedback-overlay');
+  el.innerHTML = `<div class="feedback-msg" style="color:#ffdd44;font-size:2rem;">${text}</div>`;
+  setTimeout(()=>{el.innerHTML='';},1200);
+}
+
+function showFeedback(correct){
+  const el = document.getElementById('feedback-overlay');
+  el.innerHTML = `<div class="feedback-msg" style="color:${correct?'#3aff88':'#ff3a3a'}">${correct?'✅ 正确！':'❌ 再想想！'}</div>`;
+  setTimeout(()=>{el.innerHTML='';},900);
+}
+
+// ===== TITLE / START =====
+function startGame(){
+  document.getElementById('score-chip').style.display='flex';
+  totalScore=0;
+  document.getElementById('score-display').textContent='0';
+  goStage(1);
+}
+
+function goStage(n){
+  currentStage=n;
+  updateProgress(n-1);
+  switch(n){
+    case 1: initStage1(); showScreen('s1'); break;
+    case 2: initStage2(); showScreen('s2'); break;
+    case 3: initStage3(); showScreen('s3'); break;
+    case 4: initStage4(); showScreen('s4'); break;
+    case 5: initStage5(); showScreen('s5'); break;
+    case 6: showCertificate(); showScreen('cert'); break;
+  }
+}
+
+// ===== STAGE 1: pH Drag Drop =====
+const phItems = [
+  {id:'i1',name:'盐酸(HCl)',emoji:'🔴',zone:'strong-acid',hint:'强酸，pH约1'},
+  {id:'i2',name:'柠檬汁',emoji:'🍋',zone:'weak-acid',hint:'弱酸，pH约3'},
+  {id:'i3',name:'食醋',emoji:'🍶',zone:'weak-acid',hint:'弱酸，pH约3-4'},
+  {id:'i4',name:'纯水',emoji:'💧',zone:'neutral',hint:'中性，pH=7'},
+  {id:'i5',name:'小苏打水',emoji:'🫧',zone:'weak-base',hint:'弱碱，pH约9'},
+  {id:'i6',name:'肥皂水',emoji:'🧼',zone:'weak-base',hint:'弱碱，pH约9-10'},
+  {id:'i7',name:'烧碱(NaOH)',emoji:'🔵',zone:'strong-base',hint:'强碱，pH约13'},
+];
+const zoneColors={'strong-acid':'#ff3a3a','weak-acid':'#ff8800','neutral':'#3aff88','weak-base':'#44aaff','strong-base':'#cc44ff'};
+let s1Placed={};
+let s1Correct=0;
+
+function initStage1(){
+  s1Placed={};s1Correct=0;
+  ['strong-acid','weak-acid','neutral','weak-base','strong-base'].forEach(z=>{
+    document.getElementById('zone-items-'+z).innerHTML='';
+    const zone=document.querySelector(`[data-zone="${z}"]`);
+    zone.classList.remove('correct','wrong');
+  });
+  const container=document.getElementById('drag-items');
+  container.innerHTML='';
+  document.getElementById('s1-result').innerHTML='';
+  document.getElementById('s1-next-btn').style.display='none';
+  phItems.forEach(item=>{
+    const el=document.createElement('div');
+    el.className='drag-item';
+    el.id='drag-'+item.id;
+    el.draggable=true;
+    el.style.borderColor=zoneColors[item.zone]+'88';
+    el.innerHTML=`<div class="item-emoji">${item.emoji}</div><div class="item-name">${item.name}</div>`;
+    el.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('text/plain',item.id);
+      setTimeout(()=>el.classList.add('dragging'),0);
+    });
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    // Touch support
+    el.addEventListener('touchstart',handleTouchStart,{passive:true});
+    el.addEventListener('touchmove',handleTouchMove,{passive:false});
+    el.addEventListener('touchend',handleTouchEnd);
+    container.appendChild(el);
+  });
+}
+
+// Touch drag support
+let touchItem=null,touchClone=null;
+function handleTouchStart(e){
+  touchItem=this;
+  const t=e.touches[0];
+  touchClone=this.cloneNode(true);
+  touchClone.style.cssText=`position:fixed;z-index:9999;opacity:0.8;pointer-events:none;left:${t.clientX-40}px;top:${t.clientY-40}px;`;
+  document.body.appendChild(touchClone);
+}
+function handleTouchMove(e){
+  e.preventDefault();
+  if(!touchClone)return;
+  const t=e.touches[0];
+  touchClone.style.left=(t.clientX-40)+'px';
+  touchClone.style.top=(t.clientY-40)+'px';
+  document.querySelectorAll('.ph-zone').forEach(z=>{
+    const r=z.getBoundingClientRect();
+    if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom){
+      z.classList.add('drag-over');
+    }else{z.classList.remove('drag-over');}
+  });
+}
+function handleTouchEnd(e){
+  if(!touchClone||!touchItem)return;
+  const t=e.changedTouches[0];
+  let dropped=false;
+  document.querySelectorAll('.ph-zone').forEach(z=>{
+    z.classList.remove('drag-over');
+    const r=z.getBoundingClientRect();
+    if(!dropped&&t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom){
+      const itemId=touchItem.id.replace('drag-','');
+      processPlacement(itemId,z);
+      dropped=true;
+    }
+  });
+  document.body.removeChild(touchClone);
+  touchClone=null;touchItem=null;
+}
+
+function dropOnZone(e,zone){
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const itemId=e.dataTransfer.getData('text/plain');
+  processPlacement(itemId,zone);
+}
+
+function processPlacement(itemId,zone){
+  if(s1Placed[itemId])return;
+  const item=phItems.find(i=>i.id===itemId);
+  if(!item)return;
+  const placedZone=zone.dataset.zone;
+  const correct=item.zone===placedZone;
+  s1Placed[itemId]=correct;
+  const dragEl=document.getElementById('drag-'+itemId);
+  dragEl.classList.add('placed');
+  const chip=document.createElement('div');
+  chip.className='zone-chip';
+  chip.style.background=correct?'rgba(58,255,136,.2)':'rgba(255,58,58,.2)';
+  chip.style.borderColor=correct?'#3aff8866':'#ff3a3a66';
+  chip.textContent=(correct?'✅':'❌')+' '+item.emoji+item.name.split('(')[0];
+  document.getElementById('zone-items-'+placedZone).appendChild(chip);
+  if(correct){
+    s1Correct++;
+    addScore(10);
+    zone.classList.add('correct');
+    setTimeout(()=>zone.classList.remove('correct'),1000);
+    showFeedback(true);
+  }else{
+    zone.classList.add('wrong');
+    setTimeout(()=>zone.classList.remove('wrong'),500);
+    showFeedback(false);
+    // Show hint
+    const hint=document.createElement('div');
+    hint.style.cssText='color:#ff8888;font-size:.72rem;text-align:center;padding:4px;animation:fadeIn .3s';
+    hint.textContent='💡 '+item.hint;
+    const resDiv=document.getElementById('s1-result');
+    resDiv.innerHTML='';
+    resDiv.appendChild(hint);
+    setTimeout(()=>{if(resDiv.contains(hint))resDiv.removeChild(hint);},2000);
+  }
+  if(Object.keys(s1Placed).length===phItems.length){
+    setTimeout(()=>{
+      const all=Object.values(s1Placed).every(v=>v);
+      document.getElementById('s1-result').innerHTML=
+        `<div style="font-size:1rem;color:${s1Correct>=6?'#3aff88':'#ffdd44'}">${s1Correct===phItems.length?'🎉 全部正确！':'✨ '+s1Correct+'/'+phItems.length+' 正确！'} 继续加油！</div>`;
+      document.getElementById('s1-next-btn').style.display='inline-block';
+    },600);
+  }
+}
+
+// ===== STAGE 2: Indicators =====
+const tubeData=[
+  {id:'acid',name:'盐酸 HCl',sublabel:'酸性溶液',baseColor:'rgba(150,200,255,0.15)'},
+  {id:'neutral',name:'纯水 H₂O',sublabel:'中性溶液',baseColor:'rgba(150,200,255,0.15)'},
+  {id:'base',name:'NaOH溶液',sublabel:'碱性溶液',baseColor:'rgba(150,200,255,0.15)'},
+];
+const indicatorColors={
+  litmus:{acid:'#ff4444',neutral:'#aa44ff',base:'#4488ff'},
+  phenol:{acid:'rgba(200,220,255,0.08)',neutral:'rgba(200,220,255,0.08)',base:'#ff66aa'},
+};
+const indicatorColorNames={
+  litmus:{acid:'🔴 红色',neutral:'🟣 紫色',base:'🔵 蓝色'},
+  phenol:{acid:'⬜ 无色',neutral:'⬜ 无色',base:'🩷 粉红色'},
+};
+let selectedInd=null;
+let s2Revealed=0;
+let s2Total=0;
+
+function initStage2(){
+  selectedInd=null;s2Revealed=0;s2Total=tubeData.length*2;
+  document.querySelectorAll('.indicator-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('s2-score-msg').textContent='';
+  document.getElementById('s2-next-btn').style.display='none';
+  renderTubes();
+}
+
+function renderTubes(){
+  const row=document.getElementById('tubes-row');
+  row.innerHTML='';
+  tubeData.forEach(tube=>{
+    const wrap=document.createElement('div');
+    wrap.className='tube-wrapper';
+    wrap.id='tube-wrap-'+tube.id;
+    wrap.onclick=()=>applyIndicator(tube.id);
+    const colorAttr=tube.baseColor;
+    wrap.innerHTML=`
+      <div class="tube-label">${tube.name}</div>
+      <div class="tube-sublabel">${tube.sublabel}</div>
+      <svg class="tube-svg" viewBox="0 0 70 160" xmlns="http://www.w3.org/2000/svg">
+        <defs><clipPath id="tc-${tube.id}"><path d="M8,10 L8,130 Q8,155 35,155 Q62,155 62,130 L62,10 Z"/></clipPath></defs>
+        <rect id="tube-liq-${tube.id}" x="0" y="0" width="70" height="160" fill="${colorAttr}" clip-path="url(#tc-${tube.id})" style="transition:fill 0.8s ease"/>
+        <path d="M8,10 L8,130 Q8,155 35,155 Q62,155 62,130 L62,10 Z" fill="none" stroke="rgba(150,200,255,0.5)" stroke-width="2.5"/>
+        <rect x="4" y="4" width="62" height="10" rx="3" fill="rgba(150,200,255,0.2)" stroke="rgba(150,200,255,0.4)" stroke-width="1.5"/>
+        <line x1="15" y1="14" x2="15" y2="140" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+      </svg>
+      <div class="tube-result" id="tube-res-${tube.id}"></div>
+    `;
+    row.appendChild(wrap);
+  });
+}
+
+function selectIndicator(ind,btn){
+  selectedInd=ind;
+  document.querySelectorAll('.indicator-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function applyIndicator(tubeId){
+  if(!selectedInd){
+    showMsg('请先选择一种指示剂！','#ffdd44');
+    return;
+  }
+  const color=indicatorColors[selectedInd][tubeId];
+  const name=indicatorColorNames[selectedInd][tubeId];
+  const liq=document.getElementById('tube-liq-'+tubeId);
+  const res=document.getElementById('tube-res-'+tubeId);
+  if(res.dataset.done===selectedInd) return; // already done this combo
+  liq.style.fill=color;
+  res.textContent=name;
+  res.style.color=color.startsWith('rgba')?'rgba(200,220,255,.6)':color;
+  res.dataset.done=selectedInd;
+  addScore(5);
+  s2Revealed++;
+  if(s2Revealed>=s2Total){
+    document.getElementById('s2-score-msg').innerHTML='<span style="color:#3aff88">🎉 全部完成！你已掌握指示剂的颜色变化！</span>';
+    document.getElementById('s2-next-btn').style.display='inline-block';
+  }
+}
+
+function showMsg(msg,color){
+  const el=document.getElementById('feedback-overlay');
+  el.innerHTML=`<div class="feedback-msg" style="color:${color};font-size:1.3rem;">${msg}</div>`;
+  setTimeout(()=>{el.innerHTML='';},1500);
+}
+
+// ===== STAGE 3: Quiz =====
+const quizQuestions=[
+  {
+    q:'酸能使石蕊试液变成什么颜色？',
+    opts:['🔴 红色','🔵 蓝色','🟣 紫色','⬜ 无色'],
+    correct:0,
+    explain:'酸使石蕊试液变红色！碱使石蕊变蓝色，中性溶液保持紫色不变。',
+    eq:''
+  },
+  {
+    q:'酸与活泼金属（如铁）反应时，会产生哪种气体？',
+    opts:['O₂ 氧气','CO₂ 二氧化碳','H₂ 氢气','N₂ 氮气'],
+    correct:2,
+    explain:'酸与活泼金属反应生成盐和氢气！',
+    eq:'Fe + 2HCl → FeCl₂ + H₂↑'
+  },
+  {
+    q:'以下哪个是中和反应的产物？',
+    opts:['只生成水','只生成盐','生成盐和水','生成气体和水'],
+    correct:2,
+    explain:'中和反应：酸 + 碱 → 盐 + 水，同时生成盐和水！',
+    eq:'HCl + NaOH → NaCl + H₂O'
+  },
+  {
+    q:'酸能与金属氧化物反应，生成什么？',
+    opts:['盐和水','盐和氢气','水和二氧化碳','盐和氧气'],
+    correct:0,
+    explain:'酸与金属氧化物反应生成盐和水。例如盐酸除铁锈就是这个原理！',
+    eq:'6HCl + Fe₂O₃ → 2FeCl₃ + 3H₂O'
+  },
+  {
+    q:'碱能使无色酚酞试液变成什么颜色？',
+    opts:['蓝色','红色（粉红）','黄色','无变化'],
+    correct:1,
+    explain:'碱使酚酞试液变红色（粉红色）！酸和中性溶液都不能使酚酞变色。',
+    eq:''
+  },
+  {
+    q:'以下哪项是中和反应在生活中的应用？',
+    opts:['食醋保存食物','用熟石灰改良酸性土壤','用盐水消毒伤口','用肥皂洗手'],
+    correct:1,
+    explain:'农夫用熟石灰（氢氧化钙）中和酸性土壤，这就是中和反应的应用！',
+    eq:'Ca(OH)₂ + 2HCl → CaCl₂ + 2H₂O'
+  },
+  {
+    q:'被蚊虫叮咬后（蚁酸），可以涂什么缓解痛痒？',
+    opts:['盐酸溶液','柠檬汁','小苏打(碳酸氢钠)水','食盐水'],
+    correct:2,
+    explain:'蚁酸是酸性的，用碱性的小苏打（碳酸氢钠）涂抹，发生中和反应，可减轻疼痛！',
+    eq:''
+  },
+];
+let qIndex=0;
+let qScore=0;
+
+function initStage3(){
+  qIndex=0;qScore=0;
+  renderQuizDots();
+  renderQuestion();
+}
+
+function renderQuizDots(){
+  const c=document.getElementById('quiz-dots');
+  c.innerHTML='';
+  quizQuestions.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.className='q-dot'+(i===qIndex?' current':'');
+    d.id='q-dot-'+i;
+    c.appendChild(d);
+  });
+}
+
+function renderQuestion(){
+  const q=quizQuestions[qIndex];
+  document.getElementById('q-num').textContent=`第 ${qIndex+1} 题 / 共 ${quizQuestions.length} 题`;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-explain').style.display='none';
+  document.getElementById('q-next-btn').style.display='none';
+  const optContainer=document.getElementById('q-options');
+  optContainer.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-option';
+    btn.textContent=opt;
+    btn.onclick=()=>answerQuestion(i,btn);
+    optContainer.appendChild(btn);
+  });
+  renderQuizDots();
+}
+
+function answerQuestion(chosen,btn){
+  const q=quizQuestions[qIndex];
+  document.querySelectorAll('.quiz-option').forEach(b=>b.onclick=null);
+  if(chosen===q.correct){
+    btn.classList.add('correct');
+    addScore(15);
+    qScore++;
+    showFeedback(true);
+    const dot=document.getElementById('q-dot-'+qIndex);
+    if(dot)dot.className='q-dot done-correct';
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.quiz-option')[q.correct].classList.add('correct');
+    showFeedback(false);
+    const dot=document.getElementById('q-dot-'+qIndex);
+    if(dot)dot.className='q-dot done-wrong';
+  }
+  const exp=document.getElementById('q-explain');
+  exp.innerHTML=`💡 ${q.explain}${q.eq?`<code class="quiz-equation">${q.eq}</code>`:''}`;
+  exp.style.display='block';
+  document.getElementById('q-next-btn').style.display='inline-block';
+  document.getElementById('q-next-btn').textContent=qIndex<quizQuestions.length-1?'下一题 ➡️':'查看结果 🏁';
+}
+
+function nextQuestion(){
+  qIndex++;
+  if(qIndex>=quizQuestions.length){
+    goStage(4);
+  }else{
+    renderQuestion();
+  }
+}
+
+// ===== STAGE 4: Titration =====
+let currentPH=1.0;
+let dropCount=0;
+let titrationWon=false;
+let phGaugeCtx=null;
+
+function initStage4(){
+  currentPH=1.0;dropCount=0;titrationWon=false;
+  document.getElementById('drop-count').textContent='0';
+  document.getElementById('s4-win').style.display='none';
+  document.getElementById('dropper-btn').style.display='inline-block';
+  document.getElementById('titration-hint').style.display='none';
+  document.getElementById('titration-hint2').style.display='none';
+  updateBeakerColor();
+  const canvas=document.getElementById('ph-gauge');
+  phGaugeCtx=canvas.getContext('2d');
+  drawPHGauge(currentPH);
+  updatePHReading(currentPH);
+}
+
+function addDrop(){
+  if(titrationWon)return;
+  dropCount++;
+  document.getElementById('drop-count').textContent=dropCount;
+  animateDrop();
+  // pH progression: more drops needed beyond pH6
+  if(currentPH<6) currentPH=Math.min(6,currentPH+0.55);
+  else if(currentPH<7) currentPH=Math.min(7,currentPH+0.15);
+  else if(currentPH<8) currentPH=Math.min(8,currentPH+0.12);
+  else currentPH=Math.min(12,currentPH+0.4);
+  updateBeakerColor();
+  drawPHGauge(currentPH);
+  updatePHReading(currentPH);
+  if(currentPH>=6.8&&currentPH<=7.5&&!titrationWon){
+    titrationWon=true;
+    addScore(20);
+    setTimeout(()=>{
+      document.getElementById('s4-win').style.display='block';
+      document.getElementById('dropper-btn').style.display='none';
+      window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+    },800);
+  }
+  if(dropCount===8&&!titrationWon){
+    const h=document.getElementById('titration-hint');
+    h.textContent='💡 提示：酸碱中和时，H⁺ + OH⁻ → H₂O，继续滴加NaOH使pH接近7！';
+    h.style.display='block';
+  }
+  if(currentPH>7.5&&!titrationWon){
+    const h=document.getElementById('titration-hint2');
+    h.textContent='⚠️ 溶液已经偏碱性了！说明NaOH加多了。在实际实验中要缓慢滴加，精确观察颜色变化。';
+    h.style.display='block';
+  }
+}
+
+function animateDrop(){
+  const container=document.getElementById('drop-container');
+  const drop=document.createElement('div');
+  drop.style.cssText=`position:absolute;width:8px;height:12px;border-radius:50%;background:#4488ff;
+    left:${60+Math.random()*30}px;top:0;animation:dropfall .6s ease forwards;`;
+  container.appendChild(drop);
+  setTimeout(()=>{if(container.contains(drop))container.removeChild(drop);},700);
+}
+
+function updateBeakerColor(){
+  const liq=document.getElementById('beaker-liquid');
+  let color;
+  if(currentPH<5) color='rgba(255,60,60,0.75)';
+  else if(currentPH<6.5) color='rgba(220,80,180,0.75)';
+  else if(currentPH<6.9) color='rgba(180,60,220,0.75)';
+  else if(currentPH<=7.1) color='rgba(100,80,220,0.75)';
+  else if(currentPH<=8) color='rgba(60,120,255,0.75)';
+  else color='rgba(30,60,200,0.75)';
+  liq.style.fill=color;
+  liq.style.transition='fill 0.6s ease';
+}
+
+function updatePHReading(ph){
+  const el=document.getElementById('ph-reading');
+  el.textContent='pH: '+ph.toFixed(1);
+  let col;
+  if(ph<5)col='#ff4444';
+  else if(ph<6.5)col='#ff8800';
+  else if(ph<7.5)col='#3aff88';
+  else if(ph<9)col='#44aaff';
+  else col='#cc44ff';
+  el.style.color=col;
+  el.style.textShadow='0 0 12px '+col;
+}
+
+function drawPHGauge(ph){
+  const ctx=phGaugeCtx;
+  const W=160,H=200;
+  ctx.clearRect(0,0,W,H);
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(80,140,65,-Math.PI,-0.05,false);
+  ctx.lineWidth=16;ctx.strokeStyle='rgba(255,255,255,.1)';ctx.stroke();
+  // Color gradient arc
+  const grad=ctx.createLinearGradient(15,140,145,140);
+  grad.addColorStop(0,'#ff0000');grad.addColorStop(0.25,'#ff8800');
+  grad.addColorStop(0.45,'#ffff00');grad.addColorStop(0.5,'#3aff88');
+  grad.addColorStop(0.65,'#44aaff');grad.addColorStop(1,'#8800ff');
+  ctx.beginPath();
+  ctx.arc(80,140,65,-Math.PI,-0.05,false);
+  ctx.lineWidth=16;ctx.strokeStyle=grad;ctx.stroke();
+  // Needle
+  const angle=-Math.PI+(ph/14)*Math.PI*0.95;
+  const nx=80+58*Math.cos(angle);
+  const ny=140+58*Math.sin(angle);
+  ctx.beginPath();ctx.moveTo(80,140);ctx.lineTo(nx,ny);
+  ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.arc(80,140,5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  // pH labels
+  ctx.fillStyle='rgba(200,220,255,.6)';ctx.font='10px Microsoft YaHei,sans-serif';ctx.textAlign='center';
+  ctx.fillText('0',18,155);ctx.fillText('7',80,82);ctx.fillText('14',142,155);
+  // pH value in gauge
+  let col;
+  if(ph<5)col='#ff4444';else if(ph<7)col='#ff8800';else if(ph<=7)col='#3aff88';else if(ph<9)col='#44aaff';else col='#cc44ff';
+  ctx.font='bold 18px Microsoft YaHei,sans-serif';ctx.fillStyle=col;ctx.textAlign='center';
+  ctx.fillText(ph.toFixed(1),80,175);
+  ctx.font='11px Microsoft YaHei,sans-serif';ctx.fillStyle='rgba(200,220,255,.5)';
+  ctx.fillText('pH',80,158);
+}
+
+// ===== STAGE 5: Safety Quiz =====
+const safetyQs=[
+  {
+    scenario:'⚗️ 你正在实验室使用浓硫酸，应该佩戴哪些防护装备？',
+    opts:['A. 只需戴口罩','B. 手套+安全眼镜+实验服','C. 不需要防护装备，小心就行','D. 只需戴手套'],
+    correct:1,
+    explain:'使用强酸强碱时，必须同时佩戴防护手套、安全眼镜和实验服，保护皮肤和眼睛！',
+  },
+  {
+    scenario:'🚨 实验时，强酸不小心溅到皮肤上，第一步应该怎么做？',
+    opts:['A. 立刻用小苏打中和','B. 用大量流动清水冲洗10-15分钟','C. 立刻就医，不要做任何处理','D. 用干布擦干'],
+    correct:1,
+    explain:'第一步：立即用大量流动清水冲洗10-15分钟！然后再用小苏打溶液冲洗。快速稀释酸液是最关键的！',
+  },
+  {
+    scenario:'🧪 如何正确地稀释浓酸（如浓硫酸）？',
+    opts:['A. 将水缓缓倒入浓酸中','B. 将浓酸缓缓倒入水中，并搅拌','C. 直接混合，不需要特别操作','D. 先加热水再加酸'],
+    correct:1,
+    explain:'正确操作：将浓酸沿杯壁缓缓倒入水中，同时搅拌散热！切不可将水倒入浓酸——水密度小，会浮在表面沸腾，导致酸液飞溅！',
+  },
+  {
+    scenario:'💧 皮肤不小心沾上了强碱(NaOH)，用水冲洗后，还应该用什么冲洗？',
+    opts:['A. 小苏打溶液（碳酸氢钠）','B. 食醋（弱酸）溶液','C. 纯酒精','D. 不需要再处理'],
+    correct:1,
+    explain:'沾上强碱后，先用大量清水冲洗，然后用食醋（弱酸）冲洗，利用中和反应降低碱性。沾酸则用小苏打溶液冲洗。',
+  },
+];
+let safetyIndex=0;
+let safetyScore=0;
+
+function initStage5(){
+  safetyIndex=0;safetyScore=0;
+  renderSafetyDots();
+  renderSafetyQ();
+}
+
+function renderSafetyDots(){
+  const c=document.getElementById('safety-dots');
+  c.innerHTML='';
+  safetyQs.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.className='q-dot'+(i===safetyIndex?' current':'');
+    d.id='sd-'+i;
+    c.appendChild(d);
+  });
+}
+
+function renderSafetyQ(){
+  const q=safetyQs[safetyIndex];
+  document.getElementById('safety-scenario').innerHTML=q.scenario;
+  document.getElementById('safety-explain').style.display='none';
+  document.getElementById('safety-next-btn').style.display='none';
+  const optContainer=document.getElementById('safety-options');
+  optContainer.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='safety-option';
+    btn.textContent=opt;
+    btn.onclick=()=>answerSafety(i,btn);
+    optContainer.appendChild(btn);
+  });
+  renderSafetyDots();
+}
+
+function answerSafety(chosen,btn){
+  const q=safetyQs[safetyIndex];
+  document.querySelectorAll('.safety-option').forEach(b=>b.onclick=null);
+  if(chosen===q.correct){
+    btn.classList.add('correct');
+    addScore(15);safetyScore++;
+    showFeedback(true);
+    const d=document.getElementById('sd-'+safetyIndex);
+    if(d)d.className='q-dot done-correct';
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.safety-option')[q.correct].classList.add('correct');
+    showFeedback(false);
+    const d=document.getElementById('sd-'+safetyIndex);
+    if(d)d.className='q-dot done-wrong';
+  }
+  const exp=document.getElementById('safety-explain');
+  exp.innerHTML='🛡️ '+q.explain;
+  exp.style.display='block';
+  const nextBtn=document.getElementById('safety-next-btn');
+  nextBtn.style.display='inline-block';
+  nextBtn.textContent=safetyIndex<safetyQs.length-1?'下一题 ➡️':'完成挑战 🏆';
+}
+
+function nextSafety(){
+  safetyIndex++;
+  if(safetyIndex>=safetyQs.length){
+    updateProgress(MAX_PROGRESS);
+    goStage(6);
+  }else{
+    renderSafetyQ();
+  }
+}
+
+// ===== CERTIFICATE =====
+function showCertificate(){
+  // Stats
+  const stats=document.getElementById('final-stats');
+  const quizMax=quizQuestions.length*15+safetyQs.length*15+phItems.length*10+tubeData.length*2*5+20;
+  const pct=Math.round((totalScore/quizMax)*100);
+  const grade=pct>=90?'S级 🌟':pct>=80?'A级 🥇':pct>=70?'B级 🥈':pct>=60?'C级 🥉':'继续努力 💪';
+  stats.innerHTML=`
+    <div class="stat-card"><div class="stat-val" style="color:#ffdd44">${totalScore}</div><div class="stat-label">总得分</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#3aff88">${pct}%</div><div class="stat-label">正确率</div></div>
+    <div class="stat-card"><div class="stat-val">${grade}</div><div class="stat-label">评级</div></div>
+  `;
+  // Draw certificate
+  setTimeout(()=>drawCert(pct,grade),100);
+}
+
+function drawCert(pct,grade){
+  const canvas=document.getElementById('cert-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=500,H=340;
+  // Background
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0a1030');bg.addColorStop(1,'#0d0820');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // Border
+  ctx.strokeStyle='rgba(100,150,255,0.5)';ctx.lineWidth=3;
+  ctx.strokeRect(10,10,W-20,H-20);
+  ctx.strokeStyle='rgba(100,150,255,0.2)';ctx.lineWidth=1;
+  ctx.strokeRect(16,16,W-32,H-32);
+  // Decorative corners
+  ['rgba(100,150,255,.6)','rgba(200,100,255,.6)'].forEach((c,ci)=>{
+    ctx.fillStyle=c;
+    [[20,20],[W-20,20],[20,H-20],[W-20,H-20]].forEach(([x,y])=>{
+      ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
+    });
+  });
+  // Title
+  ctx.font='bold 28px Microsoft YaHei,sans-serif';
+  ctx.textAlign='center';
+  const tg=ctx.createLinearGradient(100,0,400,0);
+  tg.addColorStop(0,'#ff6644');tg.addColorStop(0.5,'#cc44ff');tg.addColorStop(1,'#3a8fff');
+  ctx.fillStyle=tg;
+  ctx.fillText('🏆 酸碱实验室大冒险 证书',W/2,70);
+  // Subtitle
+  ctx.font='14px Microsoft YaHei,sans-serif';
+  ctx.fillStyle='rgba(180,200,255,.7)';
+  ctx.fillText('第6章：酸和碱 · 学习成就证书',W/2,98);
+  // Name line
+  ctx.strokeStyle='rgba(150,180,255,.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(60,130);ctx.lineTo(W-60,130);ctx.stroke();
+  ctx.font='13px Microsoft YaHei,sans-serif';
+  ctx.fillStyle='rgba(150,180,255,.7)';
+  ctx.fillText('恭喜完成本章全部学习任务！',W/2,155);
+  // Score section
+  ctx.font='bold 48px Microsoft YaHei,sans-serif';
+  let sc;
+  if(pct>=90)sc='#3aff88';else if(pct>=70)sc='#ffdd44';else sc='#ff8844';
+  ctx.fillStyle=sc;ctx.fillText(totalScore+'分',W/2,215);
+  ctx.font='16px Microsoft YaHei,sans-serif';
+  ctx.fillStyle='rgba(180,200,255,.8)';
+  ctx.fillText(`正确率 ${pct}%  ·  评级 ${grade}`,W/2,245);
+  // Date
+  const now=new Date();
+  ctx.font='12px Microsoft YaHei,sans-serif';
+  ctx.fillStyle='rgba(150,180,255,.5)';
+  ctx.fillText(`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`,W/2,278);
+  // Watermark
+  ctx.font='11px Microsoft YaHei,sans-serif';
+  ctx.fillStyle='rgba(100,130,200,.35)';
+  ctx.fillText('峇株吧辖华仁中学蔡逸众制作  ·  Made by ecchua79',W/2,310);
+}
+
+function downloadCert(){
+  const canvas=document.getElementById('cert-canvas');
+  const link=document.createElement('a');
+  link.download='酸碱实验室大冒险证书.png';
+  link.href=canvas.toDataURL();
+  link.click();
+}
+
+// ===== INIT =====
+showScreen('title');
+
+// dropfall keyframe
+const style=document.createElement('style');
+style.textContent=`@keyframes dropfall{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(80px);opacity:0;}}`;
+document.head.appendChild(style);
+
+// Watermarks
+//峇株吧辖华仁中学蔡逸众制作
+//峇株吧辖蔡逸众制作
+//华仁中学蔡逸众制作
+//Made by ecchua79
+</script>
+</body>
+</html>
