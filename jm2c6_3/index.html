@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第6章 · 酸和碱 — 互动演示</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --acid: #e63946;
+    --alkali: #457b9d;
+    --neutral: #52b788;
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --acid-glow: rgba(230,57,70,0.25);
+    --alkali-glow: rgba(69,123,157,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    height: 52px;
+    white-space: nowrap;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  nav a:hover { color: var(--text); background: var(--surface2); }
+  nav .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 50%, rgba(230,57,70,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(69,123,157,0.15) 0%, transparent 70%);
+  }
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 8vw, 5.5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    position: relative;
+  }
+  .hero h1 .acid-txt { color: var(--acid); }
+  .hero h1 .alkali-txt { color: #74b3d4; }
+  .hero-sub {
+    max-width: 520px;
+    color: var(--muted);
+    margin: 1.5rem auto 2.5rem;
+    font-size: 15px;
+  }
+  .ph-strip-hero {
+    display: flex;
+    height: 10px;
+    width: min(480px, 90vw);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
+  .ph-strip-hero span {
+    flex: 1;
+  }
+  .scroll-hint {
+    position: absolute; bottom: 2rem;
+    color: var(--muted); font-size: 12px;
+    animation: bob 2s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+  /* ── SECTIONS ── */
+  section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+  }
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+  p { color: #c9d1d9; margin-bottom: 1rem; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .acid-card { border-color: rgba(230,57,70,0.4); background: rgba(230,57,70,0.06); }
+  .alkali-card { border-color: rgba(69,123,157,0.4); background: rgba(69,123,157,0.06); }
+
+  /* ── pH INTERACTIVE ── */
+  .ph-interactive {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .ph-scale-wrap {
+    position: relative;
+    margin: 1.5rem 0;
+  }
+  #phSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    border-radius: 7px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(to right,
+      #e63946 0%, #f4a261 8%,
+      #e9c46a 14.3%,
+      #52b788 21.4%, #52b788 50%,
+      #457b9d 64.3%,
+      #1d3557 100%
+    );
+  }
+  #phSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px #fff, 0 4px 12px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  #phSlider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .ph-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    padding: 0 2px;
+  }
+  .ph-display {
+    font-size: 4rem;
+    font-weight: 900;
+    font-family: 'Space Mono', monospace;
+    transition: color .3s;
+    margin: 1rem 0 0.5rem;
+  }
+  .ph-label-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    transition: color .3s;
+  }
+  .ph-example {
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 1.5em;
+  }
+  .ph-indicator-row {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .indicator-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+  .indicator-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    transition: background .3s;
+  }
+
+  /* ── IONISATION DEMO ── */
+  .ionisation-canvas-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .ion-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .ion-tab {
+    flex: 1;
+    padding: 0.75rem;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    color: var(--muted);
+    border: none;
+    background: none;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  .ion-tab.active-acid { color: var(--acid); border-bottom: 2px solid var(--acid); }
+  .ion-tab.active-alkali { color: #74b3d4; border-bottom: 2px solid #74b3d4; }
+  #ionCanvas {
+    display: block;
+    width: 100%;
+    height: 240px;
+  }
+  .ion-equation {
+    padding: 1rem 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+  }
+  .ion-equation span { color: var(--text); font-weight: 700; }
+
+  /* ── EQUATION TABLE ── */
+  .eq-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .eq-table th {
+    background: var(--surface2);
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .eq-table td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .eq-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  .eq { font-family: 'Space Mono', monospace; font-size: 12px; color: #e9c46a; }
+
+  /* ── PROPERTIES ACCORDION ── */
+  .accordion-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+  }
+  .accordion-header {
+    width: 100%;
+    background: var(--surface);
+    border: none;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: background .2s;
+  }
+  .accordion-header:hover { background: var(--surface2); }
+  .accordion-arrow {
+    transition: transform .3s;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .accordion-body {
+    display: none;
+    padding: 1rem 1.25rem 1.25rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  .accordion-body.open { display: block; }
+  .accordion-arrow.open { transform: rotate(180deg); }
+  .reaction-eq {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: #e9c46a;
+    margin: 0.5rem 0;
+    word-break: break-all;
+  }
+
+  /* ── NEUTRALISATION SIMULATOR ── */
+  .neutral-sim {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+  }
+  .beaker-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+  }
+  .beaker-wrap { text-align: center; }
+  .beaker-wrap label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .beaker-wrap input[type=range] {
+    width: 120px;
+    margin-top: 8px;
+    accent-color: var(--acid);
+  }
+  .beaker-wrap input[type=range].alkali-range { accent-color: var(--alkali); }
+  svg.beaker { overflow: visible; }
+  .plus-sign { font-size: 2rem; color: var(--muted); padding-bottom: 40px; }
+  .equals-sign { font-size: 2rem; color: var(--muted); padding-bottom: 40px; }
+  .neutral-result {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    min-height: 2em;
+    transition: color .3s;
+    margin-top: 0.5rem;
+  }
+  .neutral-ph-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    transition: color .3s;
+  }
+
+  /* ── SAFETY LAB ── */
+  .safety-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+  .safety-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .safety-card:hover { border-color: var(--muted); transform: translateY(-2px); }
+  .safety-card .safety-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .safety-card h4 { font-size: 14px; margin-bottom: 4px; }
+  .safety-card p { font-size: 12px; color: var(--muted); margin: 0; }
+  .safety-card.wrong { border-color: var(--acid); background: rgba(230,57,70,0.1); }
+  .safety-card.right { border-color: var(--neutral); background: rgba(82,183,136,0.1); }
+
+  /* ── QUIZ ── */
+  .quiz-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+  }
+  .quiz-progress {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1.5rem;
+  }
+  .quiz-dot {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: var(--border);
+    transition: background .3s;
+  }
+  .quiz-dot.done { background: var(--neutral); }
+  .quiz-dot.current { background: var(--acid); }
+  #quiz-question {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    min-height: 3em;
+  }
+  .quiz-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .quiz-opt {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    color: var(--text);
+    transition: all .15s;
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--muted); background: var(--surface); }
+  .quiz-opt.correct { background: rgba(82,183,136,0.2); border-color: var(--neutral); color: #52b788; }
+  .quiz-opt.wrong { background: rgba(230,57,70,0.2); border-color: var(--acid); color: var(--acid); }
+  .quiz-opt:disabled { cursor: default; }
+  #quiz-feedback {
+    font-size: 13px;
+    min-height: 2em;
+    padding: 0.5rem 0;
+    color: var(--muted);
+  }
+  .quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: all .2s;
+  }
+  .btn:hover { background: var(--surface); border-color: var(--muted); }
+  .btn-primary {
+    background: var(--acid);
+    border-color: var(--acid);
+    color: #fff;
+    font-weight: 700;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  #quiz-score { font-family: 'Space Mono', monospace; font-size: 14px; color: var(--muted); }
+
+  /* ── APPLICATIONS ── */
+  .app-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+    gap: 1rem;
+  }
+  .app-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: transform .2s;
+  }
+  .app-card:hover { transform: translateY(-3px); }
+  .app-card .emoji { font-size: 2rem; margin-bottom: 0.5rem; }
+  .app-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .app-card p { font-size: 13px; color: var(--muted); margin: 0; }
+  .app-card .eq-small { font-family: 'Space Mono', monospace; font-size: 11px; color: #e9c46a; margin-top: 6px; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── WATERMARK ── */
+  .watermark {
+    position: fixed;
+    bottom: 12px; right: 12px;
+    font-size: 10px;
+    color: rgba(139,148,158,0.4);
+    font-family: 'Noto Sans SC', sans-serif;
+    pointer-events: none;
+    z-index: 9999;
+    writing-mode: horizontal-tb;
+  }
+
+  @media (max-width: 600px) {
+    .quiz-options { grid-template-columns: 1fr; }
+    .beaker-row { gap: 1rem; }
+    h2 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- WATERMARK -->
+<div class="watermark">峇株吧辖华仁中学蔡逸众制作 · ecchua79</div>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">CH.6</span>
+  <a href="#hero">简介</a>
+  <a href="#what">什么是酸碱</a>
+  <a href="#ph">pH值</a>
+  <a href="#ionisation">电离</a>
+  <a href="#properties">通性</a>
+  <a href="#neutralisation">中和反应</a>
+  <a href="#applications">生活应用</a>
+  <a href="#safety">安全使用</a>
+  <a href="#quiz">知识测验</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <p class="hero-label">初二科学 · 第六章</p>
+  <h1>
+    <span class="acid-txt">酸</span>
+    &nbsp;和&nbsp;
+    <span class="alkali-txt">碱</span>
+  </h1>
+  <p class="hero-sub">从柠檬汁的酸涩到肥皂的滑腻，探索酸碱的奇妙世界——它们的本质、性质与生活中无处不在的应用。</p>
+  <div class="ph-strip-hero" id="heroStrip"></div>
+  <p style="font-size:13px;color:var(--muted);">↓ 向下滚动开始学习</p>
+  <span class="scroll-hint">▼</span>
+</div>
+
+<!-- SECTION 1: WHAT IS ACID/ALKALI -->
+<hr class="divider">
+<section id="what">
+  <p class="section-label">6.1</p>
+  <h2>什么是酸？什么是碱？</h2>
+  <p>在日常生活中，我们经常接触到酸和碱。柠檬汁、食醋是常见的酸；肥皂、牙膏是常见的碱。但从化学角度，酸和碱的本质是什么？</p>
+
+  <div class="card-grid">
+    <div class="card acid-card">
+      <h3 style="color:var(--acid);">🍋 酸 (Acid)</h3>
+      <p style="font-size:14px;">在水中电离后能产生<strong>氢离子 (H⁺)</strong> 的化合物称为酸。</p>
+      <p style="font-size:13px;color:var(--muted);">常见例子：盐酸 (HCl)、硫酸 (H₂SO₄)、硝酸 (HNO₃)、柠檬酸、碳酸</p>
+    </div>
+    <div class="card alkali-card">
+      <h3 style="color:#74b3d4;">🧼 碱 (Alkali)</h3>
+      <p style="font-size:14px;">在水中电离后能产生<strong>氢氧根离子 (OH⁻)</strong> 的化合物称为碱。</p>
+      <p style="font-size:13px;color:var(--muted);">常见例子：氢氧化钠 (NaOH)、氢氧化钾 (KOH)、氢氧化钙 Ca(OH)₂</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;">
+    <h3>盐 (Salt)</h3>
+    <p style="font-size:14px;">在化学中，盐是由<strong>金属离子</strong>（或铵根离子 NH₄⁺）与<strong>酸根离子</strong>组成的化合物。食盐（NaCl）只是其中一种！</p>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;">
+      <div style="background:var(--surface2);border-radius:8px;padding:0.5rem 0.75rem;font-size:13px;">Na₂CO₃ <span style="color:var(--muted);">碳酸钠</span></div>
+      <div style="background:var(--surface2);border-radius:8px;padding:0.5rem 0.75rem;font-size:13px;">CuSO₄ <span style="color:var(--muted);">硫酸铜</span></div>
+      <div style="background:var(--surface2);border-radius:8px;padding:0.5rem 0.75rem;font-size:13px;">NH₄NO₃ <span style="color:var(--muted);">硝酸铵</span></div>
+      <div style="background:var(--surface2);border-radius:8px;padding:0.5rem 0.75rem;font-size:13px;">NaCl <span style="color:var(--muted);">食盐</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: pH INTERACTIVE -->
+<hr class="divider">
+<section id="ph">
+  <p class="section-label">6.1.1 & 6.1.2</p>
+  <h2>pH值与指示剂</h2>
+  <p>pH值是衡量物质酸碱性强弱的指标，范围通常在 0–14 之间。拖动滑条，探索不同pH值对应的指示剂颜色！</p>
+
+  <div class="ph-interactive">
+    <div class="ph-display" id="phDisplay">7</div>
+    <div class="ph-label-text" id="phLabelText">中性</div>
+    <div class="ph-example" id="phExample">例如：纯水</div>
+    <div class="ph-scale-wrap">
+      <input type="range" id="phSlider" min="0" max="14" step="0.5" value="7">
+      <div class="ph-labels">
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+        <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+        <span>10</span><span>11</span><span>12</span><span>13</span><span>14</span>
+      </div>
+    </div>
+    <div class="ph-indicator-row">
+      <div class="indicator-chip">
+        <div class="indicator-dot" id="litmus-dot" style="background:#9b5de5;"></div>
+        <span style="font-size:13px;">石蕊试液</span>
+      </div>
+      <div class="indicator-chip">
+        <div class="indicator-dot" id="phenol-dot" style="background:transparent;border:1px solid var(--border);"></div>
+        <span style="font-size:13px;">酚酞试液</span>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;background:var(--surface2);border-radius:10px;padding:1rem;">
+      <p style="font-size:13px;font-weight:600;margin-bottom:0.5rem;">📋 指示剂颜色总结</p>
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <tr>
+          <th style="padding:6px 8px;border:1px solid var(--border);background:var(--surface);text-align:left;">指示剂</th>
+          <th style="padding:6px 8px;border:1px solid var(--border);background:rgba(230,57,70,0.15);text-align:center;">酸性 (pH&lt;7)</th>
+          <th style="padding:6px 8px;border:1px solid var(--border);background:rgba(82,183,136,0.15);text-align:center;">中性 (pH=7)</th>
+          <th style="padding:6px 8px;border:1px solid var(--border);background:rgba(69,123,157,0.15);text-align:center;">碱性 (pH&gt;7)</th>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid var(--border);">石蕊试液</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:#e63946;">红色</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:#9b5de5;">紫色</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:#74b3d4;">蓝色</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid var(--border);">酚酞试液</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:var(--muted);">无色</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:var(--muted);">无色</td>
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;color:#ff6eb4;">红色</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <h3>🧪 测定pH的方法</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:0.5rem;">
+      <div style="background:var(--surface2);border-radius:8px;padding:0.75rem;">
+        <div style="font-size:1.5rem;">📄</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px;">pH试纸</div>
+        <div style="font-size:12px;color:var(--muted);">用玻璃棒蘸取溶液涂在试纸上，与标准比色卡对比。方法简单但较粗略。</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:0.75rem;">
+        <div style="font-size:1.5rem;">🔬</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px;">酸度计 (pH计)</div>
+        <div style="font-size:12px;color:var(--muted);">电子仪器，测定结果更加精确，适合需要高精度的场合。</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:0.75rem;">
+        <div style="font-size:1.5rem;">🌈</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px;">酸碱指示剂</div>
+        <div style="font-size:12px;color:var(--muted);">石蕊试液、酚酞试液——只能鉴别酸性或碱性，不能显示强弱。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: IONISATION -->
+<hr class="divider">
+<section id="ionisation">
+  <p class="section-label">6.1</p>
+  <h2>电离方程式</h2>
+  <p>酸和碱溶于水时会发生<strong>电离 (ionisation)</strong>，产生可自由移动的离子。点击查看不同物质的电离过程！</p>
+
+  <div class="ionisation-canvas-wrap">
+    <div class="ion-tabs">
+      <button class="ion-tab active-acid" id="tab-hcl" onclick="showIon('hcl')">HCl 盐酸</button>
+      <button class="ion-tab" id="tab-h2so4" onclick="showIon('h2so4')">H₂SO₄ 硫酸</button>
+      <button class="ion-tab" id="tab-naoh" onclick="showIon('naoh')">NaOH 氢氧化钠</button>
+      <button class="ion-tab" id="tab-caoh" onclick="showIon('caoh')">Ca(OH)₂</button>
+    </div>
+    <canvas id="ionCanvas"></canvas>
+    <div class="ion-equation" id="ionEquation">
+      <span>HCl</span> → <span style="color:var(--acid);">H⁺</span> + <span style="color:#74b3d4;">Cl⁻</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <h3>电离方程式汇总</h3>
+    <table class="eq-table" style="margin-top:0.75rem;">
+      <tr>
+        <th>物质</th><th>类型</th><th>电离方程式</th>
+      </tr>
+      <tr><td>盐酸 HCl</td><td style="color:var(--acid);">酸</td><td class="eq">HCl → H⁺ + Cl⁻</td></tr>
+      <tr><td>硫酸 H₂SO₄</td><td style="color:var(--acid);">酸</td><td class="eq">H₂SO₄ → 2H⁺ + SO₄²⁻</td></tr>
+      <tr><td>硝酸 HNO₃</td><td style="color:var(--acid);">酸</td><td class="eq">HNO₃ → H⁺ + NO₃⁻</td></tr>
+      <tr><td>氢氧化钠 NaOH</td><td style="color:#74b3d4;">碱</td><td class="eq">NaOH → Na⁺ + OH⁻</td></tr>
+      <tr><td>氢氧化钾 KOH</td><td style="color:#74b3d4;">碱</td><td class="eq">KOH → K⁺ + OH⁻</td></tr>
+      <tr><td>氢氧化钙 Ca(OH)₂</td><td style="color:#74b3d4;">碱</td><td class="eq">Ca(OH)₂ → Ca²⁺ + 2OH⁻</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- SECTION 4: PROPERTIES -->
+<hr class="divider">
+<section id="properties">
+  <p class="section-label">6.2</p>
+  <h2>酸和碱的通性</h2>
+  <p>由于酸电离产生的阳离子全为 H⁺，碱电离产生的阴离子全为 OH⁻，因此各种酸（碱）具有相似的共同性质——通性。点击展开各项通性：</p>
+
+  <h3 style="color:var(--acid);margin-top:1.5rem;margin-bottom:0.75rem;">🍋 酸的通性</h3>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>① 酸与酸碱指示剂</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">酸能使<strong>紫色石蕊试液变红色</strong>，而不能使无色酚酞试液变色（酚酞在酸中无色）。</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>② 酸与活泼金属反应 → 盐 + H₂↑</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">酸能与活泼金属（如铁、锌）反应，生成相应的盐和氢气。</p>
+      <div class="reaction-eq">Fe + 2HCl → FeCl₂ + H₂↑</div>
+      <p style="font-size:13px;color:var(--muted);">💡 铁钉放入盐酸中会有气泡冒出，就是产生了氢气。</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>③ 酸与金属氧化物反应 → 盐 + H₂O</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">酸能与金属氧化物反应，生成相应的盐和水。工业上用来去除铁锈（铁锈的主要成分是 Fe₂O₃）。</p>
+      <div class="reaction-eq">6HCl + Fe₂O₃ → 2FeCl₃ + 3H₂O</div>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>④ 酸与碳酸盐反应 → 盐 + H₂O + CO₂↑</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">酸与碳酸盐反应会产生二氧化碳气体。将鸡蛋壳（碳酸钙）放入盐酸中，会看到气泡冒出。</p>
+      <div class="reaction-eq">2HCl + CaCO₃ → CaCl₂ + H₂O + CO₂↑</div>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>⑤ 酸与碱反应（中和反应）→ 盐 + H₂O</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">酸与碱发生中和反应，生成盐和水。</p>
+      <div class="reaction-eq">HCl + NaOH → NaCl + H₂O</div>
+    </div>
+  </div>
+
+  <h3 style="color:#74b3d4;margin-top:2rem;margin-bottom:0.75rem;">🧼 碱的通性</h3>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>① 碱与酸碱指示剂</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">碱能使<strong>紫色石蕊试液变蓝色</strong>，使<strong>无色酚酞试液变红色</strong>。</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>② 碱与某些盐反应 → 新盐 + 新碱</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">碱能与某些盐发生反应，生成新的盐和新的碱。</p>
+      <div class="reaction-eq">2NaOH + CuSO₄ → Na₂SO₄ + Cu(OH)₂↓</div>
+      <p style="font-size:13px;color:var(--muted);">（会生成蓝色的氢氧化铜沉淀）</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-header" onclick="toggleAcc(this)">
+      <span>③ 碱与非金属氧化物反应 → 盐 + H₂O</span>
+      <span class="accordion-arrow">▾</span>
+    </button>
+    <div class="accordion-body">
+      <p style="font-size:14px;">碱能与某些非金属氧化物（如 CO₂、SO₂）反应，生成盐和水。工业上用此原理减少废气排放。</p>
+      <div class="reaction-eq">Ca(OH)₂ + CO₂ → CaCO₃↓ + H₂O</div>
+      <div class="reaction-eq">SO₂ + 2NaOH → Na₂SO₃ + H₂O</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: NEUTRALISATION SIMULATOR -->
+<hr class="divider">
+<section id="neutralisation">
+  <p class="section-label">6.2.1</p>
+  <h2>中和反应模拟器</h2>
+  <p>当酸与碱恰好完全反应时，溶液变为中性——这就是<strong>中和反应 (Neutralisation Reaction)</strong>。调节酸和碱的用量，观察pH的变化！</p>
+
+  <div class="neutral-sim">
+    <div class="beaker-row">
+      <!-- Acid beaker -->
+      <div class="beaker-wrap">
+        <label>盐酸 HCl 用量</label>
+        <svg class="beaker" width="80" height="120" id="beakerAcid">
+          <rect x="10" y="10" width="60" height="100" rx="4" fill="none" stroke="#30363d" stroke-width="2"/>
+          <rect x="12" y="12" width="56" height="96" rx="3" fill="rgba(230,57,70,0.08)" id="acidBg"/>
+          <rect x="12" id="acidFill" y="72" width="56" height="36" rx="2" fill="rgba(230,57,70,0.5)"/>
+          <text x="40" y="62" text-anchor="middle" font-size="10" fill="#8b949e" font-family="monospace" id="acidLabel">30%</text>
+        </svg>
+        <input type="range" min="0" max="100" value="30" id="acidRange" oninput="updateNeutral()">
+      </div>
+
+      <div class="plus-sign">+</div>
+
+      <!-- Alkali beaker -->
+      <div class="beaker-wrap">
+        <label>氢氧化钠 NaOH 用量</label>
+        <svg class="beaker" width="80" height="120" id="beakerAlkali">
+          <rect x="10" y="10" width="60" height="100" rx="4" fill="none" stroke="#30363d" stroke-width="2"/>
+          <rect x="12" y="12" width="56" height="96" rx="3" fill="rgba(69,123,157,0.08)" id="alkaliBg"/>
+          <rect x="12" id="alkaliFill" y="72" width="56" height="36" rx="2" fill="rgba(69,123,157,0.5)"/>
+          <text x="40" y="62" text-anchor="middle" font-size="10" fill="#8b949e" font-family="monospace" id="alkaliLabel">30%</text>
+        </svg>
+        <input type="range" min="0" max="100" value="30" id="alkaliRange" class="alkali-range" oninput="updateNeutral()">
+      </div>
+
+      <div class="equals-sign">=</div>
+
+      <!-- Result beaker -->
+      <div class="beaker-wrap">
+        <label>混合结果</label>
+        <svg class="beaker" width="80" height="120">
+          <rect x="10" y="10" width="60" height="100" rx="4" fill="none" stroke="#30363d" stroke-width="2"/>
+          <rect x="12" id="resultFill" y="42" width="56" height="66" rx="2" fill="rgba(82,183,136,0.5)"/>
+          <text x="40" y="32" text-anchor="middle" font-size="10" fill="#8b949e" font-family="monospace" id="resultLabel">—</text>
+        </svg>
+        <div class="neutral-ph-display" id="neutralPhDisplay" style="color:var(--neutral);">7</div>
+      </div>
+    </div>
+
+    <div class="neutral-result" id="neutralResult" style="color:var(--neutral);">⚖️ 恰好中和 — 溶液呈中性</div>
+    <div style="margin-top:1rem;text-align:center;">
+      <div class="reaction-eq" style="display:inline-block;">HCl + NaOH → NaCl + H₂O</div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:0.5rem;">酸与碱恰好完全反应时，H⁺ 与 OH⁻ 结合成水，剩余 Na⁺ 与 Cl⁻ 形成食盐。</p>
+  </div>
+</section>
+
+<!-- SECTION 6: APPLICATIONS -->
+<hr class="divider">
+<section id="applications">
+  <p class="section-label">6.2.2</p>
+  <h2>中和反应的生活应用</h2>
+  <p>中和反应在日常生活、农业和工业中应用广泛：</p>
+
+  <div class="app-cards">
+    <div class="app-card">
+      <div class="emoji">💊</div>
+      <h4>治疗胃酸过多</h4>
+      <p>氢氧化铝药液利用碱性中和胃里过多的盐酸，缓解不适。</p>
+      <div class="eq-small">Al(OH)₃ + 3HCl → AlCl₃ + 3H₂O</div>
+    </div>
+    <div class="app-card">
+      <div class="emoji">🦟</div>
+      <h4>蚊虫叮咬止痒</h4>
+      <p>蚊虫分泌蚁酸（甲酸），涂抹小苏打（碳酸氢钠）碱性溶液可中和，减轻痛痒。</p>
+      <div class="eq-small">HCOOH + NaHCO₃ → 中和反应</div>
+    </div>
+    <div class="app-card">
+      <div class="emoji">🌾</div>
+      <h4>改良酸性土壤</h4>
+      <p>农夫施加熟石灰（氢氧化钙）中和过酸的土壤，改善农作物生长环境，提高产量。</p>
+      <div class="eq-small">Ca(OH)₂ + H₂SO₄ → CaSO₄ + 2H₂O</div>
+    </div>
+    <div class="app-card">
+      <div class="emoji">🏭</div>
+      <h4>处理工业废水</h4>
+      <p>工厂用碱来中和酸性工业废水，减少对环境的污染。</p>
+      <div class="eq-small">酸性废水 + NaOH → 中性盐 + H₂O</div>
+    </div>
+    <div class="app-card">
+      <div class="emoji">🌫️</div>
+      <h4>减少空气污染</h4>
+      <p>工厂废气中的 SO₂ 通过氢氧化钠溶液，大大减少二氧化硫的排放量。</p>
+      <div class="eq-small">SO₂ + 2NaOH → Na₂SO₃ + H₂O</div>
+    </div>
+    <div class="app-card">
+      <div class="emoji">⚗️</div>
+      <h4>石油工业精炼</h4>
+      <p>利用 NaOH 溶液中和石油产品经硫酸洗涤后残余的酸性物质，得到最终成品。</p>
+      <div class="eq-small">酸性残余 + NaOH → 盐 + H₂O</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7: SAFETY -->
+<hr class="divider">
+<section id="safety">
+  <p class="section-label">6.3</p>
+  <h2>安全使用酸和碱</h2>
+  <p>强酸（HCl、H₂SO₄、HNO₃）和强碱（NaOH、KOH、Ca(OH)₂）具有强烈腐蚀性。点击每张卡片，判断操作是否正确！</p>
+
+  <div class="safety-grid" id="safetyGrid">
+    <div class="safety-card" onclick="judgeSafety(this, true)" data-judged="false">
+      <div class="safety-icon">🥽</div>
+      <h4>佩戴安全眼镜</h4>
+      <p>使用强酸强碱时戴好护目镜</p>
+    </div>
+    <div class="safety-card" onclick="judgesafety2(this, false)" data-judged="false">
+      <div class="safety-icon">🚰</div>
+      <h4>把水倒入浓酸</h4>
+      <p>稀释浓酸时将水倒入酸中</p>
+    </div>
+    <div class="safety-card" onclick="judgeSafety3(this, true)" data-judged="false">
+      <div class="safety-icon">🧤</div>
+      <h4>佩戴防护手套</h4>
+      <p>处理腐蚀性化学品时戴手套</p>
+    </div>
+    <div class="safety-card" onclick="judgeS4(this, true)" data-judged="false">
+      <div class="safety-icon">💧</div>
+      <h4>大量清水冲洗</h4>
+      <p>皮肤沾上强酸强碱后立刻用流动清水冲洗10–15分钟</p>
+    </div>
+    <div class="safety-card" onclick="judgeS5(this, false)" data-judged="false">
+      <div class="safety-icon">🍷</div>
+      <h4>用嘴吹散气味</h4>
+      <p>直接将脸凑近容器嗅闻酸液</p>
+    </div>
+    <div class="safety-card" onclick="judgeS6(this, true)" data-judged="false">
+      <div class="safety-icon">🏺</div>
+      <h4>专用容器储存</h4>
+      <p>将强酸强碱储存在专用标记的容器中</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;border-color:rgba(233,196,106,0.4);background:rgba(233,196,106,0.06);">
+    <h3 style="color:#e9c46a;">⚠️ 稀释浓酸的正确操作</h3>
+    <p style="font-size:14px;">应将<strong>浓酸慢慢沿烧杯内壁倒入水中</strong>，同时用玻璃棒不断搅拌散热。</p>
+    <p style="font-size:14px;color:var(--acid);font-weight:600;">❌ 绝不能将水倒入浓酸！</p>
+    <p style="font-size:13px;color:var(--muted);">水的密度比浓酸小，会浮在表面迅速沸腾，导致酸液飞溅，引发危险。</p>
+  </div>
+
+  <div class="card" style="margin-top:1rem;border-color:rgba(69,123,157,0.4);background:rgba(69,123,157,0.06);">
+    <h3 style="color:#74b3d4;">🆘 急救措施</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.5rem;">
+      <div style="background:rgba(230,57,70,0.1);border-radius:8px;padding:0.75rem;">
+        <div style="font-weight:700;font-size:13px;color:var(--acid);margin-bottom:4px;">沾上强酸</div>
+        <div style="font-size:12px;color:#c9d1d9;">① 大量流动清水冲洗 10–15 分钟<br>② 再用小苏打溶液（碳酸氢钠）冲洗<br>③ 严重时立即就医</div>
+      </div>
+      <div style="background:rgba(69,123,157,0.1);border-radius:8px;padding:0.75rem;">
+        <div style="font-weight:700;font-size:13px;color:#74b3d4;margin-bottom:4px;">沾上强碱</div>
+        <div style="font-size:12px;color:#c9d1d9;">① 大量流动清水冲洗 10–15 分钟<br>② 再用食醋冲洗<br>③ 严重时立即就医</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 8: QUIZ -->
+<hr class="divider">
+<section id="quiz">
+  <p class="section-label">知识巩固</p>
+  <h2>知识测验 🎯</h2>
+  <p>完成这章所有知识点后，来挑战一下吧！共 10 题。</p>
+
+  <div class="quiz-box">
+    <div class="quiz-progress" id="quizProgress"></div>
+    <div id="quiz-question">加载题目中...</div>
+    <div class="quiz-options" id="quiz-options"></div>
+    <div id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <span id="quiz-score">0 / 0</span>
+      <button class="btn btn-primary" id="quiz-next-btn" onclick="nextQuestion()" style="display:none;">下一题 →</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>峇株吧辖华仁中学蔡逸众制作 · 初二科学第6章 · 酸和碱</p>
+  <p style="margin-top:4px;">Made by ecchua79 · ecchua79.github.io/ScienceLab/</p>
+</footer>
+
+<script>
+// ─── PH STRIP HERO ───────────────────────────────────────
+const heroStrip = document.getElementById('heroStrip');
+const phColors = [
+  '#e63946','#e85d4a','#ea7c4e','#ec9b52','#eeba56',
+  '#f0d95a','#d4e65e','#a8d66a','#7cc676','#52b788',
+  '#3fa8a8','#3196c0','#2484d8','#1a72f0','#1060ff'
+];
+phColors.forEach(c => {
+  const s = document.createElement('span');
+  s.style.background = c;
+  heroStrip.appendChild(s);
+});
+
+// ─── PH SLIDER ───────────────────────────────────────────
+const phExamples = {
+  0:  '例如：电池酸液 (0)',
+  1:  '例如：盐酸 (实验室)',
+  2:  '例如：柠檬汁、食醋',
+  3:  '例如：橙汁、可乐',
+  4:  '例如：番茄汁',
+  5:  '例如：咖啡、雨水',
+  6:  '例如：牛奶、唾液',
+  7:  '例如：纯水、血液',
+  8:  '例如：海水',
+  9:  '例如：小苏打溶液',
+  10: '例如：牙膏、肥皂',
+  11: '例如：阿摩尼亚水',
+  12: '例如：石灰水',
+  13: '例如：氢氧化钠溶液',
+  14: '例如：浓苛性钠 (14)'
+};
+
+function getPhColor(ph) {
+  const idx = Math.round(ph);
+  return phColors[idx];
+}
+
+function updatePh() {
+  const ph = parseFloat(document.getElementById('phSlider').value);
+  const rounded = Math.round(ph);
+  const color = getPhColor(ph);
+
+  document.getElementById('phDisplay').textContent = ph % 1 === 0 ? ph.toFixed(0) : ph.toFixed(1);
+  document.getElementById('phDisplay').style.color = color;
+  document.getElementById('phLabelText').style.color = color;
+
+  let label = ph < 7 ? '酸性' : ph > 7 ? '碱性' : '中性';
+  if (ph < 3) label = '强酸性';
+  if (ph > 11) label = '强碱性';
+  document.getElementById('phLabelText').textContent = label;
+  document.getElementById('phExample').textContent = phExamples[rounded] || '';
+
+  // Litmus
+  const litmus = document.getElementById('litmus-dot');
+  if (ph < 7) litmus.style.background = '#e63946';
+  else if (ph > 7) litmus.style.background = '#457b9d';
+  else litmus.style.background = '#9b5de5';
+
+  // Phenolphthalein
+  const phenol = document.getElementById('phenol-dot');
+  if (ph > 8.2) phenol.style.background = '#ff6eb4';
+  else { phenol.style.background = 'transparent'; phenol.style.border = '1px solid #30363d'; }
+}
+
+document.getElementById('phSlider').addEventListener('input', updatePh);
+updatePh();
+
+// ─── IONISATION CANVAS ───────────────────────────────────
+const ionData = {
+  hcl: {
+    particles: [{label:'H⁺',color:'#e63946',charge:1},{label:'Cl⁻',color:'#74b3d4',charge:-1}],
+    eqHTML: '<span>HCl</span> → <span style="color:#e63946;">H⁺</span> + <span style="color:#74b3d4;">Cl⁻</span>',
+    isAcid: true
+  },
+  h2so4: {
+    particles: [{label:'H⁺',color:'#e63946',charge:1},{label:'H⁺',color:'#e63946',charge:1},{label:'SO₄²⁻',color:'#f4a261',charge:-2}],
+    eqHTML: '<span>H₂SO₄</span> → <span style="color:#e63946;">2H⁺</span> + <span style="color:#f4a261;">SO₄²⁻</span>',
+    isAcid: true
+  },
+  naoh: {
+    particles: [{label:'Na⁺',color:'#e9c46a',charge:1},{label:'OH⁻',color:'#74b3d4',charge:-1}],
+    eqHTML: '<span>NaOH</span> → <span style="color:#e9c46a;">Na⁺</span> + <span style="color:#74b3d4;">OH⁻</span>',
+    isAcid: false
+  },
+  caoh: {
+    particles: [{label:'Ca²⁺',color:'#e9c46a',charge:2},{label:'OH⁻',color:'#74b3d4',charge:-1},{label:'OH⁻',color:'#74b3d4',charge:-1}],
+    eqHTML: '<span>Ca(OH)₂</span> → <span style="color:#e9c46a;">Ca²⁺</span> + <span style="color:#74b3d4;">2OH⁻</span>',
+    isAcid: false
+  }
+};
+
+let currentIon = 'hcl';
+let ionParticles = [];
+let ionAnim;
+
+function initIonParticles(key) {
+  const canvas = document.getElementById('ionCanvas');
+  const w = canvas.offsetWidth, h = 240;
+  canvas.width = w; canvas.height = h;
+  const data = ionData[key];
+  ionParticles = [];
+  const count = 5;
+  for (let i = 0; i < count; i++) {
+    data.particles.forEach(p => {
+      ionParticles.push({
+        x: w/2 + (Math.random()-0.5)*80,
+        y: h/2 + (Math.random()-0.5)*60,
+        vx: (Math.random()-0.5)*2.5,
+        vy: (Math.random()-0.5)*2.5,
+        label: p.label, color: p.color, r: 18
+      });
+    });
+  }
+}
+
+function animIon() {
+  const canvas = document.getElementById('ionCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // water background
+  ctx.fillStyle = 'rgba(22,27,34,0.95)';
+  ctx.fillRect(0, 0, w, h);
+
+  ionParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < p.r || p.x > w - p.r) p.vx *= -1;
+    if (p.y < p.r || p.y > h - p.r) p.vy *= -1;
+
+    // glow
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2);
+    grad.addColorStop(0, p.color + '40');
+    grad.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * 2, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.color + 'cc';
+    ctx.fill();
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.label, p.x, p.y);
+  });
+
+  ionAnim = requestAnimationFrame(animIon);
+}
+
+function showIon(key) {
+  cancelAnimationFrame(ionAnim);
+  currentIon = key;
+
+  // tabs
+  ['hcl','h2so4','naoh','caoh'].forEach(k => {
+    const tab = document.getElementById('tab-' + k);
+    tab.className = 'ion-tab';
+  });
+  const data = ionData[key];
+  const tab = document.getElementById('tab-' + key);
+  tab.className = 'ion-tab ' + (data.isAcid ? 'active-acid' : 'active-alkali');
+
+  document.getElementById('ionEquation').innerHTML = data.eqHTML;
+  initIonParticles(key);
+  animIon();
+}
+
+window.addEventListener('load', () => {
+  showIon('hcl');
+});
+
+// ─── ACCORDION ───────────────────────────────────────────
+function toggleAcc(btn) {
+  const body = btn.nextElementSibling;
+  const arrow = btn.querySelector('.accordion-arrow');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+// ─── NEUTRALISATION SIMULATOR ────────────────────────────
+function updateNeutral() {
+  const acid = parseInt(document.getElementById('acidRange').value);
+  const alkali = parseInt(document.getElementById('alkaliRange').value);
+
+  document.getElementById('acidLabel').textContent = acid + '%';
+  document.getElementById('alkaliLabel').textContent = alkali + '%';
+
+  const acidFill = document.getElementById('acidFill');
+  const alkaliFill = document.getElementById('alkaliFill');
+  const resultFill = document.getElementById('resultFill');
+  const resultLabel = document.getElementById('resultLabel');
+  const neutralResult = document.getElementById('neutralResult');
+  const neutralPh = document.getElementById('neutralPhDisplay');
+
+  // fill heights
+  const acidH = Math.round(acid * 0.96);
+  const alkaliH = Math.round(alkali * 0.96);
+  acidFill.setAttribute('y', 108 - acidH);
+  acidFill.setAttribute('height', acidH);
+  alkaliFill.setAttribute('y', 108 - alkaliH);
+  alkaliFill.setAttribute('height', alkaliH);
+
+  // compute pH
+  let ph, color, msg;
+  const diff = acid - alkali;
+  if (diff > 20) { ph = Math.max(1, 7 - Math.round(diff/14)); color = '#e63946'; msg = '⚗️ 酸过多 — 溶液呈酸性'; }
+  else if (diff < -20) { ph = Math.min(13, 7 + Math.round(-diff/14)); color = '#74b3d4'; msg = '🧼 碱过多 — 溶液呈碱性'; }
+  else { ph = 7; color = '#52b788'; msg = '⚖️ 恰好中和 — 溶液呈中性'; }
+
+  neutralPh.textContent = ph;
+  neutralPh.style.color = color;
+  neutralResult.textContent = msg;
+  neutralResult.style.color = color;
+  resultLabel.textContent = 'pH ' + ph;
+
+  const resultH = Math.round((acid + alkali) * 0.48);
+  resultFill.setAttribute('y', 108 - resultH);
+  resultFill.setAttribute('height', resultH);
+  resultFill.setAttribute('fill', color + '80');
+}
+updateNeutral();
+
+// ─── SAFETY CARDS ────────────────────────────────────────
+function safetyClick(el, correct) {
+  if (el.dataset.judged === 'true') return;
+  el.dataset.judged = 'true';
+  if (correct) {
+    el.classList.add('right');
+    el.querySelector('p').textContent = '✅ 正确！这是安全操作。';
+  } else {
+    el.classList.add('wrong');
+    el.querySelector('p').textContent = '❌ 错误！这样做很危险！';
+  }
+}
+
+// Bind safety cards by index
+document.querySelectorAll('.safety-card').forEach((card, i) => {
+  const correct = [true, false, true, true, false, true][i];
+  card.onclick = () => safetyClick(card, correct);
+});
+
+// remove inline onclick to avoid conflicts
+function judgeS4(){} function judgeS5(){} function judgeS6(){}
+function judgesSafety(){} function judgesSafety2(){} function judgesSafety3(){}
+function judgesSafety4(){} function judgesSafety5(){} function judgesSafety6(){}
+function judgesSafety7(){} function judgesS8(){}
+function judgesSafety8(){} function judgesS9(){}
+function judgesSafety9(){}
+function judgesSafety10(){}
+function judgesafety2(){} function judgesSafety_2(){} function judgeSafety3(){}
+function judgeSafety(){} function judgesafety3(){} function judgesafety4(){}
+function judgesafety5(){} function judgesafety6(){}
+function judgesafety(){} function judgesSafety2old(){}
+// clean up leftover inline handlers
+function judgesSafety_old(){}
+
+// ─── QUIZ ────────────────────────────────────────────────
+const questions = [
+  { q: '下列哪个物质在水中电离后能产生 H⁺ 离子？', opts: ['氢氧化钠 NaOH','盐酸 HCl','氢氧化钙 Ca(OH)₂','碳酸钠 Na₂CO₃'], ans: 1, exp: '酸在水中电离产生 H⁺，盐酸 HCl 是酸。' },
+  { q: 'pH = 3 的溶液是___性，pH = 11 的溶液是___性。', opts: ['酸性；碱性','碱性；酸性','中性；酸性','酸性；中性'], ans: 0, exp: 'pH < 7 为酸性，pH > 7 为碱性。' },
+  { q: '将紫色石蕊试液滴入碱性溶液中，颜色变为？', opts: ['红色','紫色','蓝色','无色'], ans: 2, exp: '碱使石蕊试液变蓝色。' },
+  { q: '酚酞试液在酸性溶液中显示什么颜色？', opts: ['红色','蓝色','无色','黄色'], ans: 2, exp: '酚酞在酸性和中性溶液中均无色，只在碱性中变红。' },
+  { q: '铁与盐酸反应，生成物是？', opts: ['Fe₂O₃ + H₂O','FeCl₂ + H₂↑','FeCl₃ + CO₂','FeO + H₂O'], ans: 1, exp: 'Fe + 2HCl → FeCl₂ + H₂↑，生成氯化亚铁和氢气。' },
+  { q: '中和反应的定义是？', opts: ['酸与金属氧化物反应','酸与碱生成盐和水','碱与盐生成新碱','酸分解放出H₂'], ans: 1, exp: '酸与碱交换成分、生成盐和水的反应称为中和反应。' },
+  { q: 'HCl + NaOH → NaCl + H₂O，该反应类型是？', opts: ['分解反应','置换反应','化合反应','中和反应'], ans: 3, exp: '酸与碱反应生成盐和水，属于中和反应。' },
+  { q: '稀释浓酸时，正确的操作是？', opts: ['将水倒入浓酸','将浓酸倒入水中','直接混合，不搅拌','先加热浓酸再稀释'], ans: 1, exp: '应将浓酸沿烧杯内壁慢慢倒入水中，并用玻璃棒搅拌。绝不能将水倒入浓酸。' },
+  { q: '皮肤沾上强酸后，第一步应该？', opts: ['直接涂牙膏','立刻用大量流动清水冲洗10-15分钟','马上用小苏打溶液冲洗','用棉布擦干'], ans: 1, exp: '首先用大量流动清水冲洗，再用小苏打溶液冲洗，严重时立即就医。' },
+  { q: '农夫施加熟石灰（Ca(OH)₂）改善土壤，这是利用了什么原理？', opts: ['氧化反应','电离反应','中和反应','沉淀反应'], ans: 2, exp: '熟石灰呈碱性，与酸性土壤发生中和反应，降低土壤酸性，改善作物生长。' }
+];
+
+let current = 0, score = 0, answered = false;
+
+function buildProgress() {
+  const prog = document.getElementById('quizProgress');
+  prog.innerHTML = '';
+  questions.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'quiz-dot' + (i < current ? ' done' : i === current ? ' current' : '');
+    prog.appendChild(d);
+  });
+}
+
+function loadQuestion() {
+  if (current >= questions.length) {
+    showResult(); return;
+  }
+  answered = false;
+  const q = questions[current];
+  document.getElementById('quiz-question').textContent = `${current+1}. ${q.q}`;
+  const opts = document.getElementById('quiz-options');
+  opts.innerHTML = '';
+  q.opts.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = ['A','B','C','D'][i] + '. ' + o;
+    btn.onclick = () => answerQ(i, btn);
+    opts.appendChild(btn);
+  });
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('quiz-next-btn').style.display = 'none';
+  document.getElementById('quiz-score').textContent = score + ' / ' + current;
+  buildProgress();
+}
+
+function answerQ(idx, btn) {
+  if (answered) return;
+  answered = true;
+  const q = questions[current];
+  const allBtns = document.querySelectorAll('.quiz-opt');
+  allBtns.forEach(b => b.disabled = true);
+  if (idx === q.ans) {
+    btn.classList.add('correct');
+    score++;
+    document.getElementById('quiz-feedback').innerHTML = '<span style="color:#52b788;">✅ 正确！</span> ' + q.exp;
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.ans].classList.add('correct');
+    document.getElementById('quiz-feedback').innerHTML = '<span style="color:#e63946;">❌ 不对。</span> 正确答案是 ' + ['A','B','C','D'][q.ans] + '。' + q.exp;
+  }
+  document.getElementById('quiz-score').textContent = score + ' / ' + (current+1);
+  document.getElementById('quiz-next-btn').style.display = 'block';
+}
+
+function nextQuestion() {
+  current++;
+  loadQuestion();
+}
+
+function showResult() {
+  const pct = Math.round(score/questions.length*100);
+  let grade = pct >= 90 ? '🏆 优秀！满分挑战者！' : pct >= 70 ? '🌟 良好！再接再厉！' : pct >= 50 ? '📚 及格，还需复习哦！' : '💪 要加油了，重新复习本章！';
+  document.getElementById('quiz-question').innerHTML = `
+    <div style="text-align:center;padding:1rem 0;">
+      <div style="font-size:3rem;margin-bottom:0.5rem;">${pct>=90?'🏆':pct>=70?'🌟':pct>=50?'😊':'📖'}</div>
+      <div style="font-size:1.5rem;font-weight:900;font-family:'Space Mono',monospace;color:${pct>=70?'#52b788':'#e9c46a'};">${score} / ${questions.length}</div>
+      <div style="color:var(--muted);margin-top:0.25rem;">${grade}</div>
+    </div>
+  `;
+  document.getElementById('quiz-options').innerHTML = '';
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('quiz-next-btn').textContent = '🔄 重新挑战';
+  document.getElementById('quiz-next-btn').style.display = 'block';
+  document.getElementById('quiz-next-btn').onclick = () => { current = 0; score = 0; loadQuestion(); document.getElementById('quiz-next-btn').textContent = '下一题 →'; document.getElementById('quiz-next-btn').onclick = nextQuestion; };
+  document.getElementById('quiz-score').textContent = score + ' / ' + questions.length;
+  buildProgress();
+}
+
+loadQuestion();
+
+// ─── CLEANUP SAFETY ONCLICK (already handled via querySelectorAll) ───
+// Remove inline handlers that were on the HTML elements
+document.querySelectorAll('.safety-card').forEach(card => {
+  card.removeAttribute('onclick');
+});
+</script>
+</body>
+</html>
