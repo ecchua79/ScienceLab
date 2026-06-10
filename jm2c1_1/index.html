@@ -1255,7 +1255,21 @@ function buildFormulaGrid(){
   });
 }
 
-function fmtSub(s, n){ return n===1 ? s : `${s}<sub>${n}</sub>`; }
+// 判断是否为多原子原子团（含两个或以上字母，或含数字下标的符号）
+// 简单规则：符号中含有小写字母或₂₃₄等，视为原子团
+function isPolyatomic(s){
+  // 多原子原子团：OH, SO₄, NO₃, CO₃, HCO₃, NH₄, SO₄ 等
+  // 判断：符号去掉下标数字后若仍含两种及以上大写字母，即为原子团
+  return /[A-Z].*[A-Z]/.test(s) || /[A-Z][a-z]+[A-Z]/.test(s) ||
+    ['OH','SO₄','NO₃','CO₃','HCO₃','NH₄','SO4','NO3','CO3','HCO3','NH4'].includes(s);
+}
+
+// 格式化：原子团数量>1时加括号
+function fmtPart(s, n){
+  if(n === 1) return s;
+  if(isPolyatomic(s)) return `(${s})<sub>${n}</sub>`;
+  return `${s}<sub>${n}</sub>`;
+}
 
 function buildFormula(){
   if(!selA || !selB){ return; }
@@ -1263,23 +1277,34 @@ function buildFormula(){
   const L = lcm(Math.abs(a.v), Math.abs(b.v));
   const nA = L / Math.abs(a.v);
   const nB = L / Math.abs(b.v);
-  const formula = fmtSub(a.s, nA) + fmtSub(b.s, nB);
+  const formula = fmtPart(a.s, nA) + fmtPart(b.s, nB);
+
+  // 括号提示文字
+  const bracketNoteA = isPolyatomic(a.s) && nA > 1 ? `（原子团 ${a.s} 需加括号）` : '';
+  const bracketNoteB = isPolyatomic(b.s) && nB > 1 ? `（原子团 ${b.s} 需加括号）` : '';
+  const bracketNote = bracketNoteA || bracketNoteB
+    ? `<div style="font-size:12px;color:var(--gold);margin-top:6px">⚠️ ${bracketNoteA}${bracketNoteA&&bracketNoteB?' · ':''}${bracketNoteB}</div>`
+    : '';
 
   const display = document.getElementById('formulaDisplay');
   display.innerHTML = `
     <div class="formula-text">${formula}</div>
     <div class="formula-hint">${a.cn}${nA>1?nA:''}与${b.cn}${nB>1?nB:''}的化合物</div>
+    ${bracketNote}
     <button class="btn btn-secondary" style="margin-top:12px;font-size:12px" onclick="toggleSteps()">查看推导步骤</button>
   `;
 
   const steps = document.getElementById('formulaSteps');
   steps.className = 'formula-steps';
+  const bracketRuleA = isPolyatomic(a.s) && nA > 1 ? `<br>&nbsp;&nbsp;&nbsp;&nbsp;→ ${a.s} 是原子团，数量为 ${nA}，写作 (${a.s})<sub>${nA}</sub>` : '';
+  const bracketRuleB = isPolyatomic(b.s) && nB > 1 ? `<br>&nbsp;&nbsp;&nbsp;&nbsp;→ ${b.s} 是原子团，数量为 ${nB}，写作 (${b.s})<sub>${nB}</sub>` : '';
   steps.innerHTML = `
     <div style="font-size:14px;color:var(--text-dim);line-height:2;padding-top:12px;border-top:1px solid var(--border)">
-      ① 写出元素符号：<b>${a.s} ${b.s}</b><br>
+      ① 写出离子/元素符号：<b>${a.s} &nbsp; ${b.s}</b><br>
       ② 标注化合价：<b>+${a.v}</b>（${a.s}） &nbsp; <b>${b.v}</b>（${b.s}）<br>
       ③ 求最小公倍数：LCM(${Math.abs(a.v)}, ${Math.abs(b.v)}) = <b>${L}</b><br>
-      ④ ${a.s}的原子数 = ${L}÷${Math.abs(a.v)} = <b>${nA}</b> &nbsp;·&nbsp; ${b.s}的原子数 = ${L}÷${Math.abs(b.v)} = <b>${nB}</b><br>
+      ④ ${a.s} 的数量 = ${L}÷${Math.abs(a.v)} = <b>${nA}</b>${bracketRuleA}<br>
+      &nbsp;&nbsp; ${b.s} 的数量 = ${L}÷${Math.abs(b.v)} = <b>${nB}</b>${bracketRuleB}<br>
       ⑤ 验证代数和：(+${a.v})×${nA} + (${b.v})×${nB} = <b>${(a.v*nA + b.v*nB) === 0 ? '✅ 0' : '❌'}</b><br>
       ⑥ 化学式：<b style="color:var(--atom-blue);font-size:18px">${formula}</b>
     </div>
