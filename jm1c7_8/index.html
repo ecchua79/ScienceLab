@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D 光学成像规律互动演示</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#05060d;color:#d8e4f0;
+  font-family:'JetBrains Mono',monospace;cursor:default}
+#cv{position:fixed;inset:0}
+.cor{position:fixed;width:14px;height:14px;border:1px solid #ffb84d;z-index:5;opacity:.35}
+.cor.tl{top:12px;left:12px;border-right:none;border-bottom:none}
+.cor.tr{top:12px;right:12px;border-left:none;border-bottom:none}
+.cor.bl{bottom:12px;left:12px;border-right:none;border-top:none}
+.cor.br{bottom:12px;right:12px;border-left:none;border-top:none}
+
+/* top bar */
+.top-bar{position:fixed;top:0;left:0;right:0;padding:16px 24px;display:flex;
+  justify-content:space-between;align-items:center;z-index:10;pointer-events:none;
+  background:linear-gradient(180deg,rgba(5,6,13,.9) 0%,transparent 100%)}
+.brand h1{font-weight:300;font-size:22px;letter-spacing:4px;color:#e8f0fc}
+.brand h1 span{color:#ffb84d;font-style:italic}
+.brand .sub{font-size:9px;letter-spacing:5px;color:#4a5a7a;margin-top:2px}
+
+/* left element panel */
+.ep{position:fixed;left:20px;top:50%;transform:translateY(-50%);z-index:10;
+  display:flex;flex-direction:column;gap:6px;padding:14px 10px;
+  background:rgba(10,14,28,.75);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,184,77,.18);border-radius:2px}
+.ep::before{content:'OPTICS';position:absolute;top:-20px;left:0;
+  font-size:8px;letter-spacing:3px;color:#4a5a7a}
+.eb{width:52px;height:52px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);
+  border-radius:2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;transition:all .22s;color:#7080a0;font-size:9px;
+  letter-spacing:1px;font-family:inherit;position:relative}
+.eb svg{width:24px;height:24px;opacity:.8}
+.eb:hover{border-color:rgba(255,184,77,.45);color:#ffb84d;background:rgba(255,184,77,.06)}
+.eb.active{border-color:#ffb84d;color:#ffb84d;background:rgba(255,184,77,.1);
+  box-shadow:0 0 16px rgba(255,184,77,.22),inset 0 0 10px rgba(255,184,77,.07)}
+.eb.active::after{content:'';position:absolute;left:-1px;top:-1px;bottom:-1px;width:2px;background:#ffb84d}
+
+/* right control panel */
+.ctrl{position:fixed;right:20px;top:72px;z-index:10;width:260px;font-size:11px}
+.ctrl-hd{background:rgba(10,14,28,.88);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,184,77,.28);border-radius:2px;padding:9px 13px;
+  display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.ctrl-hd span{font-size:8px;letter-spacing:3px;color:#ffb84d}
+.ctrl-bd{background:rgba(10,14,28,.78);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 2px 2px;
+  padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 140px);
+  transition:max-height .3s ease,opacity .25s,padding .25s}
+.ctrl-bd.hide{max-height:0;opacity:0;padding-top:0;padding-bottom:0;overflow:hidden}
+.cg{margin-bottom:14px}
+.cl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;
+  color:#7090b0;margin-bottom:6px}
+.cl .v{color:#e8f0fc;font-weight:500}
+.cl .v::before{content:'[';color:#4a5a7a;margin-right:1px}
+.cl .v::after{content:']';color:#4a5a7a;margin-left:1px}
+input[type=range]{width:100%;-webkit-appearance:none;height:2px;
+  background:rgba(255,255,255,.1);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+  background:#ffb84d;border-radius:50%;cursor:pointer;box-shadow:0 0 8px rgba(255,184,77,.6)}
+.divider{border-top:1px dashed rgba(255,184,77,.18);margin:10px 0}
+
+/* bottom info */
+.ib{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;
+  display:flex;gap:12px;pointer-events:none}
+.ic{background:rgba(10,14,28,.82);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.06);border-left:2px solid #ffb84d;
+  padding:10px 16px;min-width:130px}
+.ic .lbl{font-size:8px;letter-spacing:3px;color:#4a5a7a;margin-bottom:3px}
+.ic .val{font-size:15px;font-weight:300;color:#e8f0fc}
+.ic .val .u{font-size:10px;color:#ffb84d;margin-left:3px}
+
+/* rule panel */
+.rule-box{position:fixed;bottom:20px;right:20px;z-index:10;
+  background:rgba(10,14,28,.85);backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.06);border-top:2px solid #ffb84d;
+  padding:12px 16px;max-width:280px;font-size:10px;line-height:1.8;color:#8090b0}
+.rule-box .rt{font-size:11px;color:#e8f0fc;font-weight:700;margin-bottom:6px;letter-spacing:1px}
+.rule-box .rr{color:#aadcff}
+
+.hint{position:fixed;top:20px;right:20px;z-index:11;font-size:9px;letter-spacing:2px;
+  color:#3a4a60;pointer-events:none;text-align:right;line-height:1.9}
+.hint .k{color:#ffb84d}
+</style>
+</head>
+<body>
+<div id="cv"></div>
+<div class="cor tl"></div><div class="cor tr"></div>
+<div class="cor bl"></div><div class="cor br"></div>
+
+<div class="top-bar">
+  <div class="brand">
+    <h1>OPTICA · <span>成像规律</span></h1>
+    <div class="sub">Interactive Image Formation · 3D Ray Tracing</div>
+  </div>
+</div>
+
+<!-- element selector -->
+<div class="ep">
+  <button class="eb active" data-el="convexLens">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 Q16 12 12 20 Q8 12 12 4 Z"/></svg>凸透镜
+  </button>
+  <button class="eb" data-el="concaveLens">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4 Q13 12 9 20 L15 20 Q11 12 15 4 Z"/></svg>凹透镜
+  </button>
+  <button class="eb" data-el="concaveMirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 Q9 12 5 20"/><path d="M7 4 Q11 12 7 20" stroke-dasharray="2 2"/></svg>凹面镜
+  </button>
+  <button class="eb" data-el="convexMirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4 Q5 12 9 20"/><path d="M11 4 Q7 12 11 20" stroke-dasharray="2 2"/></svg>凸面镜
+  </button>
+  <button class="eb" data-el="planeMirror">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="4" x2="6" y2="20"/><line x1="8" y1="4" x2="8" y2="20" stroke-dasharray="2 2"/></svg>平面镜
+  </button>
+</div>
+
+<!-- controls -->
+<div class="ctrl">
+  <div class="ctrl-hd" id="ctrl-hd"><span>CONTROLS ▾</span></div>
+  <div class="ctrl-bd" id="ctrl-bd">
+    <div class="cg">
+      <div class="cl"><span>物距 u</span><span class="v" id="v-u">30.0</span></div>
+      <input type="range" id="s-u" min="5" max="45" step="0.1" value="30">
+    </div>
+    <div class="divider"></div>
+    <div class="cg">
+      <div class="cl"><span>曲率半径 R</span><span class="v" id="v-R">3.0</span></div>
+      <input type="range" id="s-R" min="2.0" max="6.0" step="0.1" value="3.0">
+    </div>
+    <div class="cg">
+      <div class="cl"><span>透镜厚度 d</span><span class="v" id="v-d">0.40</span></div>
+      <input type="range" id="s-d" min="0.2" max="1.0" step="0.05" value="0.4">
+    </div>
+  </div>
+</div>
+
+<!-- bottom info -->
+<div class="ib">
+  <div class="ic"><div class="lbl">物距 u</div><div class="val"><span id="i-u">30.0</span><span class="u">cm</span></div></div>
+  <div class="ic"><div class="lbl">像距 v</div><div class="val"><span id="i-v">—</span><span class="u">cm</span></div></div>
+  <div class="ic"><div class="lbl">放大率 m</div><div class="val"><span id="i-m">—</span></div></div>
+  <div class="ic"><div class="lbl">像的性质</div><div class="val" id="i-nat" style="font-size:11px">—</div></div>
+</div>
+
+<!-- rule -->
+<div class="rule-box">
+  <div class="rt" id="r-title">凸透镜</div>
+  <div class="rr" id="r-rule">正在计算…</div>
+</div>
+
+<div class="hint">
+  <div><span class="k">[ 拖动 ]</span>旋转</div>
+  <div><span class="k">[ 右键 ]</span>平移</div>
+  <div><span class="k">[ 滚轮 ]</span>缩放</div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ═══════════════════════════════════════════════════════
+//  COORDINATE SYSTEM
+//  • Principal axis = X axis. Object is at x = -u_val.
+//  • Optical element centred at origin (x = 0).
+//  • Light travels in +X direction.
+//  • APR = aperture half-radius of element.
+//  • Candle base sits on the principal axis (y = 0).
+// ═══════════════════════════════════════════════════════
+
+const APR = 1.8;   // aperture radius (matches reference)
+const F_REAL = 15; // focal length in "scene units" for imaging calc
+
+// ── State ──────────────────────────────────────────────
+const S = { el:'convexLens', u:30, R:3.0, d:0.4 };
+
+// ── Scene ──────────────────────────────────────────────
+const container = document.getElementById('cv');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x03040a, 0.018);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 300);
+camera.position.set(0, 22, 60);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.75, 0.4, 0.18));
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.07;
+controls.target.set(0, 0, 0);
+
+scene.add(new THREE.AmbientLight(0x4060a0, 0.5));
+const kl = new THREE.DirectionalLight(0xffd9a0, 0.9); kl.position.set(4,8,5); scene.add(kl);
+const rl2 = new THREE.DirectionalLight(0x6090ff, 0.4); rl2.position.set(-5,2,-5); scene.add(rl2);
+
+// ── Groups ─────────────────────────────────────────────
+const elGrp  = new THREE.Group(); scene.add(elGrp);
+const rayGrp = new THREE.Group(); scene.add(rayGrp);
+const lblGrp = new THREE.Group(); scene.add(lblGrp);
+// hidden collision group for mirror raycasting
+const colGrp = new THREE.Group(); colGrp.visible = false; scene.add(colGrp);
+
+let mirrorColMesh = null; // set by buildElement for mirror modes
+
+// ═══════════════════════════════════════════════════════
+//  GRID + AXIS
+// ═══════════════════════════════════════════════════════
+function buildGrid() {
+  const g = new THREE.GridHelper(120, 48, 0x1a2236, 0x111826);
+  g.position.y = -0.02;
+  scene.add(g);
+
+  // principal axis
+  const axLine = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-70,0,0), new THREE.Vector3(70,0,0)]),
+    new THREE.LineDashedMaterial({color:0xffb84d, dashSize:0.6, gapSize:0.35, transparent:true, opacity:0.32})
+  );
+  axLine.computeLineDistances();
+  scene.add(axLine);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SPRITE LABEL
+// ═══════════════════════════════════════════════════════
+function mkSprite(txt, col='#ff6666', sz=28) {
+  const cv = document.createElement('canvas'); cv.width=128; cv.height=64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = col; ctx.font = `700 ${sz}px monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(txt, 64, 32);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cv), transparent:true, depthTest:false
+  }));
+  return sp;
+}
+
+function addFocalDot(x, label) {
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.25, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xff3333 })
+  );
+  dot.position.set(x, 0, 0); lblGrp.add(dot);
+
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 16, 16),
+    new THREE.MeshBasicMaterial({ color:0xff3333, transparent:true, opacity:0.15 })
+  );
+  halo.position.set(x, 0, 0); lblGrp.add(halo);
+
+  const sp = mkSprite(label, '#ff7777', 26);
+  sp.position.set(x, 1.5, 0); sp.scale.set(1.8, 0.9, 1); lblGrp.add(sp);
+
+  const vline = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,-APR*1.1,0), new THREE.Vector3(x,APR*1.1,0)]),
+    new THREE.LineDashedMaterial({color:0xff4444, dashSize:0.15, gapSize:0.1, transparent:true, opacity:0.25})
+  );
+  vline.computeLineDistances(); lblGrp.add(vline);
+}
+
+// ═══════════════════════════════════════════════════════
+//  LENS GEOMETRY  (identical algorithm to reference)
+//  • Built with rotational axis = Z.
+//  • rotateZ(-PI/2) → axis becomes X. Face along X axis.
+// ═══════════════════════════════════════════════════════
+function sagLen(R) { return R - Math.sqrt(Math.max(0, R*R - APR*APR)); }
+
+function buildLensLathe(R, halfT, isConvex) {
+  const sg = sagLen(R);
+  const SEGS = 40;
+  const pts = [];
+
+  if (isConvex) {
+    // front surface (toward -x light source): bulges toward +x (away from viewer)
+    for (let i = 0; i <= SEGS; i++) {
+      const r = (i/SEGS) * APR;
+      const depth = R - Math.sqrt(Math.max(0, R*R - r*r));
+      pts.push(new THREE.Vector2(r, (sg - depth) + halfT));
+    }
+    // back surface: mirror of front
+    for (let i = SEGS; i >= 0; i--) {
+      const r = (i/SEGS) * APR;
+      const depth = R - Math.sqrt(Math.max(0, R*R - r*r));
+      pts.push(new THREE.Vector2(r, -((sg - depth) + halfT)));
+    }
+  } else {
+    // concave: centre thinner than edge
+    const minHalf = Math.max(halfT, sg + 0.18);
+    for (let i = 0; i <= SEGS; i++) {
+      const r = (i/SEGS) * APR;
+      const depth = R - Math.sqrt(Math.max(0, R*R - r*r));
+      pts.push(new THREE.Vector2(r, minHalf - (sg - depth)));
+    }
+    for (let i = SEGS; i >= 0; i--) {
+      const r = (i/SEGS) * APR;
+      const depth = R - Math.sqrt(Math.max(0, R*R - r*r));
+      pts.push(new THREE.Vector2(r, -(minHalf - (sg - depth))));
+    }
+  }
+
+  const geo = new THREE.LatheGeometry(pts, 64);
+  geo.rotateZ(-Math.PI / 2);  // axis → X
+  return geo;
+}
+
+// ═══════════════════════════════════════════════════════
+//  MIRROR GEOMETRY  (SphereGeometry cap, same as reference)
+//  • Bowl/dome opening always faces -X (toward incoming light).
+//  • CONCAVE: rotation.z = -PI/2 (pole→-X), position.x = +cx
+//  • CONVEX:  rotation.z = +PI/2 (pole→+X), position.x = -cx
+// ═══════════════════════════════════════════════════════
+function buildSphereMirror(R, isConcave) {
+  const sg  = sagLen(R);
+  const cx  = R - sg;
+  const halfAngle = Math.asin(Math.min(APR / R, 0.9999));
+  const geo = new THREE.SphereGeometry(R, 80, 80, 0, Math.PI*2, 0, halfAngle);
+
+  // Main mirror surface
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xbdd0e8, roughness: 0.03, metalness: 0.96, side: THREE.DoubleSide
+  });
+  // Highlight (inner face glow)
+  const hlMat = new THREE.MeshStandardMaterial({
+    color: 0xeef4ff, roughness: 0.0, metalness: 1.0,
+    emissive: 0x3355aa, emissiveIntensity: 0.32,
+    transparent: true, opacity: 0.75,
+    side: isConcave ? THREE.BackSide : THREE.FrontSide
+  });
+  // Invisible collision mesh
+  const colMat = new THREE.MeshBasicMaterial({ visible:false, side:THREE.DoubleSide });
+
+  const mesh   = new THREE.Mesh(geo, mat);
+  const hlMesh = new THREE.Mesh(geo, hlMat);
+  const col    = new THREE.Mesh(geo, colMat);
+
+  [[mesh, hlMesh, col]].flat().forEach(m => {
+    if (isConcave) {
+      m.rotation.z = -Math.PI / 2;
+      m.position.x = cx;
+    } else {
+      m.rotation.z =  Math.PI / 2;
+      m.position.x = -cx;
+    }
+  });
+
+  colGrp.clear();
+  colGrp.add(col);
+  col.updateMatrixWorld(true);
+
+  return { mesh, hlMesh };
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUILD OPTICAL ELEMENT
+// ═══════════════════════════════════════════════════════
+function clearGroup(grp) {
+  while (grp.children.length) {
+    const c = grp.children[0];
+    grp.remove(c);
+    c.geometry && c.geometry.dispose();
+    if (Array.isArray(c.material)) c.material.forEach(m=>m.dispose());
+    else c.material && c.material.dispose();
+  }
+}
+
+function buildElement() {
+  clearGroup(elGrp);
+  clearGroup(lblGrp);
+  colGrp.clear();
+  mirrorColMesh = null;
+
+  const { el, R, d } = S;
+
+  // ── LENSES ─────────────────────────────────────────
+  if (el === 'convexLens' || el === 'concaveLens') {
+    const isConvex = el === 'convexLens';
+    const lGeo = buildLensLathe(R, d/2, isConvex);
+
+    // Layer 1: near-invisible glass body (just edge fresnel)
+    elGrp.add(new THREE.Mesh(lGeo, new THREE.MeshPhysicalMaterial({
+      color: 0xddeeff,
+      transparent: true, opacity: 0.05,
+      roughness: 0.0, metalness: 0.0,
+      transmission: 0.98,
+      ior: 1.52,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
+      side: THREE.DoubleSide
+    })));
+
+    // Layer 2: edge chromatic glow (canvas radial gradient)
+    const lCv = document.createElement('canvas');
+    lCv.width = 256; lCv.height = 256;
+    const lCtx = lCv.getContext('2d');
+    const eg = lCtx.createRadialGradient(128,128,68,128,128,128);
+    eg.addColorStop(0.00,'rgba(160,210,255,0.00)');
+    eg.addColorStop(0.70,'rgba(160,210,255,0.00)');
+    eg.addColorStop(0.87,'rgba(150,195,255,0.22)');
+    eg.addColorStop(1.00,'rgba(170,140,255,0.35)');
+    lCtx.fillStyle = eg; lCtx.fillRect(0,0,256,256);
+    // diagonal specular streak
+    const sg2 = lCtx.createLinearGradient(55,55,200,200);
+    sg2.addColorStop(0.0,'rgba(255,255,255,0.00)');
+    sg2.addColorStop(0.45,'rgba(255,255,255,0.12)');
+    sg2.addColorStop(0.55,'rgba(255,255,255,0.12)');
+    sg2.addColorStop(1.0,'rgba(255,255,255,0.00)');
+    lCtx.fillStyle = sg2; lCtx.fillRect(0,0,256,256);
+
+    const lGeo2 = buildLensLathe(R, d/2, isConvex);
+    elGrp.add(new THREE.Mesh(lGeo2, new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(lCv),
+      transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    })));
+
+    // Rim ring
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(APR, 0.06, 8, 64),
+      new THREE.MeshStandardMaterial({color:0x3a4a60, metalness:0.7, roughness:0.3})
+    );
+    rim.rotation.y = Math.PI/2; elGrp.add(rim);
+
+    // Focal markers
+    const f3d = focalLength3d();
+    if (isConvex) {
+      addFocalDot( f3d, 'F'); addFocalDot(-f3d, "F'");
+    } else {
+      addFocalDot(-f3d, 'F'); addFocalDot( f3d, "F'");
+    }
+    addFocalDot( 2*f3d, '2F'); addFocalDot(-2*f3d, '2F');
+  }
+
+  // ── MIRRORS ────────────────────────────────────────
+  if (el === 'concaveMirror' || el === 'convexMirror') {
+    const isConcave = el === 'concaveMirror';
+    const { mesh, hlMesh } = buildSphereMirror(R, isConcave);
+    elGrp.add(mesh); elGrp.add(hlMesh);
+    mirrorColMesh = colGrp.children[0] || null;
+
+    const f3d = focalLength3d();
+    if (isConcave) {
+      addFocalDot(-f3d, 'F'); addFocalDot(-2*f3d, 'C');
+    } else {
+      addFocalDot( f3d, 'F(虚)');
+    }
+  }
+
+  // ── PLANE MIRROR ──────────────────────────────────
+  if (el === 'planeMirror') {
+    // Glass slab
+    elGrp.add(new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, APR*2.2, APR*2.2),
+      new THREE.MeshPhysicalMaterial({
+        color:0xc8deff, transparent:true, opacity:0.20,
+        roughness:0.0, transmission:0.80, ior:1.52,
+        clearcoat:1.0, side:THREE.DoubleSide
+      })
+    ));
+    // Silver backing
+    const silver = new THREE.Mesh(
+      (() => { const g = new THREE.PlaneGeometry(APR*2.2, APR*2.2); g.rotateY(-Math.PI/2); return g; })(),
+      new THREE.MeshPhysicalMaterial({
+        color:0xd0e4f8, roughness:0.0, metalness:1.0,
+        reflectivity:1.0, clearcoat:1.0, side:THREE.FrontSide
+      })
+    );
+    silver.position.x = -0.06; elGrp.add(silver);
+    // Rim
+    elGrp.add(new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, APR*2.2, APR*2.2),
+      new THREE.MeshStandardMaterial({color:0x1a2535, roughness:0.7})
+    ));
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANDLE  (body base at y=0, grows upward)
+//  Inverted image: use negative scaleY so candle hangs down from y=0.
+// ═══════════════════════════════════════════════════════
+let objCandleGrp = null, imgCandleGrp = null;
+const CANDLE_H = 3.5;  // body height in scene units
+const FLAME_Y  = CANDLE_H + 0.7; // flame centre above base
+
+function buildCandleGrp(isReal) {
+  const g = new THREE.Group();
+  const col = isReal ? 0xf0ece0 : 0x88bbdd;
+  const fcol= isReal ? 0xffcc00 : 0x44aaff;
+
+  // Body: CylinderGeometry, shifted so bottom at y=0 top at y=CANDLE_H
+  const body = new THREE.Mesh(
+    (() => { const gg = new THREE.CylinderGeometry(0.18, 0.18, CANDLE_H, 24); gg.translate(0, CANDLE_H/2, 0); return gg; })(),
+    new THREE.MeshStandardMaterial({ color:col, roughness:0.85,
+      transparent:!isReal, opacity: isReal ? 1.0 : 0.55 })
+  );
+  if (isReal) body.castShadow = true;
+  g.add(body);
+
+  // Flame cone: centre at y = FLAME_Y
+  const flame = new THREE.Mesh(
+    (() => { const gg = new THREE.ConeGeometry(0.14, 0.58, 14); gg.translate(0, FLAME_Y, 0); return gg; })(),
+    new THREE.MeshBasicMaterial({ color:fcol, transparent:true, opacity: isReal ? 0.92 : 0.6 })
+  );
+  flame.userData.isFlame = true;
+  g.add(flame);
+
+  // Inner bright core
+  const core = new THREE.Mesh(
+    (() => { const gg = new THREE.ConeGeometry(0.06, 0.28, 12); gg.translate(0, FLAME_Y - 0.1, 0); return gg; })(),
+    new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity: isReal ? 0.7 : 0.42 })
+  );
+  core.userData.isFlame = true;
+  g.add(core);
+
+  // Glow sphere
+  const glow = new THREE.Mesh(
+    (() => { const gg = new THREE.SphereGeometry(0.38, 12, 12); gg.translate(0, FLAME_Y, 0); return gg; })(),
+    new THREE.MeshBasicMaterial({ color: isReal?0xffaa00:0x3388ff, transparent:true, opacity: isReal?0.18:0.12 })
+  );
+  g.add(glow);
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════
+//  OPTICS COMPUTE
+//  All distances in "scene units" where F_REAL = focal length.
+//  The scene scale: element at origin, object at x = -S.u scaled.
+//  We use a SCALE factor to map scene units to optics cm.
+// ═══════════════════════════════════════════════════════
+// Scene scale: S.u is in "cm", but element radius APR = 1.8 scene units.
+// We want object at position x = -S.u * SCALE
+const SCALE = 1/5;  // 5 cm = 1 scene unit. Focal length F_REAL=15cm → f3d=3.0
+
+function focalLength3d() {
+  // Mirror: f = R/2  (R is S.R in scene units = actual radius slider)
+  if (S.el === 'concaveMirror' || S.el === 'convexMirror') return S.R / 2;
+  // Lens: f = R/(2*(n-1)) — simplified lensmaker's with n=1.52 → R/1.04 ≈ R/1.04
+  // We use a fixed n=1.52 for display, slider R controls shape+focal length.
+  return S.R / (2 * 0.52);  // ≈ 1/((n-1)*(2/R)) with n=1.52
+}
+
+// Convert optics focal length (cm) to scene focal (scene units)
+// We fix F_REAL = 15 cm and map scene positions proportionally
+// Object scene pos = -S.u * SCALE,  focal scene pos = F_REAL * SCALE = 3.0
+const F3D_FIXED = F_REAL * SCALE;  // = 3.0 scene units always (for ray drawing)
+
+function computeImaging() {
+  const u = S.u;      // cm
+  const f = F_REAL;   // cm (fixed 15)
+  const el = S.el;
+  let v=0, m=0, noImg=false, nature='', rule='';
+
+  if (el === 'planeMirror') {
+    v = u; m = 1;
+    nature = '虚像·正立·等大';
+    rule = '成像规律：成正立、等大的虚像。像与物关于镜面对称。';
+  } else if (el === 'convexLens') {
+    if (Math.abs(u - f) < 0.5) { noImg=true; rule='物距 u = f：折射光线平行，不成像。'; }
+    else {
+      v = 1/(1/f - 1/u); m = -v/u;
+      if      (u > 2*f)               { nature='实像·倒立·缩小'; rule='物距 u > 2f：成倒立缩小实像，f < v < 2f。'; }
+      else if (Math.abs(u-2*f) < 0.5) { nature='实像·倒立·等大'; rule='物距 u = 2f：成倒立等大实像，v = 2f。'; }
+      else if (u > f)                 { nature='实像·倒立·放大'; rule='物距 f < u < 2f：成倒立放大实像，v > 2f。'; }
+      else                            { nature='虚像·正立·放大'; rule='物距 u < f：成正立放大虚像，与物同侧。'; }
+    }
+  } else if (el === 'concaveLens') {
+    v = 1/(-1/f - 1/u); m = -v/u;
+    nature='虚像·正立·缩小';
+    rule='始终成正立缩小虚像，与物在透镜同侧，|v| < f。';
+  } else if (el === 'concaveMirror') {
+    if (Math.abs(u - f) < 0.5) { noImg=true; rule='物距 u = f：反射光线平行，不成像。'; }
+    else {
+      v = 1/(1/f - 1/u); m = -v/u;
+      if      (u > 2*f)               { nature='实像·倒立·缩小'; rule='物距 u > 2f：成倒立缩小实像，像在F与C之间。'; }
+      else if (Math.abs(u-2*f) < 0.5) { nature='实像·倒立·等大'; rule='物距 u = 2f：成倒立等大实像，像在C处。'; }
+      else if (u > f)                 { nature='实像·倒立·放大'; rule='物距 f < u < 2f：成倒立放大实像，像在C以外。'; }
+      else                            { nature='虚像·正立·放大'; rule='物距 u < f：成正立放大虚像，像在镜后。'; }
+    }
+  } else if (el === 'convexMirror') {
+    v = 1/(-1/f - 1/u); m = -v/u;
+    nature='虚像·正立·缩小';
+    rule='始终成正立缩小虚像，像在镜后，用于扩大视野。';
+  }
+  return { v, m, noImg, nature, rule };
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW CANDLES
+// ═══════════════════════════════════════════════════════
+function updateCandles(imaging) {
+  // Remove old candles
+  if (objCandleGrp) { scene.remove(objCandleGrp); objCandleGrp = null; }
+  if (imgCandleGrp) { scene.remove(imgCandleGrp); imgCandleGrp = null; }
+
+  // Object candle: always upright, base on axis
+  objCandleGrp = buildCandleGrp(true);
+  objCandleGrp.position.set(-S.u * SCALE, 0, 0);
+  scene.add(objCandleGrp);
+
+  if (imaging.noImg) return;
+
+  const { v, m } = imaging;
+  const absM = Math.min(Math.abs(m), 8);
+  const isVirt = (S.el === 'planeMirror') || (v < 0);
+
+  // xi = scene x position of image
+  let xi;
+  if (S.el === 'planeMirror') {
+    xi = v * SCALE;         // image behind mirror (+x)
+  } else if (S.el.includes('Mirror')) {
+    xi = -v * SCALE;        // mirror: same side as object (-x) for real, +x for virtual
+  } else {
+    xi = v * SCALE;         // lens: +x for real, -x for virtual
+  }
+  xi = Math.max(-60, Math.min(60, xi));
+
+  imgCandleGrp = buildCandleGrp(false);
+
+  // Place so base is on principal axis (y=0).
+  // Upright (m>0): scaleY = +absM, position.y = 0 → base at 0, flame goes UP ✓
+  // Inverted (m<0): scaleY = -absM, position.y = 0 →
+  //   body vertex at local y=0 → world y=0 ✓ (base on axis)
+  //   body vertex at local y=CANDLE_H → world y = -absM*CANDLE_H (goes down) ✓
+  //   flame at local y=FLAME_Y → world y = -absM*FLAME_Y (below axis) ✓
+  imgCandleGrp.position.set(xi, 0, 0);
+  imgCandleGrp.scale.set(absM, m >= 0 ? absM : -absM, absM);
+
+  imgCandleGrp.children.forEach(ch => {
+    if (!ch.material) return;
+    ch.material.transparent = true;
+    ch.material.opacity = isVirt ? 0.28 : 0.78;
+  });
+
+  scene.add(imgCandleGrp);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW RAYS  (special light rays for imaging, in scene units)
+//  All coordinates in scene units. Object at xO = -S.u*SCALE.
+//  yO = FLAME_Y * 1.0 (flame tip in object-candle-local space,
+//       but object candle has scale=1, so world y = FLAME_Y).
+// ═══════════════════════════════════════════════════════
+const C_IN  = new THREE.Color(0xffe090);
+const C_OUT = new THREE.Color(0x55ccff);
+const C_VIRT= new THREE.Color(0xff9933);
+
+function seg3(ax,ay, bx,by, col, virt=false, opacity=0.88) {
+  const a = new THREE.Vector3(ax,ay,0), b = new THREE.Vector3(bx,by,0);
+  if (a.distanceTo(b) < 0.01) return;
+  const geo = new THREE.BufferGeometry().setFromPoints([a,b]);
+  const mat = virt
+    ? new THREE.LineDashedMaterial({color:col.getHex(), transparent:true, opacity:opacity*0.6, dashSize:0.35, gapSize:0.22})
+    : new THREE.LineBasicMaterial({color:col.getHex(), transparent:true, opacity});
+  const ln = new THREE.Line(geo, mat);
+  if (virt) ln.computeLineDistances();
+  rayGrp.add(ln);
+}
+
+// Arrow head at midpoint of segment
+function arrow3(ax,ay, bx,by, col, opacity=0.88) {
+  const mid = new THREE.Vector3((ax+bx)/2, (ay+by)/2, 0);
+  const dir = new THREE.Vector3(bx-ax, by-ay, 0).normalize();
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(0.045, 0.18, 8),
+    new THREE.MeshBasicMaterial({color:col.getHex(), transparent:true, opacity})
+  );
+  cone.position.copy(mid);
+  cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+  rayGrp.add(cone);
+}
+
+function ray3(ax,ay, bx,by, col, virt=false, opacity=0.88) {
+  seg3(ax,ay, bx,by, col, virt, opacity);
+  if (!virt) arrow3(ax,ay, bx,by, col, opacity);
+}
+
+function drawRays(imaging) {
+  clearGroup(rayGrp);
+  const { v, m, noImg } = imaging;
+  const xO = -S.u * SCALE;
+  const yO = FLAME_Y;  // flame tip y (object candle is scale=1, base at y=0)
+  const f3 = F3D_FIXED;
+  const REACH = 65;
+
+  // image position in scene
+  let xI, yI;
+  if (!noImg) {
+    const absM = Math.min(Math.abs(m), 8);
+    if (S.el === 'planeMirror') xI = v*SCALE;
+    else if (S.el.includes('Mirror')) xI = -v*SCALE;
+    else xI = v*SCALE;
+    xI = Math.max(-60, Math.min(60, xI));
+    yI = (m >= 0 ? absM : -absM) * yO;
+  }
+
+  const el = S.el;
+
+  if (el === 'planeMirror') {
+    // Ray 1: horizontal → reflects back
+    ray3(xO,yO,  0,yO,  C_IN);
+    ray3(0,yO,  -REACH,yO, C_OUT);
+    seg3(0,yO, xI,yI, C_VIRT, true);
+    // Ray 2: to mirror at y=0 → law of reflection
+    ray3(xO,yO, 0,0, C_IN);
+    const refl_y = -yO*REACH/S.u/SCALE;
+    ray3(0,0, -REACH, refl_y, C_OUT);
+    seg3(0,0, xI,yI, C_VIRT, true);
+    return;
+  }
+
+  if (noImg) {
+    if (el === 'convexLens') {
+      ray3(xO,yO, 0,yO, C_IN);
+      ray3(0,yO,  REACH,0, C_OUT);
+      ray3(xO,yO, 0,0, C_IN);
+      ray3(0,0, REACH, yO*REACH/(-xO), C_OUT);
+    } else if (el === 'concaveMirror') {
+      ray3(xO,yO, 0,yO, C_IN);
+      ray3(0,yO, -REACH,0, C_OUT);
+      ray3(xO,yO, 0,0, C_IN);
+      ray3(0,0, -REACH,yO, C_OUT);
+    }
+    return;
+  }
+
+  if (el === 'convexLens' || el === 'concaveLens') {
+    const realImg = xI > 0;
+
+    // Ray 1: parallel to axis → refracts through (or away from) back focal point
+    ray3(xO,yO, 0,yO, C_IN);
+    if (realImg) {
+      ray3(0,yO, xI,yI, C_OUT);
+      const dx=xI, dy=yI-yO, dl=Math.sqrt(dx*dx+dy*dy);
+      ray3(xI,yI, xI+dx/dl*25, yI+dy/dl*25, C_OUT);
+    } else {
+      // diverges as if from back focal point (-f3 for concave, refracted)
+      const fxB = el==='convexLens' ? f3 : -f3;
+      const dx=0-fxB, dy=yO, dl=Math.sqrt(dx*dx+dy*dy);
+      ray3(0,yO, 0+dx/dl*REACH, yO+dy/dl*REACH, C_OUT);
+      seg3(0,yO, xI,yI, C_VIRT, true);
+    }
+
+    // Ray 2: through optical centre (undeviated)
+    ray3(xO,yO, 0,0, C_IN);
+    if (realImg) {
+      ray3(0,0, xI,yI, C_OUT);
+      const dl2=Math.sqrt(xI*xI+yI*yI);
+      ray3(xI,yI, xI+xI/dl2*25, yI+yI/dl2*25, C_OUT);
+    } else {
+      const dx2=-xO, dy2=-yO, dl2=Math.sqrt(dx2*dx2+dy2*dy2);
+      ray3(0,0, dx2/dl2*REACH, dy2/dl2*REACH, C_OUT);
+      seg3(0,0, xI,yI, C_VIRT, true);
+    }
+
+    // Ray 3 (convex, real image): through front focal → exits parallel
+    if (el==='convexLens' && realImg && S.u > F_REAL+0.5) {
+      const slope = (yO-0)/(xO-(-f3));
+      const y3 = yO + slope*(0-xO);
+      ray3(xO,yO, 0,y3, C_IN);
+      ray3(0,y3, xI+25, y3, C_OUT);
+    }
+
+  } else {
+    // Mirrors (concave / convex) — light reflected back toward -x
+    const realImg = xI < 0;
+
+    ray3(xO,yO, 0,yO, C_IN);
+    ray3(xO,yO, 0,0,  C_IN);
+
+    if (realImg) {
+      ray3(0,yO, xI,yI, C_OUT);
+      ray3(0,0,  xI,yI, C_OUT);
+      const dx1=xI, dy1=yI-yO, dl1=Math.sqrt(dx1*dx1+dy1*dy1);
+      ray3(xI,yI, xI+dx1/dl1*20, yI+dy1/dl1*20, C_OUT);
+      const dl2=Math.sqrt(xI*xI+yI*yI);
+      ray3(xI,yI, xI+xI/dl2*20, yI+yI/dl2*20, C_OUT);
+    } else {
+      const dr1x=0-xI, dr1y=yO-yI, dr1l=Math.sqrt(dr1x*dr1x+dr1y*dr1y);
+      ray3(0,yO, 0+dr1x/dr1l*REACH, yO+dr1y/dr1l*REACH, C_OUT);
+      seg3(0,yO, xI,yI, C_VIRT, true);
+      const dr2x=-xI, dr2y=-yI, dr2l=Math.sqrt(dr2x*dr2x+dr2y*dr2y);
+      ray3(0,0, dr2x/dr2l*REACH, dr2y/dr2l*REACH, C_OUT);
+      seg3(0,0, xI,yI, C_VIRT, true);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPDATE UI
+// ═══════════════════════════════════════════════════════
+const TITLES = {
+  convexLens:'凸透镜', concaveLens:'凹透镜',
+  concaveMirror:'凹面镜', convexMirror:'凸面镜', planeMirror:'平面镜'
+};
+function updateUI(imaging) {
+  document.getElementById('i-u').textContent   = S.u.toFixed(1);
+  document.getElementById('r-title').textContent = TITLES[S.el] || S.el;
+  document.getElementById('r-rule').textContent  = imaging.rule;
+  if (imaging.noImg) {
+    document.getElementById('i-v').textContent = '不成像';
+    document.getElementById('i-m').textContent = '—';
+    document.getElementById('i-nat').textContent= '—';
+  } else {
+    const sv = Math.abs(imaging.v)>200?(imaging.v>0?'>200':'<-200'):imaging.v.toFixed(1);
+    const sm = Math.abs(imaging.m)>15 ?(imaging.m>0?'>15' :'<-15') :imaging.m.toFixed(2);
+    document.getElementById('i-v').textContent   = sv;
+    document.getElementById('i-m').textContent   = sm;
+    document.getElementById('i-nat').textContent = imaging.nature;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  REBUILD
+// ═══════════════════════════════════════════════════════
+function rebuild() {
+  buildElement();
+  const imaging = computeImaging();
+  updateCandles(imaging);
+  drawRays(imaging);
+  updateUI(imaging);
+}
+
+// ═══════════════════════════════════════════════════════
+//  EVENT BINDINGS
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.eb').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.eb').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    S.el = b.dataset.el;
+    rebuild();
+  });
+});
+
+document.getElementById('s-u').addEventListener('input', function() {
+  S.u = parseFloat(this.value);
+  document.getElementById('v-u').textContent = S.u.toFixed(1);
+  const imaging = computeImaging();
+  updateCandles(imaging);
+  clearGroup(rayGrp);
+  drawRays(imaging);
+  updateUI(imaging);
+  // update object candle position
+  if (objCandleGrp) objCandleGrp.position.x = -S.u * SCALE;
+});
+
+document.getElementById('s-R').addEventListener('input', function() {
+  S.R = parseFloat(this.value);
+  document.getElementById('v-R').textContent = S.R.toFixed(1);
+  rebuild();
+});
+document.getElementById('s-d').addEventListener('input', function() {
+  S.d = parseFloat(this.value);
+  document.getElementById('v-d').textContent = S.d.toFixed(2);
+  rebuild();
+});
+document.getElementById('ctrl-hd').addEventListener('click', () => {
+  document.getElementById('ctrl-bd').classList.toggle('hide');
+});
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  composer.setSize(innerWidth,innerHeight);
+});
+
+// ═══════════════════════════════════════════════════════
+//  RENDER LOOP
+// ═══════════════════════════════════════════════════════
+(function loop() {
+  requestAnimationFrame(loop);
+  const t = Date.now() * 0.005;
+  scene.traverse(obj => {
+    if (obj.userData && obj.userData.isFlame) {
+      obj.scale.y = 1 + Math.sin(t*2.2 + obj.id*0.6) * 0.07;
+      obj.scale.x = 1 + Math.cos(t*1.8 + obj.id*0.5) * 0.05;
+      obj.scale.z = obj.scale.x;
+    }
+  });
+  controls.update();
+  composer.render();
+})();
+
+// ── Start ──
+buildGrid();
+rebuild();
+</script>
+</body>
+</html>
