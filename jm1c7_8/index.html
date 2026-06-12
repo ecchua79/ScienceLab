@@ -262,6 +262,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  COORDINATE SYSTEM
@@ -675,14 +676,19 @@ function buildElement() {
         color:0xc8deff, transparent:true, opacity:0.18,
         roughness:0.0, transmission:0.80, ior:1.52, clearcoat:1.0, side:THREE.DoubleSide
       })));
-    // Silver backing
-    const sg3=new THREE.Mesh(
-      (()=>{const g=new THREE.PlaneGeometry(APR*2.1,APR*2.1); g.rotateY(-Math.PI/2); return g;})(),
-      new THREE.MeshPhysicalMaterial({color:0xd0e4f8,roughness:0.06,metalness:0.92,reflectivity:1.0,clearcoat:1.0,
-        envMap:cubeRT.texture, envMapIntensity:2.2, side:THREE.FrontSide})
-    );
-    sg3.position.x=-0.055; elGrp.add(sg3);
-    reflectiveMeshes.push(sg3);
+    // Silver backing — use Reflector for an accurate planar mirror reflection
+    const refGeo = new THREE.PlaneGeometry(APR*2.1, APR*2.1);
+    const reflector = new Reflector(refGeo, {
+      clipBias: 0.003,
+      textureWidth: 512,
+      textureHeight: 512,
+      color: 0x889bbf
+    });
+    reflector.rotation.y = -Math.PI/2;   // FIX: face -X toward candle (was +X, away from candle)
+    reflector.position.x = -0.055;        // FIX: slightly on the object side (-X)
+    reflector.isReflector = true;
+    elGrp.add(reflector);
+    reflectiveMeshes.push(reflector);
     // Frame
     elGrp.add(new THREE.Mesh(new THREE.BoxGeometry(0.09,APR*2.1,APR*2.1),
       new THREE.MeshStandardMaterial({color:0x1a2535,roughness:0.7})));
@@ -1021,6 +1027,12 @@ document.querySelectorAll('.eb').forEach(b=>{
     b.classList.add('active');
     S.el=b.dataset.el;
     rebuild();
+    // 平面镜：自动将摄像机移至镜面正前方（-X侧），使反射可见
+    if (S.el === 'planeMirror') {
+      camera.position.set(-14, 6, 8);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
   });
 });
 
@@ -1053,14 +1065,13 @@ window.addEventListener('resize',()=>{
 document.getElementById('toggle-reflect').addEventListener('click', () => {
   reflectEnabled = !reflectEnabled;
   document.getElementById('reflect-sw').classList.toggle('on', reflectEnabled);
-  if (!reflectEnabled) {
-    reflectiveMeshes.forEach(m => { if(m.material) m.material.envMapIntensity = 0; });
-  } else {
-    reflectiveMeshes.forEach(m => {
-      if(!m.material) return;
-      m.material.envMapIntensity = (m.material.transparent) ? 1.8 : 1.4;
-    });
-  }
+  reflectiveMeshes.forEach(m => {
+    if (!m.material) return;
+    if (m.isReflector) { m.visible = reflectEnabled; return; }
+    m.material.envMapIntensity = reflectEnabled
+      ? (m.material.transparent ? 1.8 : 1.6)
+      : 0;
+  });
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -1080,7 +1091,8 @@ document.getElementById('toggle-reflect').addEventListener('click', () => {
   // Update real-time mirror reflection: position cube camera at the
   // optical element centre, hide reflective surfaces while capturing
   // (so they don't reflect themselves), then restore.
-  if (reflectEnabled && reflectiveMeshes.length) {
+  // planeMirror uses Three.js Reflector which handles its own rendering — skip cubeCam.
+  if (reflectEnabled && reflectiveMeshes.length && S.el !== 'planeMirror') {
     cubeCam.position.set(0, FLAME_Y*0.4, 0);
     cubeCam.updateMatrixWorld(true);
     const vis = reflectiveMeshes.map(m => m.visible);
