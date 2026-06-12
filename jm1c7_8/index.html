@@ -17,9 +17,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#05060d;color:#d8e4f
 .cor.br{bottom:10px;right:10px;border-left:none;border-top:none}
 
 /* watermark */
-.wm{position:fixed;top:56px;left:50%;transform:translateX(-50%);
-  font-size:9px;color:rgba(255,184,77,0.12);letter-spacing:2px;
+.wm{position:fixed;left:50%;transform:translateX(-50%);
+  font-size:9px;letter-spacing:2px;
   user-select:none;pointer-events:none;z-index:4;white-space:nowrap}
+.wm-top{top:56px;color:rgba(255,184,77,0.22)}
+.wm-bot{bottom:78px;color:rgba(255,184,77,0.15)}
 
 /* top bar */
 .top-bar{position:fixed;top:0;left:0;right:0;padding:12px 16px;display:flex;
@@ -115,15 +117,68 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#ffb84d;
   .ib{max-width:calc(100vw - 76px)}
   .ic .val{font-size:11px}
 }
+
+/* ── COVER SCREEN ── */
+#cover{position:fixed;inset:0;z-index:50;
+  background:radial-gradient(ellipse at center,#0d1226 0%,#03040a 75%);
+  display:flex;align-items:center;justify-content:center;
+  color:#d8e4f0;text-align:center;padding:24px}
+#cover .ck{max-width:520px}
+#cover h2{font-size:24px;font-weight:300;letter-spacing:5px;color:#e8f0fc;margin-bottom:6px}
+#cover h2 span{color:#ffb84d;font-style:italic}
+#cover .csub{font-size:9px;letter-spacing:5px;color:#3a4a6a;margin-bottom:22px}
+#cover p{font-size:12px;line-height:2;color:#8090b0;margin-bottom:8px;text-align:left}
+#cover .feat{font-size:11px;color:#9ac8e8;margin:4px 0;text-align:left}
+#cover .feat b{color:#ffb84d}
+#cover button{margin-top:22px;background:rgba(255,184,77,.10);
+  border:1px solid #ffb84d;color:#ffb84d;font-family:inherit;
+  font-size:11px;letter-spacing:4px;padding:11px 38px;cursor:pointer;
+  border-radius:2px;transition:all .25s}
+#cover button:hover{background:rgba(255,184,77,.22);box-shadow:0 0 18px rgba(255,184,77,.3)}
+#cover .author{margin-top:26px;font-size:8px;letter-spacing:2px;color:#283448}
+#cover.hide{display:none}
+
+/* ── DRAGGABLE PANELS ── */
+.ep,.ctrl{cursor:default}
+.ep-label,.ctrl-hd .title{cursor:grab;touch-action:none}
+.ep-label:active,.ctrl-hd.dragging .title{cursor:grabbing}
+
+/* ── REFLECTION TOGGLE ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;
+  font-size:10px;letter-spacing:1px;color:#6080a8;margin-bottom:10px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent}
+.toggle-sw{width:30px;height:16px;border-radius:8px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);position:relative;transition:all .2s;flex-shrink:0}
+.toggle-sw::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;
+  background:#6080a8;top:1px;left:1px;transition:all .2s}
+.toggle-sw.on{background:rgba(255,184,77,.25);border-color:#ffb84d}
+.toggle-sw.on::after{background:#ffb84d;left:15px}
 </style>
 </head>
 <body>
+<!-- ── COVER SCREEN ── -->
+<div id="cover">
+  <div class="ck">
+    <h2>OPTICA · <span>成像规律</span></h2>
+    <div class="csub">Interactive Image Formation · 3D Ray Tracing Lab</div>
+    <p>这是一个 3D 互动光学成像演示。左侧可切换<b style="color:#ffb84d">凸透镜、凹透镜、凹面镜、凸面镜、平面镜</b>五种光学元件，右侧滑块可调整物距、曲率半径与镜片厚度。</p>
+    <div class="feat">▸ 拖动物距滑块，观察<b>实像 / 虚像</b>随物距变化的规律</div>
+    <div class="feat">▸ 红点标记<b>焦点 F</b> 与 <b>2F / 球心 C</b> 位置</div>
+    <div class="feat">▸ 黄色光线为入射光，蓝色为反射/折射光，橙色虚线为反向延长线</div>
+    <div class="feat">▸ 镜面可开启<b>实时反射</b>，观察镜中蜡烛影像</div>
+    <div class="feat">▸ 拖动画面旋转视角、滚轮缩放、右键平移</div>
+    <button id="cover-btn">进 入 演 示</button>
+    <div class="author">峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79</div>
+  </div>
+</div>
+
 <div id="cv"></div>
 <div class="cor tl"></div><div class="cor tr"></div>
 <div class="cor bl"></div><div class="cor br"></div>
 
-<!-- watermark variants -->
-<div class="wm" id="wm-text">峇株吧辖华仁中学蔡逸众制作</div>
+<!-- watermark: two layers, four variants rotating -->
+<div class="wm wm-top" id="wm-top">峇株吧辖华仁中学蔡逸众制作</div>
+<div class="wm wm-bot" id="wm-bot">Made by ecchua79</div>
 
 <div class="top-bar">
   <div class="brand">
@@ -159,6 +214,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#ffb84d;
     <span class="ctrl-arrow" id="ctrl-arrow">▾</span>
   </div>
   <div class="ctrl-bd" id="ctrl-bd">
+    <div class="toggle-row" id="toggle-reflect">
+      <span>镜中实时反射</span>
+      <span class="toggle-sw on" id="reflect-sw"></span>
+    </div>
+    <div class="divider"></div>
     <div class="cg">
       <div class="cl"><span>物距 u</span><span class="v" id="v-u">30.0</span></div>
       <input type="range" id="s-u" min="5" max="45" step="0.1" value="30">
@@ -223,17 +283,76 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // ═══════════════════════════════════════════════════════════════
 
 // ── Watermark rotation ─────────────────────────────────────────
+// ── Watermark rotation ─────────────────────────────────────────
 const WM = ['峇株吧辖华仁中学蔡逸众制作','峇株吧辖蔡逸众制作','华仁中学蔡逸众制作','Made by ecchua79'];
 let wmIdx = 0;
-setInterval(() => { wmIdx=(wmIdx+1)%WM.length; document.getElementById('wm-text').textContent=WM[wmIdx]; }, 4000);
+const wmTop = document.getElementById('wm-top');
+const wmBot = document.getElementById('wm-bot');
+setInterval(() => {
+  wmIdx = (wmIdx + 1) % WM.length;
+  wmTop.textContent = WM[wmIdx];
+  wmBot.textContent = WM[(wmIdx + 2) % WM.length];
+}, 4000);
 
 // ── Collapsible panel ──────────────────────────────────────────
+let _ctrlDidDrag=false;
 document.getElementById('ctrl-hd').addEventListener('click', () => {
+  if (_ctrlDidDrag) { _ctrlDidDrag=false; return; }
   const bd = document.getElementById('ctrl-bd');
   const ar = document.getElementById('ctrl-arrow');
   bd.classList.toggle('open');
   ar.classList.toggle('up');
 });
+
+// ── Cover screen ────────────────────────────────────────────────
+document.getElementById('cover-btn').addEventListener('click', () => {
+  document.getElementById('cover').classList.add('hide');
+  window.dispatchEvent(new Event('resize'));
+});
+
+// ── Draggable panels ────────────────────────────────────────────
+// Drag handle = the element passed; the panel itself follows via left/top.
+function makeDraggable(panel, handle) {
+  let dragging=false, sx=0, sy=0, sl=0, st=0;
+  function toAbs() {
+    // Convert current centred position (top:50%, transform) to absolute left/top
+    const r = panel.getBoundingClientRect();
+    panel.style.left = r.left+'px';
+    panel.style.top  = r.top +'px';
+    panel.style.right = 'auto';
+    panel.style.transform = 'none';
+  }
+  function down(e) {
+    const p = e.touches ? e.touches[0] : e;
+    dragging = true;
+    toAbs();
+    sx=p.clientX; sy=p.clientY;
+    const r=panel.getBoundingClientRect();
+    sl=r.left; st=r.top;
+    e.preventDefault();
+  }
+  function move(e) {
+    if(!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    if (Math.abs(p.clientX-sx)>4 || Math.abs(p.clientY-sy)>4) _ctrlDidDrag=true;
+    let nl = sl + (p.clientX - sx);
+    let nt = st + (p.clientY - sy);
+    const r=panel.getBoundingClientRect();
+    nl = Math.max(2, Math.min(innerWidth - r.width - 2, nl));
+    nt = Math.max(2, Math.min(innerHeight - r.height - 2, nt));
+    panel.style.left = nl+'px';
+    panel.style.top  = nt+'px';
+  }
+  function up() { dragging=false; }
+  handle.addEventListener('mousedown', down);
+  handle.addEventListener('touchstart', down, {passive:false});
+  window.addEventListener('mousemove', move);
+  window.addEventListener('touchmove', move, {passive:false});
+  window.addEventListener('mouseup', up);
+  window.addEventListener('touchend', up);
+}
+makeDraggable(document.querySelector('.ep'), document.querySelector('.ep-label'));
+makeDraggable(document.querySelector('.ctrl'), document.getElementById('ctrl-hd'));
 
 // ── Constants ──────────────────────────────────────────────────
 const APR    = 1.8;   // aperture radius (scene units)
@@ -251,6 +370,7 @@ const S = { el:'convexLens', u:30, R:3.0, d:0.4 };
 // ── Scene ──────────────────────────────────────────────────────
 const container = document.getElementById('cv');
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a1024);
 scene.fog = new THREE.FogExp2(0x03040a, 0.010);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 300);
@@ -279,6 +399,12 @@ const fl=new THREE.DirectionalLight(0x6090ff,0.4); fl.position.set(-5,2,-5); sce
 const elGrp  = new THREE.Group(); scene.add(elGrp);
 const rayGrp = new THREE.Group(); scene.add(rayGrp);
 const lblGrp = new THREE.Group(); scene.add(lblGrp);
+
+// ── Real-time mirror reflection (CubeCamera) ────────────────────
+const cubeRT  = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter });
+const cubeCam = new THREE.CubeCamera(0.05, 80, cubeRT);
+let reflectEnabled = true;
+let reflectiveMeshes = []; // meshes whose envMap should be the cube render target
 
 // ── Helper: clear group ─────────────────────────────────────────
 function clearGrp(g) {
@@ -312,6 +438,24 @@ function buildGrid() {
     new THREE.LineDashedMaterial({color:0xffb84d,dashSize:0.5,gapSize:0.3,transparent:true,opacity:0.30})
   );
   ax.computeLineDistances(); scene.add(ax);
+
+  // 3D watermark sprite embedded in scene
+  const wmVariants=['峇株吧辖华仁中学蔡逸众制作','Made by ecchua79'];
+  wmVariants.forEach((txt, i) => {
+    const cv=document.createElement('canvas'); cv.width=512; cv.height=64;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='rgba(255,184,77,0.28)';
+    ctx.font='500 22px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(txt, 256, 32);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:new THREE.CanvasTexture(cv), transparent:true,
+      opacity:0.18, depthTest:false
+    }));
+    sp.position.set(i===0?-8:8, -0.5, 0);
+    sp.scale.set(12, 1.5, 1);
+    scene.add(sp);
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -405,12 +549,14 @@ function buildSphereMirror(R, isConcave) {
   const geo=new THREE.SphereGeometry(R,80,80,0,Math.PI*2,0,halfAngle);
 
   const mat=new THREE.MeshStandardMaterial({
-    color:0xbdd0e8, roughness:0.03, metalness:0.96, side:THREE.DoubleSide
+    color:0xbdd0e8, roughness:0.06, metalness:0.92, side:THREE.DoubleSide,
+    envMap: cubeRT.texture, envMapIntensity: 1.6
   });
   const hlMat=new THREE.MeshStandardMaterial({
     color:0xeef4ff, roughness:0.0, metalness:1.0,
     emissive:0x3355aa, emissiveIntensity:0.30,
     transparent:true, opacity:0.70,
+    envMap: cubeRT.texture, envMapIntensity: 1.8,
     side: isConcave ? THREE.BackSide : THREE.FrontSide
   });
   const colMat=new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide});
@@ -435,6 +581,7 @@ function buildSphereMirror(R, isConcave) {
   });
 
   elGrp.add(mesh); elGrp.add(hlMesh);
+  reflectiveMeshes.push(mesh, hlMesh);
 
   // Add colMesh to scene (invisible) for raycasting
   colMesh.updateMatrixWorld(true);
@@ -465,6 +612,7 @@ let _colMeshInScene = null;
 
 function buildElement() {
   clearGrp(elGrp); clearGrp(lblGrp);
+  reflectiveMeshes = [];
   if (_colMeshInScene) { scene.remove(_colMeshInScene); _colMeshInScene=null; }
   mirrorHitFn=null;
   const {el,R,d}=S;
@@ -530,9 +678,11 @@ function buildElement() {
     // Silver backing
     const sg3=new THREE.Mesh(
       (()=>{const g=new THREE.PlaneGeometry(APR*2.1,APR*2.1); g.rotateY(-Math.PI/2); return g;})(),
-      new THREE.MeshPhysicalMaterial({color:0xd0e4f8,roughness:0.0,metalness:1.0,reflectivity:1.0,clearcoat:1.0,side:THREE.FrontSide})
+      new THREE.MeshPhysicalMaterial({color:0xd0e4f8,roughness:0.06,metalness:0.92,reflectivity:1.0,clearcoat:1.0,
+        envMap:cubeRT.texture, envMapIntensity:2.2, side:THREE.FrontSide})
     );
     sg3.position.x=-0.055; elGrp.add(sg3);
+    reflectiveMeshes.push(sg3);
     // Frame
     elGrp.add(new THREE.Mesh(new THREE.BoxGeometry(0.09,APR*2.1,APR*2.1),
       new THREE.MeshStandardMaterial({color:0x1a2535,roughness:0.7})));
@@ -899,6 +1049,20 @@ window.addEventListener('resize',()=>{
   composer.setSize(innerWidth,innerHeight);
 });
 
+// ── Reflection toggle ───────────────────────────────────────────
+document.getElementById('toggle-reflect').addEventListener('click', () => {
+  reflectEnabled = !reflectEnabled;
+  document.getElementById('reflect-sw').classList.toggle('on', reflectEnabled);
+  if (!reflectEnabled) {
+    reflectiveMeshes.forEach(m => { if(m.material) m.material.envMapIntensity = 0; });
+  } else {
+    reflectiveMeshes.forEach(m => {
+      if(!m.material) return;
+      m.material.envMapIntensity = (m.material.transparent) ? 1.8 : 1.4;
+    });
+  }
+});
+
 // ══════════════════════════════════════════════════════════════
 //  RENDER LOOP
 // ══════════════════════════════════════════════════════════════
@@ -912,6 +1076,19 @@ window.addEventListener('resize',()=>{
       obj.scale.z=obj.scale.x;
     }
   });
+
+  // Update real-time mirror reflection: position cube camera at the
+  // optical element centre, hide reflective surfaces while capturing
+  // (so they don't reflect themselves), then restore.
+  if (reflectEnabled && reflectiveMeshes.length) {
+    cubeCam.position.set(0, FLAME_Y*0.4, 0);
+    cubeCam.updateMatrixWorld(true);
+    const vis = reflectiveMeshes.map(m => m.visible);
+    reflectiveMeshes.forEach(m => m.visible = false);
+    cubeCam.update(renderer, scene);
+    reflectiveMeshes.forEach((m,i) => m.visible = vis[i]);
+  }
+
   controls.update();
   composer.render();
 })();
