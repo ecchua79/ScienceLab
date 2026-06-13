@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 显微镜互动与测验</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e1e; color: white; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        
+        /* UI 层 */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* 标签样式 */
+        .label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            transition: opacity 0.3s;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .label:hover { background: rgba(76, 175, 80, 0.9); }
+        .label.hidden { opacity: 0; pointer-events: none; }
+        .label.question-mark { background: #E91E63; border-color: #fff; font-weight: bold; font-size: 18px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+
+        /* 控制面板 */
+        #control-panel { position: absolute; top: 20px; left: 20px; pointer-events: auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; backdrop-filter: blur(5px); }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-bottom: 10px; width: 100%; transition: background 0.3s;}
+        button:hover { background: #45a049; }
+        button.exit-btn { background: #f44336; }
+        button.exit-btn:hover { background: #d32f2f; }
+
+        /* 测验面板 */
+        #quiz-panel { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; text-align: center; pointer-events: auto; display: none; width: 400px; max-width: 90%; box-shadow: 0 4px 15px rgba(0,0,0,0.5);}
+        #quiz-question { font-size: 18px; margin-bottom: 15px; font-weight: bold; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-btn { background: #2196F3; }
+        .option-btn:hover { background: #1976D2; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    
+    <div id="ui-layer">
+        <div id="control-panel">
+            <h3 style="margin-top: 0;">显微镜学习系统</h3>
+            <button id="start-quiz-btn">进入测验模式</button>
+            <button id="exit-quiz-btn" class="exit-btn" style="display:none;">退出测验</button>
+            <p style="font-size: 12px; color: #ccc;">*按住鼠标左键可旋转 3D 视图<br>*滑动滚轮可缩放</p>
+        </div>
+
+        <div id="labels-container"></div>
+
+        <div id="quiz-panel">
+            <div id="quiz-question">请问红色“？”标注的部位是？</div>
+            <div class="options-grid" id="options-container">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 显微镜部位数据 (可根据你的章节资料替换) ---
+        const partsData = [
+            { id: 'eyepiece', name: '目镜', pos: new THREE.Vector3(0, 10, 1.5), wrong: ['物镜', '反光镜', '粗准焦螺旋'] },
+            { id: 'tube', name: '镜筒', pos: new THREE.Vector3(0, 7.5, 1.5), wrong: ['转换器', '载物台', '镜柱'] },
+            { id: 'objective', name: '物镜', pos: new THREE.Vector3(0, 4.5, 1.5), wrong: ['目镜', '光圈', '细准焦螺旋'] },
+            { id: 'stage', name: '载物台', pos: new THREE.Vector3(0, 2.5, 2.5), wrong: ['压片夹', '镜座', '反光镜'] },
+            { id: 'coarse-knob', name: '粗准焦螺旋', pos: new THREE.Vector3(2, 6, -1), wrong: ['细准焦螺旋', '转换器', '镜臂'] },
+            { id: 'mirror', name: '反光镜', pos: new THREE.Vector3(0, 0.5, 2.5), wrong: ['遮光器', '光源', '通光孔'] }
+        ];
+
+        // --- 2. Three.js 基础设置 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#2c3e50');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(12, 10, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 5, 0);
+        controls.update();
+
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // --- 3. 搭建“抽象版” 3D 显微镜 ---
+        const materialGrey = new THREE.MeshPhongMaterial({ color: 0x95a5a6 });
+        const materialDark = new THREE.MeshPhongMaterial({ color: 0x34495e });
+        const materialSilver = new THREE.MeshPhongMaterial({ color: 0xecf0f1 });
+
+        const microscopeGroup = new THREE.Group();
+
+        // 镜座 (Base)
+        const base = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 6), materialDark);
+        microscopeGroup.add(base);
+
+        // 镜臂 (Arm)
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(1.5, 9, 2), materialDark);
+        arm.position.set(0, 4.5, -1.5);
+        arm.rotation.x = 0.1;
+        microscopeGroup.add(arm);
+
+        // 载物台 (Stage)
+        const stage = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.2, 3.5), materialDark);
+        stage.position.set(0, 2.5, 1.5);
+        microscopeGroup.add(stage);
+
+        // 镜筒 (Tube)
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4), materialGrey);
+        tube.position.set(0, 7.5, 1.5);
+        microscopeGroup.add(tube);
+
+        // 目镜 (Eyepiece)
+        const eyepiece = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1), materialSilver);
+        eyepiece.position.set(0, 9.5, 1.5);
+        microscopeGroup.add(eyepiece);
+
+        // 物镜 (Objective)
+        const objective = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 1.5), materialSilver);
+        objective.position.set(0, 4.75, 1.5);
+        microscopeGroup.add(objective);
+
+        // 粗准焦螺旋 (Coarse Knob)
+        const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.5), materialGrey);
+        knob.rotation.z = Math.PI / 2;
+        knob.position.set(0, 6, -1);
+        microscopeGroup.add(knob);
+
+        // 反光镜 (Mirror)
+        const mirror = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.2), materialSilver);
+        mirror.rotation.x = Math.PI / 4;
+        mirror.position.set(0, 1, 2.5);
+        microscopeGroup.add(mirror);
+
+        scene.add(microscopeGroup);
+
+        // --- 4. UI 与标签逻辑 ---
+        const labelsContainer = document.getElementById('labels-container');
+        const labelElements = [];
+
+        // 初始化学习模式标签
+        partsData.forEach(part => {
+            const el = document.createElement('div');
+            el.className = 'label';
+            el.innerText = part.name;
+            labelsContainer.appendChild(el);
+            labelElements.push({ element: el, pos: part.pos, id: part.id });
+        });
+
+        // 将 3D 坐标转换为 2D 屏幕坐标
+        function updateLabels() {
+            const tempV = new THREE.Vector3();
+            labelElements.forEach(item => {
+                tempV.copy(item.pos);
+                tempV.project(camera);
+                
+                const x = (tempV.x * .5 + .5) * window.innerWidth;
+                const y = (tempV.y * -.5 + .5) * window.innerHeight;
+                
+                // 如果在相机背后则隐藏
+                if (tempV.z > 1) {
+                    item.element.style.display = 'none';
+                } else {
+                    item.element.style.display = 'flex';
+                    item.element.style.left = `${x}px`;
+                    item.element.style.top = `${y}px`;
+                }
+            });
+        }
+
+        // --- 5. 测验模式逻辑 ---
+        let isQuizMode = false;
+        let currentQuestionIndex = 0;
+        let quizQueue = [];
+
+        const startBtn = document.getElementById('start-quiz-btn');
+        const exitBtn = document.getElementById('exit-quiz-btn');
+        const quizPanel = document.getElementById('quiz-panel');
+        const optionsContainer = document.getElementById('options-container');
+
+        startBtn.addEventListener('click', startQuiz);
+        exitBtn.addEventListener('click', exitQuiz);
+
+        function startQuiz() {
+            isQuizMode = true;
+            startBtn.style.display = 'none';
+            exitBtn.style.display = 'block';
+            quizPanel.style.display = 'block';
+            
+            // 随机打乱题目顺序
+            quizQueue = [...partsData].sort(() => Math.random() - 0.5);
+            currentQuestionIndex = 0;
+            loadQuestion();
+        }
+
+        function exitQuiz() {
+            isQuizMode = false;
+            startBtn.style.display = 'block';
+            exitBtn.style.display = 'none';
+            quizPanel.style.display = 'none';
+            
+            // 恢复普通标签
+            labelElements.forEach((item, index) => {
+                item.element.className = 'label';
+                item.element.innerText = partsData[index].name;
+            });
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= quizQueue.length) {
+                alert("恭喜！你已完成所有部位的测验！");
+                exitQuiz();
+                return;
+            }
+
+            const currentPart = quizQueue[currentQuestionIndex];
+
+            // 隐藏所有标签，只显示当前题目的 "?"
+            labelElements.forEach(item => {
+                if (item.id === currentPart.id) {
+                    item.element.className = 'label question-mark';
+                    item.element.innerText = '?';
+                } else {
+                    item.element.className = 'label hidden';
+                }
+            });
+
+            // 生成 4 个选项（1对 + 3错），并打乱顺序
+            let options = [currentPart.name, ...currentPart.wrong];
+            options = options.sort(() => Math.random() - 0.5);
+
+            optionsContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, currentPart.name);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) {
+                alert("回答正确！");
+                currentQuestionIndex++;
+                loadQuestion();
+            } else {
+                alert("回答错误，请再试一次！");
+            }
+        }
+
+        // --- 6. 动画循环 ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 处理窗口缩放
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
