@@ -383,7 +383,7 @@ canvas{display:block;width:100%;height:auto}
     <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.45)"></div><span>法线（虚线）</span></div>
     <div class="leg-item"><div class="leg-dot" style="background:#7899bb"></div><span>镜面（M2/M3 拖端点调角）</span></div>
     <div class="leg-item"><div class="leg-dot" style="background:#ff6b35;box-shadow:0 0 5px #ff6b35"></div><span>目标</span></div>
-    <div class="leg-item" style="margin-left:auto;color:var(--dim);font-size:10px">单镜：拖光源 | 多镜：拖镜端点</div>
+    <div class="leg-item" style="margin-left:auto;color:var(--dim);font-size:10px">单镜：拖光源 | 自由模式：拖⟳旋转镜面 | 多镜：拖镜端点</div>
   </div>
 </div>
 
@@ -421,7 +421,7 @@ canvas{display:block;width:100%;height:auto}
 <script>
 // ══════════════════════════════════════════════════════
 //  光的反射定律 · 互动游戏
-//  修复版 by Claude — 原作：峇株吧辖华仁中学蔡逸众
+//  原作：峇株吧辖华仁中学蔡逸众
 // ══════════════════════════════════════════════════════
 
 const canvas = document.getElementById('c');
@@ -641,6 +641,31 @@ function drawMirror(m, idx){
   const mid=mirrorMid(m);
   ctx.fillStyle='rgba(200,220,255,.7)'; ctx.font='bold 11px sans-serif';
   ctx.fillText('M'+(idx+1), mid.x+fn.x*16-6, mid.y+fn.y*16+4);
+
+  // 自由模式：旋转手柄（在镜子中点，沿法线方向偏移）
+  if(mode==='free'){
+    const hx=mid.x+fn.x*28, hy=mid.y+fn.y*28; // 手柄在法线方向偏28px
+    ctx.save();
+    // 外圈
+    ctx.beginPath(); ctx.arc(hx,hy,11,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,212,255,.18)';
+    ctx.strokeStyle='rgba(0,212,255,.8)'; ctx.lineWidth=2;
+    ctx.fill(); ctx.stroke();
+    // 弧形箭头（旋转图标）
+    ctx.strokeStyle='rgba(0,212,255,1)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(hx,hy,5, 0.3, Math.PI*1.7);
+    ctx.stroke();
+    // 箭头头部
+    const aEnd=Math.PI*1.7;
+    const ax=hx+5*Math.cos(aEnd), ay=hy+5*Math.sin(aEnd);
+    ctx.beginPath();
+    ctx.moveTo(ax,ay);
+    ctx.lineTo(ax-4*Math.cos(aEnd-0.7), ay-4*Math.sin(aEnd-0.7));
+    ctx.lineTo(ax-4*Math.cos(aEnd+0.7), ay-4*Math.sin(aEnd+0.7));
+    ctx.closePath(); ctx.fillStyle='rgba(0,212,255,1)'; ctx.fill();
+    ctx.restore();
+  }
 
   // 可拖端点手柄
   if(idx>=1 && mode==='challenge' && !curFixedMirrors.includes(idx)){
@@ -1502,6 +1527,14 @@ function togOpt(k){
 function pickDrag(p){
   if(mode==='free'){
     if(Math.hypot(p.x-src.x,p.y-src.y)<24) return {type:'src'};
+    // 自由模式：检测旋转手柄（在镜子中点沿法线偏28px处）
+    for(let mi=0;mi<numMirrors;mi++){
+      const m=mirrors[mi];
+      const mid=mirrorMid(m);
+      const fn=mirrorFrontNormal(m);
+      const hx=mid.x+fn.x*28, hy=mid.y+fn.y*28;
+      if(Math.hypot(p.x-hx,p.y-hy)<14) return {type:'rot',mi};
+    }
     return null;
   }
   // 挑战模式：根据当前关卡的 draggable 权限
@@ -1527,6 +1560,16 @@ function applyDrag(p){
   const cy=Math.max(5,Math.min(H-5,p.y));
   if(drag.type==='src'){
     src.x=cx; src.y=cy;
+  } else if(drag.type==='rot'){
+    // 旋转：以镜子中点为轴，把镜子转到鼠标方向
+    const m=mirrors[drag.mi];
+    const mid=mirrorMid(m);
+    const halfLen=Math.hypot(m.p2.x-m.p1.x,m.p2.y-m.p1.y)/2;
+    // 鼠标相对中心的角度 = 新的切线方向（法线垂直于切线）
+    const mouseAngle=Math.atan2(cy-mid.y, cx-mid.x);
+    // 切线方向设为鼠标方向，端点随之更新
+    m.p1={x:mid.x-Math.cos(mouseAngle)*halfLen, y:mid.y-Math.sin(mouseAngle)*halfLen};
+    m.p2={x:mid.x+Math.cos(mouseAngle)*halfLen, y:mid.y+Math.sin(mouseAngle)*halfLen};
   } else {
     const m=mirrors[drag.mi];
     m[drag.ep]={x:cx,y:cy};
@@ -1559,7 +1602,10 @@ canvas.addEventListener('mousemove', e=>{
   e.preventDefault();
   const p=getPos(e);
   if(drag){ applyDrag(p); draw(); }
-  else canvas.style.cursor = pickDrag(p) ? 'grab' : 'default';
+  else {
+    const hit=pickDrag(p);
+    canvas.style.cursor = hit ? (hit.type==='rot' ? 'grab' : 'grab') : 'default';
+  }
 });
 canvas.addEventListener('mouseup',  e=>{ drag=null; });
 canvas.addEventListener('mouseleave',e=>{ drag=null; });
