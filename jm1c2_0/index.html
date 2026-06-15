@@ -958,8 +958,8 @@ function drawMixFrame(t){
   mixCtx.fillStyle='#060a14';mixCtx.fillRect(0,0,mixW,mixH);
   const progress=Math.min(t/100,1);
   // draw three cylinders
-  drawCylinder(mixCtx,mixW*0.18,50,60,180,'#06b6d4','水\n50cm³',1);
-  drawCylinder(mixCtx,mixW*0.5,50,60,180,'#f97316','酒精\n50cm³',1);
+  drawCylinder(mixCtx,mixW*0.18,50,60,180,'#06b6d4','水\n50cm³',2/5);
+  drawCylinder(mixCtx,mixW*0.5,50,60,180,'#f97316','酒精\n50cm³',2/5);
   drawCylinder(mixCtx,mixW*0.82,50,60,180*(1-progress*0.08),'#a78bfa','混合\n'+Math.round(100-progress*8.2)+'cm³',progress);
   if(progress>0.01){
     mixCtx.fillStyle='rgba(255,255,255,0.5)';mixCtx.font='13px Noto Sans SC';
@@ -1064,50 +1064,111 @@ function setDiffTemp(v){
 window.addEventListener('load',()=>setTimeout(initDiffusion,300));
 
 /* ===== BROWNIAN ===== */
-let brCtx,brW,brH,brParts=[],brLargePart,brRunning=false,brRaf,brTemp=3;
+let brCtx,brW,brH,brParts=[],brPollens=[],brRunning=false,brRaf,brTemp=3;
+// Pollen specs: [radius, forceScale, color, trailColor, label]
+const POLLEN_SPECS=[
+  // 4 大粒 — 最难被移动
+  {r:14,fs:0.022,col:'#f97316',tcol:'rgba(249,115,22,0.45)',lbl:'大'},
+  {r:14,fs:0.022,col:'#f97316',tcol:'rgba(249,115,22,0.45)',lbl:'大'},
+  {r:14,fs:0.022,col:'#f97316',tcol:'rgba(249,115,22,0.45)',lbl:'大'},
+  {r:14,fs:0.022,col:'#f97316',tcol:'rgba(249,115,22,0.45)',lbl:'大'},
+  // 4 中粒
+  {r:9, fs:0.058,col:'#eab308',tcol:'rgba(234,179, 8,0.45)',lbl:'中'},
+  {r:9, fs:0.058,col:'#eab308',tcol:'rgba(234,179, 8,0.45)',lbl:'中'},
+  {r:9, fs:0.058,col:'#eab308',tcol:'rgba(234,179, 8,0.45)',lbl:'中'},
+  {r:9, fs:0.058,col:'#eab308',tcol:'rgba(234,179, 8,0.45)',lbl:'中'},
+  // 4 小粒 — 最容易被移动
+  {r:5, fs:0.16, col:'#22c55e',tcol:'rgba( 34,197, 94,0.45)',lbl:'小'},
+  {r:5, fs:0.16, col:'#22c55e',tcol:'rgba( 34,197, 94,0.45)',lbl:'小'},
+  {r:5, fs:0.16, col:'#22c55e',tcol:'rgba( 34,197, 94,0.45)',lbl:'小'},
+  {r:5, fs:0.16, col:'#22c55e',tcol:'rgba( 34,197, 94,0.45)',lbl:'小'},
+];
 function initBrownian(){
   const cvs=document.getElementById('brownian-canvas');
   brCtx=cvs.getContext('2d');
   brW=cvs.width=cvs.offsetWidth||700;brH=280;cvs.height=brH;
   brParts=[];
-  for(let i=0;i<120;i++)
-    brParts.push({x:Math.random()*brW,y:Math.random()*brH,vx:(Math.random()-0.5)*brTemp*1.2,vy:(Math.random()-0.5)*brTemp*1.2,r:2.5});
-  brLargePart={x:brW/2,y:brH/2,trail:[]};
+  for(let i=0;i<130;i++)
+    brParts.push({x:Math.random()*brW,y:Math.random()*brH,
+      vx:(Math.random()-0.5)*brTemp*1.2,vy:(Math.random()-0.5)*brTemp*1.2,r:2.5});
+  // Initial positions spread evenly across canvas
+  const initPos=[
+    [0.18,0.28],[0.50,0.20],[0.82,0.28],[0.35,0.72],   // 大
+    [0.65,0.72],[0.18,0.70],[0.82,0.70],[0.50,0.78],   // 大 (overflow → used for 中)
+    [0.30,0.48],[0.70,0.48],[0.12,0.48],[0.88,0.48],   // 中/小
+  ];
+  // Better layout: 4 big in corners, 4 medium mid-ring, 4 small scattered
+  const layout=[
+    [0.18,0.25],[0.82,0.25],[0.18,0.72],[0.82,0.72],   // 大
+    [0.50,0.18],[0.50,0.80],[0.10,0.50],[0.90,0.50],   // 中
+    [0.36,0.42],[0.64,0.42],[0.36,0.60],[0.64,0.60],   // 小
+  ];
+  brPollens=POLLEN_SPECS.map((sp,i)=>({
+    x:layout[i][0]*brW, y:layout[i][1]*brH,
+    r:sp.r, fs:sp.fs, col:sp.col, tcol:sp.tcol, lbl:sp.lbl,
+    trail:[]
+  }));
   drawBrownian();
 }
 function drawBrownian(){
   brCtx.clearRect(0,0,brW,brH);
   brCtx.fillStyle='#060a14';brCtx.fillRect(0,0,brW,brH);
+  // Water molecules
   brParts.forEach(p=>{
     brCtx.beginPath();brCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    brCtx.fillStyle='rgba(6,182,212,0.5)';brCtx.fill();
+    brCtx.fillStyle='rgba(6,182,212,0.45)';brCtx.fill();
   });
-  if(brLargePart.trail.length>1){
-    brCtx.beginPath();brCtx.moveTo(brLargePart.trail[0].x,brLargePart.trail[0].y);
-    for(let i=1;i<brLargePart.trail.length;i++){brCtx.lineTo(brLargePart.trail[i].x,brLargePart.trail[i].y);}
-    brCtx.strokeStyle='rgba(249,115,22,0.5)';brCtx.lineWidth=1.5;brCtx.stroke();
-  }
-  brCtx.beginPath();brCtx.arc(brLargePart.x,brLargePart.y,12,0,Math.PI*2);
-  const g=brCtx.createRadialGradient(brLargePart.x,brLargePart.y,0,brLargePart.x,brLargePart.y,12);
-  g.addColorStop(0,'#f97316');g.addColorStop(1,'#f9731644');
-  brCtx.fillStyle=g;brCtx.fill();
-  brCtx.fillStyle='rgba(255,255,255,0.8)';brCtx.font='bold 10px sans-serif';
-  brCtx.textAlign='center';brCtx.fillText('花粉',brLargePart.x,brLargePart.y+4);
-  brCtx.fillStyle='rgba(255,255,255,0.3)';brCtx.font='11px Noto Sans SC';
-  brCtx.textAlign='left';brCtx.fillText('水分子（小粒子）→ 撞击花粉 → 布朗运动',8,brH-8);
+  // Pollen trails then particles
+  brPollens.forEach(p=>{
+    if(p.trail.length>1){
+      brCtx.beginPath();brCtx.moveTo(p.trail[0].x,p.trail[0].y);
+      for(let i=1;i<p.trail.length;i++)brCtx.lineTo(p.trail[i].x,p.trail[i].y);
+      brCtx.strokeStyle=p.tcol;brCtx.lineWidth=1.5;brCtx.stroke();
+    }
+    const g=brCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+    g.addColorStop(0,p.col);g.addColorStop(1,p.col+'33');
+    brCtx.beginPath();brCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    brCtx.fillStyle=g;brCtx.fill();
+    brCtx.strokeStyle=p.col+'99';brCtx.lineWidth=1;brCtx.stroke();
+    brCtx.fillStyle='rgba(255,255,255,0.9)';
+    brCtx.font=`bold ${p.r>10?10:8}px Noto Sans SC`;
+    brCtx.textAlign='center';brCtx.textBaseline='middle';
+    brCtx.fillText(p.lbl,p.x,p.y);
+    brCtx.textBaseline='alphabetic';
+  });
+  // Legend
+  brCtx.font='11px Noto Sans SC';brCtx.textAlign='left';
+  [{col:'#f97316',t:'大粒（难移动）'},{col:'#eab308',t:'中粒'},{col:'#22c55e',t:'小粒（易移动）'}]
+    .forEach((item,i)=>{
+      brCtx.fillStyle=item.col;brCtx.beginPath();brCtx.arc(10,brH-28+i*13,4,0,Math.PI*2);brCtx.fill();
+      brCtx.fillStyle='rgba(255,255,255,0.4)';brCtx.fillText(item.t,18,brH-24+i*13);
+    });
+  brCtx.fillStyle='rgba(6,182,212,0.6)';brCtx.beginPath();brCtx.arc(10,brH-28+3*13,2.5,0,Math.PI*2);brCtx.fill();
+  brCtx.fillStyle='rgba(255,255,255,0.4)';brCtx.fillText('水分子',18,brH-24+3*13);
 }
 function animBrownian(){
   brParts.forEach(p=>{
     p.x+=p.vx;p.y+=p.vy;
-    if(p.x<2||p.x>brW-2)p.vx*=-1;if(p.y<2||p.y>brH-2)p.vy*=-1;
+    if(p.x<2||p.x>brW-2)p.vx*=-1;
+    if(p.y<2||p.y>brH-2)p.vy*=-1;
     if(Math.random()<0.03){const a=Math.random()*Math.PI*2,s=brTemp*(0.5+Math.random()*0.8);p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;}
-    const d=Math.hypot(p.x-brLargePart.x,p.y-brLargePart.y);
-    if(d<16){const a=Math.atan2(brLargePart.y-p.y,brLargePart.x-p.x);const f=brTemp*0.08;brLargePart.x+=Math.cos(a)*f;brLargePart.y+=Math.sin(a)*f;}
+    // Check collision with each pollen
+    brPollens.forEach(pol=>{
+      const d=Math.hypot(p.x-pol.x,p.y-pol.y);
+      const hit=pol.r+p.r+1;
+      if(d<hit){
+        const a=Math.atan2(pol.y-p.y,pol.x-p.x);
+        const f=brTemp*pol.fs;
+        pol.x+=Math.cos(a)*f;pol.y+=Math.sin(a)*f;
+      }
+    });
   });
-  brLargePart.x=Math.max(15,Math.min(brW-15,brLargePart.x));
-  brLargePart.y=Math.max(15,Math.min(brH-15,brLargePart.y));
-  brLargePart.trail.push({x:brLargePart.x,y:brLargePart.y});
-  if(brLargePart.trail.length>200)brLargePart.trail.shift();
+  brPollens.forEach(pol=>{
+    pol.x=Math.max(pol.r+2,Math.min(brW-pol.r-2,pol.x));
+    pol.y=Math.max(pol.r+2,Math.min(brH-pol.r-2,pol.y));
+    pol.trail.push({x:pol.x,y:pol.y});
+    if(pol.trail.length>150)pol.trail.shift();
+  });
   drawBrownian();
   brRaf=requestAnimationFrame(animBrownian);
 }
