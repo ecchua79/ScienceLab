@@ -3,189 +3,552 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 呼吸系统演示</title>
+    <title>3D 呼吸树与肺泡交互演示系统</title>
+    <!-- 引入 Tailwind CSS 构建现代化界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: #1a1a2e; /* 深蓝色背景，凸显模型 */
-            color: white; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0b0f19;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        #ui-panel { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            background: rgba(15, 15, 25, 0.85); 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            pointer-events: none; /* 防止面板挡住鼠标拖拽交互 */
+        /* 玻璃拟态卡片效果 */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        h2 { margin-top: 0; font-size: 1.2rem; margin-bottom: 10px; }
-        p { font-size: 0.9rem; color: #a0a0b0; margin-bottom: 15px; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.95rem; }
-        .color-box { width: 18px; height: 18px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
-    <div id="ui-panel">
-        <h2>3D 呼吸系统模型</h2>
-        <p>左键拖拽旋转视角，滚轮缩放大小</p>
-        <div class="legend-item"><div class="color-box" style="background:#ff7b7b;"></div>咽 (Pharynx) / 喉 (Larynx)</div>
-        <div class="legend-item"><div class="color-box" style="background:#e0e0e0;"></div>气管 (Trachea)</div>
-        <div class="legend-item"><div class="color-box" style="background:#5bc0eb;"></div>支气管 (Bronchi)</div>
-        <div class="legend-item"><div class="color-box" style="background:rgba(255,140,160,0.4);"></div>左右肺 (Lungs - 半透明)</div>
-        <div class="legend-item"><div class="color-box" style="background:#fde74c;"></div>肺泡 (Alveoli - 左肺内部)</div>
+
+    <!-- 顶部标题栏 -->
+    <div class="absolute top-4 left-4 z-10 glass-panel rounded-2xl p-4 max-w-sm pointer-events-auto text-white shadow-2xl">
+        <div class="flex items-center gap-3">
+            <span class="p-2 bg-blue-600/30 rounded-lg text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </span>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">3D 呼吸树与肺泡演示</h1>
+                <p class="text-xs text-slate-400">医学级树状气管分叉模拟</p>
+            </div>
+        </div>
+        <div class="mt-4 text-xs text-slate-300 space-y-1.5 border-t border-slate-700/50 pt-3">
+            <p>🖱️ <strong>鼠标左键拖拽</strong>：360度旋转视角</p>
+            <p>🖱️ <strong>鼠标右键平移</strong>：移动观测位置</p>
+            <p>🔍 <strong>滚轮滑动</strong>：放大/缩小视角，透视肺内部</p>
+        </div>
     </div>
 
+    <!-- 右侧器官科普与控制面板 -->
+    <div class="absolute top-4 right-4 z-10 glass-panel rounded-2xl p-5 w-80 pointer-events-auto text-white shadow-2xl flex flex-col gap-4">
+        <div>
+            <h2 class="text-sm font-semibold text-blue-400 uppercase tracking-wider">控制与观测面板</h2>
+            <div class="h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent my-2"></div>
+        </div>
+
+        <!-- 视觉切换控制 -->
+        <div class="space-y-2">
+            <label class="text-xs text-slate-400">肺部显示透视度</label>
+            <div class="flex gap-2">
+                <button id="btn-transparent" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-blue-600 text-white transition hover:bg-blue-500">
+                    透视 (看内部)
+                </button>
+                <button id="btn-solid" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 transition hover:bg-slate-700">
+                    实体 (看外形)
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-xs text-slate-400">呼吸动画控制</label>
+            <div class="flex gap-2">
+                <button id="btn-breathe" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-emerald-600 text-white transition hover:bg-emerald-500">
+                    暂停呼吸
+                </button>
+                <button id="btn-reset-cam" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 transition hover:bg-slate-700">
+                    重置视角
+                </button>
+            </div>
+        </div>
+
+        <!-- 解剖学结构图例与解说 -->
+        <div class="space-y-3 mt-2">
+            <h3 class="text-xs font-semibold text-slate-400">解剖结构索引</h3>
+            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div class="flex items-start gap-2 text-xs" onclick="focusOn('pharynx')">
+                    <span class="w-3 h-3 rounded-full bg-red-400 mt-0.5 flex-shrink-0"></span>
+                    <div>
+                        <strong class="text-slate-200 block cursor-pointer hover:text-blue-300">咽与喉 (Pharynx & Larynx)</strong>
+                        <span class="text-slate-400 text-[10px]">呼吸道的入口，对吸入空气进行初步温暖和湿润。</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 text-xs" onclick="focusOn('trachea')">
+                    <span class="w-3 h-3 rounded-full bg-slate-300 mt-0.5 flex-shrink-0"></span>
+                    <div>
+                        <strong class="text-slate-200 block cursor-pointer hover:text-blue-300">气管 (Trachea)</strong>
+                        <span class="text-slate-400 text-[10px]">主干通道，由C型软骨环支撑防止塌陷。</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 text-xs" onclick="focusOn('bronchi')">
+                    <span class="w-3 h-3 rounded-full bg-sky-400 mt-0.5 flex-shrink-0"></span>
+                    <div>
+                        <strong class="text-slate-200 block cursor-pointer hover:text-blue-300">多级支气管树 (Bronchial Tree)</strong>
+                        <span class="text-slate-400 text-[10px]">像树根一样向下分叉，不断变细，将气体引向各肺叶。</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 text-xs" onclick="focusOn('lung')">
+                    <span class="w-3 h-3 rounded-full bg-pink-400/60 mt-0.5 flex-shrink-0"></span>
+                    <div>
+                        <strong class="text-slate-200 block cursor-pointer hover:text-blue-300">左右肺 (Lungs)</strong>
+                        <span class="text-slate-400 text-[10px]">容纳气管树。左肺因给心脏留出空间而略小，分为两叶。</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 text-xs" onclick="focusOn('alveoli')">
+                    <span class="w-3 h-3 rounded-full bg-yellow-400 mt-0.5 flex-shrink-0"></span>
+                    <div>
+                        <strong class="text-slate-200 block cursor-pointer hover:text-blue-300">肺泡群 (Alveoli - 左肺内可见)</strong>
+                        <span class="text-slate-400 text-[10px]">支气管末梢的气体交换囊，由密集的微血管网包绕。</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态指示器 -->
+    <div class="absolute bottom-4 left-4 z-10 glass-panel rounded-xl px-4 py-2 text-xs text-slate-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+        <span>动态仿真运行中：模拟正常成人平静呼吸（16次/分）</span>
+    </div>
+
+    <!-- 引入 WebGL 引擎依赖库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // 1. 初始化场景、相机和渲染器
+        // ==========================================
+        // 1. 初始化三维场景与渲染配置
+        // ==========================================
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 25); // 设置相机的初始位置
+        // 设置带渐变的深邃星空夜色背景
+        scene.background = new THREE.Color(0x070a13);
+        scene.fog = new THREE.FogExp2(0x070a13, 0.015);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 22);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // 初始化鼠标控制器
+        // 轨道控制器设置
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; // 添加惯性，使旋转更平滑
+        controls.enableDamping = true;
         controls.dampingFactor = 0.05;
+        controls.maxDistance = 45;
+        controls.minDistance = 5;
 
-        // 2. 设置光照
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // 环境光
+        // ==========================================
+        // 2. 光照设计（主光、侧光与透视背光）
+        // ==========================================
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // 平行光
-        directionalLight.position.set(10, 20, 15);
-        scene.add(directionalLight);
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.3); // 背光，增加立体感
-        backLight.position.set(-10, 10, -15);
-        scene.add(backLight);
 
-        // 3. 定义各器官的材质 (Material)
-        const matPharynx = new THREE.MeshPhongMaterial({ color: 0xff7b7b, shininess: 50 });
-        const matTrachea = new THREE.MeshPhongMaterial({ color: 0xe0e0e0, shininess: 30 });
-        const matBronchi = new THREE.MeshPhongMaterial({ color: 0x5bc0eb, shininess: 30 });
-        // 肺部材质设定为半透明
-        const matLung = new THREE.MeshPhongMaterial({ 
-            color: 0xff8ca0, 
-            transparent: true, 
-            opacity: 0.25, 
-            depthWrite: false, // 修复透明物体遮挡渲染问题
-            side: THREE.DoubleSide,
-            shininess: 80 
+        const mainLight = new THREE.DirectionalLight(0xa5d8ff, 1.2);
+        mainLight.position.set(10, 15, 10);
+        scene.add(mainLight);
+
+        const blueBackLight = new THREE.DirectionalLight(0x3b82f6, 0.8);
+        blueBackLight.position.set(-15, -5, -10);
+        scene.add(blueBackLight);
+
+        const redFillLight = new THREE.DirectionalLight(0xf87171, 0.3);
+        redFillLight.position.set(5, -10, 5);
+        scene.add(redFillLight);
+
+        // ==========================================
+        // 3. 定义解剖学材质系统
+        // ==========================================
+        const matPharynx = new THREE.MeshPhongMaterial({ color: 0xff6b6b, shininess: 60, flatShading: false });
+        const matTrachea = new THREE.MeshStandardMaterial({ 
+            color: 0xeeeeee, 
+            roughness: 0.3, 
+            metalness: 0.1,
+            bumpScale: 0.05
         });
-        const matAlveoli = new THREE.MeshPhongMaterial({ color: 0xfde74c, shininess: 100 });
+        const matBronchi = new THREE.MeshStandardMaterial({ 
+            color: 0x38bdf8, // 亮蓝色，凸显分支
+            roughness: 0.4, 
+            metalness: 0.2 
+        });
+        const matLungTrans = new THREE.MeshPhysicalMaterial({ 
+            color: 0xf472b6, 
+            transparent: true, 
+            opacity: 0.22, 
+            roughness: 0.1,
+            metalness: 0.1,
+            transmission: 0.4, // 折射质感
+            ior: 1.3,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const matAlveoli = new THREE.MeshPhongMaterial({ 
+            color: 0xfacc15, // 金黄色
+            emissive: 0x78350f, 
+            shininess: 100 
+        });
 
-        // 创建一个总组，方便整体移动
+        // 核心模型容器
         const respiratorySystem = new THREE.Group();
         scene.add(respiratorySystem);
 
-        // ---- 4. 开始构建解剖结构 ----
-
-        // A. 咽 (Pharynx)
-        const pharynx = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.6, 1.5, 32), matPharynx);
-        pharynx.position.y = 10.5;
-        respiratorySystem.add(pharynx);
-
-        // B. 喉 (Larynx)
-        const larynx = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.65, 1.2, 32), matPharynx);
-        larynx.position.y = 9.15;
-        respiratorySystem.add(larynx);
-
-        // C. 气管 (Trachea)
-        const trachea = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 5, 32), matTrachea);
-        trachea.position.y = 6.0;
-        respiratorySystem.add(trachea);
-
-        // D. 主支气管 (Main Bronchi) - 气管隆突处分叉
-        // 右主支气管 (解剖学上更陡直)
-        const rightBronchus = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 2.5, 32), matBronchi);
-        rightBronchus.position.set(-0.8, 2.7, 0);
-        rightBronchus.rotation.z = Math.PI / 6; // 角度相对小
-        respiratorySystem.add(rightBronchus);
-
-        // 左主支气管 (解剖学上更平缓，为心脏腾出空间)
-        const leftBronchus = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 3.5, 32), matBronchi);
-        leftBronchus.position.set(1.2, 2.5, 0);
-        leftBronchus.rotation.z = -Math.PI / 3.5;
-        respiratorySystem.add(leftBronchus);
-
-        // E. 左右肺 (Lungs)
-        // 使用形变的球体模拟肺叶形状
-        const lungGeometry = new THREE.SphereGeometry(3.5, 32, 32);
+        // ==========================================
+        // 4. 构建解剖结构：咽、喉、气管
+        // ==========================================
         
-        // 右肺 (相对大一点，分为三叶，这里简化为整体形状)
-        const rightLung = new THREE.Mesh(lungGeometry, matLung);
-        rightLung.scale.set(1, 1.6, 1);
-        rightLung.position.set(-3.5, -0.5, 0);
-        respiratorySystem.add(rightLung);
+        // 创建连接两点并可控制首尾粗细的圆柱体（气管节段）
+        function createSegment(vStart, vEnd, rStart, rEnd, material) {
+            const distance = vStart.distanceTo(vEnd);
+            const position = new THREE.Vector3().addVectors(vStart, vEnd).multiplyScalar(0.5);
 
-        // 左肺 (相对小一点，分为两叶，底部有心切迹)
-        const leftLung = new THREE.Mesh(lungGeometry, matLung);
-        leftLung.scale.set(0.9, 1.5, 0.9);
-        leftLung.position.set(3.8, -0.5, 0);
-        respiratorySystem.add(leftLung);
+            const geometry = new THREE.CylinderGeometry(rEnd, rStart, distance, 16, 1);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(position);
 
-        // F. 左肺内的次级支气管分叉与肺泡 (Inner branches and Alveoli inside Left Lung)
-        
-        // 次级分叉 1
-        const leftSubBranch1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 2, 16), matBronchi);
-        leftSubBranch1.position.set(2.8, 1.2, 0);
-        leftSubBranch1.rotation.z = -Math.PI / 6;
-        respiratorySystem.add(leftSubBranch1);
+            const direction = new THREE.Vector3().subVectors(vEnd, vStart).normalize();
+            const up = new THREE.Vector3(0, 1, 0);
+            mesh.quaternion.setFromUnitVectors(up, direction);
 
-        // 次级分叉 2 (末梢支气管)
-        const leftSubBranch2 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.08, 1.5, 16), matBronchi);
-        leftSubBranch2.position.set(3.5, 0.2, 0.5);
-        leftSubBranch2.rotation.z = -Math.PI / 4;
-        leftSubBranch2.rotation.x = Math.PI / 6;
-        respiratorySystem.add(leftSubBranch2);
-
-        // 肺泡簇 (Alveolar Sacs) - 挂在次级分叉2的末端
-        const alveoliGroup = new THREE.Group();
-        alveoliGroup.position.set(4.2, -0.5, 0.9); // 定位到支气管末端
-
-        // 使用循环生成一团像葡萄一样的肺泡
-        for(let i = 0; i < 25; i++) {
-            const alveolus = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), matAlveoli);
-            // 随机分布在一个小球形范围内
-            alveolus.position.set(
-                (Math.random() - 0.5) * 0.9,
-                (Math.random() - 0.5) * 0.9,
-                (Math.random() - 0.5) * 0.9
-            );
-            alveoliGroup.add(alveolus);
+            return mesh;
         }
+
+        // 咽 (Pharynx)
+        const pharynxStart = new THREE.Vector3(0, 7.5, -0.3);
+        const pharynxEnd = new THREE.Vector3(0, 6.2, -0.1);
+        const pharynxMesh = createSegment(pharynxStart, pharynxEnd, 0.7, 0.6, matPharynx);
+        respiratorySystem.add(pharynxMesh);
+
+        // 喉 (Larynx)
+        const larynxStart = new THREE.Vector3(0, 6.2, -0.1);
+        const larynxEnd = new THREE.Vector3(0, 5.2, 0);
+        const larynxMesh = createSegment(larynxStart, larynxEnd, 0.55, 0.7, matPharynx);
+        respiratorySystem.add(larynxMesh);
+
+        // 主气管 (Trachea)
+        const tracheaStart = new THREE.Vector3(0, 5.2, 0);
+        const tracheaEnd = new THREE.Vector3(0, 1.8, 0);
+        const tracheaMesh = createSegment(tracheaStart, tracheaEnd, 0.45, 0.45, matTrachea);
+        respiratorySystem.add(tracheaMesh);
+
+        // 气管环装饰（凸显气管特征）
+        const numRings = 10;
+        for (let i = 0; i < numRings; i++) {
+            const t = i / (numRings - 1);
+            const ringPos = new THREE.Vector3().lerpVectors(tracheaStart, tracheaEnd, t);
+            const ringGeo = new THREE.TorusGeometry(0.46, 0.05, 8, 24);
+            const ring = new THREE.Mesh(ringGeo, matTrachea);
+            ring.position.copy(ringPos);
+            ring.rotation.x = Math.PI / 2;
+            respiratorySystem.add(ring);
+        }
+
+        // ==========================================
+        // 5. 递归算法：构建像“树根”一样的多级支气管系统
+        // ==========================================
+        const alveoliPositions = []; // 用于存储最末端肺泡的生成坐标
+
+        /**
+         * 递归生成支气管树
+         * @param {THREE.Vector3} start 起点坐标
+         * @param {THREE.Vector3} direction 当前延伸方向向量
+         * @param {number} length 枝段长度
+         * @param {number} radius 起始半径
+         * @param {number} depth 当前分叉深度
+         * @param {number} maxDepth 最大分叉深度
+         * @param {boolean} isLeft 是否属于左肺侧（用于在左肺生成肺泡）
+         */
+        function generateBronchialTree(start, direction, length, radius, depth, maxDepth, isLeft) {
+            const rEnd = radius * 0.72; // 下一级半径递减
+            const end = new THREE.Vector3().addVectors(start, new THREE.Vector3().copy(direction).multiplyScalar(length));
+
+            // 创建当前的骨架段
+            const segment = createSegment(start, end, radius, rEnd, matBronchi);
+            respiratorySystem.add(segment);
+
+            // 到达末梢
+            if (depth >= maxDepth) {
+                if (isLeft) {
+                    // 记录最末端位置，用于稍后生成肺泡
+                    alveoliPositions.push(end.clone());
+                }
+                return;
+            }
+
+            // 分叉逻辑：每一代分支裂变为 2-3 个次级分支
+            const numBranches = 2;
+            for (let i = 0; i < numBranches; i++) {
+                const nextDir = new THREE.Vector3().copy(direction);
+
+                // 根据左右肺特性设置侧向倾角，使其整体向下和向外侧自然包裹散开
+                let angleX = 0.35 + (Math.random() - 0.5) * 0.2; 
+                let angleY = (isLeft ? 0.4 : -0.4) + (Math.random() - 0.5) * 0.3;
+                let angleZ = (isLeft ? 0.3 : -0.3) + (Math.random() - 0.5) * 0.2;
+
+                // 左右分叉交替朝向不同象限
+                if (i === 0) {
+                    nextDir.applyAxisAngle(new THREE.Vector3(1, 0, 0), angleX);
+                    nextDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleY);
+                } else {
+                    nextDir.applyAxisAngle(new THREE.Vector3(0, 0, 1), angleZ);
+                    nextDir.applyAxisAngle(new THREE.Vector3(1, 0, 0), -angleX * 0.5);
+                }
+                
+                nextDir.normalize();
+
+                // 随着深度增加，分支缩短
+                const nextLength = length * 0.75;
+                generateBronchialTree(end, nextDir, nextLength, rEnd, depth + 1, maxDepth, isLeft);
+            }
+        }
+
+        // 启动左右肺树状支气管递归生成
+        const leftMainDir = new THREE.Vector3(1, -0.4, 0.1).normalize();
+        generateBronchialTree(tracheaEnd, leftMainDir, 1.8, 0.3, 1, 5, true); // 左肺：5级深度，末梢生成肺泡
+
+        const rightMainDir = new THREE.Vector3(-0.9, -0.6, -0.1).normalize();
+        generateBronchialTree(tracheaEnd, rightMainDir, 1.6, 0.32, 1, 5, false); // 右肺：5级深度，不画肺泡以便清晰对比
+
+        // ==========================================
+        // 6. 在左肺最末梢装配肺泡群（Alveoli Clusters）
+        // ==========================================
+        const alveoliGroup = new THREE.Group();
         respiratorySystem.add(alveoliGroup);
 
-        // 整体往下移动一点，使其居中显示
-        respiratorySystem.position.y = -4;
+        alveoliPositions.forEach((pos) => {
+            // 在每一个微细支气管的终点，生成一簇“葡萄状”的肺泡
+            const clusterSize = 5 + Math.floor(Math.random() * 6);
+            for (let i = 0; i < clusterSize; i++) {
+                const alveolusSize = 0.08 + Math.random() * 0.08;
+                const alveolusGeo = new THREE.SphereGeometry(alveolusSize, 8, 8);
+                const alveolus = new THREE.Mesh(alveolusGeo, matAlveoli);
 
-        // 5. 渲染循环动画
+                // 围绕末端小范围随机偏移
+                alveolus.position.set(
+                    pos.x + (Math.random() - 0.5) * 0.4,
+                    pos.y + (Math.random() - 0.5) * 0.4,
+                    pos.z + (Math.random() - 0.5) * 0.4
+                );
+                alveoliGroup.add(alveolus);
+            }
+        });
+
+        // ==========================================
+        // 7. 左右肺部外壳（Lungs）—— 模拟真实质感
+        // ==========================================
+        const leftLungGroup = new THREE.Group();
+        const rightLungGroup = new THREE.Group();
+        respiratorySystem.add(leftLungGroup);
+        respiratorySystem.add(rightLungGroup);
+
+        // 使用变形的球体拼接出自然的左右肺叶
+        const lungGeo = new THREE.SphereGeometry(1, 32, 32);
+
+        // 左肺组合（稍微偏长偏窄，避开中下部心脏区）
+        const leftUpper = new THREE.Mesh(lungGeo, matLungTrans);
+        leftUpper.scale.set(1.4, 2.2, 1.3);
+        leftUpper.position.set(2.8, -0.5, 0);
+        leftUpper.rotation.z = -0.15;
+        leftLungGroup.add(leftUpper);
+
+        const leftLower = new THREE.Mesh(lungGeo, matLungTrans);
+        leftLower.scale.set(1.6, 1.8, 1.5);
+        leftLower.position.set(3.0, -2.0, 0.2);
+        leftLower.rotation.z = -0.1;
+        leftLungGroup.add(leftLower);
+
+        // 右肺组合（更宽、更大）
+        const rightUpper = new THREE.Mesh(lungGeo, matLungTrans);
+        rightUpper.scale.set(1.6, 2.3, 1.5);
+        rightUpper.position.set(-2.8, -0.3, -0.1);
+        rightUpper.rotation.z = 0.15;
+        rightLungGroup.add(rightUpper);
+
+        const rightLower = new THREE.Mesh(lungGeo, matLungTrans);
+        rightLower.scale.set(1.8, 1.9, 1.7);
+        rightLower.position.set(-2.9, -1.9, 0.1);
+        rightLower.rotation.z = 0.1;
+        rightLungGroup.add(rightLower);
+
+        // 调整整体模型世界坐标轴重心
+        respiratorySystem.position.y = -1;
+
+        // ==========================================
+        // 8. 实时控制与动画系统 (呼吸动效与灯光闪烁)
+        // ==========================================
+        let isBreathing = true;
+        let clock = new THREE.Clock();
+
         function animate() {
             requestAnimationFrame(animate);
-            // 让整个系统缓慢自转，展示 3D 效果
-            respiratorySystem.rotation.y += 0.002;
-            controls.update(); // 更新控制器
+
+            const time = clock.getElapsedTime();
+
+            // 1. 缓慢自转，增强空间感
+            respiratorySystem.rotation.y = Math.sin(time * 0.15) * 0.4;
+
+            // 2. 呼吸模拟（肺膨胀收缩）
+            if (isBreathing) {
+                // 平静呼吸节奏：约 3.75 秒一个呼吸周期 (16次/分钟)
+                const breatheCycle = Math.sin(time * 1.6);
+                const scaleFactor = 1 + breatheCycle * 0.05; // 5% 的大小涨缩幅度
+                
+                // 肺泡也随之微微变大并发生颜色荧光变化
+                const alveoliScale = 1 + breatheCycle * 0.08;
+                alveoliGroup.scale.set(alveoliScale, alveoliScale, alveoliScale);
+
+                // 肺叶缩放
+                leftLungGroup.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                rightLungGroup.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                
+                // 呼吸时微微提肩/抬胸（Y轴微移）
+                leftLungGroup.position.y = breatheCycle * 0.1;
+                rightLungGroup.position.y = breatheCycle * 0.1;
+
+                // 肺泡在吸气时发光更亮
+                matAlveoli.emissiveIntensity = 0.5 + breatheCycle * 0.3;
+            }
+
+            controls.update();
             renderer.render(scene, camera);
         }
 
-        // 6. 响应浏览器窗口缩放
+        // 启动动画循环
+        window.onload = function() {
+            animate();
+        };
+
+        // ==========================================
+        // 9. UI 交互功能绑定
+        // ==========================================
+        
+        // 切换为“透视模式”
+        document.getElementById('btn-transparent').addEventListener('click', () => {
+            matLungTrans.opacity = 0.15;
+            matLungTrans.transmission = 0.8;
+            matLungTrans.roughness = 0.05;
+            matLungTrans.needsUpdate = true;
+            setActiveButton('btn-transparent', 'btn-solid');
+        });
+
+        // 切换为“实体模式”
+        document.getElementById('btn-solid').addEventListener('click', () => {
+            matLungTrans.opacity = 0.85;
+            matLungTrans.transmission = 0.0;
+            matLungTrans.roughness = 0.4;
+            matLungTrans.needsUpdate = true;
+            setActiveButton('btn-solid', 'btn-transparent');
+        });
+
+        // 暂停/开始呼吸
+        const breatheBtn = document.getElementById('btn-breathe');
+        breatheBtn.addEventListener('click', () => {
+            isBreathing = !isBreathing;
+            breatheBtn.textContent = isBreathing ? "暂停呼吸" : "恢复呼吸";
+            breatheBtn.className = isBreathing 
+                ? "flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-emerald-600 text-white transition hover:bg-emerald-500"
+                : "flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-amber-600 text-white transition hover:bg-amber-500";
+        });
+
+        // 重置视角
+        document.getElementById('btn-reset-cam').addEventListener('click', () => {
+            // 平滑重置相机
+            const duration = 1000;
+            const startPos = camera.position.clone();
+            const endPos = new THREE.Vector3(0, 0, 22);
+            const startTarget = controls.target.clone();
+            const endTarget = new THREE.Vector3(0, 0, 0);
+            const startTime = performance.now();
+
+            function lerpCamera(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                // 缓动算法 (Ease-out-quad)
+                const ease = progress * (2 - progress);
+                camera.position.lerpVectors(startPos, endPos, ease);
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                if (progress < 1) {
+                    requestAnimationFrame(lerpCamera);
+                }
+            }
+            requestAnimationFrame(lerpCamera);
+        });
+
+        function setActiveButton(activeId, inactiveId) {
+            document.getElementById(activeId).className = "flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-blue-600 text-white transition hover:bg-blue-500";
+            document.getElementById(inactiveId).className = "flex-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 transition hover:bg-slate-700";
+        }
+
+        // 点击侧边栏聚焦特定器官
+        window.focusOn = function(part) {
+            let targetPos = new THREE.Vector3(0, 0, 0);
+            let distance = 16;
+
+            switch(part) {
+                case 'pharynx':
+                    targetPos.set(0, 5, 0);
+                    distance = 8;
+                    break;
+                case 'trachea':
+                    targetPos.set(0, 2.5, 0);
+                    distance = 9;
+                    break;
+                case 'bronchi':
+                    targetPos.set(0, 0, 0);
+                    distance = 12;
+                    break;
+                case 'lung':
+                    targetPos.set(0, -1, 0);
+                    distance = 18;
+                    break;
+                case 'alveoli':
+                    // 直接对准左肺深处的肺泡群
+                    targetPos.set(3.5, -2, 0.5);
+                    distance = 7;
+                    break;
+            }
+
+            // 摄像机镜头位移过渡动画
+            const duration = 800;
+            const startCam = camera.position.clone();
+            const endCam = new THREE.Vector3(targetPos.x, targetPos.y + 1, targetPos.z + distance);
+            const startTarget = controls.target.clone();
+            const startTime = performance.now();
+
+            function step(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const ease = progress * (2 - progress);
+                camera.position.lerpVectors(startCam, endCam, ease);
+                controls.target.lerpVectors(startTarget, targetPos, ease);
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        };
+
+        // ==========================================
+        // 10. 屏幕尺寸自适应
+        // ==========================================
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        // 启动动画
-        animate();
     </script>
 </body>
 </html>
