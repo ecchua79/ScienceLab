@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第3章 生命的基础 - 互动学习</title>
+<style>
+  :root{
+    --green:#2e7d32; --green-light:#a5d6a7; --blue:#1565c0; --blue-light:#90caf9;
+    --bg:#f4f9f4; --card:#ffffff; --accent:#ff8f00; --text:#263238;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",sans-serif;
+    background:linear-gradient(160deg,#e8f5e9 0%,#e3f2fd 100%);
+    color:var(--text); line-height:1.7; padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(120deg,var(--green),#43a047 60%,var(--accent));
+    color:white; padding:50px 20px; text-align:center;
+    border-bottom-left-radius:40px; border-bottom-right-radius:40px;
+    box-shadow:0 6px 20px rgba(0,0,0,.15);
+  }
+  header h1{font-size:2.2em; margin-bottom:8px;}
+  header p{opacity:.95;}
+  nav{
+    display:flex; flex-wrap:wrap; justify-content:center; gap:10px;
+    margin:25px auto; max-width:900px; padding:0 15px;
+  }
+  /* //峇株吧辖华仁中学蔡逸众制作 */
+  nav button{
+    background:white; border:2px solid var(--green); color:var(--green);
+    padding:10px 18px; border-radius:25px; cursor:pointer; font-size:.95em;
+    font-weight:bold; transition:.25s;
+  }
+  nav button:hover, nav button.active{
+    background:var(--green); color:white; transform:translateY(-2px);
+    box-shadow:0 4px 10px rgba(46,125,50,.4);
+  }
+  .section{
+    max-width:900px; margin:0 auto 30px; background:var(--card);
+    border-radius:20px; padding:30px; box-shadow:0 4px 18px rgba(0,0,0,.08);
+    display:none; animation:fade .4s ease;
+  }
+  .section.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(15px);} to{opacity:1; transform:translateY(0);}}
+  h2{color:var(--green); border-bottom:3px solid var(--green-light); padding-bottom:8px; margin-bottom:18px;}
+  h3{color:var(--blue); margin:20px 0 10px;}
+  .intro-box{
+    background:#fff8e1; border-left:6px solid var(--accent); padding:16px 20px;
+    border-radius:8px; margin-bottom:20px; font-size:.97em;
+  }
+
+  /* 七大生命现象 - flip cards */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin:20px 0;}
+  .flip-card{height:140px; perspective:1000px; cursor:pointer;}
+  .flip-inner{position:relative; width:100%; height:100%; transition:transform .6s; transform-style:preserve-3d;}
+  .flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+  .flip-front, .flip-back{
+    position:absolute; width:100%; height:100%; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    backface-visibility:hidden; padding:10px; font-weight:bold;
+  }
+  .flip-front{background:linear-gradient(135deg,#66bb6a,#43a047); color:white; font-size:1.05em;}
+  .flip-back{background:#e8f5e9; color:var(--text); transform:rotateY(180deg); font-size:.85em; border:2px solid var(--green-light);}
+
+  /* 生存条件 */
+  .cond-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; margin:15px 0;}
+  .cond-item{
+    background:var(--blue-light); color:#0d3a66; border-radius:14px; padding:18px 10px;
+    text-align:center; font-weight:bold; cursor:pointer; transition:.2s; position:relative;
+  }
+  .cond-item:hover{transform:scale(1.05); background:#64b5f6; color:white;}
+  .cond-item .icon{font-size:2em; display:block; margin-bottom:6px;}
+
+  /* 细胞结构互动图 */
+  .cell-wrap{display:flex; flex-wrap:wrap; gap:24px; justify-content:center; margin:20px 0;}
+  .cell-diagram{position:relative; width:280px; height:280px;}
+  .cell-part{
+    position:absolute; cursor:pointer; border:2px solid transparent; border-radius:8px;
+    transition:.2s; display:flex; align-items:center; justify-content:center;
+    font-size:.8em; font-weight:bold; color:#1b1b1b; text-align:center;
+  }
+  .cell-part:hover, .cell-part.selected{border-color:var(--accent); box-shadow:0 0 12px var(--accent); transform:scale(1.03);}
+  .part-info{
+    flex:1; min-width:220px; background:#f1f8e9; border-radius:14px; padding:18px;
+    border:2px dashed var(--green-light); min-height:200px;
+  }
+  .part-info h4{color:var(--green); margin-bottom:8px;}
+
+  /* 动物细胞 */
+  .animal-cell{background:#ffe0e6; border-radius:50%; }
+  .a-membrane{top:0; left:0; width:280px; height:280px; border-radius:50%; background:#ffccd5; z-index:1;}
+  .a-cytoplasm{top:15px; left:15px; width:250px; height:250px; border-radius:50%; background:#ffe9ec; z-index:2;}
+  .a-nucleus{top:90px; left:90px; width:100px; height:100px; border-radius:50%; background:#ce93d8; z-index:4;}
+  .a-vacuole{top:40px; left:170px; width:60px; height:60px; border-radius:50%; background:#b3e5fc; z-index:3;}
+
+  /* 植物细胞 */
+  .plant-cell{position:relative;}
+  .p-wall{top:0; left:0; width:280px; height:280px; border-radius:18px; background:#c8e6c9; z-index:1;}
+  .p-membrane{top:10px; left:10px; width:260px; height:260px; border-radius:14px; background:#e8f5e9; z-index:2;}
+  .p-cytoplasm{top:18px; left:18px; width:244px; height:244px; border-radius:12px; background:#f1f8e9; z-index:3;}
+  .p-vacuole{top:40px; left:40px; width:160px; height:160px; border-radius:12px; background:#b3e5fc; z-index:4;}
+  .p-nucleus{top:60px; left:170px; width:80px; height:80px; border-radius:50%; background:#ce93d8; z-index:5;}
+  .p-chloroplast1{top:200px; left:60px; width:40px; height:24px; border-radius:50%; background:#66bb6a; z-index:5; font-size:.65em;}
+  .p-chloroplast2{top:180px; left:180px; width:40px; height:24px; border-radius:50%; background:#66bb6a; z-index:5; font-size:.65em;}
+
+  /* 显微镜 */
+  .scope-img{display:flex; justify-content:center; margin:20px 0;}
+  .scope-list{list-style:none; counter-reset:item;}
+  .scope-list li{
+    counter-increment: item; margin:6px 0; padding:10px 14px; background:#e3f2fd; border-radius:10px;
+    cursor:pointer; transition:.2s; display:flex; gap:10px; align-items:center;
+  }
+  .scope-list li:hover{background:#bbdefb;}
+  .scope-list li::before{
+    content:counter(item); background:var(--blue); color:white; border-radius:50%;
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.8em;
+  }
+  .scope-list li .ans{display:none; color:#555; font-size:.85em; margin-left:auto;}
+  .scope-list li.show .ans{display:inline;}
+
+  /* 细胞分裂动画 */
+  .division-stage{display:flex; flex-direction:column; align-items:center; gap:14px; margin:20px 0;}
+  .cells-row{display:flex; gap:10px; align-items:center; justify-content:center; min-height:90px;}
+  .blob{width:70px; height:70px; border-radius:50%; background:#a5d6a7; border:3px solid var(--green);
+    display:flex; align-items:center; justify-content:center; transition:all .6s ease;}
+  .controls button{
+    background:var(--green); color:white; border:none; padding:10px 20px; border-radius:20px;
+    cursor:pointer; font-weight:bold; margin:4px;
+  }
+  .controls button:disabled{background:#bdbdbd; cursor:not-allowed;}
+
+  /* 层级结构 */
+  .hierarchy{display:flex; flex-direction:column; align-items:center; gap:10px; margin:20px 0;}
+  .level{
+    width:100%; max-width:600px; padding:14px; border-radius:14px; text-align:center; font-weight:bold;
+    color:white; cursor:pointer; transition:.25s; position:relative;
+  }
+  .level:hover{transform:scale(1.02);}
+  .lvl1{background:#81c784;}
+  .lvl2{background:#4fc3f7;}
+  .lvl3{background:#ba68c8;}
+  .lvl4{background:#ffb74d;}
+  .arrow-down{font-size:1.5em; color:var(--green);}
+  .level .detail{display:none; font-size:.8em; font-weight:normal; margin-top:6px; background:rgba(255,255,255,.25); border-radius:8px; padding:6px;}
+  .level.open .detail{display:block;}
+
+  /* 配对/分类游戏 */
+  .sort-game{display:flex; gap:20px; flex-wrap:wrap; justify-content:space-between; margin:15px 0;}
+  /* //峇株吧辖蔡逸众制作 */
+  .pool, .dropzone{flex:1; min-width:140px;}
+  .dropzone{
+    border:2px dashed var(--blue); border-radius:14px; padding:12px; min-height:160px;
+    background:#f0f7ff;
+  }
+  .dropzone h4{text-align:center; color:var(--blue); margin-bottom:8px;}
+  .tag{
+    display:inline-block; background:var(--accent); color:white; padding:8px 14px; margin:4px;
+    border-radius:20px; cursor:grab; font-size:.9em; user-select:none;
+  }
+  .tag.placed{cursor:default;}
+  .pool{border:2px dashed #ccc; border-radius:14px; padding:12px; min-height:160px; flex:1.4; background:#fafafa;}
+
+  /* 测验 */
+  .quiz-q{background:#f9fbe7; border-radius:14px; padding:16px; margin:14px 0; border:2px solid #fff59d;}
+  .quiz-q p.question{font-weight:bold; margin-bottom:10px;}
+  .quiz-options{display:flex; flex-direction:column; gap:8px;}
+  .quiz-options button{
+    text-align:left; padding:10px 14px; border-radius:10px; border:2px solid #ddd;
+    background:white; cursor:pointer; transition:.2s;
+  }
+  .quiz-options button.correct{background:#c8e6c9; border-color:var(--green);}
+  .quiz-options button.wrong{background:#ffcdd2; border-color:#e53935;}
+  #quiz-score{font-weight:bold; color:var(--green); margin-top:10px; font-size:1.1em;}
+
+  .think-box{background:#ede7f6; border-left:6px solid #7e57c2; padding:14px 18px; border-radius:8px; margin:15px 0;}
+  .watermark{
+    position:fixed; bottom:10px; right:14px; font-size:.75em; color:rgba(46,125,50,.35);
+    pointer-events:none; z-index:999; font-weight:bold; user-select:none;
+  }
+  footer{text-align:center; color:#777; margin-top:30px; font-size:.85em;}
+
+  @media(max-width:600px){
+    .cell-diagram{width:230px; height:230px; transform:scale(0.95);}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔬 第3章 生命的基础</h1>
+  <p>探索生命现象、细胞的奥秘，以及生物体的构造之旅</p>
+</header>
+
+<nav id="navbar">
+  <button class="active" data-target="sec-intro">🌱 导入</button>
+  <button data-target="sec-life">✨ 生命现象</button>
+  <button data-target="sec-survive">🌍 生存条件</button>
+  <button data-target="sec-cell">🧫 细胞结构</button>
+  <button data-target="sec-scope">🔍 显微镜</button>
+  <button data-target="sec-division">🔄 细胞分裂与分化</button>
+  <button data-target="sec-organism">🧍 组织·器官·系统</button>
+  <button data-target="sec-quiz">📝 综合挑战</button>
+</nav>
+
+<!-- 导入 -->
+<section class="section active" id="sec-intro">
+  <h2>科学发现：Xenobots 活体生物机器人</h2>
+  <div class="intro-box">
+    2020年，美国科学家利用非洲爪蟾的干细胞，结合电脑设计，创造出世界上第一个"可被程式化的生物体"——Xenobots！
+    <!-- //华仁中学蔡逸众制作 -->
+    它由皮肤细胞（外皮）和心肌细胞（驱动收缩）组成，大小不到1mm，却能集体合作、自我繁殖、自我修复！
+    未来或可用于医学再生、癌症治疗，甚至清理海洋微塑料和放射性废料。
+  </div>
+  <h3>🤔 本章提问</h3>
+  <ul style="margin-left:20px;">
+    <li>生命现象有哪些？</li>
+    <li>细胞对生物体的结构和功能起着哪些重要的作用？</li>
+  </ul>
+  <h3>本章你将学到：</h3>
+  <div class="grid">
+    <div style="background:#e8f5e9;border-radius:12px;padding:14px;text-align:center;">🌍 生物体的生存条件</div>
+    <div style="background:#e3f2fd;border-radius:12px;padding:14px;text-align:center;">🧫 细胞的基本结构及功能</div>
+    <div style="background:#fff3e0;border-radius:12px;padding:14px;text-align:center;">🌿 动植物细胞的差异</div>
+    <div style="background:#f3e5f5;border-radius:12px;padding:14px;text-align:center;">🔄 细胞分裂与分化</div>
+  </div>
+  <div class="think-box">
+    💡 想一想：为什么一棵树是生物体，但做成桌子后却不再是生物体了？<br>
+    <em>（答案：因为树被砍伐做成桌子后，失去了"生命现象"——它不再能运动、生长、繁殖、呼吸、排泄、对刺激反应、摄取营养。）</em>
+  </div>
+</section>
+
+<!-- 生命现象 -->
+<section class="section" id="sec-life">
+  <h2>3.1 什么是生物体？生命现象有哪些？</h2>
+  <p>生物体具有<b>七大生命现象</b>，这是区分生物与非生物的关键。点击卡片查看说明！</p>
+  <div class="grid" id="life-cards"></div>
+
+  <div class="think-box">
+    🦠 动动脑：<b>病毒是生物还是非生物？</b><br>
+    <details style="margin-top:8px;">
+      <summary style="cursor:pointer; color:var(--blue); font-weight:bold;">点击查看提示</summary>
+      <p style="margin-top:8px;">病毒在宿主细胞外不能独立完成繁殖、新陈代谢等生命现象，只有进入宿主细胞后才能"繁殖"。因此病毒的归属在科学上仍有争议——这正是科学家们持续讨论的有趣问题！</p>
+    </details>
+  </div>
+</section>
+
+<!-- 生存条件 -->
+<section class="section" id="sec-survive">
+  <h2>3.1.2 生物如何维持生命？</h2>
+  <p>细胞 (cell) 是生命最小的单位。所有由细胞组成的生物（动物、植物）都需要相同的<b>生存条件</b>。点击图标了解详情！</p>
+  <div class="cond-grid" id="cond-cards"></div>
+  <div class="part-info" id="cond-detail" style="margin-top:10px;">👆 点击上方的条件卡片，查看为什么生物需要它。</div>
+</section>
+
+<!-- 细胞结构 -->
+<section class="section" id="sec-cell">
+  <h2>3.2 什么是细胞？细胞是由什么组成？</h2>
+  <div class="intro-box">
+    细胞非常微小，肉眼看不见，需借助显微镜观察。由许多细胞构成的生物称为<b>多细胞生物</b>（如人体约由30万亿个细胞构成）；只有一个细胞的生物称为<b>单细胞生物</b>。
+  </div>
+
+  <h3>🐾 动物细胞 vs 🌿 植物细胞 — 点击各部分探索功能！</h3>
+  <div style="text-align:center; margin-bottom:10px;">
+    <button onclick="showCell('animal')" id="btn-animal" class="cell-toggle">🐾 动物细胞</button>
+    <button onclick="showCell('plant')" id="btn-plant" class="cell-toggle">🌿 植物细胞</button>
+  </div>
+
+  <div class="cell-wrap">
+    <div class="cell-diagram animal-cell" id="animal-diagram">
+      <div class="cell-part a-membrane" data-part="membrane"></div>
+      <!-- //Made by ecchua79 -->
+      <div class="cell-part a-cytoplasm" data-part="cytoplasm"></div>
+      <div class="cell-part a-vacuole" data-part="small-vacuole">小液泡</div>
+      <div class="cell-part a-nucleus" data-part="nucleus">细胞核</div>
+    </div>
+    <div class="cell-diagram plant-cell" id="plant-diagram" style="display:none;">
+      <div class="cell-part p-wall" data-part="wall"></div>
+      <div class="cell-part p-membrane" data-part="membrane"></div>
+      <div class="cell-part p-cytoplasm" data-part="cytoplasm"></div>
+      <div class="cell-part p-vacuole" data-part="vacuole">液泡</div>
+      <div class="cell-part p-nucleus" data-part="nucleus">细胞核</div>
+      <div class="cell-part p-chloroplast1" data-part="chloroplast">叶绿体</div>
+      <div class="cell-part p-chloroplast2" data-part="chloroplast">叶绿体</div>
+    </div>
+    <div class="part-info" id="part-info">
+      👆 点击细胞图上的不同区域（细胞膜、细胞质、细胞核、液泡、细胞壁、叶绿体等），了解它们的功能！
+    </div>
+  </div>
+
+  <h3>📊 动植物细胞比较 — 分类游戏</h3>
+  <p>把下面的结构拖到正确的分类框中（部分结构两者都有！）</p>
+  <div class="sort-game">
+    <div class="pool" id="pool"></div>
+    <div class="dropzone" id="zone-both"><h4>动植物细胞都有</h4></div>
+    <div class="dropzone" id="zone-plant"><h4>植物细胞特有</h4></div>
+  </div>
+  <button onclick="checkSort()" style="margin-top:10px;background:var(--accent);color:white;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-weight:bold;">✅ 检查答案</button>
+  <p id="sort-result" style="font-weight:bold; margin-top:8px;"></p>
+
+  <h3>🧬 细胞核与遗传物质</h3>
+  <div class="intro-box">
+    细胞核负责储存细胞的遗传物质——<b>DNA (脱氧核糖核酸)</b>。它是细胞的控制中心，向细胞发出生长、成熟、分裂或凋亡的指令，并协调蛋白质合成等重要活动。
+  </div>
+  <div class="think-box">
+    📐 阅读·细胞模型：在显微镜下，细胞看起来是扁平的二维（2D）图像，但实际上细胞本身是立体的<b>三维结构（3D）</b>！
+  </div>
+</section>
+
+<!-- 显微镜 -->
+<section class="section" id="sec-scope">
+  <h2>阅读：显微镜的构造</h2>
+  <p>光学显微镜最高可放大 <b>1600倍</b>，电子显微镜可放大至 <b>100万倍</b>以上！</p>
+  <p style="margin-bottom:12px;">👇 旋转3D模型探索各部件，点击绿色标签查看功能说明，也可挑战<b>测验模式</b>！</p>
+  <div style="border-radius:16px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.18); margin-bottom:24px;">
+    <iframe id="scope-iframe" style="width:100%; height:500px; border:none; display:block;" scrolling="no"></iframe>
+  </div>
+  <h3>📋 各部件功能一览（点击展开）</h3>
+  <ul class="scope-list" id="scope-list"></ul>
+</section>
+
+<!-- 细胞分裂与分化 -->
+<section class="section" id="sec-division">
+  <h2>3.3 细胞如何生长？分裂与分化</h2>
+  <div class="intro-box">
+    <b>细胞分裂 (cell division)</b>：一个细胞分裂成两个细胞的过程，使细胞数量增多，促进生物体生长，并更新衰老细胞。<br><br>
+    <b>细胞生长 (cell growth)</b>：分裂后产生的子细胞较小，吸收营养后体积增大、结构完善，最终长成成熟细胞。<br><br>
+    <b>细胞分化 (cell differentiation)</b>：子细胞在形态、结构和功能上发生变化，形成不同类型的细胞。
+  </div>
+
+  <h3>🎬 互动动画：从一个细胞到多种细胞</h3>
+  <div class="division-stage">
+    <div class="cells-row" id="division-row">
+      <div class="blob" id="blob0">🟢</div>
+    </div>
+    <div class="controls">
+      <button onclick="divisionStep()" id="div-btn">▶ 细胞分裂！</button>
+      <!-- //峇株吧辖华仁中学蔡逸众制作 -->
+      <button onclick="resetDivision()">🔄 重置</button>
+    </div>
+    <p id="division-caption" style="font-weight:bold; color:var(--green);">点击"细胞分裂"，观察一个受精卵如何分裂、生长，最终分化成不同类型的细胞！</p>
+  </div>
+
+  <h3>🌟 阅读：干细胞 (Stem Cells)</h3>
+  <div class="intro-box">
+    干细胞能分化成体内不同类型的细胞，并具有较高的自我复制能力。<b>受精卵</b>就是一种干细胞——人体内200多种细胞（肌肉细胞、骨骼细胞、神经细胞、血细胞等）都是由同一个受精卵分裂、生长、分化而来！
+  </div>
+</section>
+
+<!-- 组织器官系统 -->
+<section class="section" id="sec-organism">
+  <h2>3.4 细胞如何形成生物体？</h2>
+  <p>点击下方每一层级，了解细胞如何一步步构成完整的生物体：</p>
+  <div class="hierarchy">
+    <div class="level lvl1" onclick="toggleLevel(this)">
+      🔵 细胞 (Cell) — 生命的基本单位
+      <div class="detail">受精卵经多次分裂、分化，形成多种不同结构和功能的细胞。</div>
+    </div>
+    <div class="arrow-down">⬇</div>
+    <div class="level lvl2" onclick="toggleLevel(this)">
+      🟦 组织 (Tissue) — 相同类型细胞的集合，共同执行相同工作
+      <div class="detail">人体四大基本组织：上皮组织、肌肉组织、神经组织、结缔组织。<br>
+      植物组织：分生组织、营养组织、保护组织、输导组织。</div>
+    </div>
+    <div class="arrow-down">⬇</div>
+    <div class="level lvl3" onclick="toggleLevel(this)">
+      🟪 器官 (Organ) — 不同组织协同执行特定工作
+      <div class="detail">人体器官：感觉器官、消化器官、呼吸器官、循环器官、生殖器官、排泄器官等。<br>
+      植物器官：根、茎、叶（营养器官）；花、果、种子（生殖器官）。</div>
+    </div>
+    <div class="arrow-down">⬇</div>
+    <div class="level lvl4" onclick="toggleLevel(this)">
+      🟧 系统 (System) — 不同器官协同运作（仅动物）
+      <div class="detail">人体系统：消化系统、循环系统、呼吸系统、生殖系统、神经系统、运动系统、内分泌系统等。<br>
+      💡 植物不需要形成"系统"，多个器官即可构成完整的植株！</div>
+    </div>
+  </div>
+
+  <h3>🌿 植物的组织详解</h3>
+  <div class="grid">
+    <div class="cell-part" style="position:static; background:#fff3e0; height:auto; padding:14px; flex-direction:column;">
+      <b>保护组织</b><br><span style="font-size:.85em;">叶片表皮细胞，紧密排列，无叶绿体，保护内部柔嫩组织</span>
+    </div>
+    <div class="cell-part" style="position:static; background:#e8f5e9; height:auto; padding:14px; flex-direction:column;">
+      <b>营养组织</b><br><span style="font-size:.85em;">叶肉细胞，含大量叶绿体，进行光合作用（薄壁组织）</span>
+    </div>
+    <div class="cell-part" style="position:static; background:#e3f2fd; height:auto; padding:14px; flex-direction:column;">
+      <b>输导组织 - 木质部</b><br><span style="font-size:.85em;">运输根部吸收的水分和矿物质到叶片</span>
+    </div>
+    <div class="cell-part" style="position:static; background:#fce4ec; height:auto; padding:14px; flex-direction:column;">
+      <b>输导组织 - 韧皮部</b><br><span style="font-size:.85em;">将叶片光合作用产生的养分运输到全身</span>
+    </div>
+    <div class="cell-part" style="position:static; background:#f3e5f5; height:auto; padding:14px; flex-direction:column;">
+      <b>分生组织</b><br><span style="font-size:.85em;">位于芽尖、根尖，能不断分裂产生新细胞</span>
+    </div>
+  </div>
+</section>
+
+<!-- //峇株吧辖蔡逸众制作 -->
+<!-- 综合测验 -->
+<section class="section" id="sec-quiz">
+  <h2>📝 综合挑战：检测你的学习成果！</h2>
+  <div id="quiz-container"></div>
+  <div id="quiz-score"></div>
+</section>
+
+  <footer>
+  <div class="wrap">
+   🌱 初一科学 · 第3章 生命的基础 · 互动学习网页<br>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:.78rem;">© 本页面内容仅供课堂教学与学习使用，禁止未经许可转载、出售或商用。</span><br>
+    <span style="font-family:'Noto Serif SC',serif; font-size:.82rem; color:var(--paper-line);">峇株吧辖华仁中学蔡逸众制作</span>
+ <div class="watermark">© 教学专用 · 请勿盗用</div> 
+  </div>
+</footer>
+
+
+<script>
+/* ---------- 导航 ---------- */
+const navButtons = document.querySelectorAll('#navbar button');
+navButtons.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    navButtons.forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.target).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+/* ---------- 七大生命现象卡片 ---------- */
+const lifeData = [
+  {icon:'🏃', title:'生物会运动', back:'生物能够主动改变位置或姿态，例如人走路、植物的叶片朝向阳光转动。'},
+  {icon:'👶', title:'生物会繁殖', back:'生物能够产生后代，延续生命，例如动物生宝宝、植物结种子。'},
+  {icon:'📏', title:'生物会生长', back:'生物体的体积和细胞数目会随时间增加，例如婴儿长大成人，种子长成大树。'},
+  {icon:'🫁', title:'生物能进行呼吸', back:'生物通过呼吸获取能量，维持生命活动所需的能量供应。'},
+  {icon:'⚡', title:'对外界刺激作出反应', back:'生物能感知并回应环境变化，例如手碰到热的东西会立刻缩回。'},
+  {icon:'🍎', title:'需要摄取营养', back:'生物需要摄取营养物质来维持生命活动和生长发育。'},
+  {icon:'🚽', title:'排出代谢废物', back:'生物会将体内产生的代谢废物排出体外，维持体内环境平衡。'}
+];
+const lifeContainer = document.getElementById('life-cards');
+lifeData.forEach(item=>{
+  const card = document.createElement('div');
+  card.className='flip-card';
+  card.innerHTML = `<div class="flip-inner">
+      <div class="flip-front">${item.icon}<br>${item.title}</div>
+      <div class="flip-back">${item.back}</div>
+    </div>`;
+  card.addEventListener('click',()=>card.classList.toggle('flipped'));
+  lifeContainer.appendChild(card);
+});
+
+/* ---------- 生存条件 ---------- */
+const condData = [
+  {icon:'💧', title:'水', detail:'水是生命活动的基础，细胞内的化学反应都需要在水中进行，也是细胞质的主要成分。'},
+  {icon:'⚡', title:'能量', detail:'生物需要能量来维持生命活动，如运动、生长、繁殖等，能量主要来自于食物或太阳光。'},
+  {icon:'💨', title:'空气', detail:'生物需要空气中的氧气进行呼吸（释放能量），植物还需要二氧化碳进行光合作用。'},
+  {icon:'🌡️', title:'适宜的温度', detail:'生物体内的化学反应（如酶的作用）需要在适宜的温度范围内才能正常进行，过冷或过热都会影响生存。'},
+  {icon:'🏠', title:'生存空间', detail:'生物需要足够的空间来获取资源、生长、繁殖，过于拥挤会导致竞争加剧，影响生存。'}
+];
+const condContainer = document.getElementById('cond-cards');
+const condDetail = document.getElementById('cond-detail');
+condData.forEach(item=>{
+  const div = document.createElement('div');
+  div.className='cond-item';
+  div.innerHTML = `<span class="icon">${item.icon}</span>${item.title}`;
+  div.addEventListener('click',()=>{
+    //华仁中学蔡逸众制作
+    condDetail.innerHTML = `<h4 style="color:var(--blue);">${item.icon} ${item.title}</h4><p>${item.detail}</p>`;
+  });
+  condContainer.appendChild(div);
+});
+
+/* ---------- 细胞结构互动 ---------- */
+const partData = {
+  membrane:{name:'细胞膜 (Cell Membrane)', text:'一层薄而透明、具弹性的膜，包覆细胞。动物细胞膜位于最外层；植物细胞膜位于细胞壁内面。它是具选择性的半透膜，只允许某些物质通过。'},
+  cytoplasm:{name:'细胞质 (Cytoplasm)', text:'充满细胞、可流动的果冻状物质，含有水和许多其他成分，是生命活动的主要场所，许多化学反应在此进行。'},
+  nucleus:{name:'细胞核 (Nucleus)', text:'近似球体，是细胞活动的控制中心，储存遗传物质DNA，负责发出生长、分裂等指令。'},
+  vacuole:{name:'液泡 (Vacuole)', text:'植物细胞中央通常有一个大液泡，含水、糖、盐等溶解物质，通过吸水保持细胞紧实度。'},
+  'small-vacuole':{name:'小液泡', text:'动物细胞中含有许多小而分散的液泡，里面含有空气、水分和养分。'},
+  wall:{name:'细胞壁 (Cell Wall)', text:'位于细胞膜外，主要由纤维素组成，支撑细胞、使其具有规则形状。动物细胞没有细胞壁！'},
+  chloroplast:{name:'叶绿体 (Chloroplast)', text:'含有叶绿素，能吸收太阳能量进行光合作用，制造养分。动物细胞没有叶绿体！'}
+};
+const partInfo = document.getElementById('part-info');
+function bindParts(diagramId){
+  document.querySelectorAll('#'+diagramId+' .cell-part').forEach(el=>{
+    el.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      document.querySelectorAll('.cell-part').forEach(p=>p.classList.remove('selected'));
+      el.classList.add('selected');
+      const data = partData[el.dataset.part];
+      partInfo.innerHTML = `<h4>${data.name}</h4><p>${data.text}</p>`;
+    });
+  });
+}
+bindParts('animal-diagram');
+bindParts('plant-diagram');
+
+function showCell(type){
+  document.getElementById('animal-diagram').style.display = type==='animal' ? 'block':'none';
+  document.getElementById('plant-diagram').style.display = type==='plant' ? 'block':'none';
+}
+
+/* ---------- 分类游戏 ---------- */
+const sortItems = [
+  {name:'细胞膜', cat:'both'},
+  {name:'细胞质', cat:'both'},
+  {name:'细胞核', cat:'both'},
+  {name:'细胞壁', cat:'plant'},
+  {name:'叶绿体', cat:'plant'},
+  {name:'大液泡', cat:'plant'}
+];
+const pool = document.getElementById('pool');
+sortItems.forEach((item,i)=>{
+  const tag = document.createElement('div');
+  tag.className='tag';
+  tag.draggable=true;
+  tag.textContent=item.name;
+  tag.dataset.cat = item.cat;
+  tag.id='tag'+i;
+  tag.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', tag.id));
+  pool.appendChild(tag);
+});
+[pool, document.getElementById('zone-both'), document.getElementById('zone-plant')].forEach(zone=>{
+  zone.addEventListener('dragover', e=>e.preventDefault());
+  zone.addEventListener('drop', e=>{
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    //Made by ecchua79
+    const tag = document.getElementById(id);
+    tag.classList.add('placed');
+    zone.appendChild(tag);
+  });
+});
+function checkSort(){
+  let correct=0, total=sortItems.length;
+  document.querySelectorAll('.tag').forEach(tag=>{
+    const parent = tag.parentElement.id;
+    const cat = tag.dataset.cat;
+    let ok = false;
+    if(parent==='zone-both' && cat==='both') ok=true;
+    if(parent==='zone-plant' && cat==='plant') ok=true;
+    tag.style.outline = ok ? '3px solid #2e7d32' : '3px solid #e53935';
+    if(ok) correct++;
+  });
+  document.getElementById('sort-result').textContent = `✅ 你答对了 ${correct} / ${total} 个！` + (correct===total ? ' 太棒了，全部正确！🎉' : ' 再检查一下哦～');
+  document.getElementById('sort-result').style.color = correct===total ? 'var(--green)' : '#e53935';
+}
+
+/* ---------- 显微镜列表 ---------- */
+const scopeData = [
+  {name:'目镜 / 物镜', detail:'放大物像'},
+  {name:'粗准焦螺旋', detail:'升降镜筒，找到物像'},
+  {name:'细准焦螺旋', detail:'升降镜筒，使物像更清晰'},
+  {name:'转换器', detail:'调换物镜'},
+  {name:'载物台', detail:'放置需要观察的标本'},
+  {name:'压片夹', detail:'夹持标本'},
+  {name:'遮光器', detail:'含光圈，调节光线'},
+  {name:'反光镜 / 内置光源', detail:'调节光线，有些为内置光源'},
+  {name:'镜座', detail:'为显微镜提供稳定支撑'}
+];
+const scopeList = document.getElementById('scope-list');
+scopeData.forEach(item=>{
+  const li = document.createElement('li');
+  li.innerHTML = `<span>${item.name}</span><span class="ans">— ${item.detail}</span>`;
+  li.addEventListener('click',()=>li.classList.toggle('show'));
+  scopeList.appendChild(li);
+});
+
+/* ---------- 细胞分裂动画 ---------- */
+let divisionStage = 0;
+const row = document.getElementById('division-row');
+const caption = document.getElementById('division-caption');
+const btn = document.getElementById('div-btn');
+const stages = [
+  {emojis:['🟢'], text:'阶段0：受精卵（一个干细胞）。点击"细胞分裂"开始！'},
+  {emojis:['🟢','🟢'], text:'阶段1：细胞分裂 — 一个细胞分裂成两个细胞！'},
+  {emojis:['🟢','🟢','🟢','🟢'], text:'阶段2：细胞继续分裂、生长 — 细胞数目增多，个体逐渐成长。'},
+  {emojis:['💪','🦴','🧠','🩸'], text:'阶段3：细胞分化！相同的细胞经调控变成不同类型 — 肌肉细胞💪、骨骼细胞🦴、神经细胞🧠、血细胞🩸 等！这就是细胞分化 (cell differentiation)。'}
+];
+function renderDivision(){
+  row.innerHTML='';
+  stages[divisionStage].emojis.forEach(e=>{
+    const b = document.createElement('div');
+    b.className='blob';
+    b.textContent = e;
+    if(divisionStage===3) b.style.background='#fff3e0';
+    row.appendChild(b);
+  });
+  //峇株吧辖华仁中学蔡逸众制作
+  caption.textContent = stages[divisionStage].text;
+  btn.disabled = divisionStage>=stages.length-1;
+  btn.textContent = divisionStage===0 ? '▶ 细胞分裂！' : (divisionStage<stages.length-1 ? '▶ 继续' : '✅ 完成');
+}
+function divisionStep(){
+  if(divisionStage < stages.length-1){divisionStage++; renderDivision();}
+}
+function resetDivision(){divisionStage=0; renderDivision();}
+renderDivision();
+
+/* ---------- 层级结构 ---------- */
+function toggleLevel(el){
+  el.classList.toggle('open');
+}
+
+/* ---------- 综合测验 ---------- */
+const quizData = [
+  {q:'下列哪一项不是生物体的生命现象？', options:['运动','繁殖','颜色固定不变','呼吸'], answer:2},
+  {q:'生命最小的单位是什么？', options:['器官','组织','细胞','系统'], answer:2},
+  {q:'下列哪一项是植物细胞特有，而动物细胞没有的结构？', options:['细胞膜','细胞核','细胞壁','细胞质'], answer:2},
+  {q:'细胞核内储存的遗传物质称为什么？', options:['DNA','叶绿素','纤维素','细胞质'], answer:0},
+  {q:'一个细胞分裂成两个细胞的过程称为什么？', options:['细胞分化','细胞生长','细胞分裂','细胞代谢'], answer:2},
+  {q:'子细胞在形态、结构和功能上发生变化，形成不同类型细胞的过程称为？', options:['细胞分裂','细胞分化','细胞凋亡','细胞呼吸'], answer:1},
+  {q:'下列哪一项属于人体的基本组织？', options:['消化系统','上皮组织','心脏','根'], answer:1},
+  {q:'植物的输导组织分为木质部和什么？', options:['表皮组织','分生组织','韧皮部','营养组织'], answer:2},
+  {q:'植物的生殖器官包括哪些？', options:['根、茎、叶','花、果、种子','叶绿体、液泡','木质部、韧皮部'], answer:1},
+  {q:'光学显微镜最大可放大约多少倍？', options:['100倍','1600倍','100万倍','10倍'], answer:1}
+];
+const quizContainer = document.getElementById('quiz-container');
+let score = 0;
+//峇株吧辖蔡逸众制作
+let answered = 0;
+function shuffleOptions(item){
+  const opts = item.options.map((opt,i)=>({opt, isAnswer:i===item.answer}));
+  for(let i=opts.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [opts[i],opts[j]]=[opts[j],opts[i]];
+  }
+  return opts;
+}
+quizData.forEach((item, idx)=>{
+  const div = document.createElement('div');
+  div.className='quiz-q';
+  const shuffled = shuffleOptions(item);
+  let optsHtml='';
+  shuffled.forEach((o)=>{
+    optsHtml += `<button data-correct="${o.isAnswer}">${o.opt}</button>`;
+  });
+  div.innerHTML = `<p class="question">${idx+1}. ${item.q}</p><div class="quiz-options">${optsHtml}</div>`;
+  quizContainer.appendChild(div);
+
+  div.querySelectorAll('.quiz-options button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(div.dataset.done) return;
+      div.dataset.done='1';
+      const isCorrect = b.dataset.correct==='true';
+      div.querySelectorAll('.quiz-options button').forEach((btn2)=>{
+        btn2.disabled=true;
+        if(btn2.dataset.correct==='true') btn2.classList.add('correct');
+        else if(btn2===b) btn2.classList.add('wrong');
+      });
+      if(isCorrect) score++;
+      answered++;
+      updateScore();
+    });
+  });
+});
+function updateScore(){
+  //华仁中学蔡逸众制作
+  document.getElementById('quiz-score').textContent = `当前得分：${score} / ${quizData.length}` + (answered===quizData.length ? (score===quizData.length ? ' 🎉 满分！你是细胞小专家！' : ' 完成挑战！再复习一下不对的题目吧～') : '');
+}
+
+/* ---------- 3D 显微镜 iframe 注入 ---------- */
+(function(){
+  const microscopeHTML = `<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body{margin:0;overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#2c3e50;color:white;}
+  #canvas-container{width:100vw;height:100vh;display:block;}
+  #ui-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+  .label{position:absolute;background:rgba(0,0,0,0.75);border:1px solid #4CAF50;color:white;padding:5px 10px;border-radius:5px;font-size:13px;transform:translate(-50%,-50%);pointer-events:auto;transition:opacity 0.3s;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5);white-space:nowrap;}
+  .label:hover{background:rgba(76,175,80,.9);}
+  .label.hidden{opacity:0;pointer-events:none;}
+  .label.question-mark{background:#E91E63;border-color:#fff;font-weight:bold;font-size:18px;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
+  #control-panel{position:absolute;top:14px;left:14px;pointer-events:auto;background:rgba(0,0,0,0.55);padding:12px;border-radius:10px;backdrop-filter:blur(4px);transition:transform .3s,opacity .3s;}
+  #control-panel.collapsed{transform:translateX(-110%);opacity:0;}
+  #panel-toggle{position:absolute;top:14px;left:14px;pointer-events:auto;background:rgba(76,175,80,.85);color:white;border:none;width:36px;height:36px;border-radius:8px;font-size:16px;cursor:pointer;z-index:10;display:none;}
+  #panel-toggle.show{display:block;}
+  button{background:#4CAF50;color:white;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-size:14px;margin-bottom:8px;width:100%;transition:background .3s;}
+  button:hover{background:#45a049;}
+  button.exit-btn{background:#f44336;}
+  button.exit-btn:hover{background:#d32f2f;}
+  button.toggle-labels-btn{background:#1565c0;}
+  button.toggle-labels-btn:hover{background:#0d47a1;}
+  #quiz-panel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);padding:18px;border-radius:10px;text-align:center;pointer-events:auto;display:none;width:480px;max-width:92%;}
+  #quiz-question{font-size:16px;margin-bottom:12px;font-weight:bold;}
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .option-btn{background:#2196F3;padding:10px;font-size:13px;}
+  .option-btn:hover{background:#1976D2;}
+  #info-panel{position:absolute;top:50%;right:20px;transform:translateY(-50%);background:rgba(0,0,0,.85);border:1px solid #4CAF50;padding:16px;border-radius:10px;pointer-events:auto;width:250px;max-width:80%;display:none;}
+  #info-title{font-size:16px;font-weight:bold;margin-bottom:6px;color:#4CAF50;}
+  #info-text{font-size:13px;line-height:1.6;margin-bottom:10px;}
+  #info-close{background:#555;}
+  #info-close:hover{background:#777;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="ui-layer">
+  <button id="panel-toggle">☰</button>
+  <div id="control-panel">
+    <h3 style="margin:0 0 8px;font-size:14px;">显微镜构造 (初一科学)</h3>
+    <button id="toggle-labels-btn" class="toggle-labels-btn">👁 隐藏部件名称</button>
+    <button id="start-quiz-btn">📝 进入测验模式</button>
+    <button id="exit-quiz-btn" class="exit-btn" style="display:none;">✕ 退出测验</button>
+    <button id="collapse-btn" style="background:#555;margin-bottom:0;">收起</button>
+    <p style="font-size:11px;color:#bbb;margin:8px 0 0;">* 按住左键旋转 / 滚轮缩放</p>
+  </div>
+  <div id="labels-container"></div>
+  <div id="quiz-panel">
+    <div id="quiz-question">请问红色"？"标注的部位是？</div>
+    <div class="options-grid" id="options-container"></div>
+  </div>
+  <div id="info-panel">
+    <div id="info-title"></div>
+    <div id="info-text"></div>
+    <button id="info-close">关闭</button>
+  </div>
+</div>
+<script>
+const partsData=[
+  {id:'eyepiece',name:'目镜',pos:new THREE.Vector3(0,10.6,-0.5),wrong:['物镜','反光镜 / 内置光源','压片夹'],meshes:()=>[eyepiece],func:'目镜：靠近眼睛观察的镜片，与物镜共同决定总放大倍数。'},
+  {id:'objective',name:'物镜',pos:new THREE.Vector3(1.3,5.2,1.5),wrong:['目镜','转换器','细准焦螺旋'],meshes:()=>objectiveMeshes,func:'物镜：靠近标本的镜片，有10x、20x、40x等不同倍数，转动转换器可更换。'},
+  {id:'coarse-knob',name:'粗准焦螺旋',pos:new THREE.Vector3(1.5,6,-1),wrong:['细准焦螺旋','转换器','压片夹'],meshes:()=>[coarseKnob],func:'粗准焦螺旋：快速大幅升降镜筒，用于寻找标本大致焦点。'},
+  {id:'fine-knob',name:'细准焦螺旋',pos:new THREE.Vector3(2.2,6,-1),wrong:['粗准焦螺旋','目镜','遮光器'],meshes:()=>[fineKnob],func:'细准焦螺旋：小幅调整镜筒高度，获得清晰影像，尤其在高倍镜下使用。'},
+  {id:'converter',name:'转换器',pos:new THREE.Vector3(0,5.9,1.5),wrong:['载物台','压片夹','镜座'],meshes:()=>[converter,converterJoint],func:'转换器：旋转以切换不同倍数的物镜，应转动转换器而非直接转动物镜。'},
+  {id:'stage',name:'载物台',pos:new THREE.Vector3(-1.5,2.5,2.5),wrong:['压片夹','镜座','反光镜 / 内置光源'],meshes:()=>[stage,stageSupport],func:'载物台：放置载玻片的平台，中央有通光孔让光线通过标本。'},
+  {id:'clips',name:'压片夹',pos:new THREE.Vector3(1.4,2.8,2.2),wrong:['载物台','转换器','遮光器'],meshes:()=>[clipLeft,clipRight],func:'压片夹：固定载玻片，防止在观察时滑动。'},
+  {id:'diaphragm',name:'遮光器',pos:new THREE.Vector3(0,2.0,2.5),wrong:['反光镜 / 内置光源','载物台','转换器'],meshes:()=>[diaphragm],func:'遮光器：调节进入镜筒的光量，使亮度适当。'},
+  {id:'mirror',name:'反光镜 / 内置光源',pos:new THREE.Vector3(0,0.5,2.5),wrong:['遮光器','镜座','目镜'],meshes:()=>[mirror,mirrorPost],func:'反光镜 / 内置光源：将光线反射或发射，照亮标本便于观察。'},
+  {id:'base',name:'镜座',pos:new THREE.Vector3(0,-0.5,3),wrong:['载物台','反光镜 / 内置光源','粗准焦螺旋'],meshes:()=>[base],func:'镜座：显微镜的底座，提供整体稳定支撑。'}
+];
+const container=document.getElementById('canvas-container');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#2c3e50');
+const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+camera.position.set(12,8,15);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+container.appendChild(renderer.domElement);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.target.set(0,4,0);
+controls.update();
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const dl=new THREE.DirectionalLight(0xffffff,0.8);
+dl.position.set(10,20,10);
+scene.add(dl);
+const mGrey=new THREE.MeshPhongMaterial({color:0x95a5a6});
+const mDark=new THREE.MeshPhongMaterial({color:0x34495e});
+const mSilver=new THREE.MeshPhongMaterial({color:0xecf0f1});
+const mBlack=new THREE.MeshPhongMaterial({color:0x111111});
+const mg=new THREE.Group();
+const base=new THREE.Mesh(new THREE.BoxGeometry(4,1,6),mDark);
+base.position.set(0,-0.5,0);mg.add(base);
+const arm=new THREE.Mesh(new THREE.BoxGeometry(1.5,9,2),mDark);
+arm.position.set(0,4.5,-1.5);arm.rotation.x=0.1;mg.add(arm);
+const stage=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.2,3.5),mDark);
+stage.position.set(0,2.5,1.5);mg.add(stage);
+// 载物台中央通光孔 — 用深色圆柱表示
+const stageHoleMat=new THREE.MeshBasicMaterial({color:0x111111});
+const stageHole=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.25,48),stageHoleMat);
+stageHole.position.set(0,2.5,1.5);mg.add(stageHole);
+const stageSupport=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.8,1.6),mDark);
+stageSupport.position.set(0,2.05,-0.3);mg.add(stageSupport);
+const clipGeo=new THREE.BoxGeometry(1.1,0.1,0.35);
+const clipLeft=new THREE.Mesh(clipGeo,mSilver);
+clipLeft.position.set(-1.2,2.65,1.5);clipLeft.rotation.y=Math.PI/2;mg.add(clipLeft);
+const clipRight=new THREE.Mesh(clipGeo,mSilver);
+clipRight.position.set(1.2,2.65,1.5);clipRight.rotation.y=Math.PI/2;mg.add(clipRight);
+// 遮光器 — 用 CanvasTexture 绘制真实孔洞图案（黑圆盘 + 5个大小不同的圆孔，参考真实遮光器）
+const diagCanvas=document.createElement('canvas');
+diagCanvas.width=256;diagCanvas.height=256;
+const dctx=diagCanvas.getContext('2d');
+const cx=128,cy=128,R=120;
+// 黑色大圆底盘
+dctx.fillStyle='#000';dctx.beginPath();dctx.arc(cx,cy,R,0,Math.PI*2);dctx.fill();
+// 5个孔：大小各不同，排列成环，位置参考图片
+// 孔1最大(左偏上)，然后顺时针递减
+const holes=[
+  {dx:-42,dy:-28,r:36},   // 最大孔 — 左上
+  {dx:28,dy:-46,r:22},    // 中大 — 右上
+  {dx:52,dy:18,r:28},     // 中 — 右下
+  {dx:-12,dy:52,r:30},    // 中大 — 下
+  {dx:-52,dy:22,r:18},    // 小 — 左
+];
+dctx.globalCompositeOperation='destination-out';
+holes.forEach(h=>{
+  dctx.beginPath();dctx.arc(cx+h.dx,cy+h.dy,h.r,0,Math.PI*2);dctx.fill();
+});
+dctx.globalCompositeOperation='source-over';
+const diagTex=new THREE.CanvasTexture(diagCanvas);
+const diagMat=new THREE.MeshPhongMaterial({map:diagTex,transparent:true,side:THREE.DoubleSide});
+const diaphragm=new THREE.Mesh(new THREE.CylinderGeometry(0.82,0.82,0.09,64),diagMat);
+diaphragm.position.set(0,2.28,1.5);mg.add(diaphragm);
+// 遮光器侧面保持黑色
+const diagSideMat=new THREE.MeshPhongMaterial({color:0x111111});
+const diagSide=new THREE.Mesh(new THREE.CylinderGeometry(0.83,0.83,0.09,64,1,true),diagSideMat);
+diagSide.position.set(0,2.28,1.5);mg.add(diagSide);
+const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,4.3,32),mGrey);
+tube.position.set(0,7.6,0.6);tube.rotation.x=-Math.PI/10;mg.add(tube);
+const tubeJoint=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),mDark);
+tubeJoint.position.set(0,8.7,-0.6);mg.add(tubeJoint);
+const converter=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,0.4,32),mDark);
+converter.position.set(0,5.9,1.5);mg.add(converter);
+const converterJoint=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1.0,32),mGrey);
+converterJoint.position.set(0,6.4,1.5);mg.add(converterJoint);
+const eyepiece=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,1,32),mSilver);
+eyepiece.position.set(0,10.12,-0.22);eyepiece.rotation.x=-Math.PI/10;mg.add(eyepiece);
+const eyepieceLens=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.08,32),mBlack);
+eyepieceLens.rotation.x=-Math.PI/10;eyepieceLens.position.set(0,10.6,-0.375);mg.add(eyepieceLens);
+const objectiveData=[{length:1.0,radius:0.35,angle:0},{length:1.4,radius:0.32,angle:(Math.PI*2)/3},{length:1.9,radius:0.28,angle:(Math.PI*4)/3}];
+const objectiveMeshes=[];
+objectiveData.forEach(obj=>{
+  const lens=new THREE.Mesh(new THREE.CylinderGeometry(obj.radius*0.7,obj.radius,obj.length,32),mSilver);
+  const x=Math.sin(obj.angle)*1.1,z=1.5+Math.cos(obj.angle)*1.1;
+  lens.position.set(x,5.7-obj.length/2,z);mg.add(lens);objectiveMeshes.push(lens);
+  const lg=new THREE.Mesh(new THREE.CylinderGeometry(obj.radius*.85,obj.radius*.85,.06,32),mBlack);
+  lg.position.set(x,5.7-obj.length+0.03,z);mg.add(lg);objectiveMeshes.push(lg);
+});
+const coarseKnob=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,2.6,32),mGrey);
+coarseKnob.rotation.z=Math.PI/2;coarseKnob.position.set(0,6,-1);mg.add(coarseKnob);
+const fineKnob=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,3.6,32),mSilver);
+fineKnob.rotation.z=Math.PI/2;fineKnob.position.set(0,6,-1);mg.add(fineKnob);
+const mirrorPost=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.9,32),mDark);
+mirrorPost.position.set(0,0.45,1.5);mg.add(mirrorPost);
+const mirror=new THREE.Mesh(new THREE.CylinderGeometry(1,1,0.2,32),mSilver);
+mirror.rotation.x=Math.PI/4;mirror.position.set(0,0.95,1.5);mg.add(mirror);
+scene.add(mg);
+
+const labelsContainer=document.getElementById('labels-container');
+const labelElements=[];
+let labelsVisible=true;
+partsData.forEach(part=>{
+  const el=document.createElement('div');
+  el.className='label';
+  el.innerText=part.name;
+  el.addEventListener('click',()=>{if(!isQuizMode)showInfo(part.name,part.func);});
+  labelsContainer.appendChild(el);
+  labelElements.push({element:el,pos:part.pos,id:part.id});
+});
+
+// 显示/隐藏部件名称按钮
+const toggleLabelsBtn=document.getElementById('toggle-labels-btn');
+toggleLabelsBtn.addEventListener('click',()=>{
+  labelsVisible=!labelsVisible;
+  labelElements.forEach(item=>{
+    if(!isQuizMode){
+      item.element.style.display=labelsVisible?'flex':'none';
+    }
+  });
+  toggleLabelsBtn.textContent=labelsVisible?'👁 隐藏部件名称':'👁 显示部件名称';
+});
+
+const infoPanel=document.getElementById('info-panel');
+const infoTitle=document.getElementById('info-title');
+const infoText=document.getElementById('info-text');
+document.getElementById('info-close').addEventListener('click',()=>infoPanel.style.display='none');
+function showInfo(t,txt){infoTitle.innerText=t;infoText.innerText=txt;infoPanel.style.display='block';}
+
+function updateLabels(){
+  const v=new THREE.Vector3();
+  labelElements.forEach(item=>{
+    v.copy(item.pos);v.project(camera);
+    const x=(v.x*.5+.5)*window.innerWidth,y=(v.y*-.5+.5)*window.innerHeight;
+    if(v.z>1){item.element.style.display='none';}
+    else{item.element.style.left=x+'px';item.element.style.top=y+'px';
+      if(!isQuizMode) item.element.style.display=labelsVisible?'flex':'none';
+    }
+  });
+}
+
+let isQuizMode=false,currentQuestionIndex=0,quizQueue=[],highlightedMeshes=[];
+const startBtn=document.getElementById('start-quiz-btn');
+const exitBtn=document.getElementById('exit-quiz-btn');
+const quizPanel=document.getElementById('quiz-panel');
+const optionsContainer=document.getElementById('options-container');
+const controlPanel=document.getElementById('control-panel');
+const panelToggle=document.getElementById('panel-toggle');
+document.getElementById('collapse-btn').addEventListener('click',()=>{controlPanel.classList.add('collapsed');panelToggle.classList.add('show');});
+panelToggle.addEventListener('click',()=>{controlPanel.classList.remove('collapsed');panelToggle.classList.remove('show');});
+startBtn.addEventListener('click',()=>{
+  isQuizMode=true;infoPanel.style.display='none';
+  startBtn.style.display='none';exitBtn.style.display='block';
+  toggleLabelsBtn.style.display='none';
+  quizPanel.style.display='block';
+  quizQueue=[...partsData].sort(()=>Math.random()-.5);
+  currentQuestionIndex=0;loadQuestion();
+});
+exitBtn.addEventListener('click',()=>{
+  isQuizMode=false;startBtn.style.display='block';exitBtn.style.display='none';
+  toggleLabelsBtn.style.display='block';
+  quizPanel.style.display='none';clearHighlight();
+  labelElements.forEach((item,i)=>{
+    item.element.className='label';item.element.innerText=partsData[i].name;
+    item.element.style.display=labelsVisible?'flex':'none';
+  });
+});
+function clearHighlight(){highlightedMeshes.forEach(i=>i.mesh.material=i.originalMaterial);highlightedMeshes=[];}
+function setHighlight(meshes){
+  clearHighlight();
+  meshes.forEach(mesh=>{
+    const om=mesh.material;const hm=om.clone();
+    mesh.material=hm;highlightedMeshes.push({mesh,originalMaterial:om});
+  });
+}
+function loadQuestion(){
+  if(currentQuestionIndex>=quizQueue.length){alert('太棒了！你已完成所有测验！');exitBtn.click();return;}
+  const p=quizQueue[currentQuestionIndex];
+  setHighlight(p.meshes());
+  labelElements.forEach(item=>{
+    if(item.id===p.id){item.element.className='label question-mark';item.element.innerText='?';item.element.style.display='flex';}
+    else{item.element.className='label hidden';}
+  });
+  let opts=[p.name,...p.wrong].sort(()=>Math.random()-.5);
+  optionsContainer.innerHTML='';
+  opts.forEach(opt=>{
+    const b=document.createElement('button');b.className='option-btn';b.innerText=opt;
+    b.onclick=()=>{
+      if(opt===p.name){alert('✅ 回答正确！');currentQuestionIndex++;loadQuestion();}
+      else{alert('❌ 回答错误，再想想！');}
+    };
+    optionsContainer.appendChild(b);
+  });
+}
+function animate(){
+  requestAnimationFrame(animate);controls.update();updateLabels();
+  if(highlightedMeshes.length>0){
+    const t=performance.now()*.006,pulse=(Math.sin(t)+1)/2;
+    highlightedMeshes.forEach(i=>{i.mesh.material.emissive.setRGB(pulse*.9,0,0);i.mesh.material.emissiveIntensity=1;});
+  }
+  renderer.render(scene,camera);
+}
+animate();
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+<\/script>
+</body>
+</html>`;
+
+  // 当用户切换到显微镜标签时才注入，避免提前加载
+  function injectMicroscope(){
+    const iframe = document.getElementById('scope-iframe');
+    if(iframe && !iframe.dataset.loaded){
+      iframe.dataset.loaded = '1';
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(microscopeHTML);
+      doc.close();
+    }
+  }
+
+  // 监听导航按钮
+  document.querySelectorAll('#navbar button').forEach(btn=>{
+    if(btn.dataset.target === 'sec-scope'){
+      btn.addEventListener('click', ()=>{ setTimeout(injectMicroscope, 100); });
+    }
+  });
+})();
+</script>
+<!-- //Made by ecchua79 -->
+</body>
+</html>
