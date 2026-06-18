@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速度-距离-时间学习系统</title>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg-deep:#060a14;
+    --bg-panel:#0c1322;
+    --bg-panel-alt:#0f1c30;
+    --cyan:#00eaff;
+    --cyan-dim:#0aa9c4;
+    --magenta:#ff2e88;
+    --green:#39ff8c;
+    --red:#ff4d6a;
+    --text-main:#e7f1ff;
+    --text-dim:#7d93b8;
+    --border-glow:rgba(0,234,255,.35);
+}
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    color:var(--text-main);
+    background:
+        radial-gradient(circle at 18% 18%, rgba(0,234,255,.12), transparent 40%),
+        radial-gradient(circle at 82% 78%, rgba(255,46,136,.08), transparent 45%),
+        var(--bg-deep);
+    background-attachment:fixed;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:24px;
+    position:relative;
+    overflow-x:hidden;
+}
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+        linear-gradient(rgba(0,234,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,234,255,.05) 1px, transparent 1px);
+    background-size:36px 36px;
+    mask-image:radial-gradient(circle at center, black 0%, transparent 75%);
+    pointer-events:none;
+    z-index:0;
+}
+
+.container{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:640px;
+    background:rgba(12,19,34,.88);
+    backdrop-filter:blur(6px);
+    border:1px solid var(--border-glow);
+    border-radius:18px;
+    padding:32px 28px;
+    animation:containerGlow 4s ease-in-out infinite;
+}
+
+@keyframes containerGlow{
+    0%,100%{ box-shadow:0 0 0 1px rgba(0,234,255,.08), 0 25px 70px rgba(0,0,0,.55), 0 0 24px rgba(0,234,255,.12); }
+    50%{ box-shadow:0 0 0 1px rgba(0,234,255,.18), 0 25px 70px rgba(0,0,0,.55), 0 0 40px rgba(0,234,255,.28); }
+}
+
+@keyframes powerOn{
+    0%{ opacity:0; transform:scale(.96); filter:blur(4px); }
+    100%{ opacity:1; transform:scale(1); filter:blur(0); }
+}
+#calculatorSection:not(.hidden){
+    animation:powerOn .5s ease-out;
+}
+
+.kicker{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.72em;
+    letter-spacing:.25em;
+    color:var(--cyan-dim);
+    text-align:center;
+    margin-bottom:8px;
+}
+
+h1,h2{
+    text-align:center;
+    font-size:1.5em;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    -webkit-text-fill-color:transparent;
+    text-shadow:0 0 18px rgba(0,234,255,.25);
+    margin-bottom:6px;
+}
+
+.subtitle{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:.92em;
+    margin-bottom:14px;
+}
+.subtitle .accent{ color:var(--cyan); font-weight:bold; }
+
+.status-tag{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.7em;
+    letter-spacing:.15em;
+    padding:4px 10px;
+    border:1px solid var(--border-glow);
+    border-radius:20px;
+    color:var(--cyan);
+    margin:0 auto 18px;
+    width:fit-content;
+    text-align:center;
+}
+
+.hidden{ display:none; }
+
+/* energy bar */
+.energy-bar{
+    display:flex;
+    gap:6px;
+    margin:18px 0 8px;
+}
+.segment{
+    flex:1;
+    height:14px;
+    border-radius:4px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(0,234,255,.25);
+    transition:background .3s, box-shadow .3s;
+}
+.segment.filled{
+    background:linear-gradient(90deg,var(--cyan),var(--cyan-dim));
+    box-shadow:0 0 12px rgba(0,234,255,.7);
+}
+.segment.pulse{
+    animation:segPulse .5s ease-out;
+}
+@keyframes segPulse{
+    0%{ transform:scaleY(1.7); }
+    100%{ transform:scaleY(1); }
+}
+
+.bar-label{
+    text-align:center;
+    font-family:'Share Tech Mono',monospace;
+    color:var(--text-dim);
+    font-size:.85em;
+    margin-bottom:18px;
+}
+
+/* HUD panel with corner brackets */
+/* 峇株吧辖蔡逸众制作 */
+.hud-panel{
+    position:relative;
+    background:var(--bg-panel-alt);
+    border-left:3px solid var(--cyan);
+    border-radius:8px;
+    padding:22px 20px;
+    margin:18px 0;
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    font-size:1.15em;
+    text-align:center;
+    white-space:pre-line;
+    line-height:1.6;
+}
+.hud-panel::before,.hud-panel::after{
+    content:"";
+    position:absolute;
+    width:14px;
+    height:14px;
+    top:-1px;
+    left:-1px;
+    border-top:2px solid var(--cyan);
+    border-left:2px solid var(--cyan);
+}
+.hud-panel::after{
+    top:auto;
+    left:auto;
+    bottom:-1px;
+    right:-1px;
+    border-top:none;
+    border-left:none;
+    border-bottom:2px solid var(--cyan);
+    border-right:2px solid var(--cyan);
+}
+
+.answer-row{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+}
+.answer-row input{ flex:1; }
+
+.unit-badge{
+    font-family:'Share Tech Mono',monospace;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:74px;
+    padding:0 12px;
+    border:1px solid var(--border-glow);
+    border-radius:8px;
+    color:var(--cyan);
+    background:rgba(0,234,255,.06);
+    font-size:.95em;
+}
+
+input,select{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(0,234,255,.25);
+    color:var(--text-main);
+    border-radius:8px;
+    padding:11px 12px;
+    font-size:1em;
+    font-family:'Share Tech Mono', "Microsoft YaHei", sans-serif;
+}
+input:focus,select:focus{
+    outline:none;
+    border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(0,234,255,.15);
+}
+input::placeholder{ color:var(--text-dim); }
+
+button{
+    width:100%;
+    margin-top:14px;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    font-size:1em;
+    letter-spacing:.05em;
+    cursor:pointer;
+    font-family:'Orbitron','Microsoft YaHei',sans-serif;
+    font-weight:600;
+    transition:transform .15s, box-shadow .15s, filter .15s;
+}
+button:hover{ transform:translateY(-2px); filter:brightness(1.1); }
+button:active{ transform:translateY(0); }
+
+.btn-primary{
+    background:linear-gradient(90deg,var(--cyan),#0aa9c4);
+    color:#03121a;
+    box-shadow:0 0 20px rgba(0,234,255,.35);
+}
+.btn-secondary{
+    background:rgba(255,255,255,.06);
+    color:var(--text-dim);
+    border:1px solid rgba(255,255,255,.15);
+}
+
+.feedback{
+    text-align:center;
+    margin-top:12px;
+    font-weight:bold;
+    font-family:'Share Tech Mono',monospace;
+    min-height:1.4em;
+}
+.feedback.correct{ color:var(--green); text-shadow:0 0 12px rgba(57,255,140,.6); }
+.feedback.wrong{ color:var(--red); text-shadow:0 0 12px rgba(255,77,106,.6); }
+
+/* formula panel */
+.formula-panel{
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-glow);
+    border-radius:10px;
+    padding:6px;
+    margin-bottom:20px;
+}
+.formula-row{
+    padding:10px 14px;
+    border-radius:6px;
+    color:var(--text-dim);
+    font-size:.95em;
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    transition:background .25s, color .25s;
+}
+.formula-row.active{
+    background:rgba(0,234,255,.12);
+    color:var(--cyan);
+    box-shadow:inset 0 0 0 1px rgba(0,234,255,.3);
+}
+.formula-row.active::before{
+    content:"▸ ";
+}
+
+.field-group{ margin-bottom:16px; }
+.field-group label{
+    display:block;
+    font-family:'Share Tech Mono',monospace;
+    font-size:.78em;
+    letter-spacing:.1em;
+    color:var(--text-dim);
+    margin-bottom:6px;
+}
+.field-row{ display:flex; gap:10px; }
+.field-row input{ flex:1; }
+.field-row select{ flex:1; }
+
+.dual-speed{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.speed-unit-box{
+    flex:1;
+    position:relative;
+    display:flex;
+    align-items:center;
+}
+.speed-unit-box input{ width:100%; padding-right:56px; }
+.speed-unit-box .unit-tag{
+    position:absolute;
+    right:10px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:.78em;
+    color:var(--cyan-dim);
+    pointer-events:none;
+}
+.sync-icon{
+    font-size:1.2em;
+    color:var(--cyan);
+    flex-shrink:0;
+}
+
+.result{ font-size:1em; text-align:left; }
+.result:empty{ display:none; }
+
+/* 单位转换 */
+.convert-row{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+}
+.convert-row select{ flex:1; }
+.btn-convert{
+    width:auto;
+    flex-shrink:0;
+    margin-top:0;
+    padding:11px 16px;
+    font-size:.85em;
+}
+.convert-output{
+    margin-top:10px;
+    font-family:'Share Tech Mono',monospace;
+    color:var(--cyan);
+    text-align:center;
+    min-height:1.2em;
+}
+
+/* 换算小贴士 */
+.tip-panel{
+    margin-top:24px;
+    background:rgba(255,255,255,.03);
+    border:1px dashed rgba(0,234,255,.25);
+    border-radius:10px;
+    padding:16px 18px;
+}
+.tip-title{
+    font-family:'Share Tech Mono',monospace;
+    color:var(--cyan-dim);
+    font-size:.85em;
+    margin-bottom:8px;
+}
+.tip-body{
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    color:var(--text-dim);
+    font-size:.85em;
+    line-height:1.7;
+    white-space:pre-line;
+}
+
+.footer-credit{
+    text-align:center;
+    margin-top:14px;
+    font-size:.65em;
+    color:rgba(255,255,255,.05);
+    user-select:none;
+}
+
+@media(max-width:600px){
+    .container{ padding:24px 18px; }
+    .dual-speed{ flex-direction:column; }
+    .sync-icon{ transform:rotate(90deg); }
+    .field-row{ flex-direction:column; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="quizSection">
+
+<div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
+<h1>🚀 速度-距离-时间闯关</h1>
+<p class="subtitle">连续答对 <span class="accent">5</span> 题，解锁计算终端</p>
+<div class="status-tag">🔒 状态：未解锁</div>
+
+<div class="energy-bar" id="energyBar">
+<div class="segment"></div>
+<div class="segment"></div>
+<div class="segment"></div>
+<div class="segment"></div>
+<div class="segment"></div>
+</div>
+<div class="bar-label">能量：<span id="score">0</span> / 5</div>
+
+<div id="question-box" class="hud-panel"></div>
+
+<div class="answer-row">
+<input type="number" id="answer" placeholder="请输入答案" step="any">
+<span id="answerUnit" class="unit-badge"></span>
+</div>
+
+<button class="btn-primary" onclick="checkAnswer()">提交答案</button>
+
+<p id="feedback" class="feedback"></p>
+
+</div>
+
+<div id="calculatorSection" class="hidden">
+
+<div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
+<h2>🎉 计算终端已解锁</h2>
+<div class="status-tag">🔓 状态：已解锁</div>
+
+<div class="formula-panel">
+<div class="formula-row" id="formula-d">距离 = 速度 × 时间</div>
+<div class="formula-row" id="formula-s">速度 = 距离 ÷ 时间</div>
+<div class="formula-row" id="formula-t">时间 = 距离 ÷ 速度</div>
+</div>
+
+<div class="field-group">
+<label>DISTANCE 距离</label>
+<div class="field-row">
+<input type="number" id="distance" step="any" placeholder="0">
+<select id="distanceUnit">
+<option value="km">公里(km)</option>
+<option value="m">米(m)</option>
+</select>
+</div>
+</div>
+
+<div class="field-group">
+<label>SPEED 速度（km/h 与 m/s 同步显示）</label>
+<div class="dual-speed">
+<div class="speed-unit-box">
+<input type="number" id="speedKmh" step="any" placeholder="0">
+<span class="unit-tag">km/h</span>
+</div>
+<span class="sync-icon">⇄</span>
+<div class="speed-unit-box">
+<input type="number" id="speedMs" step="any" placeholder="0">
+<span class="unit-tag">m/s</span>
+</div>
+</div>
+</div>
+
+<div class="field-group">
+<label>TIME 时间</label>
+<div class="field-row">
+<input type="number" id="time" step="any" placeholder="0">
+<select id="timeUnit">
+<option value="h">小时(h)</option>
+<option value="min">分钟(min)</option>
+<option value="s">秒(s)</option>
+</select>
+</div>
+</div>
+
+<button class="btn-primary" onclick="calculate()">计算 CALCULATE</button>
+<button class="btn-secondary" onclick="resetQuiz()">重新开始闯关</button>
+
+<div id="result" class="result hud-panel"></div>
+
+<div id="convertRow" class="convert-row hidden">
+<select id="convertUnit"></select>
+<button class="btn-secondary btn-convert" onclick="convertResult()">🔄 换算成其他单位</button>
+</div>
+<div id="convertOutput" class="convert-output"></div>
+
+<div class="tip-panel">
+<div class="tip-title">💡 km/h ⇄ m/s 换算方法</div>
+<div class="tip-body">km/h → m/s：数值 ÷ 3.6
+m/s → km/h：数值 × 3.6
+
+例：90 km/h ÷ 3.6 = 25 m/s
+例：20 m/s × 3.6 = 72 km/h</div>
+</div>
+
+</div>
+
+</div>
+
+<div class="footer-credit">峇株吧辖华仁中学蔡逸众制作</div>
+
+<script>
+
+let correctCount = 0;
+let currentAnswer = 0;
+let currentUnit = "";
+
+// 华仁中学蔡逸众制作
+let speedSource = null;       // 'kmh' | 'ms' | null —— 记录用户最后手动输入的是哪个速度单位
+let lastResultType = null;    // 'distance' | 'speed' | 'time'
+let lastResultCanonical = null;
+
+const TIME_FACTOR = { h:1, min:1/60, s:1/3600 }; // 乘以此倍数换算成 h
+
+function distSystem(u){ return u==="km" ? "A" : "B"; }
+function timeSystem(u){ return u==="s" ? "B" : "A"; }
+function speedSystemOf(u){ return u==="ms" ? "B" : "A"; }
+
+// 数字格式化:数值很小时(例如不到0.01)自动多显示几位小数,避免被四舍五入成0.00
+function fmt(v){
+    if(!isFinite(v)) return "0";
+    const abs = Math.abs(v);
+    if(abs === 0) return "0.00";
+    if(abs < 0.01) return v.toFixed(6);
+    if(abs < 1) return v.toFixed(4);
+    return v.toFixed(2);
+}
+
+// 两套独立场景,单位之间不需要互相换算
+const SCENARIOS = {
+    A:{ speedUnit:"km/h", distUnit:"km", timeUnit:"h", speedMin:10, speedMax:99, timeMin:1, timeMax:5  },
+    B:{ speedUnit:"m/s",  distUnit:"m",  timeUnit:"s", speedMin:1,  speedMax:30, timeMin:1, timeMax:20 }
+};
+
+function randInt(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function generateQuestion(){
+
+    const sc = SCENARIOS[Math.random()<0.5 ? "A" : "B"];
+    const type = Math.floor(Math.random()*3);
+
+    const speedVal = randInt(sc.speedMin, sc.speedMax);
+    const timeVal  = randInt(sc.timeMin, sc.timeMax);
+    const distVal  = speedVal * timeVal;
+
+    let question = "";
+
+    if(type === 0){
+        currentAnswer = distVal;
+        currentUnit = sc.distUnit;
+        question = `速度 ${speedVal} ${sc.speedUnit}，时间 ${timeVal} ${sc.timeUnit}，距离是多少？`;
+    }
+    else if(type === 1){
+        currentAnswer = speedVal;
+        currentUnit = sc.speedUnit;
+        question = `距离 ${distVal} ${sc.distUnit}，时间 ${timeVal} ${sc.timeUnit}，速度是多少？`;
+    }
+    else{
+        currentAnswer = timeVal;
+        currentUnit = sc.timeUnit;
+        question = `距离 ${distVal} ${sc.distUnit}，速度 ${speedVal} ${sc.speedUnit}，时间是多少？`;
+    }
+
+    document.getElementById("question-box").innerText = question;
+    document.getElementById("answerUnit").innerText = currentUnit;
+
+}
+
+function updateEnergyBar(){
+    const segs = document.querySelectorAll("#energyBar .segment");
+    segs.forEach((seg,idx)=>{
+        if(idx < correctCount){
+            if(!seg.classList.contains("filled")){
+                seg.classList.add("filled","pulse");
+                setTimeout(()=>seg.classList.remove("pulse"),500);
+            }
+        }else{
+            seg.classList.remove("filled","pulse");
+        }
+    });
+}
+
+function checkAnswer(){
+
+    let user = parseFloat(
+        document.getElementById("answer").value
+    );
+
+    if(isNaN(user)) return;
+
+    const feedback = document.getElementById("feedback");
+
+    if(Math.abs(user-currentAnswer) < 0.05){
+
+        correctCount++;
+
+        document.getElementById("score").innerText = correctCount;
+        updateEnergyBar();
+
+        feedback.textContent = "✅ 正确！";
+        feedback.className = "feedback correct";
+
+        if(correctCount>=5){
+
+            document.getElementById("quizSection").classList.add("hidden");
+            document.getElementById("calculatorSection").classList.remove("hidden");
+            updateFormula();
+
+            return;
+        }
+
+        generateQuestion();
+
+    }else{
+
+        correctCount = 0;
+
+        document.getElementById("score").innerText = 0;
+        updateEnergyBar();
+
+        feedback.textContent = `❌ 答错了！正确答案是 ${currentAnswer} ${currentUnit}，连续记录已清零`;
+        feedback.className = "feedback wrong";
+
+        generateQuestion();
+    }
+
+    document.getElementById("answer").value = "";
+
+}
+
+generateQuestion();
+
+document.getElementById("answer")
+.addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        checkAnswer();
+    }
+});
+
+/* ---------------- 计算终端 ---------------- */
+
+function syncSpeedFromKmh(){
+    const kmh = document.getElementById("speedKmh").value;
+    const msField = document.getElementById("speedMs");
+    if(kmh === ""){
+        msField.value = "";
+        speedSource = null;
+    }else{
+        msField.value = (parseFloat(kmh)/3.6).toFixed(2);
+        speedSource = "kmh";
+    }
+    updateFormula();
+}
+
+function syncSpeedFromMs(){
+    const ms = document.getElementById("speedMs").value;
+    const kmhField = document.getElementById("speedKmh");
+    if(ms === ""){
+        kmhField.value = "";
+        speedSource = null;
+    }else{
+        kmhField.value = (parseFloat(ms)*3.6).toFixed(2);
+        speedSource = "ms";
+    }
+    updateFormula();
+}
+
+function updateFormula(){
+
+    const d = document.getElementById("distance").value;
+    const s = document.getElementById("speedKmh").value;
+    const t = document.getElementById("time").value;
+
+    document.querySelectorAll(".formula-row").forEach(el=>el.classList.remove("active"));
+
+    let target = "formula-d";
+
+    if(!d && s && t) target = "formula-d";
+    else if(d && !s && t) target = "formula-s";
+    else if(d && s && !t) target = "formula-t";
+
+    document.getElementById(target).classList.add("active");
+}
+
+document.getElementById("distance").addEventListener("input", updateFormula);
+document.getElementById("time").addEventListener("input", updateFormula);
+document.getElementById("speedKmh").addEventListener("input", syncSpeedFromKmh);
+document.getElementById("speedMs").addEventListener("input", syncSpeedFromMs);
+
+function calculate(){
+
+    let dRaw = document.getElementById("distance").value;
+    let sRaw = document.getElementById("speedKmh").value;
+    let tRaw = document.getElementById("time").value;
+
+    const hasD = dRaw !== "";
+    const hasS = sRaw !== "";
+    const hasT = tRaw !== "";
+
+    const count = (hasD?1:0)+(hasS?1:0)+(hasT?1:0);
+    const resultBox = document.getElementById("result");
+
+    document.getElementById("convertRow").classList.add("hidden");
+    document.getElementById("convertOutput").innerText = "";
+
+    if(count !== 2){
+        resultBox.innerText = "⚠ 请只输入两个数值。";
+        lastResultType = null;
+        return;
+    }
+
+    const distUnit = document.getElementById("distanceUnit").value;
+    const timeUnit = document.getElementById("timeUnit").value;
+    const spdSrc = speedSource || "kmh";
+
+    let dVal = parseFloat(dRaw);
+    let sVal = parseFloat(sRaw); // 始终是 km/h
+    let tVal = parseFloat(tRaw);
+
+    if(hasT && tVal===0){ resultBox.innerText="⚠ 时间不能为0"; lastResultType=null; return; }
+    if(hasS && sVal===0){ resultBox.innerText="⚠ 速度不能为0"; lastResultType=null; return; }
+
+    let resultText = "";
+
+    if(!hasD){
+        /* 已知速度、时间 → 求距离 */
+        const sysT = timeSystem(timeUnit);
+        const sysS = speedSystemOf(spdSrc);
+
+        const tH  = tVal * TIME_FACTOR[timeUnit];
+        const tS  = tH * 3600;
+        const sMs = sVal / 3.6;
+
+        const distKmFromA = sVal * tH;
+        const distMFromB  = sMs * tS;
+
+        if(sysT === sysS){
+
+            if(sysS === "A"){
+                const note = timeUnit==="min" ? `（= ${fmt(tH)} h）` : "";
+                resultText =
+`已知：
+
+速度 = ${fmt(sVal)} km/h
+时间 = ${tVal} ${timeUnit}${note}
+
+公式：
+距离 = 速度 × 时间
+
+代入：
+距离 = ${fmt(sVal)} × ${fmt(tH)}
+
+答案：
+距离 = ${fmt(distKmFromA)} km`;
+            }else{
+                resultText =
+`已知：
+
+速度 = ${fmt(sMs)} m/s
+时间 = ${tVal} s
+
+公式：
+距离 = 速度 × 时间
+
+代入：
+距离 = ${fmt(sMs)} × ${tVal}
+
+答案：
+距离 = ${fmt(distMFromB)} m`;
+            }
+
+        }else{
+
+            resultText =
+`单位不统一，这里用两种方法分别计算：
+
+▸ 方法一（km/h 系统）
+速度 = ${fmt(sVal)} km/h，时间 = ${fmt(tH)} h
+距离 = ${fmt(sVal)} × ${fmt(tH)} = ${fmt(distKmFromA)} km
+
+▸ 方法二（m/s 系统）
+速度 = ${fmt(sMs)} m/s，时间 = ${fmt(tS)} s
+距离 = ${fmt(sMs)} × ${fmt(tS)} = ${fmt(distMFromB)} m`;
+
+        }
+
+        lastResultType = "distance";
+        lastResultCanonical = distKmFromA;
+
+    }
+    else if(!hasS){
+        /* 已知距离、时间 → 求速度 */
+        const sysD = distSystem(distUnit);
+        const sysT = timeSystem(timeUnit);
+
+        const dKm = dVal * (distUnit==="m" ? 0.001 : 1);
+        const dM  = dKm * 1000;
+        const tH  = tVal * TIME_FACTOR[timeUnit];
+        const tS  = tH * 3600;
+
+        const speedAfromA = dKm / tH; // km/h
+        const speedBfromB = dM / tS;  // m/s
+
+        document.getElementById("speedKmh").value = speedAfromA.toFixed(2);
+        document.getElementById("speedMs").value = speedBfromB.toFixed(2);
+        speedSource = null;
+
+        if(sysD === sysT){
+
+            if(sysD === "A"){
+                const note = timeUnit==="min" ? `（= ${fmt(tH)} h）` : "";
+                resultText =
+`已知：
+
+距离 = ${dVal} ${distUnit}
+时间 = ${tVal} ${timeUnit}${note}
+
+公式：
+速度 = 距离 ÷ 时间
+
+代入：
+速度 = ${fmt(dKm)} ÷ ${fmt(tH)}
+
+答案：
+速度 = ${fmt(speedAfromA)} km/h`;
+            }else{
+                resultText =
+`已知：
+
+距离 = ${dVal} m
+时间 = ${tVal} s
+
+公式：
+速度 = 距离 ÷ 时间
+
+代入：
+速度 = ${fmt(dM)} ÷ ${fmt(tS)}
+
+答案：
+速度 = ${fmt(speedBfromB)} m/s`;
+            }
+
+        }else{
+
+            resultText =
+`单位不统一，这里用两种方法分别计算：
+
+▸ 方法一（km/h 系统）
+距离 = ${fmt(dKm)} km，时间 = ${fmt(tH)} h
+速度 = ${fmt(dKm)} ÷ ${fmt(tH)} = ${fmt(speedAfromA)} km/h
+
+▸ 方法二（m/s 系统）
+距离 = ${fmt(dM)} m，时间 = ${fmt(tS)} s
+速度 = ${fmt(dM)} ÷ ${fmt(tS)} = ${fmt(speedBfromB)} m/s`;
+
+        }
+
+        lastResultType = "speed";
+        lastResultCanonical = speedAfromA;
+
+    }
+    else{
+        /* 已知距离、速度 → 求时间 */
+        const sysD = distSystem(distUnit);
+        const sysS = speedSystemOf(spdSrc);
+
+        const dKm = dVal * (distUnit==="m" ? 0.001 : 1);
+        const dM  = dKm * 1000;
+        const sMs = sVal / 3.6;
+
+        const timeHfromA = dKm / sVal; // h
+        const timeSfromB = dM / sMs;   // s
+
+        if(sysD === sysS){
+
+            if(sysD === "A"){
+                let display = timeHfromA;
+                if(timeUnit==="min") display = timeHfromA*60;
+                else if(timeUnit==="s") display = timeHfromA*3600;
+
+                resultText =
+`已知：
+
+距离 = ${dVal} km
+速度 = ${fmt(sVal)} km/h
+
+公式：
+时间 = 距离 ÷ 速度
+
+代入：
+时间 = ${fmt(dKm)} ÷ ${fmt(sVal)}
+
+答案：
+时间 = ${fmt(display)} ${timeUnit}`;
+
+                lastResultType = "time";
+                lastResultCanonical = timeHfromA;
+            }else{
+                resultText =
+`已知：
+
+距离 = ${dVal} m
+速度 = ${fmt(sMs)} m/s
+
+公式：
+时间 = 距离 ÷ 速度
+
+代入：
+时间 = ${fmt(dM)} ÷ ${fmt(sMs)}
+
+答案：
+时间 = ${fmt(timeSfromB)} s`;
+
+                lastResultType = "time";
+                lastResultCanonical = timeSfromB/3600;
+            }
+
+        }else{
+
+            resultText =
+`单位不统一，这里用两种方法分别计算：
+
+▸ 方法一（km/h 系统）
+距离 = ${fmt(dKm)} km，速度 = ${fmt(sVal)} km/h
+时间 = ${fmt(dKm)} ÷ ${fmt(sVal)} = ${fmt(timeHfromA)} h
+
+▸ 方法二（m/s 系统）
+距离 = ${fmt(dM)} m，速度 = ${fmt(sMs)} m/s
+时间 = ${fmt(dM)} ÷ ${fmt(sMs)} = ${fmt(timeSfromB)} s`;
+
+            lastResultType = "time";
+            lastResultCanonical = timeHfromA;
+        }
+
+    }
+
+    resultBox.innerText = resultText;
+
+    populateConvertOptions(lastResultType);
+
+}
+
+function populateConvertOptions(type){
+    const sel = document.getElementById("convertUnit");
+    sel.innerHTML = "";
+
+    let options = [];
+    if(type === "distance") options = [["km","公里(km)"],["m","米(m)"]];
+    else if(type === "speed") options = [["kmh","公里/小时(km/h)"],["ms","米/秒(m/s)"]];
+    else if(type === "time") options = [["h","小时(h)"],["min","分钟(min)"],["s","秒(s)"]];
+    else{
+        document.getElementById("convertRow").classList.add("hidden");
+        return;
+    }
+
+    options.forEach(([val,label])=>{
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = label;
+        sel.appendChild(opt);
+    });
+
+    document.getElementById("convertRow").classList.remove("hidden");
+}
+
+function convertResult(){
+    if(lastResultType === null) return;
+
+    const unit = document.getElementById("convertUnit").value;
+    let display = 0;
+    let label = unit;
+
+    if(lastResultType === "distance"){
+        display = unit==="m" ? lastResultCanonical*1000 : lastResultCanonical;
+    }
+    else if(lastResultType === "speed"){
+        display = unit==="ms" ? lastResultCanonical/3.6 : lastResultCanonical;
+        label = unit==="ms" ? "m/s" : "km/h";
+    }
+    else if(lastResultType === "time"){
+        if(unit==="h") display = lastResultCanonical;
+        else if(unit==="min") display = lastResultCanonical*60;
+        else display = lastResultCanonical*3600;
+    }
+
+    document.getElementById("convertOutput").innerText = `= ${fmt(display)} ${label}`;
+}
+
+// Made by ecchua79
+
+function resetQuiz(){
+
+    correctCount = 0;
+    speedSource = null;
+    lastResultType = null;
+    lastResultCanonical = null;
+
+    document.getElementById("score").innerText = 0;
+    updateEnergyBar();
+
+    document.getElementById("calculatorSection").classList.add("hidden");
+    document.getElementById("quizSection").classList.remove("hidden");
+
+    document.getElementById("distance").value = "";
+    document.getElementById("speedKmh").value = "";
+    document.getElementById("speedMs").value = "";
+    document.getElementById("time").value = "";
+    document.getElementById("result").innerText = "";
+    document.getElementById("convertRow").classList.add("hidden");
+    document.getElementById("convertOutput").innerText = "";
+
+    generateQuestion();
+
+}
+
+</script>
+
+</body>
+</html>
