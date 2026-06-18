@@ -8,7 +8,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -40,9 +40,13 @@ body{
         radial-gradient(circle at 82% 78%, rgba(255,46,136,.08), transparent 45%),
         var(--bg-deep);
     background-attachment:fixed;
+    
+    /* 采用 Flex 垂直布局，把页脚推至最底部 */
     display:flex;
-    justify-content:center;
+    flex-direction:column;
+    justify-content:space-between;
     align-items:center;
+    
     padding:24px;
     position:relative;
     overflow-x:hidden;
@@ -72,6 +76,9 @@ body::before{
     border-radius:18px;
     padding:32px 28px;
     animation:containerGlow 4s ease-in-out infinite;
+    
+    /* 自动外边距，让卡片在除去页脚后的剩余空间中垂直居中 */
+    margin:auto 0;
 }
 
 @keyframes containerGlow{
@@ -166,7 +173,6 @@ h1,h2{
 }
 
 /* HUD panel with corner brackets */
-/* 峇株吧辖蔡逸众制作 */
 .hud-panel{
     position:relative;
     background:var(--bg-panel-alt);
@@ -386,11 +392,76 @@ button:active{ transform:translateY(0); }
     white-space:pre-line;
 }
 
+/* 📊 辅助计算器样式面板 */
+.embedded-calc {
+    background: rgba(15, 28, 48, 0.6);
+    border: 1px solid rgba(0, 234, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 18px 0 6px 0;
+}
+.embedded-calc-display {
+    width: 100%;
+    height: 46px;
+    background: rgba(6, 10, 20, 0.8);
+    border: 1px solid var(--border-glow);
+    border-radius: 6px;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.3em;
+    text-align: right;
+    padding: 0 12px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 8px rgba(0,234,255,0.1);
+}
+.embedded-calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.embedded-calc-grid button {
+    margin-top: 0;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1em;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    border: 1px solid rgba(0, 234, 255, 0.15);
+}
+.embedded-calc-grid button:hover {
+    background: rgba(0, 234, 255, 0.15);
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0,234,255,0.3);
+}
+.embedded-calc-grid button.op-btn {
+    color: var(--cyan);
+    background: rgba(0, 234, 255, 0.05);
+}
+.embedded-calc-grid button.clear-btn {
+    color: var(--red);
+    background: rgba(255, 77, 106, 0.05);
+    border-color: rgba(255, 77, 106, 0.2);
+}
+.embedded-calc-grid button.clear-btn:hover {
+    background: rgba(255, 77, 106, 0.2);
+    border-color: var(--red);
+    box-shadow: 0 0 8px rgba(255,77,106,0.3);
+}
+.embedded-calc-grid button.eq-btn {
+    color: #03121a;
+    background: linear-gradient(90deg, var(--cyan), var(--cyan-dim));
+    grid-column: span 2;
+    font-weight: bold;
+}
+
+/* 页脚样式（置于 Body 最底部） */
 .footer-credit{
     text-align:center;
-    margin-top:14px;
-    font-size:.65em;
-    color:rgba(255,255,255,.05);
+    margin-top:24px;
+    padding-bottom:12px;
+    font-size:.7em;
+    color:rgba(255,255,255,.18); /* 稍微提升对比度 */
     user-select:none;
 }
 
@@ -407,6 +478,7 @@ button:active{ transform:translateY(0); }
 
 <div class="container">
 
+<!-- 闯关答题板块 -->
 <div id="quizSection">
 
 <div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
@@ -430,12 +502,15 @@ button:active{ transform:translateY(0); }
 <span id="answerUnit" class="unit-badge"></span>
 </div>
 
+
+
 <button class="btn-primary" onclick="checkAnswer()">提交答案</button>
 
 <p id="feedback" class="feedback"></p>
 
 </div>
 
+<!-- 解锁后的主计算终端板块 -->
 <div id="calculatorSection" class="hidden">
 
 <div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
@@ -518,18 +593,16 @@ let correctCount = 0;
 let currentAnswer = 0;
 let currentUnit = "";
 
-// 华仁中学蔡逸众制作
-let speedSource = null;       // 'kmh' | 'ms' | null —— 记录用户最后手动输入的是哪个速度单位
+let speedSource = null;       // 'kmh' | 'ms' | null
 let lastResultType = null;    // 'distance' | 'speed' | 'time'
 let lastResultCanonical = null;
 
-const TIME_FACTOR = { h:1, min:1/60, s:1/3600 }; // 乘以此倍数换算成 h
+const TIME_FACTOR = { h:1, min:1/60, s:1/3600 }; 
 
 function distSystem(u){ return u==="km" ? "A" : "B"; }
 function timeSystem(u){ return u==="s" ? "B" : "A"; }
 function speedSystemOf(u){ return u==="ms" ? "B" : "A"; }
 
-// 数字格式化:数值很小时(例如不到0.01)自动多显示几位小数,避免被四舍五入成0.00
 function fmt(v){
     if(!isFinite(v)) return "0";
     const abs = Math.abs(v);
@@ -539,7 +612,6 @@ function fmt(v){
     return v.toFixed(2);
 }
 
-// 两套独立场景,单位之间不需要互相换算
 const SCENARIOS = {
     A:{ speedUnit:"km/h", distUnit:"km", timeUnit:"h", speedMin:10, speedMax:99, timeMin:1, timeMax:5  },
     B:{ speedUnit:"m/s",  distUnit:"m",  timeUnit:"s", speedMin:1,  speedMax:30, timeMin:1, timeMax:20 }
@@ -550,7 +622,6 @@ function randInt(min,max){
 }
 
 function generateQuestion(){
-
     const sc = SCENARIOS[Math.random()<0.5 ? "A" : "B"];
     const type = Math.floor(Math.random()*3);
 
@@ -578,7 +649,6 @@ function generateQuestion(){
 
     document.getElementById("question-box").innerText = question;
     document.getElementById("answerUnit").innerText = currentUnit;
-
 }
 
 function updateEnergyBar(){
@@ -596,19 +666,13 @@ function updateEnergyBar(){
 }
 
 function checkAnswer(){
-
-    let user = parseFloat(
-        document.getElementById("answer").value
-    );
-
+    let user = parseFloat(document.getElementById("answer").value);
     if(isNaN(user)) return;
 
     const feedback = document.getElementById("feedback");
 
     if(Math.abs(user-currentAnswer) < 0.05){
-
         correctCount++;
-
         document.getElementById("score").innerText = correctCount;
         updateEnergyBar();
 
@@ -616,20 +680,14 @@ function checkAnswer(){
         feedback.className = "feedback correct";
 
         if(correctCount>=5){
-
             document.getElementById("quizSection").classList.add("hidden");
             document.getElementById("calculatorSection").classList.remove("hidden");
             updateFormula();
-
             return;
         }
-
         generateQuestion();
-
     }else{
-
         correctCount = 0;
-
         document.getElementById("score").innerText = 0;
         updateEnergyBar();
 
@@ -638,15 +696,13 @@ function checkAnswer(){
 
         generateQuestion();
     }
-
     document.getElementById("answer").value = "";
-
+    embedClear(); // 答完一题清空计算器输入
 }
 
 generateQuestion();
 
-document.getElementById("answer")
-.addEventListener("keypress", function(e){
+document.getElementById("answer").addEventListener("keypress", function(e){
     if(e.key === "Enter"){
         checkAnswer();
     }
@@ -681,7 +737,6 @@ function syncSpeedFromMs(){
 }
 
 function updateFormula(){
-
     const d = document.getElementById("distance").value;
     const s = document.getElementById("speedKmh").value;
     const t = document.getElementById("time").value;
@@ -689,7 +744,6 @@ function updateFormula(){
     document.querySelectorAll(".formula-row").forEach(el=>el.classList.remove("active"));
 
     let target = "formula-d";
-
     if(!d && s && t) target = "formula-d";
     else if(d && !s && t) target = "formula-s";
     else if(d && s && !t) target = "formula-t";
@@ -703,7 +757,6 @@ document.getElementById("speedKmh").addEventListener("input", syncSpeedFromKmh);
 document.getElementById("speedMs").addEventListener("input", syncSpeedFromMs);
 
 function calculate(){
-
     let dRaw = document.getElementById("distance").value;
     let sRaw = document.getElementById("speedKmh").value;
     let tRaw = document.getElementById("time").value;
@@ -729,7 +782,7 @@ function calculate(){
     const spdSrc = speedSource || "kmh";
 
     let dVal = parseFloat(dRaw);
-    let sVal = parseFloat(sRaw); // 始终是 km/h
+    let sVal = parseFloat(sRaw); 
     let tVal = parseFloat(tRaw);
 
     if(hasT && tVal===0){ resultBox.innerText="⚠ 时间不能为0"; lastResultType=null; return; }
@@ -738,7 +791,6 @@ function calculate(){
     let resultText = "";
 
     if(!hasD){
-        /* 已知速度、时间 → 求距离 */
         const sysT = timeSystem(timeUnit);
         const sysS = speedSystemOf(spdSrc);
 
@@ -750,61 +802,19 @@ function calculate(){
         const distMFromB  = sMs * tS;
 
         if(sysT === sysS){
-
             if(sysS === "A"){
                 const note = timeUnit==="min" ? `（= ${fmt(tH)} h）` : "";
-                resultText =
-`已知：
-
-速度 = ${fmt(sVal)} km/h
-时间 = ${tVal} ${timeUnit}${note}
-
-公式：
-距离 = 速度 × 时间
-
-代入：
-距离 = ${fmt(sVal)} × ${fmt(tH)}
-
-答案：
-距离 = ${fmt(distKmFromA)} km`;
+                resultText = `已知：\n\n速度 = ${fmt(sVal)} km/h\n时间 = ${tVal} ${timeUnit}${note}\n\n公式：\n距离 = 速度 × 时间\n\n代入：\n距离 = ${fmt(sVal)} × ${fmt(tH)}\n\n答案：\n距离 = ${fmt(distKmFromA)} km`;
             }else{
-                resultText =
-`已知：
-
-速度 = ${fmt(sMs)} m/s
-时间 = ${tVal} s
-
-公式：
-距离 = 速度 × 时间
-
-代入：
-距离 = ${fmt(sMs)} × ${tVal}
-
-答案：
-距离 = ${fmt(distMFromB)} m`;
+                resultText = `已知：\n\n速度 = ${fmt(sMs)} m/s\n时间 = ${tVal} s\n\n公式：\n距离 = 速度 × 时间\n\n代入：\n距离 = ${fmt(sMs)} × ${tVal}\n\n答案：\n距离 = ${fmt(distMFromB)} m`;
             }
-
         }else{
-
-            resultText =
-`单位不统一，这里用两种方法分别计算：
-
-▸ 方法一（km/h 系统）
-速度 = ${fmt(sVal)} km/h，时间 = ${fmt(tH)} h
-距离 = ${fmt(sVal)} × ${fmt(tH)} = ${fmt(distKmFromA)} km
-
-▸ 方法二（m/s 系统）
-速度 = ${fmt(sMs)} m/s，时间 = ${fmt(tS)} s
-距离 = ${fmt(sMs)} × ${fmt(tS)} = ${fmt(distMFromB)} m`;
-
+            resultText = `单位不统一，这里用两种方法分别计算：\n\n▸ 方法一（km/h 系统）\n速度 = ${fmt(sVal)} km/h，时间 = ${fmt(tH)} h\n距离 = ${fmt(sVal)} × ${fmt(tH)} = ${fmt(distKmFromA)} km\n\n▸ 方法二（m/s 系统）\n速度 = ${fmt(sMs)} m/s，时间 = ${fmt(tS)} s\n距离 = ${fmt(sMs)} × ${fmt(tS)} = ${fmt(distMFromB)} m`;
         }
-
         lastResultType = "distance";
         lastResultCanonical = distKmFromA;
-
     }
     else if(!hasS){
-        /* 已知距离、时间 → 求速度 */
         const sysD = distSystem(distUnit);
         const sysT = timeSystem(timeUnit);
 
@@ -813,69 +823,27 @@ function calculate(){
         const tH  = tVal * TIME_FACTOR[timeUnit];
         const tS  = tH * 3600;
 
-        const speedAfromA = dKm / tH; // km/h
-        const speedBfromB = dM / tS;  // m/s
+        const speedAfromA = dKm / tH; 
+        const speedBfromB = dM / tS;  
 
         document.getElementById("speedKmh").value = speedAfromA.toFixed(2);
         document.getElementById("speedMs").value = speedBfromB.toFixed(2);
         speedSource = null;
 
         if(sysD === sysT){
-
             if(sysD === "A"){
                 const note = timeUnit==="min" ? `（= ${fmt(tH)} h）` : "";
-                resultText =
-`已知：
-
-距离 = ${dVal} ${distUnit}
-时间 = ${tVal} ${timeUnit}${note}
-
-公式：
-速度 = 距离 ÷ 时间
-
-代入：
-速度 = ${fmt(dKm)} ÷ ${fmt(tH)}
-
-答案：
-速度 = ${fmt(speedAfromA)} km/h`;
+                resultText = `已知：\n\n距离 = ${dVal} ${distUnit}\n时间 = ${tVal} ${timeUnit}${note}\n\n公式：\n速度 = 距离 ÷ 时间\n\n代入：\n速度 = ${fmt(dKm)} ÷ ${fmt(tH)}\n\n答案：\n速度 = ${fmt(speedAfromA)} km/h`;
             }else{
-                resultText =
-`已知：
-
-距离 = ${dVal} m
-时间 = ${tVal} s
-
-公式：
-速度 = 距离 ÷ 时间
-
-代入：
-速度 = ${fmt(dM)} ÷ ${fmt(tS)}
-
-答案：
-速度 = ${fmt(speedBfromB)} m/s`;
+                resultText = `已知：\n\n距离 = ${dVal} m\n时间 = ${tVal} s\n\n公式：\n速度 = 距离 ÷ 时间\n\n代入：\n速度 = ${fmt(dM)} ÷ ${fmt(tS)}\n\n答案：\n速度 = ${fmt(speedBfromB)} m/s`;
             }
-
         }else{
-
-            resultText =
-`单位不统一，这里用两种方法分别计算：
-
-▸ 方法一（km/h 系统）
-距离 = ${fmt(dKm)} km，时间 = ${fmt(tH)} h
-速度 = ${fmt(dKm)} ÷ ${fmt(tH)} = ${fmt(speedAfromA)} km/h
-
-▸ 方法二（m/s 系统）
-距离 = ${fmt(dM)} m，时间 = ${fmt(tS)} s
-速度 = ${fmt(dM)} ÷ ${fmt(tS)} = ${fmt(speedBfromB)} m/s`;
-
+            resultText = `单位不统一，这里用两种方法分别计算：\n\n▸ 方法一（km/h 系统）\n距离 = ${fmt(dKm)} km，时间 = ${fmt(tH)} h\n速度 = ${fmt(dKm)} ÷ ${fmt(tH)} = ${fmt(speedAfromA)} km/h\n\n▸ 方法二（m/s 系统）\n距离 = ${fmt(dM)} m，时间 = ${fmt(tS)} s\n速度 = ${fmt(dM)} ÷ ${fmt(tS)} = ${fmt(speedBfromB)} m/s`;
         }
-
         lastResultType = "speed";
         lastResultCanonical = speedAfromA;
-
     }
     else{
-        /* 已知距离、速度 → 求时间 */
         const sysD = distSystem(distUnit);
         const sysS = speedSystemOf(spdSrc);
 
@@ -883,76 +851,32 @@ function calculate(){
         const dM  = dKm * 1000;
         const sMs = sVal / 3.6;
 
-        const timeHfromA = dKm / sVal; // h
-        const timeSfromB = dM / sMs;   // s
+        const timeHfromA = dKm / sVal; 
+        const timeSfromB = dM / sMs;   
 
         if(sysD === sysS){
-
             if(sysD === "A"){
                 let display = timeHfromA;
                 if(timeUnit==="min") display = timeHfromA*60;
                 else if(timeUnit==="s") display = timeHfromA*3600;
 
-                resultText =
-`已知：
-
-距离 = ${dVal} km
-速度 = ${fmt(sVal)} km/h
-
-公式：
-时间 = 距离 ÷ 速度
-
-代入：
-时间 = ${fmt(dKm)} ÷ ${fmt(sVal)}
-
-答案：
-时间 = ${fmt(display)} ${timeUnit}`;
-
+                resultText = `已知：\n\n距离 = ${dVal} km\n速度 = ${fmt(sVal)} km/h\n\n公式：\n时间 = 距离 ÷ 速度\n\n代入：\n时间 = ${fmt(dKm)} ÷ ${fmt(sVal)}\n\n答案：\n时间 = ${fmt(display)} ${timeUnit}`;
                 lastResultType = "time";
                 lastResultCanonical = timeHfromA;
             }else{
-                resultText =
-`已知：
-
-距离 = ${dVal} m
-速度 = ${fmt(sMs)} m/s
-
-公式：
-时间 = 距离 ÷ 速度
-
-代入：
-时间 = ${fmt(dM)} ÷ ${fmt(sMs)}
-
-答案：
-时间 = ${fmt(timeSfromB)} s`;
-
+                resultText = `已知：\n\n距离 = ${dVal} m\n速度 = ${fmt(sMs)} m/s\n\n公式：\n时间 = 距离 ÷ 速度\n\n代入：\n时间 = ${fmt(dM)} ÷ ${fmt(sMs)}\n\n答案：\n时间 = ${fmt(timeSfromB)} s`;
                 lastResultType = "time";
                 lastResultCanonical = timeSfromB/3600;
             }
-
         }else{
-
-            resultText =
-`单位不统一，这里用两种方法分别计算：
-
-▸ 方法一（km/h 系统）
-距离 = ${fmt(dKm)} km，速度 = ${fmt(sVal)} km/h
-时间 = ${fmt(dKm)} ÷ ${fmt(sVal)} = ${fmt(timeHfromA)} h
-
-▸ 方法二（m/s 系统）
-距离 = ${fmt(dM)} m，速度 = ${fmt(sMs)} m/s
-时间 = ${fmt(dM)} ÷ ${fmt(sMs)} = ${fmt(timeSfromB)} s`;
-
+            resultText = `单位不统一，这里用两种方法分别计算：\n\n▸ 方法一（km/h 系统）\n距离 = ${fmt(dKm)} km，速度 = ${fmt(sVal)} km/h\n时间 = ${fmt(dKm)} ÷ ${fmt(sVal)} = ${fmt(timeHfromA)} h\n\n▸ 方法二（m/s 系统）\n距离 = ${fmt(dM)} m，速度 = ${fmt(sMs)} m/s\n时间 = ${fmt(dM)} ÷ ${fmt(sMs)} = ${fmt(timeSfromB)} s`;
             lastResultType = "time";
             lastResultCanonical = timeHfromA;
         }
-
     }
 
     resultBox.innerText = resultText;
-
     populateConvertOptions(lastResultType);
-
 }
 
 function populateConvertOptions(type){
@@ -974,7 +898,6 @@ function populateConvertOptions(type){
         opt.textContent = label;
         sel.appendChild(opt);
     });
-
     document.getElementById("convertRow").classList.remove("hidden");
 }
 
@@ -997,14 +920,10 @@ function convertResult(){
         else if(unit==="min") display = lastResultCanonical*60;
         else display = lastResultCanonical*3600;
     }
-
     document.getElementById("convertOutput").innerText = `= ${fmt(display)} ${label}`;
 }
 
-// Made by ecchua79
-
 function resetQuiz(){
-
     correctCount = 0;
     speedSource = null;
     lastResultType = null;
@@ -1023,11 +942,37 @@ function resetQuiz(){
     document.getElementById("result").innerText = "";
     document.getElementById("convertRow").classList.add("hidden");
     document.getElementById("convertOutput").innerText = "";
-
+    
+    embedClear();
     generateQuestion();
-
 }
 
+/* ---------------- 📊 辅助计算器脚本逻辑 ---------------- */
+const embedDisp = document.getElementById('embedDisplay');
+
+function embedAppend(val) {
+    if (embedDisp.value === '0' && val !== '.') {
+        embedDisp.value = val;
+    } else {
+        embedDisp.value += val;
+    }
+}
+
+function embedClear() {
+    embedDisp.value = '0';
+}
+
+function embedCalculate() {
+    try {
+        let result = eval(embedDisp.value);
+        if (!Number.isInteger(result)) {
+            result = parseFloat(result.toFixed(8)); 
+        }
+        embedDisp.value = result;
+    } catch (error) {
+        embedDisp.value = '错误';
+    }
+}
 </script>
 
 </body>
