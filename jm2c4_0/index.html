@@ -474,18 +474,18 @@ footer a{color:var(--cyan);text-decoration:none}
   <div style="margin-top:24px;text-align:center">
     <button class="eq-btn" id="show3dBtn" onclick="show3DLung()">🫁 观察3D动画 →</button>
     <div id="lung3dWrap" style="display:none;margin-top:20px">
-      <div class="sketchfab-embed-wrapper" style="border-radius:16px;overflow:hidden;border:1px solid var(--border);position:relative;background:#0a0a0a">
-        <div id="lung3dLoading" style="padding:60px 20px;color:var(--muted);font-size:13px">⏳ 模型加载中，请稍候…</div>
-        <iframe id="lung3dIframe" title="Lung animation" width="100%" height="420" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share referrerpolicy="no-referrer-when-downgrade" loading="eager" src="" style="display:none;background:#000"></iframe>
-        <p style="font-size:12px;font-weight:normal;margin:8px 4px;color:var(--muted)">
+      <div class="sketchfab-embed-wrapper" style="border-radius:16px;overflow:hidden;border:1px solid var(--border);position:relative;background:#0a0a0a;min-height:420px">
+        <iframe id="lung3dIframe" title="Lung animation" width="100%" height="420" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share referrerpolicy="no-referrer-when-downgrade" loading="eager" src="" style="display:block;background:#000;position:relative;z-index:1"></iframe>
+        <div id="lung3dLoading" style="position:absolute;top:0;left:0;right:0;bottom:60px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;background:#0a0a0a;z-index:2;pointer-events:none;transition:opacity .5s">⏳ 模型加载中，请稍候…</div>
+        <p style="font-size:12px;font-weight:normal;margin:8px 4px;color:var(--muted);position:relative;z-index:1">
           <a href="https://sketchfab.com/3d-models/lung-animation-acbb5f0e16a14179ae4f63c5b6b83ad7?utm_medium=embed&utm_campaign=share-popup&utm_content=acbb5f0e16a14179ae4f63c5b6b83ad7" target="_blank" rel="nofollow" style="font-weight:bold;color:var(--cyan)">Lung animation</a>
           by <a href="https://sketchfab.com/Ebers?utm_medium=embed&utm_campaign=share-popup&utm_content=acbb5f0e16a14179ae4f63c5b6b83ad7" target="_blank" rel="nofollow" style="font-weight:bold;color:var(--cyan)">Ebers</a>
           on <a href="https://sketchfab.com?utm_medium=embed&utm_campaign=share-popup&utm_content=acbb5f0e16a14179ae4f63c5b6b83ad7" target="_blank" rel="nofollow" style="font-weight:bold;color:var(--cyan)">Sketchfab</a>
         </p>
       </div>
       <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px;padding:12px 16px;margin-top:10px;font-size:12px;color:var(--muted);text-align:left">
-        ⚠️ <b style="color:var(--orange)">如果模型显示黑屏/空白：</b>这是因为浏览器直接双击打开本地HTML文件（file://）时，会出于安全考虑阻止加载外部3D模型。<br>
-        <b>解决方法：</b>把这个 HTML 文件上传到网页服务器后再打开（例如你常用的 GitHub Pages：ecchua79.github.io），或点击下方按钮直接在 Sketchfab 网站查看：
+        ⚠️ <b style="color:var(--orange)">如果模型一直显示黑屏/空白：</b>可能是网络较慢、浏览器扩展（广告拦截器/隐私插件）拦截了外部内容。<br>
+        <b>解决方法：</b>稍等几秒、关闭广告拦截器后刷新，或点击下方按钮直接在 Sketchfab 网站查看：
         <a href="https://sketchfab.com/3d-models/lung-animation-acbb5f0e16a14179ae4f63c5b6b83ad7" target="_blank" style="display:inline-block;margin-top:8px;color:var(--cyan);font-weight:bold;text-decoration:underline">🔗 在新窗口打开3D模型</a>
       </div>
     </div>
@@ -922,13 +922,15 @@ function show3DLung(){
   var loading=document.getElementById('lung3dLoading');
   if(wrap.style.display==='none'){
     if(!iframe.src){
-      loading.style.display='block';
-      iframe.style.display='none';
+      // load事件作为"提前隐藏"的加分项，但不依赖它——即使事件不触发，也会在5秒后自动隐藏提示，
+      // 避免iframe一直被挡住（这正是之前"卡在加载中"看不到模型的原因）
       iframe.addEventListener('load',function(){
-        loading.style.display='none';
-        iframe.style.display='block';
+        if(loading) loading.style.opacity='0';
       },{once:true});
       iframe.src='https://sketchfab.com/models/acbb5f0e16a14179ae4f63c5b6b83ad7/embed?autostart=1&ui_theme=dark';
+      setTimeout(function(){
+        if(loading) loading.style.opacity='0';
+      },5000);
     }
     wrap.style.display='block';
     btn.textContent='收起3D动画 ↑';
