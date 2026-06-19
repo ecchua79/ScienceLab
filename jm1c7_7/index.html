@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第7章：光的现象 — 光子实验室</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030810;--card:rgba(0,200,255,.06);--border:rgba(0,200,255,.2);
+  --cyan:#00d4ff;--gold:#ffd060;--green:#00ff88;--red:#ff4466;
+  --text:#c8e4f8;--muted:#4a7090;
+  --font-title:'Orbitron',monospace;--font-body:'Noto Sans SC',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body)}
+#bg{position:fixed;top:0;left:0;z-index:0;pointer-events:none}
+.scr{position:fixed;top:0;left:0;width:100%;height:100%;overflow-y:auto;display:none;z-index:1;opacity:0;transition:opacity .4s}
+.scr.active{display:block;opacity:1}
+
+/* INTRO */
+#s-intro{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(0,100,200,.15) 0%,transparent 70%)}
+.intro-badge{font-family:var(--font-title);font-size:.65rem;letter-spacing:.3em;color:var(--cyan);
+  border:1px solid var(--border);padding:.4em 1.2em;border-radius:2em;margin-bottom:2rem;
+  animation:pulse 2s ease infinite}
+.intro-title{font-family:var(--font-title);font-size:clamp(2rem,6vw,3.8rem);font-weight:900;
+  text-align:center;line-height:1.15;margin-bottom:1rem;
+  background:linear-gradient(135deg,#fff 20%,var(--cyan) 60%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 30px rgba(0,212,255,.4))}
+.intro-sub{font-size:.95rem;color:var(--muted);text-align:center;margin-bottom:3rem;letter-spacing:.05em}
+.btn-start{font-family:var(--font-title);font-size:.95rem;letter-spacing:.15em;
+  padding:.9em 2.5em;border:1px solid var(--cyan);border-radius:3em;
+  background:rgba(0,212,255,.08);color:var(--cyan);cursor:pointer;transition:all .3s;text-transform:uppercase}
+.btn-start:hover{background:rgba(0,212,255,.18);box-shadow:0 0 30px rgba(0,212,255,.3);transform:scale(1.04)}
+.intro-beam{position:absolute;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  width:200px;animation:beam 3s ease-in-out infinite;pointer-events:none}
+@keyframes beam{0%{left:-200px;opacity:0}40%{opacity:.8}100%{left:110%;opacity:0}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 rgba(0,212,255,0)}50%{box-shadow:0 0 15px rgba(0,212,255,.3)}}
+
+/* MAP */
+#s-map{padding:2rem 1rem 6rem}
+.map-head{text-align:center;margin-bottom:2rem}
+.map-head h2{font-family:var(--font-title);font-size:1.3rem;color:var(--cyan);letter-spacing:.1em}
+.map-head p{color:var(--muted);margin-top:.5rem;font-size:.85rem}
+.map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;max-width:860px;margin:0 auto}
+.map-node{background:var(--card);border:1px solid var(--border);border-radius:1rem;
+  padding:1.4rem 1rem;text-align:center;cursor:pointer;transition:all .3s;position:relative}
+.map-node:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,212,255,.15);transform:translateY(-3px)}
+.map-node.done{border-color:rgba(0,255,136,.4);background:rgba(0,255,136,.04)}
+.map-node.done::after{content:'✓';position:absolute;top:.5rem;right:.8rem;color:var(--green);font-size:.9rem;font-weight:bold}
+.node-num{font-family:var(--font-title);font-size:1.8rem;color:var(--cyan);margin-bottom:.3rem;filter:drop-shadow(0 0 8px var(--cyan))}
+.node-title{font-weight:600;font-size:.9rem;margin-bottom:.25rem}
+.node-sub{font-size:.72rem;color:var(--muted)}
+.map-stars{display:flex;justify-content:center;gap:.2rem;margin-top:.5rem}
+.star{font-size:.85rem;color:var(--muted)}.star.lit{color:var(--gold);filter:drop-shadow(0 0 4px var(--gold))}
+.btn-final{display:block;margin:2rem auto 0;font-family:var(--font-title);font-size:.85rem;
+  letter-spacing:.12em;padding:.8em 2.5em;border:1px solid var(--gold);border-radius:3em;
+  background:rgba(255,208,96,.08);color:var(--gold);cursor:pointer;transition:all .3s}
+.btn-final:hover:not(:disabled){background:rgba(255,208,96,.18);box-shadow:0 0 25px rgba(255,208,96,.25)}
+.btn-final:disabled{opacity:.3;cursor:not-allowed}
+
+/* STATION */
+.stn-hdr{padding:1rem 1.2rem;display:flex;align-items:center;gap:.8rem;
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;
+  background:rgba(3,8,16,.93);backdrop-filter:blur(10px)}
+.btn-back{background:none;border:1px solid var(--border);color:var(--muted);
+  padding:.38em .9em;border-radius:2em;cursor:pointer;font-size:.75rem;transition:all .3s;white-space:nowrap}
+.btn-back:hover{border-color:var(--cyan);color:var(--cyan)}
+.stn-progress{flex:1;display:flex;align-items:center;gap:.6rem}
+.stn-label{font-family:var(--font-title);font-size:.7rem;color:var(--cyan);letter-spacing:.08em;white-space:nowrap}
+.prog-bar{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple,#b060ff));border-radius:2px;transition:width .5s}
+.stn-body{padding:1.2rem;max-width:820px;margin:0 auto;padding-bottom:5rem}
+.stn-title{font-family:var(--font-title);font-size:1.4rem;font-weight:700;margin-bottom:.4rem;
+  background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stn-intro{color:var(--muted);font-size:.88rem;line-height:1.75;margin-bottom:1.2rem}
+.concepts{background:var(--card);border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin-bottom:1.2rem}
+.concepts h4{font-family:var(--font-title);font-size:.62rem;letter-spacing:.15em;color:var(--cyan);margin-bottom:.7rem;text-transform:uppercase}
+.ci{display:flex;gap:.7rem;align-items:flex-start;margin-bottom:.6rem;font-size:.85rem;line-height:1.65}
+.ci:last-child{margin-bottom:0}.ci-icon{font-size:1rem;flex-shrink:0;margin-top:.1rem}
+.ci-text{color:var(--text)}.ci-text strong{color:#fff}
+
+/* DEMO */
+.demo-wrap{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:.75rem;padding:.9rem;margin-bottom:1.2rem}
+.demo-title{font-family:var(--font-title);font-size:.6rem;letter-spacing:.15em;color:var(--gold);margin-bottom:.7rem;text-transform:uppercase}
+.demo-canvas{display:block;width:100%;border-radius:.4rem;background:#040c14;cursor:crosshair;touch-action:none}
+.demo-ctrl{margin-top:.7rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.demo-ctrl label{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.demo-ctrl input[type=range]{flex:1;min-width:100px;accent-color:var(--cyan);cursor:pointer}
+.demo-val{font-family:var(--font-title);font-size:.72rem;color:var(--cyan);min-width:3em;text-align:center}
+.demo-btn{font-size:.72rem;padding:.35em .85em;border:1px solid var(--border);border-radius:1.5em;
+  background:none;color:var(--text);cursor:pointer;transition:all .22s;white-space:nowrap}
+.demo-btn:hover,.demo-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.1)}
+.demo-info{font-size:.78rem;color:var(--muted);margin-top:.5rem;text-align:center;min-height:1.1em;line-height:1.5}
+.demo-info.hi{color:var(--gold)}
+
+/* RGB */
+.rgb-wrap{padding:.3rem 0}
+.rgb-stage{position:relative;width:180px;height:165px;margin:0 auto .9rem}
+.rgb-c{position:absolute;width:90px;height:90px;border-radius:50%;mix-blend-mode:screen;transition:opacity .15s}
+.rgb-r{background:rgb(255,0,0);top:0;left:18px}
+.rgb-g{background:rgb(0,255,0);top:46px;left:0}
+.rgb-b{background:rgb(0,0,255);top:46px;left:36px}
+.rgb-sliders{display:grid;grid-template-columns:auto 1fr auto;gap:.4rem .6rem;align-items:center;max-width:280px;margin:0 auto}
+.rgb-sliders label{font-size:.8rem;font-weight:700}
+.lR{color:#ff6666}.lG{color:#66ff88}.lB{color:#6699ff}
+.rgb-sliders input{accent-color:var(--cyan)}
+.rgb-sliders span{font-size:.72rem;color:var(--muted);text-align:right;min-width:2em}
+
+/* Object color demo */
+.obj-demo{padding:.3rem 0}
+.obj-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem;align-items:center}
+.obj-row label{font-size:.8rem;color:var(--muted);min-width:5em}
+.cbtn{padding:.3em .75em;border-radius:1.5em;border:2px solid transparent;cursor:pointer;font-size:.75rem;transition:all .2s}
+.cbtn.sel{border-color:#fff!important;transform:scale(1.08)}
+.obj-result{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:.6rem;
+  padding:.8rem;text-align:center;font-size:.85rem;line-height:1.6}
+.big-color{width:56px;height:56px;border-radius:50%;margin:0 auto .5rem;
+  border:2px solid rgba(255,255,255,.1);transition:background .3s}
+
+/* QUIZ */
+.quiz-wrap{padding-top:.5rem}
+.quiz-title{font-family:var(--font-title);font-size:.62rem;letter-spacing:.15em;color:#b060ff;margin-bottom:.9rem;text-transform:uppercase}
+.q-block{background:var(--card);border:1px solid var(--border);border-radius:.65rem;padding:.9rem;margin-bottom:.7rem}
+.q-text{font-size:.88rem;margin-bottom:.7rem;line-height:1.55}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.q-opt{padding:.5em .75em;border:1px solid var(--border);border-radius:.45rem;
+  background:rgba(255,255,255,.03);cursor:pointer;font-size:.8rem;transition:all .2s;text-align:left;color:var(--text);line-height:1.4}
+.q-opt:hover{border-color:var(--cyan);background:rgba(0,212,255,.08)}
+.q-opt.sel{border-color:#b060ff;background:rgba(176,96,255,.12)}
+.q-opt.correct{border-color:var(--green);background:rgba(0,255,136,.12);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:rgba(255,68,102,.12);color:var(--red)}
+.q-explain{font-size:.76rem;color:var(--muted);margin-top:.55rem;padding-top:.55rem;
+  border-top:1px solid var(--border);display:none;line-height:1.5}
+.q-explain.show{display:block}
+.btn-check{font-family:var(--font-title);font-size:.72rem;letter-spacing:.1em;
+  padding:.6em 1.8em;border:1px solid var(--cyan);border-radius:2em;
+  background:rgba(0,212,255,.08);color:var(--cyan);cursor:pointer;transition:all .3s;display:block;margin:1rem auto 0}
+.btn-check:hover:not(:disabled){background:rgba(0,212,255,.2)}
+.btn-check:disabled{opacity:.3;cursor:not-allowed}
+.score-bar{display:flex;align-items:center;gap:.7rem;background:rgba(0,255,136,.06);
+  border:1px solid rgba(0,255,136,.2);border-radius:.5rem;padding:.65rem .9rem;margin-top:.9rem}
+.score-bar.hide{display:none}
+.score-icon{font-size:1.3rem}.score-text{font-size:.85rem}
+.score-pts{font-family:var(--font-title);font-size:.95rem;color:var(--green);margin-left:auto}
+.btn-next{font-family:var(--font-title);font-size:.78rem;letter-spacing:.1em;
+  padding:.65em 2em;border:1px solid var(--gold);border-radius:2em;
+  background:rgba(255,208,96,.08);color:var(--gold);cursor:pointer;transition:all .3s;display:block;margin:.9rem auto 0}
+.btn-next:hover{background:rgba(255,208,96,.18);box-shadow:0 0 20px rgba(255,208,96,.2)}
+.btn-next.hide{display:none}
+
+/* FINAL QUIZ */
+#s-quiz{padding:0 0 5rem}
+.fq-hdr{padding:1rem 1.2rem;display:flex;align-items:center;gap:.8rem;
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;
+  background:rgba(3,8,16,.93);backdrop-filter:blur(10px)}
+.fq-hdr h3{font-family:var(--font-title);font-size:.8rem;color:var(--gold);letter-spacing:.1em}
+.fq-prog-text{font-size:.75rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.fq-body{max-width:680px;margin:0 auto;padding:1.4rem}
+.fq-qnum{font-family:var(--font-title);font-size:.62rem;letter-spacing:.15em;color:var(--gold);margin-bottom:.4rem}
+.fq-qtext{font-size:.95rem;line-height:1.65;margin-bottom:1rem}
+.fq-opts{display:grid;gap:.55rem}
+.fq-opt{padding:.65em 1em;border:1px solid var(--border);border-radius:.55rem;
+  background:rgba(255,255,255,.03);cursor:pointer;font-size:.88rem;transition:all .2s;text-align:left;color:var(--text)}
+.fq-opt:hover{border-color:var(--gold);background:rgba(255,208,96,.08)}
+.fq-opt.sel{border-color:var(--gold);background:rgba(255,208,96,.12)}
+.fq-opt.correct{border-color:var(--green);background:rgba(0,255,136,.12);color:var(--green)}
+.fq-opt.wrong{border-color:var(--red);background:rgba(255,68,102,.12);color:var(--red)}
+.fq-nav{display:flex;justify-content:center;margin-top:1.3rem}
+#btn-fq-submit{font-family:var(--font-title);font-size:.75rem;letter-spacing:.1em;
+  padding:.65em 2em;border:1px solid var(--cyan);border-radius:2em;
+  background:rgba(0,212,255,.08);color:var(--cyan);cursor:pointer;transition:all .3s}
+#btn-fq-submit:hover:not(:disabled){background:rgba(0,212,255,.2)}
+#btn-fq-submit:disabled{opacity:.3;cursor:not-allowed}
+.fq-result{text-align:center;padding:2rem .5rem}
+.big-score{font-family:var(--font-title);font-size:4rem;font-weight:900;
+  background:linear-gradient(135deg,var(--gold),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.score-label{color:var(--muted);font-size:.88rem;margin-top:.3rem}
+.score-msg{font-size:1rem;margin:1rem 0 1.5rem;color:var(--text)}
+
+/* CERT */
+#s-cert{display:flex;flex-direction:column;align-items:center;padding:2rem 1rem 5rem;overflow-y:auto}
+.cert-form{display:flex;gap:.7rem;margin-bottom:1.3rem;align-items:center;flex-wrap:wrap;justify-content:center}
+.cert-form label{font-size:.85rem;color:var(--muted)}
+.cert-form input{padding:.48em .85em;background:rgba(255,255,255,.06);border:1px solid var(--border);
+  border-radius:.45rem;color:#fff;font-size:.88rem;outline:none;width:150px}
+.cert-form input:focus{border-color:var(--cyan)}
+.cert-form button{font-family:var(--font-title);font-size:.72rem;letter-spacing:.08em;
+  padding:.55em 1.4em;border:1px solid var(--gold);border-radius:2em;
+  background:rgba(255,208,96,.1);color:var(--gold);cursor:pointer;transition:all .3s}
+.cert-form button:hover{background:rgba(255,208,96,.22)}
+#cert-canvas{border-radius:.8rem;box-shadow:0 0 40px rgba(0,212,255,.15);max-width:100%}
+.btn-dl{font-family:var(--font-title);font-size:.75rem;letter-spacing:.1em;margin-top:.9rem;
+  padding:.6em 1.8em;border:1px solid var(--cyan);border-radius:2em;
+  background:rgba(0,212,255,.08);color:var(--cyan);cursor:pointer;transition:all .3s}
+.btn-dl:hover{background:rgba(0,212,255,.2)}
+.intro-features{margin-top:1.6rem;max-width:480px;text-align:center}
+.feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.8rem}
+.feat-card{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.16);border-radius:.6rem;
+  padding:.5rem .2rem;font-size:.7rem;line-height:1.5;color:var(--text)}
+.feat-icon{font-size:1.15rem;margin-bottom:.15rem}
+.feat-topics{font-size:.7rem;color:var(--muted);line-height:1.65;margin-bottom:.4rem}
+.feat-unlock{font-size:.7rem;color:rgba(255,208,96,.5);line-height:1.5}
+.wm{position:fixed;bottom:.5rem;right:.7rem;font-size:.5rem;
+  color:rgba(0,212,255,.12);z-index:9999;pointer-events:none;letter-spacing:.05em;font-family:var(--font-title)}
+@media(max-width:480px){.q-opts{grid-template-columns:1fr}.map-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<!-- INTRO -->
+<div class="scr active" id="s-intro">
+<div class="intro-beam" style="top:25%;animation-delay:0s"></div>
+<div class="intro-beam" style="top:52%;animation-delay:1.3s"></div>
+<div class="intro-beam" style="top:75%;animation-delay:2.6s"></div>
+<div style="position:relative;z-index:1;text-align:center;padding:2rem">
+<div class="intro-badge">峇株吧辖华仁中学 · 初一科学</div>
+<div class="intro-title">第 7 章<br>光的现象</div>
+<p class="intro-sub">六大探索站 · 互动实验 · 智识挑战 · 学习证书</p>
+<button class="btn-start" onclick="showMap()">▶ 进入光子实验室</button>
+<div class="intro-features">
+<div class="feat-grid">
+<div class="feat-card"><div class="feat-icon">🔬</div><div>6 个互动<br>探索站</div></div>
+<div class="feat-card"><div class="feat-icon">⚡</div><div>物理模拟<br>实验演示</div></div>
+<div class="feat-card"><div class="feat-icon">🎯</div><div>每站 3 题<br>即时测验</div></div>
+<div class="feat-card"><div class="feat-icon">🏆</div><div>通关生成<br>学习证书</div></div>
+</div>
+<p class="feat-topics">涵盖：光的传播 · 反射定律 · 平面镜 · 球面镜 · 折射 · 全反射 · 透镜成像 · 色散 · 物体颜色</p>
+<p class="feat-unlock">💡 完成全部 6 站且每站 ≥ 2 ★，方可解锁最终 18 题光学总测验</p>
+</div>
+</div>
+</div>
+
+<!-- MAP -->
+<div class="scr" id="s-map">
+<div class="map-head"><h2>⚡ 光子实验室</h2><p>完成全部 6 站且每站 ≥ 2 ★，解锁最终总测验</p></div>
+<div class="map-grid">
+<div class="map-node" id="node-1" onclick="showStation(1)">
+<div class="node-num">01</div><div class="node-title">光的传播</div>
+<div class="node-sub">光速 · 直线传播 · 影子</div>
+<div class="map-stars"><span class="star" id="ns1a">★</span><span class="star" id="ns1b">★</span><span class="star" id="ns1c">★</span></div>
+</div>
+<div class="map-node" id="node-2" onclick="showStation(2)">
+<div class="node-num">02</div><div class="node-title">光的反射</div>
+<div class="node-sub">反射定律 · 镜面 · 漫反射</div>
+<div class="map-stars"><span class="star" id="ns2a">★</span><span class="star" id="ns2b">★</span><span class="star" id="ns2c">★</span></div>
+</div>
+<div class="map-node" id="node-3" onclick="showStation(3)">
+<div class="node-num">03</div><div class="node-title">平面镜与球面镜</div>
+<div class="node-sub">虚像 · 凸面镜 · 凹面镜</div>
+<div class="map-stars"><span class="star" id="ns3a">★</span><span class="star" id="ns3b">★</span><span class="star" id="ns3c">★</span></div>
+</div>
+<div class="map-node" id="node-4" onclick="showStation(4)">
+<div class="node-num">04</div><div class="node-title">光的折射</div>
+<div class="node-sub">折射定律 · 全反射 · 光纤</div>
+<div class="map-stars"><span class="star" id="ns4a">★</span><span class="star" id="ns4b">★</span><span class="star" id="ns4c">★</span></div>
+</div>
+<div class="map-node" id="node-5" onclick="showStation(5)">
+<div class="node-num">05</div><div class="node-title">透镜成像</div>
+<div class="node-sub">凸透镜 · 凹透镜 · 焦点</div>
+<div class="map-stars"><span class="star" id="ns5a">★</span><span class="star" id="ns5b">★</span><span class="star" id="ns5c">★</span></div>
+</div>
+<div class="map-node" id="node-6" onclick="showStation(6)">
+<div class="node-num">06</div><div class="node-title">色散与颜色</div>
+<div class="node-sub">棱镜 · 光谱 · 三原色</div>
+<div class="map-stars"><span class="star" id="ns6a">★</span><span class="star" id="ns6b">★</span><span class="star" id="ns6c">★</span></div>
+</div>
+</div>
+<button class="btn-final" id="btn-final" onclick="showFinalQuiz()" disabled>⚡ 最终挑战：光学总测验</button>
+</div>
+
+<div class="scr" id="s-1">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 01 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:16%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">光的传播特点</div>
+<p class="stn-intro">光是一种能量形式。真空中光速约 3×10⁸ m/s，在不同介质中速度不同。光在均匀介质中沿直线传播，这一特性解释了影子、小孔成像等现象。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">⚡</span><div class="ci-text"><strong>光速：</strong>真空中 c ≈ 3×10⁸ m/s（每秒约30万公里），是宇宙中最快的速度。在水中约为 3c/4，在玻璃中约为 2c/3。</div></div>
+<div class="ci"><span class="ci-icon">➡️</span><div class="ci-text"><strong>直线传播：</strong>光在同一均匀介质中沿直线传播，可用带箭头的光线表示。</div></div>
+<div class="ci"><span class="ci-icon">🌑</span><div class="ci-text"><strong>影子：</strong>不透明物体阻挡光，后方形成影子，这是光不能绕弯传播的直接证据。</div></div>
+<div class="ci"><span class="ci-icon">📷</span><div class="ci-text"><strong>小孔成像：</strong>光穿过小孔在另一侧形成倒立的实像，原理即光的直线传播。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验：光的直线传播与影子</div>
+<canvas class="demo-canvas" id="c1" height="190"></canvas>
+<div class="demo-ctrl">
+<label>光源远近</label>
+<input type="range" id="s1-src" min="50" max="390" value="180" oninput="d1Update()">
+<label>障碍物长度</label>
+<input type="range" id="s1-obs" min="20" max="90" value="55" oninput="d1Update()">
+</div>
+<p class="demo-info" id="d1-info">点击画面移动障碍物，调节参数观察影子变化</p>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 光的传播特点</div>
+<div id="q1-blocks"></div>
+<button class="btn-check" id="btn-check-1" onclick="checkStn(1)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-1"></div>
+<button class="btn-next hide" id="btn-next-1" onclick="doneStn(1)">完成本站 → 前往第 2 站 ★</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-2">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 02 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:33%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">光的反射</div>
+<p class="stn-intro">光照射到物体表面时会发生反射。根据表面粗糙程度，分为镜面反射和漫反射。两者都遵守反射定律。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">📐</span><div class="ci-text"><strong>反射定律：</strong>入射线、反射线、法线三线共面；入射角 i = 反射角 r；光路可逆。</div></div>
+<div class="ci"><span class="ci-icon">🪞</span><div class="ci-text"><strong>镜面反射：</strong>光滑表面（镜子、平静水面）将平行光线平行反射，形成强烈光亮区域。</div></div>
+<div class="ci"><span class="ci-icon">🧱</span><div class="ci-text"><strong>漫反射：</strong>粗糙表面（黑板、墙壁、纸张）将光线向各方向散射，使物体从各角度均可见。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验：反射定律演示</div>
+<canvas class="demo-canvas" id="c2" height="230"></canvas>
+<div class="demo-ctrl">
+<label>入射角</label>
+<input type="range" id="s2-ang" min="5" max="80" value="35" oninput="d2Update()">
+<span class="demo-val" id="d2-val">35°</span>
+<button class="demo-btn" id="btn-d2-diff" onclick="d2Toggle()">切换：漫反射</button>
+</div>
+<p class="demo-info" id="d2-info">调节滑块改变入射角，观察入射角与反射角的关系</p>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 光的反射</div>
+<div id="q2-blocks"></div>
+<button class="btn-check" id="btn-check-2" onclick="checkStn(2)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-2"></div>
+<button class="btn-next hide" id="btn-next-2" onclick="doneStn(2)">完成本站 → 前往第 3 站 ★</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-3">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 03 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:50%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">平面镜与球面镜</div>
+<p class="stn-intro">镜子分平面镜和球面镜。平面镜成等大虚像；凸面镜成正立缩小虚像；凹面镜可聚光，可成实像。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">🪞</span><div class="ci-text"><strong>平面镜：</strong>成等大、正立、虚像，像距 = 物距，图像左右对换（横向倒置）。</div></div>
+<div class="ci"><span class="ci-icon">🔵</span><div class="ci-text"><strong>凸面镜：</strong>反射面向外弯曲，虚焦点，成正立缩小虚像，扩大视野 → 汽车后视镜、广角镜。</div></div>
+<div class="ci"><span class="ci-icon">🔴</span><div class="ci-text"><strong>凹面镜：</strong>反射面向内弯曲，实焦点，可汇聚光线 → 手电筒反光杯、太阳能聚热器；近距成正立放大虚像。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验：镜的成像规律</div>
+<canvas class="demo-canvas" id="c3" height="210"></canvas>
+<div class="demo-ctrl">
+<label>物体距离</label>
+<input type="range" id="s3-dist" min="20" max="175" value="80" oninput="d3Update()">
+<span class="demo-val" id="d3-val">80</span>
+<button class="demo-btn active" id="btn-d3-pl" onclick="d3Mode('plane')">平面镜</button>
+<button class="demo-btn" id="btn-d3-cv" onclick="d3Mode('convex')">凸面镜</button>
+<button class="demo-btn" id="btn-d3-cc" onclick="d3Mode('concave')">凹面镜</button>
+</div>
+<p class="demo-info" id="d3-info">调节距离，观察成像变化</p>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 平面镜与球面镜</div>
+<div id="q3-blocks"></div>
+<button class="btn-check" id="btn-check-3" onclick="checkStn(3)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-3"></div>
+<button class="btn-next hide" id="btn-next-3" onclick="doneStn(3)">完成本站 → 前往第 4 站 ★</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-4">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 04 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:67%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">光的折射</div>
+<p class="stn-intro">光从一种介质斜射入另一种时传播方向改变，称折射。光从光密射出光疏，角度超临界角时，发生全反射。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">🌊</span><div class="ci-text"><strong>折射定律：</strong>入射线、折射线、法线共面；光从光疏→光密（如空气→水），折射角 &lt; 入射角，偏向法线。</div></div>
+<div class="ci"><span class="ci-icon">👁️</span><div class="ci-text"><strong>视深度：</strong>水中物体看起来比实际更浅，是折射造成的视错觉（表观深度 &lt; 实际深度）。</div></div>
+<div class="ci"><span class="ci-icon">💡</span><div class="ci-text"><strong>全反射：</strong>光从光密→光疏（如水→空气），入射角 &gt; 临界角时，光被完全反射，无折射光。</div></div>
+<div class="ci"><span class="ci-icon">🔗</span><div class="ci-text"><strong>光导纤维：</strong>利用全反射原理，光在玻璃芯中不断全反射，用于通讯与内窥镜。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验：折射与全反射</div>
+<canvas class="demo-canvas" id="c4" height="250"></canvas>
+<div class="demo-ctrl">
+<label>入射角</label>
+<input type="range" id="s4-ang" min="0" max="85" value="30" oninput="d4Update()">
+<span class="demo-val" id="d4-val">30°</span>
+<button class="demo-btn active" id="btn-d4-aw" onclick="d4Mode('aw')">空气→水</button>
+<button class="demo-btn" id="btn-d4-wa" onclick="d4Mode('wa')">水→空气</button>
+</div>
+<p class="demo-info" id="d4-info">调节角度观察折射，切换模式体验全反射</p>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 光的折射</div>
+<div id="q4-blocks"></div>
+<button class="btn-check" id="btn-check-4" onclick="checkStn(4)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-4"></div>
+<button class="btn-next hide" id="btn-next-4" onclick="doneStn(4)">完成本站 → 前往第 5 站 ★</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-5">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 05 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:83%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">透镜成像</div>
+<p class="stn-intro">透镜利用折射改变光线方向。凸透镜汇聚光线，凹透镜发散光线。物体位置决定成像性质。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">🔍</span><div class="ci-text"><strong>凸透镜：</strong>物在 2F 外→倒立缩小实像；F~2F 间→倒立放大实像；焦点内→正立放大虚像（放大镜）。</div></div>
+<div class="ci"><span class="ci-icon">👓</span><div class="ci-text"><strong>凹透镜：</strong>任何位置均成正立缩小虚像，用于矫正近视眼。</div></div>
+<div class="ci"><span class="ci-icon">📏</span><div class="ci-text"><strong>透镜公式：</strong>1/f = 1/do + 1/di，f 为焦距，do 为物距，di 为像距。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验：透镜光路图</div>
+<canvas class="demo-canvas" id="c5" height="230"></canvas>
+<div class="demo-ctrl">
+<label>物体位置</label>
+<input type="range" id="s5-obj" min="20" max="195" value="120" oninput="d5Update()">
+<span class="demo-val" id="d5-val">物距120</span>
+<button class="demo-btn active" id="btn-d5-cx" onclick="d5Lens('convex')">凸透镜</button>
+<button class="demo-btn" id="btn-d5-cc" onclick="d5Lens('concave')">凹透镜</button>
+</div>
+<p class="demo-info hi" id="d5-info">拖动滑块改变物体位置，观察成像类型与大小</p>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 透镜成像</div>
+<div id="q5-blocks"></div>
+<button class="btn-check" id="btn-check-5" onclick="checkStn(5)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-5"></div>
+<button class="btn-next hide" id="btn-next-5" onclick="doneStn(5)">完成本站 → 前往第 6 站 ★</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-6">
+<div class="stn-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<div class="stn-progress">
+<span class="stn-label">站 06 / 06</span>
+<div class="prog-bar"><div class="prog-fill" style="width:100%"></div></div>
+</div>
+</div>
+<div class="stn-body">
+<div class="stn-title">光的色散与颜色</div>
+<p class="stn-intro">1666年牛顿用棱镜证明白光由多种颜色组成。物体颜色取决于其反射（不透明）或透过（透明）的光色。</p>
+<div class="concepts"><h4>🔑 核心知识</h4>
+<div class="ci"><span class="ci-icon">🌈</span><div class="ci-text"><strong>色散：</strong>白光经棱镜分解为红橙黄绿蓝靛紫，紫光偏折最大，红光偏折最小。</div></div>
+<div class="ci"><span class="ci-icon">🔴</span><div class="ci-text"><strong>不透明物体颜色：</strong>由反射的光决定。红花反射红光；黑色物体吸收所有颜色。</div></div>
+<div class="ci"><span class="ci-icon">🟢</span><div class="ci-text"><strong>透明物体颜色：</strong>由透过的光决定。绿色玻璃只让绿光通过。</div></div>
+<div class="ci"><span class="ci-icon">💡</span><div class="ci-text"><strong>光的三原色：</strong>红＋绿＋蓝 = 白光；红+绿=黄，绿+蓝=青，红+蓝=品红。</div></div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验①：棱镜色散</div>
+<canvas id="c6-prism" class="demo-canvas" height="155"></canvas>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验②：光的三原色混合</div>
+<div class="rgb-wrap">
+<div class="rgb-stage"><div class="rgb-c rgb-r" id="rc-r"></div><div class="rgb-c rgb-g" id="rc-g"></div><div class="rgb-c rgb-b" id="rc-b"></div></div>
+<div class="rgb-sliders">
+<label class="lR">红</label><input type="range" id="sl-r" min="0" max="255" value="200" oninput="updateRGB()"><span id="sv-r">200</span>
+<label class="lG">绿</label><input type="range" id="sl-g" min="0" max="255" value="200" oninput="updateRGB()"><span id="sv-g">200</span>
+<label class="lB">蓝</label><input type="range" id="sl-b" min="0" max="255" value="200" oninput="updateRGB()"><span id="sv-b">200</span>
+</div>
+<p class="demo-info" id="d6-rgb-info" style="margin-top:.5rem"></p>
+</div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验③：有色光照射物体</div>
+<div class="obj-demo">
+<div class="obj-row"><label>光源颜色：</label>
+<button class="cbtn sel" style="background:#fff;color:#000" onclick="setLight('white')" id="lt-w">白光</button>
+<button class="cbtn" style="background:#e33;color:#fff" onclick="setLight('red')" id="lt-r">红光</button>
+<button class="cbtn" style="background:#1a1;color:#fff" onclick="setLight('green')" id="lt-g">绿光</button>
+<button class="cbtn" style="background:#36d;color:#fff" onclick="setLight('blue')" id="lt-b">蓝光</button>
+</div>
+<div class="obj-row"><label>物体颜色：</label>
+<button class="cbtn sel" style="background:#e33;color:#fff" onclick="setObj('red')" id="ob-r">红色</button>
+<button class="cbtn" style="background:#1b1;color:#fff" onclick="setObj('green')" id="ob-g">绿色</button>
+<button class="cbtn" style="background:#36d;color:#fff" onclick="setObj('blue')" id="ob-b">蓝色</button>
+<button class="cbtn" style="background:#eee;color:#000" onclick="setObj('white')" id="ob-w">白色</button>
+<button class="cbtn" style="background:#222;color:#fff" onclick="setObj('black')" id="ob-k">黑色</button>
+</div>
+<div class="obj-result">
+<div class="big-color" id="obj-preview"></div>
+<div id="obj-text">选择光源和物体颜色，观察你看到的颜色</div>
+</div>
+</div>
+</div>
+<div class="demo-wrap">
+<div class="demo-title">🔬 互动实验④：透明物体的颜色</div>
+<div class="obj-demo">
+<div class="obj-row"><label>光源颜色：</label>
+<button class="cbtn sel" style="background:#fff;color:#000" onclick="setLightT('white')" id="tl-w">白光</button>
+<button class="cbtn" style="background:#e33;color:#fff" onclick="setLightT('red')" id="tl-r">红光</button>
+<button class="cbtn" style="background:#1a1;color:#fff" onclick="setLightT('green')" id="tl-g">绿光</button>
+<button class="cbtn" style="background:#36d;color:#fff" onclick="setLightT('blue')" id="tl-b">蓝光</button>
+</div>
+<div class="obj-row"><label>滤色玻璃：</label>
+<button class="cbtn sel" style="background:rgba(220,60,60,.4);color:#faa" onclick="setFilter('red')" id="fl-r">红色玻璃</button>
+<button class="cbtn" style="background:rgba(30,160,60,.4);color:#afa" onclick="setFilter('green')" id="fl-g">绿色玻璃</button>
+<button class="cbtn" style="background:rgba(50,80,220,.4);color:#aaf" onclick="setFilter('blue')" id="fl-b">蓝色玻璃</button>
+<button class="cbtn" style="background:rgba(200,220,255,.1);color:#bbb" onclick="setFilter('clear')" id="fl-c">无色透明</button>
+</div>
+<div class="obj-result">
+<canvas id="c6-filter" height="68" style="display:block;width:100%;border-radius:.4rem;background:#040c14"></canvas>
+<div id="filter-text" style="font-size:.82rem;margin-top:.5rem;text-align:center;color:var(--text)">选择光源和滤色玻璃，观察透射出的颜色</div>
+</div>
+</div>
+</div>
+<div class="quiz-wrap">
+<div class="quiz-title">🎯 小测验 — 光的色散与颜色</div>
+<div id="q6-blocks"></div>
+<button class="btn-check" id="btn-check-6" onclick="checkStn(6)" disabled>提交答案</button>
+<div class="score-bar hide" id="score-6"></div>
+<button class="btn-next hide" id="btn-next-6" onclick="doneStn(6)">全部完成！→ 解锁最终挑战 🏆</button>
+</div>
+</div>
+</div>
+
+<div class="scr" id="s-quiz">
+<div class="fq-hdr">
+<button class="btn-back" onclick="showMap()">← 返回</button>
+<h3>⚡ 光学总挑战</h3>
+<span class="fq-prog-text" id="fq-prog">第 1 / 18 题</span>
+</div>
+<div class="fq-body" id="fq-body">
+<div class="prog-bar" style="margin-bottom:1.3rem"><div class="prog-fill" id="fq-bar" style="width:0%"></div></div>
+<div id="fq-qa"></div>
+<div class="fq-nav"><button id="btn-fq-submit" onclick="fqSubmit()" disabled>确认答案</button></div>
+</div>
+</div>
+
+<!-- CERTIFICATE -->
+<div class="scr" id="s-cert">
+<h2 style="font-family:var(--font-title);color:var(--gold);font-size:1.2rem;letter-spacing:.1em;margin-bottom:.4rem">🏆 学习完成证书</h2>
+<p style="color:var(--muted);font-size:.82rem;margin-bottom:1.2rem">恭喜完成第7章全部探索！</p>
+<div class="cert-form">
+<label>你的名字：</label>
+<input type="text" id="cert-name" placeholder="输入姓名" maxlength="20" oninput="generateCert()">
+<button onclick="generateCert()">生成证书</button>
+</div>
+<canvas id="cert-canvas" width="660" height="470"></canvas>
+<button class="btn-dl" onclick="dlCert()">⬇ 下载证书</button>
+<button class="btn-back" style="display:block;margin:.7rem auto" onclick="showMap()">← 返回地图</button>
+</div>
+
+<div class="wm" id="wm">峇株吧辖华仁中学·蔡逸众制作</div>
+<script>
+//华仁中学蔡逸众制作
+//峇株吧辖华仁中学蔡逸众制作
+//Made by ecchua79
+
+// Init: force-hide all non-active screens (prevents CSS ID specificity override)
+document.querySelectorAll('.scr:not(.active)').forEach(s=>{s.style.display='none';});
+
+// ── BG PARTICLES ─────────────────────────────
+(()=>{
+const cv=document.getElementById('bg'),ctx=cv.getContext('2d');
+let W,H,pts=[];
+const resize=()=>{W=cv.width=innerWidth;H=cv.height=innerHeight;};
+resize(); window.addEventListener('resize',resize);
+for(let i=0;i<70;i++) pts.push({x:Math.random()*3000,y:Math.random()*2000,
+  vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,r:Math.random()*1.1+.3,a:Math.random()*6});
+function draw(){
+  ctx.fillStyle='rgba(3,8,16,1)';ctx.fillRect(0,0,W,H);
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.a+=.004;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);
+    const al=(.25+.25*Math.sin(p.a)).toFixed(2);
+    ctx.fillStyle=`rgba(0,180,255,${al})`;ctx.fill();
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+})();
+
+// ── NAVIGATION ────────────────────────────────
+const G={scores:{},done:new Set(),fqScore:0,d2Diff:false,d3m:'plane',d4m:'aw',d5l:'convex',curLight:'white',curObj:'red'};
+
+function showScreen(id){
+  document.querySelectorAll('.scr').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const el=document.getElementById(id);
+  el.style.display=['s-intro','s-cert'].includes(id)?'flex':'block';
+  requestAnimationFrame(()=>{el.classList.add('active');el.scrollTop=0;});
+}
+function showMap(){showScreen('s-map');refreshMap();}
+function showStation(n){showScreen('s-'+n);setTimeout(()=>initDemo(n),220);}
+function showFinalQuiz(){showScreen('s-quiz');initFQ();}
+function showCert(){showScreen('s-cert');generateCert();}
+
+function refreshMap(){
+  [1,2,3,4,5,6].forEach(n=>{
+    document.getElementById('node-'+n).classList.toggle('done',G.done.has(n));
+    const sc=G.scores[n]||0;
+    ['a','b','c'].forEach((l,i)=>document.getElementById('ns'+n+l).classList.toggle('lit',sc>i));
+  });
+  const allDone6=G.done.size>=6;
+  const allTwoStar=[1,2,3,4,5,6].every(n=>(G.scores[n]||0)>=2);
+  document.getElementById('btn-final').disabled=!(allDone6&&allTwoStar);
+  const lowList=[1,2,3,4,5,6].filter(n=>G.done.has(n)&&(G.scores[n]||0)<2);
+  document.getElementById('btn-final').title=allDone6&&allTwoStar?'':('需完成全部6站且每站≥2★'+(lowList.length?' (第'+lowList.join('、')+'站需加强)':''));
+}
+
+// ── QUESTIONS ─────────────────────────────────
+const QS={
+1:[
+{q:'真空中的光速约为？',opts:['3×10⁶ m/s','3×10⁸ km/s','3×10⁸ m/s','3×10⁵ km/s'],ans:2,exp:'光速 c ≈ 3×10⁸ m/s（每秒约30万公里），这是已知宇宙中最快的速度。'},
+{q:'以下哪个现象直接说明光沿直线传播？',opts:['彩虹','镜中的像','小孔成像','水中筷子弯折'],ans:2,exp:'小孔成像中，物体上下两端的光各自直线穿过小孔，在另一侧形成倒立像，正是直线传播的直接证据。'},
+{q:'光在玻璃中的速度约为真空中的？',opts:['1/3','1/2','2/3','4/5'],ans:2,exp:'光在玻璃中速度约为真空光速的 2/3，在水中约为 3/4。介质越密，光速越慢。'}
+],
+2:[
+{q:'入射角为 40° 时，反射角为？',opts:['20°','40°','80°','90°'],ans:1,exp:'反射定律：反射角 = 入射角，均从法线量起。故反射角也是 40°。'},
+{q:'为什么教室四周同学都能看到黑板上的字？',opts:['镜面反射','全反射','漫反射','折射'],ans:2,exp:'黑板表面粗糙，发生漫反射，光线向四面八方散射，所以各角度均可看到。'},
+{q:'月球被人看到，是因为月球……',opts:['自发蓝光','折射地球光','反射太阳光','全反射星光'],ans:2,exp:'月球是非发光体，靠漫反射太阳光被我们看到，这正是反射的实际例子。'}
+],
+3:[
+{q:'平面镜所成的像，像距与物距的关系？',opts:['像距 > 物距','像距 = 物距','像距 < 物距','无关'],ans:1,exp:'平面镜成像：像距 = 物距，且成等大、正立的虚像。'},
+{q:'救护车前方的AMBULANCE用镜像字体书写，是因为……',opts:['国际规定','让前车通过后视镜能正常读出','节省字体空间','方便医护认识'],ans:1,exp:'平面镜使图像左右对换，镜像书写后，前车司机通过后视镜（平面镜）看到的就是正常字样。'},
+{q:'汽车大灯反光杯使用哪种镜？',opts:['平面镜','凸面镜','凹面镜','凸透镜'],ans:2,exp:'凹面镜有实焦点，将光源置于焦点处，反射后形成平行光束，照射更远。'}
+],
+4:[
+{q:'光从空气斜射入水中，折射光线会……',opts:['偏离法线','靠近法线','沿法线','不偏折'],ans:1,exp:'光从光疏（空气）进入光密（水），折射角 < 入射角，光线靠近法线偏折。'},
+{q:'游泳池底部看起来比实际更（浅），原因是……',opts:['反射','全反射','折射','色散'],ans:2,exp:'水底的光射出水面时发生折射，视线延长的交点比实物高，因此看起来更浅。'},
+{q:'光纤通讯的核心原理是？',opts:['直线传播','折射','色散','全反射'],ans:3,exp:'光在光密玻璃纤维中，以超过临界角入射界面，发生全反射，光不逸出，沿光纤传播。'}
+],
+5:[
+{q:'用放大镜看物体，物体应放在……',opts:['凸透镜两倍焦距外','F~2F 之间','焦点以内','焦点上'],ans:2,exp:'物在焦点以内，成正立、放大的虚像，这正是放大镜的工作原理。'},
+{q:'物在凸透镜 F 到 2F 之间，成像为？',opts:['倒立缩小实像','倒立放大实像','正立放大虚像','正立缩小虚像'],ans:1,exp:'物在F~2F之间，像在2F之外，成倒立、放大的实像，如投影仪（幻灯机）的原理。'},
+{q:'近视眼镜使用……',opts:['平面镜','凸面镜','凸透镜','凹透镜'],ans:3,exp:'近视眼是眼轴过长，成像在视网膜前。凹透镜发散光线，使像后移至视网膜上。'}
+],
+6:[
+{q:'白光经三棱镜色散后，偏折最大的颜色是？',opts:['红光','橙光','黄光','紫光'],ans:3,exp:'不同颜色光在介质中传播速度不同，紫光最慢，与法线的夹角偏折最大；红光最快，偏折最小。'},
+{q:'等量红光、绿光、蓝光叠加后呈？',opts:['黄光','黑色','白光','青光'],ans:2,exp:'红、绿、蓝是光的三原色（RGB），等量叠加得到白光，与颜料三原色混合规律不同。'},
+{q:'红色玫瑰在纯绿光照射下，看起来是……',opts:['红色','绿色','黑色','黄色'],ans:2,exp:'红色玫瑰只能反射红光，吸收绿光。在纯绿光下无红光可反射，因此看起来是黑色。'}
+]
+};
+
+// ── STATION QUIZ ──────────────────────────────
+function renderStnQuiz(n){
+  const qs=QS[n], box=document.getElementById('q'+n+'-blocks');
+  box.innerHTML='';
+  qs.forEach((q,i)=>{
+    const opts=q.opts.map((o,j)=>`<button class="q-opt" id="qo${n}-${i}-${j}" onclick="selOpt(${n},${i},${j})">${'ABCD'[j]}. ${o}</button>`).join('');
+    box.innerHTML+=`<div class="q-block"><p class="q-text">${i+1}. ${q.q}</p><div class="q-opts">${opts}</div><div class="q-explain" id="qe${n}-${i}">${q.exp}</div></div>`;
+  });
+  checkAllAnswered(n);
+}
+function selOpt(n,qi,oi){
+  QS[n][qi].opts.forEach((_,j)=>document.getElementById('qo'+n+'-'+qi+'-'+j)?.classList.remove('sel'));
+  document.getElementById('qo'+n+'-'+qi+'-'+oi)?.classList.add('sel');
+  checkAllAnswered(n);
+}
+function checkAllAnswered(n){
+  const all=QS[n].every((_,i)=>QS[n][i].opts.some((_,j)=>document.getElementById('qo'+n+'-'+i+'-'+j)?.classList.contains('sel')));
+  document.getElementById('btn-check-'+n).disabled=!all;
+}
+function checkStn(n){
+  let correct=0;
+  QS[n].forEach((q,i)=>{
+    let sel=-1;
+    q.opts.forEach((_,j)=>{if(document.getElementById('qo'+n+'-'+i+'-'+j)?.classList.contains('sel'))sel=j;});
+    if(sel===q.ans)correct++;
+    q.opts.forEach((_,j)=>{
+      const el=document.getElementById('qo'+n+'-'+i+'-'+j);
+      if(!el)return;
+      el.style.pointerEvents='none';
+      if(j===q.ans)el.classList.add('correct');
+      else if(j===sel)el.classList.add('wrong');
+    });
+    document.getElementById('qe'+n+'-'+i).classList.add('show');
+  });
+  G.scores[n]=correct;
+  const msgs=['😅 再接再厉！','😐 不错，继续加油！','😊 答对两题，很好！','🎉 满分！太厉害了！'];
+  const sb=document.getElementById('score-'+n);
+  sb.innerHTML=`<span class="score-icon">${['😅','😐','😊','🎉'][correct]}</span><span class="score-text">本站得分：${correct}/3  ${msgs[correct]}</span><span class="score-pts">${correct} ★</span>`;
+  sb.classList.remove('hide');
+  document.getElementById('btn-check-'+n).disabled=true;
+  document.getElementById('btn-next-'+n).classList.remove('hide');
+}
+function doneStn(n){
+  G.done.add(n); refreshMap();
+  if(n<6)showStation(n+1);
+  else{showMap();setTimeout(()=>alert('🎉 恭喜完成全部6个探索站！\n现在可以挑战最终光学总测验了！'),350);}
+}
+
+// ── DEMO 1: SHADOW ────────────────────────────
+let d1obsX=0;
+function initDemo(n){
+  if(n===1){d1Init();renderStnQuiz(1);}
+  else if(n===2){d2Init();renderStnQuiz(2);}
+  else if(n===3){d3Init();renderStnQuiz(3);}
+  else if(n===4){d4Init();renderStnQuiz(4);}
+  else if(n===5){d5Init();renderStnQuiz(5);}
+  else if(n===6){d6Init();renderStnQuiz(6);}
+}
+function d1Init(){
+  const cv=document.getElementById('c1');
+  cv.width=cv.offsetWidth||560;cv.height=190;
+  d1obsX=cv.width*.5;
+  const move=e=>{const r=cv.getBoundingClientRect();d1obsX=(e.touches?e.touches[0].clientX:e.clientX)-r.left;d1Update();};
+  cv.addEventListener('click',move);cv.addEventListener('touchstart',move,{passive:true});
+  d1Update();
+}
+function d1Update(){
+  const cv=document.getElementById('c1');if(!cv)return;
+  cv.width=cv.offsetWidth||560;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const dist=+document.getElementById('s1-src').value;  // distance from source to obstacle
+  const oh=+document.getElementById('s1-obs').value;    // obstacle vertical LENGTH
+  const ow=30;
+  const srcY=H/2;
+  const obsX=Math.max(120,Math.min(W-80,d1obsX));
+  const srcX=Math.max(16,obsX-dist);
+  const obsY=srcY-oh/2;
+  const obsL=obsX-ow/2, obsR=obsX+ow/2;
+  const obTop=obsY, obBot=obsY+oh;
+
+  ctx.fillStyle='#020810';ctx.fillRect(0,0,W,H);
+
+  // Light fan from source
+  const fg=ctx.createRadialGradient(srcX,srcY,0,srcX,srcY,W*1.2);
+  fg.addColorStop(0,'rgba(255,230,100,.6)');fg.addColorStop(.22,'rgba(255,210,80,.3)');
+  fg.addColorStop(.55,'rgba(255,180,50,.1)');fg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.moveTo(srcX,srcY);ctx.lineTo(W,0);ctx.lineTo(W,H);ctx.closePath();
+  ctx.fillStyle=fg;ctx.fill();
+
+  // Umbra shadow
+  const sl_t=(obTop-srcY)/(obsR-srcX);
+  const sl_b=(obBot-srcY)/(obsR-srcX);
+  const shTopY=Math.max(0,obTop+sl_t*(W-obsR));
+  const shBotY=Math.min(H,obBot+sl_b*(W-obsR));
+  ctx.beginPath();
+  ctx.moveTo(obsR,obTop);ctx.lineTo(W,shTopY);
+  ctx.lineTo(W,shBotY);ctx.lineTo(obsR,obBot);
+  ctx.closePath();
+  ctx.fillStyle='rgba(2,8,18,.96)';ctx.fill();
+
+  // Shadow size label
+  const shMidY=(shTopY+shBotY)/2;
+  ctx.fillStyle='rgba(100,130,160,.65)';ctx.font='11px Noto Sans SC,sans-serif';
+  ctx.textAlign='right';
+  ctx.fillText('影子≈'+Math.round(Math.abs(shBotY-shTopY))+'px',W-6,Math.max(14,Math.min(H-6,shMidY+4)));
+  ctx.textAlign='left';
+
+  // Rays
+  for(let i=0;i<=20;i++){
+    const ey=6+i*(H-12)/20;
+    const yAtL=srcY+(ey-srcY)*(obsL-srcX)/(W-srcX);
+    const yAtR=srcY+(ey-srcY)*(obsR-srcX)/(W-srcX);
+    const hit=yAtL>=obTop&&yAtL<=obBot||yAtR>=obTop&&yAtR<=obBot;
+    const rg=ctx.createLinearGradient(srcX,0,W,0);
+    rg.addColorStop(0,'rgba(255,230,80,1)');rg.addColorStop(.35,'rgba(255,210,60,.5)');rg.addColorStop(1,'rgba(255,180,40,.05)');
+    ctx.strokeStyle=rg;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(srcX,srcY);
+    if(hit) ctx.lineTo(obsL,srcY+(obsL-srcX)*(ey-srcY)/(W-srcX));
+    else ctx.lineTo(W,ey);
+    ctx.stroke();
+  }
+
+  // Obstacle
+  ctx.fillStyle='rgba(100,130,165,.88)';ctx.fillRect(obsL,obsY,ow,oh);
+  ctx.strokeStyle='rgba(0,200,255,.38)';ctx.lineWidth=1.2;ctx.strokeRect(obsL,obsY,ow,oh);
+  ctx.fillStyle='rgba(180,210,240,.5)';ctx.font='10px Noto Sans SC,sans-serif';
+  ctx.textAlign='center';ctx.fillText('障碍物',obsX,obBot+13);ctx.textAlign='left';
+
+  // Source glow
+  const sg=ctx.createRadialGradient(srcX,srcY,0,srcX,srcY,22);
+  sg.addColorStop(0,'rgba(255,250,160,1)');sg.addColorStop(.45,'rgba(255,220,80,.5)');sg.addColorStop(1,'rgba(255,160,0,0)');
+  ctx.beginPath();ctx.arc(srcX,srcY,22,0,6.28);ctx.fillStyle=sg;ctx.fill();
+  ctx.beginPath();ctx.arc(srcX,srcY,5,0,6.28);ctx.fillStyle='#fffff0';ctx.fill();
+  ctx.fillStyle='rgba(255,230,80,.6)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('光源',srcX-14,H-6);
+
+  // Distance annotation
+  ctx.strokeStyle='rgba(255,208,96,.22)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(srcX,srcY+30);ctx.lineTo(obsL,srcY+30);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,208,96,.45)';ctx.font='10px Noto Sans SC,sans-serif';
+  ctx.textAlign='center';ctx.fillText(Math.round(obsL-srcX)+'px',(srcX+obsL)/2,srcY+26);ctx.textAlign='left';
+
+  const tip=dist<=100?'光源很近 → 光线大角度发散 → 影子很大':dist<=220?'光源中等距离 → 影子适中':'光源很远 → 光趋近平行 → 影子接近障碍物大小';
+  document.getElementById('d1-info').textContent='点击画面移动障碍物 | '+tip;
+}
+
+// ── DEMO 2: REFLECTION ────────────────────────
+let d2Diff=false;
+function d2Init(){d2Diff=false;d2Update();}
+function d2Toggle(){d2Diff=!d2Diff;document.getElementById('btn-d2-diff').classList.toggle('active',d2Diff);document.getElementById('btn-d2-diff').textContent=d2Diff?'切换：镜面反射':'切换：漫反射';d2Update();}
+function arrow(ctx,x1,y1,x2,y2,c){const a=Math.atan2(y2-y1,x2-x1),s=9;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-s*Math.cos(a-.4),y2-s*Math.sin(a-.4));ctx.lineTo(x2-s*Math.cos(a+.4),y2-s*Math.sin(a+.4));ctx.closePath();ctx.fillStyle=c;ctx.fill();}
+function d2Update(){
+  const cv=document.getElementById('c2');if(!cv)return;
+  cv.width=cv.offsetWidth||560;cv.height=230;
+  const ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+  const ang=+document.getElementById('s2-ang').value;
+  document.getElementById('d2-val').textContent=ang+'°';
+  ctx.fillStyle='#020810';ctx.fillRect(0,0,W,H);
+  const mY=H*.67,cx=W/2,L=Math.min(mY-15,H-mY-20)*1.15;
+  const rad=ang*Math.PI/180;
+  // mirror
+  if(!d2Diff){
+    const mg=ctx.createLinearGradient(0,mY,W,mY+5);
+    mg.addColorStop(0,'rgba(0,200,255,0)');mg.addColorStop(.5,'rgba(0,200,255,.65)');mg.addColorStop(1,'rgba(0,200,255,0)');
+    ctx.fillStyle=mg;ctx.fillRect(50,mY,W-100,5);
+    ctx.fillStyle='rgba(140,200,255,.15)';ctx.fillRect(50,mY+5,W-100,10);
+    ctx.fillStyle='rgba(0,200,255,.3)';ctx.font='11px Noto Sans SC,sans-serif';ctx.textAlign='center';ctx.fillText('镜面（光滑表面）',W/2,mY+22);
+  } else {
+    ctx.fillStyle='rgba(130,110,90,.5)';ctx.fillRect(50,mY,W-100,8);
+    for(let x=60;x<W-60;x+=9){ctx.beginPath();ctx.moveTo(x,mY);ctx.lineTo(x+4.5,mY+8);ctx.lineTo(x+9,mY);ctx.strokeStyle='rgba(160,140,120,.45)';ctx.lineWidth=1;ctx.stroke();}
+    ctx.fillStyle='rgba(170,150,110,.5)';ctx.font='11px Noto Sans SC,sans-serif';ctx.textAlign='center';ctx.fillText('粗糙表面（黑板/墙壁）',W/2,mY+22);
+  }
+  ctx.textAlign='left';
+  // normal
+  ctx.setLineDash([6,5]);ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx,mY-L*.9);ctx.lineTo(cx,mY+L*.4);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('法线',cx+5,mY-L*.85);
+  // incident
+  const ix=cx-Math.sin(rad)*L,iy=mY-Math.cos(rad)*L;
+  const ig=ctx.createLinearGradient(ix,iy,cx,mY);
+  ig.addColorStop(0,'rgba(255,220,60,0)');ig.addColorStop(.7,'rgba(255,220,60,.75)');ig.addColorStop(1,'rgba(255,220,60,1)');
+  ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(cx,mY);ctx.strokeStyle=ig;ctx.lineWidth=2.5;ctx.stroke();
+  arrow(ctx,ix,iy,cx,mY,'rgba(255,220,60,.9)');
+  // angle arcs
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(255,220,60,.4)';
+  // Arc: incident ray direction → normal (clockwise) shows angle i from normal
+  ctx.beginPath();ctx.arc(cx,mY,42,Math.atan2(-Math.cos(rad),-Math.sin(rad)),-Math.PI/2,false);ctx.stroke();
+  ctx.fillStyle='rgba(255,220,60,.85)';ctx.font='bold 12px Orbitron,monospace';ctx.fillText('i='+ang+'°',cx-68,mY-26);
+  if(!d2Diff){
+    const rx=cx+Math.sin(rad)*L,ry=mY-Math.cos(rad)*L;
+    const rg=ctx.createLinearGradient(cx,mY,rx,ry);
+    rg.addColorStop(0,'rgba(0,220,255,1)');rg.addColorStop(.6,'rgba(0,200,255,.5)');rg.addColorStop(1,'rgba(0,180,255,0)');
+    ctx.beginPath();ctx.moveTo(cx,mY);ctx.lineTo(rx,ry);ctx.strokeStyle=rg;ctx.lineWidth=2.5;ctx.stroke();
+    arrow(ctx,cx,mY,rx,ry,'rgba(0,220,255,.9)');
+    ctx.strokeStyle='rgba(0,220,255,.4)';ctx.lineWidth=1;
+    // Arc: normal → reflected ray direction (clockwise) shows angle r from normal
+    ctx.beginPath();ctx.arc(cx,mY,42,-Math.PI/2,Math.atan2(-Math.cos(rad),Math.sin(rad)),false);ctx.stroke();
+    ctx.fillStyle='rgba(0,220,255,.85)';ctx.font='bold 12px Orbitron,monospace';ctx.fillText('r='+ang+'°',cx+10,mY-26);
+    document.getElementById('d2-info').textContent='✓ 入射角 i = 反射角 r = '+ang+'°，反射定律成立！';
+  } else {
+    for(let a=-75;a<=75;a+=15){
+      const ar=(a+90)*Math.PI/180;const ex=cx+Math.cos(ar)*L*.5,ey=mY-Math.sin(ar)*L*.5;
+      if(ey<mY){const dg=ctx.createLinearGradient(cx,mY,ex,ey);dg.addColorStop(0,'rgba(0,200,255,.55)');dg.addColorStop(1,'rgba(0,180,255,0)');ctx.beginPath();ctx.moveTo(cx,mY);ctx.lineTo(ex,ey);ctx.strokeStyle=dg;ctx.lineWidth=1.4;ctx.stroke();}
+    }
+    document.getElementById('d2-info').textContent='漫反射：粗糙面向四方散射光线，每一条仍遵守反射定律！';
+  }
+}
+
+// ── DEMO 3: MIRRORS ───────────────────────────
+function d3Init(){G.d3m='plane';['pl','cv','cc'].forEach((k,i)=>document.getElementById('btn-d3-'+['pl','cv','cc'][i])?.classList.toggle('active',i===0));d3Update();}
+function d3Mode(m){G.d3m=m;['plane','convex','concave'].forEach((k,i)=>{const id='btn-d3-'+['pl','cv','cc'][i];document.getElementById(id)?.classList.toggle('active',k===m);});d3Update();}
+function d3Update(){
+  const cv=document.getElementById('c3');if(!cv)return;
+  cv.width=cv.offsetWidth||560;cv.height=210;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cy=H/2;
+  const dist=+document.getElementById('s3-dist').value;
+  document.getElementById('d3-val').textContent=dist;
+  ctx.fillStyle='#020810';ctx.fillRect(0,0,W,H);
+  const mx=W*.56,f=72,oh=52;
+  const ox=mx-dist,otY=cy-oh;
+  // draw object
+  function drawObj(x,h,col,lbl,inv){
+    const dir=inv?-1:1,tipY=cy-h*dir;
+    ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x,tipY);ctx.stroke();
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x,tipY);ctx.lineTo(x-5,tipY+(inv?-10:10));ctx.lineTo(x+5,tipY+(inv?-10:10));ctx.closePath();ctx.fill();
+    ctx.fillStyle=col;ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText(lbl,x-12,cy+(inv?h+16:-h-6));
+  }
+  if(G.d3m==='plane'){
+    ctx.strokeStyle='rgba(140,200,255,.7)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(mx,cy-80);ctx.lineTo(mx,cy+80);ctx.stroke();
+    ctx.fillStyle='rgba(140,200,255,.1)';ctx.fillRect(mx,cy-80,8,160);
+    ctx.fillStyle='rgba(0,200,255,.3)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('平面镜',mx+12,cy+78);
+    drawObj(ox,oh,'#ffd060','物体',false);
+    const imgX=mx+(mx-ox);
+    ctx.setLineDash([5,4]);drawObj(imgX,oh,'rgba(0,200,255,.5)','虚像',false);ctx.setLineDash([]);
+    // distance lines
+    ctx.strokeStyle='rgba(255,208,96,.35)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(ox,cy+oh+14);ctx.lineTo(mx,cy+oh+14);ctx.stroke();
+    ctx.strokeStyle='rgba(0,200,255,.35)';ctx.beginPath();ctx.moveTo(mx,cy+oh+14);ctx.lineTo(imgX,cy+oh+14);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,208,96,.55)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('物距='+dist,ox+4,cy+oh+26);
+    ctx.fillStyle='rgba(0,200,255,.55)';ctx.fillText('像距='+dist,(mx+imgX)/2-10,cy+oh+26);
+    document.getElementById('d3-info').textContent='平面镜：等大 · 正立 · 虚像 | 像距 = 物距 = '+dist;
+  } else if(G.d3m==='convex'){
+    // Convex: bows LEFT toward object (viewer sees convex surface)
+    ctx.strokeStyle='rgba(140,200,255,.7)';ctx.lineWidth=2.5;ctx.beginPath();
+    ctx.moveTo(mx,cy-80);ctx.bezierCurveTo(mx-28,cy-40,mx-28,cy+40,mx,cy+80);ctx.stroke(); // 凸面镜: bows LEFT toward object
+    ctx.fillStyle='rgba(0,200,255,.3)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('凸面镜',mx+16,cy+78);
+    const fpt=mx+f;ctx.fillStyle='rgba(255,120,120,.5)';ctx.font='12px Orbitron,monospace';ctx.fillText("F'",fpt-4,cy-8);ctx.beginPath();ctx.arc(fpt,cy,3,0,6.28);ctx.fill();
+    drawObj(ox,oh,'#ffd060','物体',false);
+    const imgH=oh*f/(dist+f),imgX=mx+f*dist/(dist+f)*.65;
+    ctx.setLineDash([5,4]);drawObj(imgX,imgH,'rgba(0,200,255,.5)','虚像',false);ctx.setLineDash([]);
+    document.getElementById('d3-info').textContent='凸面镜：正立 · 缩小 · 虚像 | 扩大视野 → 汽车后视镜';
+  } else {
+    ctx.strokeStyle='rgba(140,200,255,.7)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(mx,cy-80);ctx.bezierCurveTo(mx+28,cy-40,mx+28,cy+40,mx,cy+80);ctx.stroke(); // 凹面镜: bows RIGHT away from object
+    ctx.fillStyle='rgba(0,200,255,.3)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('凹面镜',mx+16,cy+78);
+    const fpt=mx-f;ctx.fillStyle='rgba(255,160,80,.65)';ctx.font='12px Orbitron,monospace';ctx.fillText('F',fpt-5,cy-8);ctx.beginPath();ctx.arc(fpt,cy,3,0,6.28);ctx.fill();
+    drawObj(ox,oh,'#ffd060','物体',false);
+    if(dist<f){
+      const ih=oh*(f/(f-dist)),ix=mx+f*dist/(f-dist)*.45;
+      ctx.setLineDash([5,4]);drawObj(Math.min(ix,W-20),Math.min(ih,100),'rgba(0,200,255,.5)','虚像',false);ctx.setLineDash([]);
+      document.getElementById('d3-info').textContent='物在焦点内 → 正立 · 放大 · 虚像（如美容镜）';
+    } else {
+      const di=f*dist/(dist-f),imgH2=oh*Math.min(Math.abs(di/dist),2.8),imgX2=Math.max(30,mx-di);
+      drawObj(imgX2,imgH2,'rgba(255,100,100,.75)','实像',true);
+      document.getElementById('d3-info').textContent='物在焦点外 → 倒立 · '+(Math.abs(di/dist)>1.05?'放大':'缩小')+' · 实像';
+    }
+  }
+}
+
+// ── DEMO 4: REFRACTION / TIR ──────────────────
+function d4Init(){G.d4m='aw';d4Update();}
+function d4Mode(m){
+  G.d4m=m;['aw','wa'].forEach(k=>document.getElementById('btn-d4-'+k)?.classList.toggle('active',k===m));
+  document.getElementById('s4-ang').value=30;document.getElementById('d4-val').textContent='30°';d4Update();
+}
+function d4Update(){
+  const cv=document.getElementById('c4');if(!cv)return;
+  cv.width=cv.offsetWidth||560;cv.height=250;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  const ang=+document.getElementById('s4-ang').value;
+  document.getElementById('d4-val').textContent=ang+'°';
+  const ifY=H*.5,cx=W/2,n1=1.0,n2=1.33,crit=Math.asin(n1/n2)*180/Math.PI;
+  const rad=ang*Math.PI/180,L=Math.min(ifY-12,H-ifY-12)*1.1;
+  ctx.fillStyle='#030c1a';ctx.fillRect(0,0,W,ifY);
+  ctx.fillStyle='#04172c';ctx.fillRect(0,ifY,W,H-ifY);
+  // label regions
+  ctx.fillStyle='rgba(190,210,255,.3)';ctx.font='12px Noto Sans SC,sans-serif';
+  ctx.fillText('空气 (n=1.00)',8,18);
+  ctx.fillStyle='rgba(100,170,255,.4)';ctx.fillText('水 (n=1.33)',8,ifY+18);
+  // interface
+  ctx.setLineDash([8,5]);ctx.strokeStyle='rgba(0,180,255,.35)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(0,ifY);ctx.lineTo(W,ifY);ctx.stroke();ctx.setLineDash([]);
+  // normal
+  ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.28)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('法线',cx+5,14);
+  const isAW=G.d4m==='aw';
+  // incident
+  const incY=isAW?ifY-L:ifY+L,incX=cx-Math.sin(rad)*L;
+  const ig=ctx.createLinearGradient(incX,incY,cx,ifY);
+  ig.addColorStop(0,'rgba(255,220,60,0)');ig.addColorStop(.65,'rgba(255,220,60,.7)');ig.addColorStop(1,'rgba(255,220,60,1)');
+  ctx.beginPath();ctx.moveTo(incX,incY);ctx.lineTo(cx,ifY);ctx.strokeStyle=ig;ctx.lineWidth=2.4;ctx.stroke();
+  arrow(ctx,incX,incY,cx,ifY,'rgba(255,220,60,.9)');
+  ctx.strokeStyle='rgba(255,220,60,.38)';ctx.lineWidth=1;
+  if(isAW){
+    // Air side: arc from incident-dir → normal-up (clockwise)
+    ctx.beginPath();ctx.arc(cx,ifY,40,Math.atan2(-Math.cos(rad),-Math.sin(rad)),-Math.PI/2,false);ctx.stroke();
+  } else {
+    // Water side: arc from normal-down → incident-dir (clockwise)
+    ctx.beginPath();ctx.arc(cx,ifY,40,Math.PI/2,Math.atan2(Math.cos(rad),-Math.sin(rad)),false);ctx.stroke();
+  }
+  ctx.fillStyle='rgba(255,220,60,.82)';ctx.font='bold 12px Orbitron,monospace';
+  ctx.fillText('i='+ang+'°',isAW?cx-65:cx-68,isAW?ifY-24:ifY+28);
+  // refraction
+  let sinRef=isAW?Math.sin(rad)*n1/n2:Math.sin(rad)*n2/n1,tir=false;
+  if(sinRef>=1)tir=true;
+  if(!tir){
+    const rr=Math.asin(sinRef),rdeg=Math.round(rr*180/Math.PI);
+    const refY=isAW?ifY+L:ifY-L,refX=cx+Math.sin(rr)*L;
+    const rg=ctx.createLinearGradient(cx,ifY,refX,refY);
+    rg.addColorStop(0,'rgba(0,220,255,1)');rg.addColorStop(.6,'rgba(0,200,255,.5)');rg.addColorStop(1,'rgba(0,180,255,0)');
+    ctx.beginPath();ctx.moveTo(cx,ifY);ctx.lineTo(refX,refY);ctx.strokeStyle=rg;ctx.lineWidth=2.4;ctx.stroke();
+    arrow(ctx,cx,ifY,refX,refY,'rgba(0,220,255,.9)');
+    ctx.strokeStyle='rgba(0,220,255,.38)';ctx.lineWidth=1;
+    if(isAW){
+      // Refracted in water: normal-down CCW → refracted-dir
+      ctx.beginPath();ctx.arc(cx,ifY,40,Math.PI/2,Math.atan2(Math.cos(rr),Math.sin(rr)),true);ctx.stroke();
+    } else {
+      // Refracted in air: normal-up CW → refracted-dir
+      ctx.beginPath();ctx.arc(cx,ifY,40,-Math.PI/2,Math.atan2(-Math.cos(rr),Math.sin(rr)),false);ctx.stroke();
+    }
+    ctx.fillStyle='rgba(0,220,255,.82)';ctx.font='bold 12px Orbitron,monospace';
+    ctx.fillText('r='+rdeg+'°',isAW?cx+10:cx+10,isAW?ifY+28:ifY-22);
+    document.getElementById('d4-info').textContent=isAW?`空气→水：折射角 r=${rdeg}° < 入射角 i=${ang}°（光靠近法线偏折）`:`水→空气：折射角 r=${rdeg}° > 入射角 i=${ang}°（光偏离法线）`;
+  } else {
+    const trX=cx+Math.sin(rad)*L,trY=ifY+L;
+    const tg=ctx.createLinearGradient(cx,ifY,trX,trY);
+    tg.addColorStop(0,'rgba(255,100,80,1)');tg.addColorStop(.6,'rgba(255,80,60,.45)');tg.addColorStop(1,'rgba(255,60,40,0)');
+    ctx.beginPath();ctx.moveTo(cx,ifY);ctx.lineTo(trX,trY);ctx.strokeStyle=tg;ctx.lineWidth=2.4;ctx.stroke();
+    arrow(ctx,cx,ifY,trX,trY,'rgba(255,100,80,.9)');
+    ctx.lineWidth=1;
+    // Incident arc: normal-down CW → incident-dir (water zone)
+    ctx.strokeStyle='rgba(255,220,60,.38)';
+    ctx.beginPath();ctx.arc(cx,ifY,40,Math.PI/2,Math.atan2(Math.cos(rad),-Math.sin(rad)),false);ctx.stroke();
+    // TIR reflected arc: normal-down CCW → TIR-ray-dir (water zone)
+    ctx.strokeStyle='rgba(255,100,80,.38)';
+    ctx.beginPath();ctx.arc(cx,ifY,40,Math.PI/2,Math.atan2(Math.cos(rad),Math.sin(rad)),true);ctx.stroke();
+    ctx.fillStyle='rgba(255,100,80,.9)';ctx.font='bold 13px Orbitron,monospace';ctx.fillText('全反射！',cx+10,ifY+40);
+    ctx.fillStyle='rgba(255,160,80,.65)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText(`入射角 ${ang}° > 临界角 ${Math.round(crit)}°`,cx-38,ifY+58);
+    document.getElementById('d4-info').textContent=`⚡ 全反射！入射角 ${ang}° 超过临界角 ${Math.round(crit)}°，光被完全反射回水中！`;
+  }
+  if(!isAW){ctx.fillStyle='rgba(255,200,80,.28)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('临界角≈'+Math.round(crit)+'°',cx+44,ifY+8);}
+}
+
+// ── DEMO 5: LENS ──────────────────────────────
+function d5Init(){G.d5l='convex';d5Update();}
+function d5Lens(t){G.d5l=t;document.getElementById('btn-d5-cx')?.classList.toggle('active',t==='convex');document.getElementById('btn-d5-cc')?.classList.toggle('active',t==='concave');d5Update();}
+function d5Update(){
+  const cv=document.getElementById('c5');if(!cv)return;
+  cv.width=cv.offsetWidth||560;cv.height=230;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cy=H/2;
+  const f=72,lx=W*.52,op=+document.getElementById('s5-obj').value;
+  const ox=lx-op,oh=46;
+  ctx.fillStyle='#020810';ctx.fillRect(0,0,W,H);
+  // axis
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(10,cy);ctx.lineTo(W-10,cy);ctx.stroke();
+  // focal points
+  [lx-f,lx+f].forEach((fx,i)=>{
+    ctx.beginPath();ctx.arc(fx,cy,3,0,6.28);ctx.fillStyle='rgba(255,160,80,.8)';ctx.fill();
+    ctx.fillStyle='rgba(255,160,80,.7)';ctx.font='12px Orbitron,monospace';ctx.fillText(i===0?'F':"F'",fx-5,cy+18);
+  });
+  [lx-2*f,lx+2*f].forEach(fx=>{ctx.beginPath();ctx.moveTo(fx,cy-5);ctx.lineTo(fx,cy+5);ctx.strokeStyle='rgba(255,160,80,.25)';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='rgba(255,160,80,.25)';ctx.font='10px Orbitron,monospace';ctx.fillText('2F',fx-8,cy+17);});
+  // lens
+  ctx.strokeStyle='rgba(0,200,255,.65)';ctx.lineWidth=2.2;
+  if(G.d5l==='convex'){
+    ctx.beginPath();ctx.moveTo(lx,cy-82);ctx.bezierCurveTo(lx+26,cy-46,lx+26,cy+46,lx,cy+82);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,cy-82);ctx.bezierCurveTo(lx-26,cy-46,lx-26,cy+46,lx,cy+82);ctx.stroke();
+    ctx.fillStyle='rgba(0,200,255,.25)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('凸透镜',lx+5,cy-84);
+  } else {
+    // 双凹透镜: control x=lx guarantees faces never cross (mid_left=lx-lw/4, mid_right=lx+lw/4)
+    const lw=18,lh=82;
+    ctx.strokeStyle='rgba(0,200,255,.65)';ctx.lineWidth=2.2;
+    // Left face: P0/P3 at lx-lw, ctrl at x=lx → bows inward by lw/4 only
+    ctx.beginPath();ctx.moveTo(lx-lw,cy-lh);
+    ctx.bezierCurveTo(lx,cy-lh*.4,lx,cy+lh*.4,lx-lw,cy+lh);ctx.stroke();
+    // Right face: P0/P3 at lx+lw, ctrl at x=lx → bows inward by lw/4 only
+    ctx.beginPath();ctx.moveTo(lx+lw,cy-lh);
+    ctx.bezierCurveTo(lx,cy-lh*.4,lx,cy+lh*.4,lx+lw,cy+lh);ctx.stroke();
+    // Top & bottom flat edges
+    ctx.beginPath();
+    ctx.moveTo(lx-lw,cy-lh);ctx.lineTo(lx+lw,cy-lh);
+    ctx.moveTo(lx-lw,cy+lh);ctx.lineTo(lx+lw,cy+lh);
+    ctx.stroke();
+    ctx.fillStyle='rgba(0,200,255,.25)';ctx.font='10px Noto Sans SC,sans-serif';
+    ctx.fillText('凹透镜（双凹）',lx-lw,cy-lh-6);
+  }
+  document.getElementById('d5-val').textContent='物距 '+op+'px';
+  // object
+  ctx.strokeStyle='#ffd060';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(ox,cy);ctx.lineTo(ox,cy-oh);ctx.stroke();
+  ctx.fillStyle='#ffd060';ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(ox-5,cy-oh+10);ctx.lineTo(ox+5,cy-oh+10);ctx.closePath();ctx.fill();
+  ctx.font='11px Noto Sans SC,sans-serif';ctx.fillStyle='#ffd060';ctx.fillText('物体',ox-14,cy-oh-6);
+  // rays
+  const do_=lx-ox;
+  if(G.d5l==='convex'){
+    let di;
+    if(Math.abs(do_-f)<2)di=1e5;
+    else di=f*do_/(do_-f);
+    const imgX=lx+di,mag=do_===0?1:(di/do_);
+    const imgTipY=cy+oh*mag;
+    const rCols=['rgba(255,80,80,.65)','rgba(80,220,80,.65)','rgba(80,130,255,.65)'];
+    // Ray 1: parallel → through F'
+    ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(lx,cy-oh);
+    if(Math.abs(di)<W*2){ctx.lineTo(Math.min(W-8,lx+200),cy-oh+(lx+f-(lx))*(imgTipY-(cy-oh))/(imgX-lx));}else{ctx.lineTo(W-8,cy-oh+(W-8-lx)*oh/f);}
+    ctx.strokeStyle=rCols[0];ctx.lineWidth=1.4;ctx.stroke();
+    // Ray 2: through center
+    const sl2=(cy-oh-cy)/(ox-lx);
+    ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(W-8,cy-oh+sl2*(W-8-ox));
+    ctx.strokeStyle=rCols[1];ctx.lineWidth=1.4;ctx.stroke();
+    // Ray 3: through F → parallel
+    const fSlop=(cy-oh-cy)/(ox-(lx-f));
+    const yAtLens=cy-oh+fSlop*(lx-ox);
+    ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(lx,yAtLens);ctx.lineTo(W-8,yAtLens);
+    ctx.strokeStyle=rCols[2];ctx.lineWidth=1.4;ctx.stroke();
+    // image
+    if(Math.abs(di)<W*1.8){
+      const ix2=Math.max(10,Math.min(W-10,imgX)),ity=Math.max(5,Math.min(H-5,imgTipY));
+      const isR=di>0&&do_>f;
+      ctx.setLineDash(isR?[]:[5,4]);ctx.strokeStyle=isR?'rgba(255,100,100,.75)':'rgba(0,200,255,.55)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(ix2,cy);ctx.lineTo(ix2,ity);ctx.stroke();
+      ctx.fillStyle=isR?'rgba(255,100,100,.75)':'rgba(0,200,255,.55)';
+      ctx.beginPath();ctx.moveTo(ix2,ity);ctx.lineTo(ix2-4,ity+(ity<cy?10:-10));ctx.lineTo(ix2+4,ity+(ity<cy?10:-10));ctx.closePath();ctx.fill();
+      ctx.setLineDash([]);ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText(isR?'实像':'虚像',ix2+5,ity-4);
+    }
+    let info='';const dr=Math.round(di);
+    if(do_<f)info=`物在焦点内 → 正立放大虚像（放大镜）`;
+    else if(Math.abs(do_-f)<2)info='物在焦点上 → 像在无穷远（平行光）';
+    else if(do_<2*f)info=`物在F~2F间 → 倒立放大实像 | 像距${dr}px`;
+    else if(Math.abs(do_-2*f)<2)info=`物在2F处 → 倒立等大实像`;
+    else info=`物在2F外 → 倒立缩小实像 | 像距${dr}px`;
+    document.getElementById('d5-info').textContent=info;
+  } else {
+    const di2=-f*do_/(do_+f),imgX2=lx+di2,mag2=Math.abs(di2/do_),ity2=cy-oh*mag2;
+    ctx.strokeStyle='rgba(255,80,80,.6)';ctx.lineWidth=1.4;
+    const vfSlop=(ity2-cy+oh)/(lx-f-ox);const yAtL=cy-oh+vfSlop*(lx-ox);
+    ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(lx,cy-oh);ctx.lineTo(W-8,cy-oh+(W-8-lx)*(ity2-(cy-oh))/(imgX2-lx));ctx.stroke();
+    const sl3=(cy-oh-cy)/(ox-lx);ctx.strokeStyle='rgba(80,220,80,.6)';
+    ctx.beginPath();ctx.moveTo(ox,cy-oh);ctx.lineTo(W-8,cy-oh+sl3*(W-8-ox));ctx.stroke();
+    ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(0,200,255,.5)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(imgX2,cy);ctx.lineTo(imgX2,ity2);ctx.stroke();
+    ctx.fillStyle='rgba(0,200,255,.5)';ctx.beginPath();ctx.moveTo(imgX2,ity2);ctx.lineTo(imgX2-4,ity2+10);ctx.lineTo(imgX2+4,ity2+10);ctx.closePath();ctx.fill();
+    ctx.setLineDash([]);ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('虚像',imgX2+4,ity2-4);
+    document.getElementById('d5-info').textContent=`凹透镜 → 正立缩小虚像 | 像距${Math.round(-di2)}px | 倍率${mag2.toFixed(2)}`;
+  }
+}
+
+// ── DEMO 6: COLOR ─────────────────────────────
+function d6Init(){drawPrism();updateRGB();updateObjColor();cLightT='white';cFilter='red';updateFilter();}
+function drawPrism(){
+  const cv=document.getElementById('c6-prism');if(!cv)return;
+  cv.width=cv.offsetWidth||560;cv.height=155;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.fillStyle='#020810';ctx.fillRect(0,0,W,H);
+  const px=W*.38,py=H*.5;
+  // white beam in
+  // Left face of prism at y=py: x = px - 42*(60/110)
+  const beamEndX=Math.round(px-42*60/110);
+  const wb=ctx.createLinearGradient(20,py,beamEndX,py);
+  wb.addColorStop(0,'rgba(255,255,255,0)');wb.addColorStop(.9,'rgba(255,255,255,.92)');
+  ctx.fillStyle=wb;ctx.fillRect(20,py-4,beamEndX-20,8);
+  ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText('白光',14,py-8);
+  // prism
+  ctx.beginPath();ctx.moveTo(px,py-60);ctx.lineTo(px+82,py+50);ctx.lineTo(px-42,py+50);ctx.closePath();
+  ctx.fillStyle='rgba(120,180,255,.1)';ctx.fill();
+  ctx.strokeStyle='rgba(120,180,255,.5)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='rgba(120,180,255,.4)';ctx.font='12px Noto Sans SC,sans-serif';ctx.fillText('棱镜',px+2,py+10);
+  // rainbow rays
+  const cols=['#ff1111','#ff7700','#ffdd00','#00cc00','#0066ff','#4400cc','#8800ff'];
+  const labs=['红','橙','黄','绿','蓝','靛','紫'],sp=[-50,-33,-17,0,17,33,50];
+  const ex0=px+44,ey0=py+8;
+  cols.forEach((c,i)=>{
+    ctx.beginPath();ctx.moveTo(ex0,ey0);ctx.lineTo(W-18,ey0+sp[i]*2.1);
+    ctx.strokeStyle=c;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.fillStyle=c;ctx.font='11px Noto Sans SC,sans-serif';ctx.fillText(labs[i],W-14,ey0+sp[i]*2.1+4);
+  });
+}
+function updateRGB(){
+  const r=+document.getElementById('sl-r').value,g=+document.getElementById('sl-g').value,b=+document.getElementById('sl-b').value;
+  ['r','g','b'].forEach(c=>{document.getElementById('sv-'+c).textContent=+document.getElementById('sl-'+c).value;});
+  document.getElementById('rc-r').style.opacity=r/255;
+  document.getElementById('rc-g').style.opacity=g/255;
+  document.getElementById('rc-b').style.opacity=b/255;
+  let desc='';
+  const ro=r/255,go=g/255,bo=b/255;
+  if(ro>.8&&go>.8&&bo>.8)desc='红+绿+蓝 → 白光 ✨';
+  else if(ro>.6&&go>.6&&bo<.2)desc='红+绿 → 黄光 🟡';
+  else if(ro<.2&&go>.6&&bo>.6)desc='绿+蓝 → 青光 🩵';
+  else if(ro>.6&&go<.2&&bo>.6)desc='红+蓝 → 品红光 💜';
+  else if(ro>.6&&go<.2&&bo<.2)desc='纯红光 🔴';
+  else if(ro<.2&&go>.6&&bo<.2)desc='纯绿光 🟢';
+  else if(ro<.2&&go<.2&&bo>.6)desc='纯蓝光 🔵';
+  else if(ro<.1&&go<.1&&bo<.1)desc='无光（黑暗）⚫';
+  else desc='混合色光';
+  document.getElementById('d6-rgb-info').textContent=desc;
+}
+let cLight='white',cObj='red',cLightT='white',cFilter='red';
+function setLightT(l){
+  cLightT=l;
+  ['white','red','green','blue'].forEach(x=>document.getElementById('tl-'+x[0])?.classList.toggle('sel',x===l));
+  updateFilter();
+}
+function setFilter(f){
+  cFilter=f;
+  ['red','green','blue','clear'].forEach(x=>document.getElementById('fl-'+(x==='clear'?'c':x[0]))?.classList.toggle('sel',x===f));
+  updateFilter();
+}
+function updateFilter(){
+  const ftbl={red:{white:'red',red:'red',green:'black',blue:'black'},green:{white:'green',red:'black',green:'green',blue:'black'},blue:{white:'blue',red:'black',green:'black',blue:'blue'},clear:{white:'white',red:'red',green:'green',blue:'blue'}};
+  const res=(ftbl[cFilter]||{})[cLightT]||'black';
+  const ft2={red:'#ff8080',green:'#80ff99',blue:'#8099ff',white:'#dde',black:'rgba(160,185,210,.8)'};
+  const ftmap={red:'只透过红光 🔴',green:'只透过绿光 🟢',blue:'只透过蓝光 🔵',white:'无色透明，所有颜色均可通过 ⚪',black:'无该颜色的光可透过 → 黑色 ⚫'};
+  const fN2={red:'红色玻璃',green:'绿色玻璃',blue:'蓝色玻璃',clear:'无色透明玻璃'};
+  const lN2={white:'白光',red:'红光',green:'绿光',blue:'蓝光'};
+  const cv=document.getElementById('c6-filter');if(!cv)return;
+  cv.width=cv.offsetWidth||560;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.fillStyle='#040c14';ctx.fillRect(0,0,W,H);
+  const lc2={white:'rgba(255,255,255,.85)',red:'rgba(255,80,80,.88)',green:'rgba(60,205,80,.88)',blue:'rgba(80,100,255,.88)'};
+  ctx.fillStyle=lc2[cLightT];ctx.fillRect(18,H/2-6,W*.3,12);
+  ctx.fillStyle='rgba(200,220,255,.45)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('入射光',20,H/2-10);
+  const fc2={red:'rgba(220,60,60,.4)',green:'rgba(30,160,60,.4)',blue:'rgba(50,80,220,.4)',clear:'rgba(200,220,255,.1)'};
+  ctx.fillStyle=fc2[cFilter];ctx.fillRect(W*.33,6,W*.09,H-12);
+  ctx.strokeStyle='rgba(200,230,255,.2)';ctx.lineWidth=1;ctx.strokeRect(W*.33,6,W*.09,H-12);
+  ctx.textAlign='center';ctx.fillStyle='rgba(200,220,255,.35)';ctx.font='9px Noto Sans SC,sans-serif';ctx.fillText('滤',W*.375,H-3);ctx.textAlign='left';
+  if(res!=='black'){
+    const oc2={red:'rgba(255,80,80,.88)',green:'rgba(60,205,80,.88)',blue:'rgba(80,100,255,.88)',white:'rgba(255,255,255,.85)'};
+    ctx.fillStyle=oc2[res];ctx.fillRect(W*.44,H/2-6,W*.52,12);
+    ctx.fillStyle='rgba(200,220,255,.45)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('透射光',W*.46,H/2-10);
+  } else {
+    ctx.fillStyle='rgba(160,180,200,.35)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('× 无透射光',W*.46,H/2+4);
+  }
+  document.getElementById('filter-text').innerHTML=`${lN2[cLightT]} 通过 ${fN2[cFilter]} → <strong style="color:${ft2[res]}">${ftmap[res]}</strong>`;
+}
+function setLight(l){
+  cLight=l;['white','red','green','blue'].forEach(x=>document.getElementById('lt-'+x[0]).classList.toggle('sel',x===l));
+  updateObjColor();
+}
+function setObj(o){
+  cObj=o;['red','green','blue','white','black'].forEach(x=>document.getElementById('ob-'+(x==='black'?'k':x[0])).classList.toggle('sel',x===o));
+  updateObjColor();
+}
+function updateObjColor(){
+  const tbl={red:{white:'red',red:'red',green:'black',blue:'black'},green:{white:'green',red:'black',green:'green',blue:'black'},blue:{white:'blue',red:'black',green:'black',blue:'blue'},white:{white:'white',red:'red',green:'green',blue:'blue'},black:{white:'black',red:'black',green:'black',blue:'black'}};
+  const res=tbl[cObj][cLight]||'black';
+  const cmap={red:'#e33',green:'#1b1',blue:'#44d',white:'#eee',black:'#111'};
+  const tmap={red:'反射红光 → 看到红色 🔴',green:'反射绿光 → 看到绿色 🟢',blue:'反射蓝光 → 看到蓝色 🔵',white:'反射所有颜色的光 → 看到白色 ⚪',black:'吸收所有光，无反射光进入眼睛 → 黑色 ⚫'};
+  const oN={red:'红色物体',green:'绿色物体',blue:'蓝色物体',white:'白色物体',black:'黑色物体'};
+  const lN={white:'白光',red:'红光',green:'绿光',blue:'蓝光'};
+  document.getElementById('obj-preview').style.background=cmap[res];
+  const tcmap={red:'#ff8080',green:'#80ff99',blue:'#8099ff',white:'#dde',black:'rgba(160,185,210,.8)'};
+  document.getElementById('obj-text').innerHTML=`${lN[cLight]} 照射 ${oN[cObj]} → <strong style="color:${tcmap[res]}">${tmap[res]}</strong>`;
+}
+
+// ── FINAL QUIZ ────────────────────────────────
+const FQS=[
+{t:'光的传播',q:'光在真空中的速度约为？',opts:['c = 3×10⁶ m/s','c = 3×10⁸ m/s','c = 3×10⁸ km/s','c = 3×10¹⁰ m/s'],ans:1},
+{t:'光的传播',q:'皮影戏的原理是？',opts:['光的反射','光的折射','光的直线传播','光的色散'],ans:2},
+{t:'光的传播',q:'光在水中传播速度约为真空中的？',opts:['1/2','2/3','3/4','9/10'],ans:2},
+{t:'光的反射',q:'入射角为 60° 时，反射角为？',opts:['30°','45°','60°','120°'],ans:2},
+{t:'光的反射',q:'镜面反射与漫反射，哪句话正确？',opts:['镜面反射不遵守反射定律','漫反射不遵守反射定律','两者都遵守反射定律','两者都不遵守'],ans:2},
+{t:'平面镜',q:'平面镜所成的像是？',opts:['放大实像','缩小实像','等大虚像','等大实像'],ans:2},
+{t:'平面镜',q:'凸面镜适用于做汽车后视镜，原因是？',opts:['成正立放大实像','聚焦光线','扩大视野，成缩小虚像','成倒立实像'],ans:2},
+{t:'光的折射',q:'光从玻璃斜射入空气，折射角与入射角的关系？',opts:['折射角 < 入射角','折射角 = 入射角','折射角 > 入射角','无法判断'],ans:2},
+{t:'光的折射',q:'池底看起来比实际浅，原因是？',opts:['光的反射','光的色散','光的直线传播','光的折射'],ans:3},
+{t:'全反射',q:'全反射发生的条件：入射角必须……',opts:['等于0°','小于临界角','大于临界角','等于90°'],ans:2},
+{t:'全反射',q:'光纤（光导纤维）的工作原理是？',opts:['色散','折射','镜面反射','全反射'],ans:3},
+{t:'透镜',q:'物体在凸透镜 2F 以外成像为？',opts:['正立放大虚像','倒立放大实像','倒立缩小实像','正立缩小虚像'],ans:2},
+{t:'透镜',q:'近视眼镜使用什么透镜？',opts:['平面镜','凸面镜','凸透镜','凹透镜'],ans:3},
+{t:'透镜',q:'投影仪（幻灯机）的成像原理：物体在凸透镜……',opts:['焦点以内','F~2F 之间','2F 以外','焦点上'],ans:1},
+{t:'色散',q:'三棱镜色散后，偏折最小的颜色？',opts:['紫光','蓝光','橙光','红光'],ans:3},
+{t:'颜色',q:'光的三原色是？',opts:['红、黄、蓝','青、品红、黄','红、绿、蓝','红、橙、黄'],ans:2},
+{t:'颜色',q:'蓝色玻璃在白光照射下看起来是蓝色，原因是？',opts:['反射蓝光','折射红光','只透过蓝光','吸收蓝光'],ans:2},
+{t:'综合',q:'太阳能热水器集热管利用了哪种镜的原理？',opts:['平面镜','凸面镜','凹面镜','凸透镜'],ans:2},
+];
+let fqI=0,fqAns=[],fqLocked=false;
+function initFQ(){fqI=0;fqAns=new Array(FQS.length).fill(-1);fqLocked=false;renderFQ();}
+function renderFQ(){
+  const q=FQS[fqI];
+  document.getElementById('fq-prog').textContent=`第 ${fqI+1} / ${FQS.length} 题`;
+  document.getElementById('fq-bar').style.width=((fqI+1)/FQS.length*100)+'%';
+  document.getElementById('fq-qa').innerHTML=`<div class="fq-qnum">第 ${fqI+1} 题 · ${q.t}</div>
+    <p class="fq-qtext">${q.q}</p>
+    <div class="fq-opts" id="fq-opts">${q.opts.map((o,i)=>`<button class="fq-opt ${fqAns[fqI]===i?'sel':''}" onclick="fqSel(${i})">${'ABCD'[i]}. ${o}</button>`).join('')}</div>`;
+  document.getElementById('btn-fq-submit').textContent='确认答案';
+  document.getElementById('btn-fq-submit').disabled=fqAns[fqI]===-1;
+  fqLocked=false;
+}
+function fqSel(i){
+  if(fqLocked)return;
+  fqAns[fqI]=i;
+  document.querySelectorAll('.fq-opt').forEach((el,j)=>el.classList.toggle('sel',j===i));
+  document.getElementById('btn-fq-submit').disabled=false;
+}
+function fqSubmit(){
+  if(fqAns[fqI]===-1)return;
+  if(fqLocked){if(fqI<FQS.length-1){fqI++;renderFQ();}else showFQResult();return;}
+  fqLocked=true;
+  const q=FQS[fqI];
+  document.querySelectorAll('.fq-opt').forEach((el,i)=>{
+    el.classList.remove('sel');el.style.pointerEvents='none';
+    if(i===q.ans)el.classList.add('correct');
+    else if(i===fqAns[fqI])el.classList.add('wrong');
+  });
+  document.getElementById('btn-fq-submit').textContent=fqI<FQS.length-1?'下一题 →':'查看成绩';
+  document.getElementById('btn-fq-submit').disabled=false;
+}
+function showFQResult(){
+  let c=0;FQS.forEach((q,i)=>{if(fqAns[i]===q.ans)c++;});
+  const pct=Math.round(c/FQS.length*100);G.fqScore=pct;
+  const msgs=['继续加油，多复习一下吧！😊','还不错，再接再厉！💪','掌握得很好！🌟','完美！光学达人！🎉'];
+  const mi=pct>=90?3:pct>=70?2:pct>=50?1:0;
+  document.getElementById('fq-body').innerHTML=`<div class="fq-result">
+    <div class="big-score">${pct}<span style="font-size:2rem;opacity:.7">%</span></div>
+    <div class="score-label">答对 ${c} / ${FQS.length} 题</div>
+    <div class="score-msg">${msgs[mi]}</div>
+    <button class="btn-next" onclick="showCert()">🏆 领取学习证书</button>
+    <button class="btn-back" style="display:block;margin:.8rem auto" onclick="showMap()">← 返回地图</button>
+  </div>`;
+}
+
+// ── CERTIFICATE ───────────────────────────────
+function generateCert(){
+  const name=document.getElementById('cert-name').value.trim()||'同学';
+  const cv=document.getElementById('cert-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const bg=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,W*.7);
+  bg.addColorStop(0,'#060f20');bg.addColorStop(1,'#020810');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,180,255,.5)';ctx.lineWidth=2;ctx.strokeRect(14,14,W-28,H-28);
+  ctx.strokeStyle='rgba(255,208,96,.3)';ctx.lineWidth=1;ctx.strokeRect(20,20,W-40,H-40);
+  [[28,28],[W-28,28],[28,H-28],[W-28,H-28]].forEach(([cx,cy])=>{ctx.beginPath();ctx.arc(cx,cy,7,0,6.28);ctx.fillStyle='rgba(0,200,255,.3)';ctx.fill();});
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,200,255,.65)';ctx.font='bold 17px Noto Sans SC,sans-serif';ctx.fillText('峇株吧辖华仁中学',W/2,55);
+  ctx.fillStyle='rgba(255,208,96,.7)';ctx.font='bold 14px Noto Sans SC,sans-serif';ctx.fillText('初一科学 · 学习完成证书',W/2,82);
+  ctx.strokeStyle='rgba(0,200,255,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(70,96);ctx.lineTo(W-70,96);ctx.stroke();
+  ctx.font='44px serif';ctx.fillText('🏆',W/2,148);
+  ctx.fillStyle='#fff';ctx.font='bold 28px Noto Sans SC,sans-serif';ctx.fillText(name,W/2,197);
+  ctx.fillStyle='rgba(180,210,255,.55)';ctx.font='15px Noto Sans SC,sans-serif';ctx.fillText('已完成',W/2,226);
+  ctx.fillStyle='#00d4ff';ctx.font='bold 22px Noto Sans SC,sans-serif';ctx.fillText('第 7 章：光的现象',W/2,262);
+  ctx.fillStyle='rgba(180,210,255,.45)';ctx.font='13px Noto Sans SC,sans-serif';ctx.fillText('光的传播 · 反射 · 折射 · 全反射 · 透镜成像 · 色散',W/2,292);
+  const sd=G.done.size;
+  ctx.font='22px serif';
+  for(let i=0;i<6;i++){ctx.fillStyle=i<sd?'rgba(255,208,96,.9)':'rgba(80,100,120,.4)';ctx.fillText('★',W/2-62+i*26,330);}
+  ctx.fillStyle='rgba(180,210,255,.4)';ctx.font='12px Noto Sans SC,sans-serif';ctx.fillText(`探索站完成 ${sd}/6`,W/2,352);
+  if(G.fqScore>0){ctx.fillStyle='rgba(0,255,136,.65)';ctx.font='bold 16px Orbitron,monospace';ctx.fillText('光学总测验：'+G.fqScore+'%',W/2,383);}
+  const d=new Date();ctx.fillStyle='rgba(170,195,225,.32)';ctx.font='12px Noto Sans SC,sans-serif';ctx.fillText(`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`,W/2,413);
+  ctx.strokeStyle='rgba(0,200,255,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(70,425);ctx.lineTo(W-70,425);ctx.stroke();
+  ctx.fillStyle='rgba(0,200,255,.18)';ctx.font='10px Noto Sans SC,sans-serif';ctx.fillText('峇株吧辖华仁中学蔡逸众制作 · ecchua79.github.io/ScienceLab',W/2,445);
+}
+function dlCert(){const cv=document.getElementById('cert-canvas');const a=document.createElement('a');a.download='第7章光的现象_证书.png';a.href=cv.toDataURL('image/png');a.click();}
+
+// ── RESIZE ────────────────────────────────────
+window.addEventListener('resize',()=>{
+  const a=document.querySelector('.scr.active');if(!a)return;
+  const id=a.id;
+  if(id==='s-1')d1Update();
+  else if(id==='s-2')d2Update();
+  else if(id==='s-3')d3Update();
+  else if(id==='s-4')d4Update();
+  else if(id==='s-5')d5Update();
+  else if(id==='s-6')drawPrism();
+});
+
+// ── ANTI-PIRACY ───────────────────────────────
+//峇株吧辖华仁中学蔡逸众制作
+//Made by ecchua79
+(()=>{
+  const obs=new MutationObserver(()=>{
+    if(!document.getElementById('wm')){const d=document.createElement('div');d.id='wm';d.className='wm';d.textContent='峇株吧辖华仁中学·蔡逸众制作';document.body.appendChild(d);}
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+</body>
+</html>
