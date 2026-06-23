@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>天体与宇宙 · 互动演示 — 第12章</title>
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --void:        #020510;
+  --deep:        #060d1f;
+  --surface:     #0c1633;
+  --panel:       rgba(12,22,51,0.85);
+  --rim:         rgba(80,140,255,0.18);
+  --rim-bright:  rgba(80,140,255,0.5);
+
+  --ice:    #c8e8ff;
+  --sky:    #60b4ff;
+  --azure:  #3080ff;
+  --indigo: #1840cc;
+  --gold:   #ffc844;
+  --amber:  #ff9020;
+  --rose:   #ff4488;
+  --mint:   #22ffb8;
+  --violet: #9955ff;
+
+  --text:   #ddeeff;
+  --muted:  #6688aa;
+  --dim:    #2a3a55;
+
+  --r4:4px; --r8:8px; --r12:12px; --r16:16px; --r24:24px; --rfull:9999px;
+  --shadow-panel: 0 8px 48px rgba(0,20,80,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Canvas starfield ── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Layout ── */
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Nav ── */
+#nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: rgba(2,5,16,0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--rim);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#nav::-webkit-scrollbar { display:none; }
+
+.nav-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: 1px solid var(--rim);
+  border-radius: var(--rfull);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.nav-btn:hover, .nav-btn.active {
+  background: rgba(48,128,255,0.2);
+  border-color: var(--azure);
+  color: var(--ice);
+}
+
+/* ── Sections ── */
+.section {
+  min-height: 100vh;
+  padding: 90px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.section-title {
+  font-size: clamp(22px, 5vw, 38px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.section-sub {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r16);
+  padding: 24px;
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(12px);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--sky);
+  margin-bottom: 6px;
+}
+
+/* glow text */
+.glow-gold { color:var(--gold); text-shadow:0 0 20px rgba(255,200,68,0.5); }
+.glow-sky  { color:var(--sky);  text-shadow:0 0 16px rgba(96,180,255,0.5); }
+.glow-mint { color:var(--mint); text-shadow:0 0 16px rgba(34,255,184,0.4); }
+.glow-rose { color:var(--rose); text-shadow:0 0 16px rgba(255,68,136,0.5); }
+
+/* ═══════════════════════════════════════
+   SECTION 0 — HERO
+═══════════════════════════════════════ */
+#sec-hero {
+  justify-content: center;
+  text-align: center;
+  gap: 24px;
+  padding-top: 0;
+}
+
+.hero-eyebrow {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-size: clamp(36px, 9vw, 80px);
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, #c8e8ff 0%, #60b4ff 40%, #9955ff 70%, #ffc844 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 4px;
+}
+
+.hero-chapter {
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+.hero-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 640px;
+}
+
+.toc-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(48,128,255,0.08);
+  border: 1px solid var(--rim);
+  border-radius: var(--rfull);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.toc-pill:hover {
+  background: rgba(48,128,255,0.18);
+  border-color: var(--sky);
+  transform: translateY(-2px);
+}
+
+.scroll-hint {
+  font-size: 12px;
+  color: var(--muted);
+  animation: bounce 2s infinite;
+}
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+/* ═══════════════════════════════════════
+   SECTION 1 — 什么是天体
+═══════════════════════════════════════ */
+#sec-objects { gap: 32px; }
+
+.objects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.obj-card {
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r12);
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34,1.3,0.64,1);
+  position: relative;
+  overflow: hidden;
+}
+.obj-card::before {
+  content:'';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(96,180,255,0.12), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.obj-card:hover { transform: translateY(-6px) scale(1.03); border-color: var(--sky); box-shadow: 0 12px 40px rgba(48,128,255,0.25); }
+.obj-card:hover::before { opacity:1; }
+.obj-card.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,200,68,0.2), 0 12px 40px rgba(255,200,68,0.2); }
+
+.obj-emoji { font-size: 40px; display:block; margin-bottom:10px; }
+.obj-name  { font-size: 15px; font-weight: 700; margin-bottom:4px; }
+.obj-en    { font-size: 10px; color: var(--muted); letter-spacing:1px; }
+
+.obj-detail {
+  width: 100%;
+  max-width: 900px;
+  min-height: 120px;
+  transition: all 0.3s;
+}
+
+.natural-vs-manmade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.vs-box {
+  border-radius: var(--r12);
+  padding: 20px;
+  text-align: center;
+}
+.vs-natural { background: rgba(34,255,184,0.06); border: 1px solid rgba(34,255,184,0.25); }
+.vs-manmade { background: rgba(255,200,68,0.06); border: 1px solid rgba(255,200,68,0.25); }
+.vs-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.vs-list { font-size: 13px; color: var(--muted); line-height: 2; }
+
+/* ═══════════════════════════════════════
+   SECTION 2 — 星座与观星
+═══════════════════════════════════════ */
+#sec-constellations { gap: 32px; }
+
+.seasons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 780px;
+}
+@media(max-width:600px) {
+  .seasons-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+.season-card {
+  border-radius: var(--r12);
+  padding: 20px 14px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.season-spring { background: rgba(100,220,100,0.07); }
+.season-summer { background: rgba(255,160,20,0.08); }
+.season-autumn { background: rgba(200,120,60,0.08); }
+.season-winter { background: rgba(100,160,255,0.08); }
+.season-card:hover { transform: scale(1.04); }
+.season-card.active { border-color: var(--gold); }
+
+.season-label { font-size:11px; letter-spacing:2px; color:var(--muted); margin-bottom:6px; }
+.season-constellation-emoji { font-size:44px; display:block; margin:6px 0; }
+.season-name { font-size:15px; font-weight:700; }
+.season-en   { font-size:11px; color:var(--muted); margin-top:3px; }
+
+/* interactive sky */
+.sky-demo {
+  width: 100%;
+  max-width: 700px;
+  aspect-ratio: 2/1;
+  position: relative;
+  border-radius: var(--r16);
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 100%, #0a1840 0%, #020510 70%);
+  border: 1px solid var(--rim);
+  cursor: crosshair;
+}
+#skyCanvas { width:100%; height:100%; display:block; }
+
+.sky-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.sky-toggle-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--rim);
+  border-radius: var(--rfull);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.sky-toggle-btn.on {
+  background: rgba(48,128,255,0.18);
+  border-color: var(--azure);
+  color: var(--ice);
+}
+
+/* magnitude demo */
+.magnitude-demo {
+  width: 100%;
+  max-width: 700px;
+}
+
+.mag-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.mag-star-dot {
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 10px white;
+}
+.mag-info { flex: 1; }
+.mag-name { font-size: 14px; font-weight: 600; }
+.mag-num  { font-size: 12px; color: var(--muted); }
+
+/* 峇株吧辖蔡逸众制作 */
+
+/* ═══════════════════════════════════════
+   SECTION 3 — 恒星颜色与温度
+═══════════════════════════════════════ */
+#sec-stars { gap: 32px; }
+
+.star-spectrum-bar {
+  width: 100%;
+  max-width: 760px;
+  height: 56px;
+  border-radius: var(--r8);
+  background: linear-gradient(to right,
+    #8090ff 0%,   /* O 蓝 */
+    #a0c8ff 12%,  /* B 蓝白 */
+    #c8e8ff 24%,  /* A 白 */
+    #e8f4ff 36%,
+    #ffffcc 48%,  /* F 黄白 */
+    #ffe880 60%,  /* G 黄 */
+    #ffcc60 72%,  /* K 橙 */
+    #ff9050 84%,
+    #ff6030 100%  /* M 橙红 */
+  );
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 0 30px rgba(180,180,255,0.15);
+  border: 1px solid var(--rim);
+}
+
+.spectrum-label {
+  position: absolute;
+  top: -22px;
+  font-size: 10px;
+  color: var(--muted);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.spectrum-cursor {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  background: white;
+  border-radius: 2px;
+  box-shadow: 0 0 12px white;
+  pointer-events: none;
+  transition: left 0.1s;
+}
+
+.spectrum-info-box {
+  width: 100%;
+  max-width: 760px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border-radius: var(--r12);
+  border: 1px solid var(--rim);
+  background: var(--panel);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.spec-star-circle {
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.spec-type-badge {
+  font-size: 26px;
+  font-weight: 900;
+  color: white;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+}
+.spec-name  { font-size: 17px; font-weight: 700; }
+.spec-temp  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.spec-color { font-size: 13px; color: var(--muted); }
+.spec-example { font-size: 12px; margin-top: 4px; }
+
+/* Star table */
+.star-table-wrap {
+  width: 100%;
+  max-width: 760px;
+  overflow-x: auto;
+}
+.star-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.star-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rim);
+  white-space: nowrap;
+}
+.star-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  white-space: nowrap;
+}
+.star-table tr:hover td { background: rgba(48,128,255,0.06); }
+.color-swatch {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px;
+}
+
+/* ═══════════════════════════════════════
+   SECTION 4 — 恒星演化
+═══════════════════════════════════════ */
+#sec-lifecycle { gap: 32px; }
+
+.lifecycle-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.lc-tab {
+  padding: 9px 20px;
+  border-radius: var(--rfull);
+  border: 1px solid var(--rim);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.lc-tab.active {
+  background: rgba(48,128,255,0.2);
+  border-color: var(--azure);
+  color: var(--ice);
+}
+
+/* Timeline */
+.timeline {
+  width: 100%;
+  max-width: 880px;
+  position: relative;
+}
+
+.tl-track {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  padding-top: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rim) transparent;
+}
+
+.tl-step {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.tl-step:hover { transform: translateY(-4px); }
+
+.tl-line {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rim-bright), var(--rim));
+  z-index: 0;
+}
+.tl-step:last-child .tl-line { display: none; }
+
+.tl-node {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border: 2px solid var(--rim);
+  background: var(--surface);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s;
+}
+.tl-step:hover .tl-node, .tl-step.active .tl-node {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(255,200,68,0.4);
+  transform: scale(1.15);
+}
+
+.tl-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 8px;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.tl-step.active .tl-label, .tl-step:hover .tl-label { color: var(--text); }
+
+.tl-detail {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 880px;
+  min-height: 140px;
+  padding: 20px 24px;
+  border-radius: var(--r16);
+  border: 1px solid var(--rim);
+  background: var(--panel);
+  box-shadow: var(--shadow-panel);
+  transition: all 0.3s;
+}
+
+.tl-detail-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.tl-detail-desc  { font-size: 14px; color: var(--muted); line-height: 1.7; }
+.tl-detail-fact  {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: var(--rfull);
+  background: rgba(255,200,68,0.1);
+  border: 1px solid rgba(255,200,68,0.25);
+  font-size: 12px;
+  color: var(--gold);
+}
+
+/* mass comparison */
+.mass-compare {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  max-width: 880px;
+  flex-wrap: wrap;
+}
+.mass-box {
+  flex: 1;
+  min-width: 280px;
+  border-radius: var(--r12);
+  padding: 20px;
+  border: 1px solid var(--rim);
+}
+.mass-box.medium { background: rgba(255,200,68,0.05); border-color: rgba(255,200,68,0.25); }
+.mass-box.large  { background: rgba(255,68,136,0.05); border-color: rgba(255,68,136,0.25); }
+
+.mass-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.mass-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mass-arrow { color: var(--muted); font-size: 14px; padding-top: 2px; }
+.mass-step-info strong { font-size: 13px; display:block; }
+.mass-step-info span { font-size: 11px; color: var(--muted); }
+
+/* 华仁中学蔡逸众制作 */
+
+/* ═══════════════════════════════════════
+   SECTION 5 — 星系
+═══════════════════════════════════════ */
+#sec-galaxies { gap: 32px; }
+
+.galaxy-showcase {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 820px;
+}
+@media(max-width:560px) {
+  .galaxy-showcase { grid-template-columns: 1fr; }
+}
+
+.galaxy-card {
+  border-radius: var(--r12);
+  overflow: hidden;
+  border: 1px solid var(--rim);
+  background: var(--panel);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.galaxy-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(0,20,80,0.6); }
+.galaxy-card.active { border-color: var(--gold); }
+
+.galaxy-canvas-wrap {
+  aspect-ratio: 1/1;
+  background: #010308;
+  position: relative;
+}
+.galaxy-canvas-wrap canvas { width:100%; height:100%; display:block; }
+.galaxy-card-body { padding: 14px; }
+.galaxy-type { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.galaxy-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* Milky Way structure */
+.mw-diagram {
+  width: 100%;
+  max-width: 680px;
+  position: relative;
+}
+#mwCanvas { width:100%; height:auto; display:block; border-radius:var(--r12); }
+
+.mw-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 680px;
+  margin-top: 16px;
+}
+.mw-fact {
+  background: rgba(48,128,255,0.07);
+  border: 1px solid var(--rim);
+  border-radius: var(--r8);
+  padding: 12px;
+  font-size: 12px;
+}
+.mw-fact strong { display:block; font-size:16px; color:var(--gold); margin-bottom:3px; }
+
+/* ═══════════════════════════════════════
+   SECTION 6 — 宇宙层次
+═══════════════════════════════════════ */
+#sec-hierarchy { gap: 32px; }
+
+.hierarchy-diagram {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+
+.hier-level {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.hier-box {
+  width: var(--w);
+  padding: 14px 20px;
+  border-radius: var(--r12);
+  border: 1px solid var(--rim);
+  background: var(--panel);
+  text-align: center;
+  transition: all 0.3s;
+  margin: 4px 0;
+}
+.hier-box:hover, .hier-box.active {
+  border-color: var(--sky);
+  background: rgba(48,128,255,0.12);
+  transform: scale(1.03);
+}
+.hier-name  { font-size: 16px; font-weight: 700; }
+.hier-en    { font-size: 10px; color: var(--muted); letter-spacing:1px; }
+.hier-arrow { font-size: 20px; color: var(--muted); line-height: 1; }
+.hier-detail {
+  max-width: 100%;
+  padding: 6px 16px 6px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+}
+.hier-detail.open { max-height: 200px; padding: 8px 16px; }
+
+/* ═══════════════════════════════════════
+   SECTION 7 — 大爆炸
+═══════════════════════════════════════ */
+#sec-bigbang { gap: 32px; }
+
+.bigbang-timeline {
+  width: 100%;
+  max-width: 820px;
+  position: relative;
+}
+
+.bb-track {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  padding-top: 60px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rim) transparent;
+}
+
+.bb-step {
+  flex-shrink: 0;
+  width: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.bb-connector {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--azure), var(--violet));
+  z-index: 0;
+}
+.bb-step:first-child .bb-connector { display:none; }
+
+.bb-node {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  border: 2px solid var(--rim);
+  background: radial-gradient(circle, var(--surface), var(--void));
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s;
+}
+.bb-step:hover .bb-node, .bb-step.active .bb-node {
+  border-color: var(--violet);
+  box-shadow: 0 0 24px var(--violet);
+  transform: scale(1.2);
+}
+
+.bb-time {
+  font-size: 10px;
+  color: var(--violet);
+  font-weight: 700;
+  margin-top: 8px;
+  text-align: center;
+}
+.bb-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-align: center;
+}
+
+.bb-detail {
+  margin-top: 16px;
+  width: 100%;
+  max-width: 820px;
+  padding: 20px 24px;
+  border-radius: var(--r16);
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  min-height: 100px;
+}
+
+/* expansion animation */
+.expansion-demo {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16/9;
+  border-radius: var(--r16);
+  overflow: hidden;
+  position: relative;
+  background: var(--void);
+  border: 1px solid var(--rim);
+}
+#expandCanvas { width:100%; height:100%; display:block; }
+
+.expand-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  justify-content: center;
+}
+.expand-btn {
+  padding: 8px 20px;
+  border-radius: var(--rfull);
+  border: 1px solid var(--violet);
+  background: rgba(153,85,255,0.15);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.expand-btn:hover { background: rgba(153,85,255,0.3); }
+.expand-time-label { font-size: 13px; color: var(--muted); }
+#expandTimeDisplay { color: var(--violet); font-weight: 700; }
+
+/* ═══════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════ */
+.tooltip {
+  position: fixed;
+  z-index: 500;
+  pointer-events: none;
+  background: rgba(6,13,31,0.95);
+  border: 1px solid var(--sky);
+  border-radius: var(--r8);
+  padding: 8px 14px;
+  font-size: 13px;
+  max-width: 240px;
+  box-shadow: 0 4px 20px rgba(0,20,80,0.8);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.tooltip.show { opacity: 1; }
+
+/* ═══════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════ */
+footer {
+  text-align: center;
+  padding: 32px 20px;
+  font-size: 12px;
+  color: var(--dim);
+  border-top: 1px solid var(--rim);
+  position: relative;
+  z-index: 10;
+}
+
+/* 峇株吧辖华仁中学蔡逸众制作 */
+
+/* ═══════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height:4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rim); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav id="nav">
+  <button class="nav-btn active" onclick="scrollToSec('sec-hero')">🏠 首页</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-objects')">🌌 天体</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-constellations')">🔭 星座</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-stars')">⭐ 恒星温度</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-lifecycle')">💫 恒星演化</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-galaxies')">🌀 星系</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-hierarchy')">📐 宇宙层次</button>
+  <button class="nav-btn" onclick="scrollToSec('sec-bigbang')">💥 大爆炸</button>
+</nav>
+
+<div id="app">
+
+<!-- ═══ HERO ═══ -->
+<section class="section" id="sec-hero">
+  <div class="hero-eyebrow">初二科学 · 第12章</div>
+  <h1 class="hero-title">天体与宇宙</h1>
+  <p class="hero-chapter">Astronomical Objects &amp; The Universe</p>
+
+  <div class="hero-toc">
+    <a class="toc-pill" onclick="scrollToSec('sec-objects')">🌌 什么是天体？</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-constellations')">🔭 如何观测星空？</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-stars')">🌡️ 恒星颜色与温度</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-lifecycle')">💫 恒星的生命周期</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-galaxies')">🌀 星系与银河系</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-hierarchy')">📐 宇宙天体系统</a>
+    <a class="toc-pill" onclick="scrollToSec('sec-bigbang')">💥 宇宙的起源</a>
+  </div>
+
+  <p class="scroll-hint">↓ 向下滚动开始探索</p>
+</section>
+
+<!-- ═══ SECTION 1: 天体 ═══ -->
+<section class="section" id="sec-objects">
+  <div class="label">12.1</div>
+  <h2 class="section-title glow-sky">什么是天体？</h2>
+  <p class="section-sub">宇宙中任何自然形成的单一物体，或由多个物体凝聚而成 — 点击每个天体了解更多</p>
+
+  <div class="objects-grid" id="objectsGrid">
+    <!-- filled by JS -->
+  </div>
+
+  <div class="card obj-detail" id="objDetail">
+    <p style="color:var(--muted);text-align:center;padding:20px 0;">👆 点击上方任意天体查看详细介绍</p>
+  </div>
+
+  <div class="natural-vs-manmade">
+    <div class="vs-box vs-natural">
+      <div class="vs-title glow-mint">🌿 自然天体</div>
+      <div class="vs-list">
+        恒星 · 行星 · 卫星<br>
+        彗星 · 小行星<br>
+        星团 · 星云 · 星系
+      </div>
+    </div>
+    <div class="vs-box vs-manmade">
+      <div class="vs-title glow-gold">🛸 人造天体</div>
+      <div class="vs-list">
+        人造卫星<br>
+        国际空间站<br>
+        太空探测器
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SECTION 2: 星座 ═══ -->
+<section class="section" id="sec-constellations">
+  <div class="label">12.2</div>
+  <h2 class="section-title glow-sky">星座与星空观测</h2>
+  <p class="section-sub">88个星座 · 四季代表 · 视星等 — 点击季节卡片，在星空中看见它们</p>
+
+  <div class="seasons-grid">
+    <div class="season-card season-spring" onclick="selectSeason(0)">
+      <div class="season-label">🌸 春季</div>
+      <span class="season-constellation-emoji">♌</span>
+      <div class="season-name">狮子座</div>
+      <div class="season-en">Leo</div>
+    </div>
+    <div class="season-card season-summer" onclick="selectSeason(1)">
+      <div class="season-label">☀️ 夏季</div>
+      <span class="season-constellation-emoji">♏</span>
+      <div class="season-name">天蝎座</div>
+      <div class="season-en">Scorpius</div>
+    </div>
+    <div class="season-card season-autumn" onclick="selectSeason(2)">
+      <div class="season-label">🍂 秋季</div>
+      <span class="season-constellation-emoji">🐎</span>
+      <div class="season-name">飞马座</div>
+      <div class="season-en">Pegasus</div>
+    </div>
+    <div class="season-card season-winter" onclick="selectSeason(3)">
+      <div class="season-label">❄️ 冬季</div>
+      <span class="season-constellation-emoji">🏹</span>
+      <div class="season-name">猎户座</div>
+      <div class="season-en">Orion</div>
+    </div>
+  </div>
+
+  <div class="sky-demo">
+    <canvas id="skyCanvas"></canvas>
+  </div>
+
+  <div class="sky-controls">
+    <button class="sky-toggle-btn on"  id="btnStars"   onclick="toggleSkyLayer('stars')">✦ 星星</button>
+    <button class="sky-toggle-btn on"  id="btnLines"   onclick="toggleSkyLayer('lines')">— 连线</button>
+    <button class="sky-toggle-btn on"  id="btnLabels"  onclick="toggleSkyLayer('labels')">Aa 标签</button>
+    <button class="sky-toggle-btn"     id="btnMoon"    onclick="toggleSkyLayer('moon')">🌕 月亮（光污染）</button>
+  </div>
+
+  <div class="card" style="max-width:700px;width:100%">
+    <div class="label">视星等 Apparent Magnitude</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">数值越小 = 越亮；负数 = 极亮</p>
+    <div class="magnitude-demo" id="magnitudeDemo"><!-- filled by JS --></div>
+  </div>
+</section>
+
+<!-- ═══ SECTION 3: 恒星温度 ═══ -->
+<section class="section" id="sec-stars">
+  <div class="label">12.3</div>
+  <h2 class="section-title glow-sky">恒星的颜色与温度</h2>
+  <p class="section-sub">在光谱条上滑动，探索从橙红到蓝白的恒星世界</p>
+
+  <div style="width:100%;max-width:760px;padding:30px 0 10px;position:relative;">
+    <!-- spectrum labels -->
+    <div style="position:relative;height:24px;max-width:760px;margin-bottom:4px;">
+      <span class="spectrum-label" style="left:4%">O型<br>蓝</span>
+      <span class="spectrum-label" style="left:18%">B型<br>蓝白</span>
+      <span class="spectrum-label" style="left:33%">A型<br>白</span>
+      <span class="spectrum-label" style="left:48%">F型<br>黄白</span>
+      <span class="spectrum-label" style="left:62%">G型<br>黄</span>
+      <span class="spectrum-label" style="left:76%">K型<br>橙</span>
+      <span class="spectrum-label" style="left:91%">M型<br>橙红</span>
+    </div>
+    <div class="star-spectrum-bar" id="spectrumBar">
+      <div class="spectrum-cursor" id="specCursor" style="left:64%"></div>
+    </div>
+  </div>
+
+  <div class="spectrum-info-box" id="specInfoBox">
+    <div class="spec-star-circle" id="specStarCircle"></div>
+    <div class="spec-type-badge" id="specTypeBadge">G</div>
+    <div>
+      <div class="spec-name"  id="specName">G型 — 黄色恒星</div>
+      <div class="spec-temp"  id="specTemp">表面温度：5200 – 6000 K</div>
+      <div class="spec-color" id="specColor">颜色：黄色</div>
+      <div class="spec-example" id="specExample"></div>
+    </div>
+  </div>
+
+  <div class="star-table-wrap">
+    <table class="star-table" id="starTable">
+      <thead>
+        <tr>
+          <th>恒星</th>
+          <th>星座</th>
+          <th>颜色</th>
+          <th>表面温度</th>
+          <th>光谱型</th>
+        </tr>
+      </thead>
+      <tbody id="starTableBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ SECTION 4: 恒星演化 ═══ -->
+<section class="section" id="sec-lifecycle">
+  <div class="label">12.4</div>
+  <h2 class="section-title glow-sky">恒星的生命周期</h2>
+  <p class="section-sub">点击时间轴上的每个阶段，了解恒星从诞生到消亡的旅程</p>
+
+  <div class="lifecycle-tabs">
+    <button class="lc-tab active" onclick="setLCTrack('medium')">☀️ 中等质量恒星（如太阳）</button>
+    <button class="lc-tab"        onclick="setLCTrack('massive')">🔴 大质量恒星（>8倍太阳）</button>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-track" id="tlTrack"><!-- filled by JS --></div>
+    <div class="tl-detail card" id="tlDetail">
+      <p style="color:var(--muted);">👆 点击上方任意阶段查看详细说明</p>
+    </div>
+  </div>
+
+  <div class="mass-compare">
+    <div class="mass-box medium">
+      <div class="mass-title glow-gold">☀️ 中等质量恒星 (0.8–8 M☉)</div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>星云 → 原恒星 → 主序星</strong><span>氢核聚变，稳定阶段</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>红巨星</strong><span>氢耗尽，外层膨胀</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>行星状星云 + 白矮星</strong><span>外层抛出，核心残留</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>黑矮星（最终）</strong><span>白矮星冷却后的状态</span></div></div>
+    </div>
+    <div class="mass-box large">
+      <div class="mass-title glow-rose">🔴 大质量恒星 (&gt;8 M☉)</div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>星云 → 原恒星 → 主序星</strong><span>寿命短（&lt;1亿年）</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>红超巨星</strong><span>半径可达太阳1000倍</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>💥 超新星爆炸</strong><span>一秒 = 太阳一生的能量</span></div></div>
+      <div class="mass-step"><span class="mass-arrow">↓</span><div class="mass-step-info"><strong>中子星 或 🕳️ 黑洞</strong><span>核心质量&lt;3M☉→中子星；&gt;3M☉→黑洞</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SECTION 5: 星系 ═══ -->
+<section class="section" id="sec-galaxies">
+  <div class="label">12.5</div>
+  <h2 class="section-title glow-sky">星系与银河系</h2>
+  <p class="section-sub">可观测宇宙约有 2 兆个星系 — 点击查看三种主要类型</p>
+
+  <div class="galaxy-showcase" id="galaxyShowcase">
+    <div class="galaxy-card" onclick="selectGalaxy(0)">
+      <div class="galaxy-canvas-wrap"><canvas id="gCanvas0" width="200" height="200"></canvas></div>
+      <div class="galaxy-card-body">
+        <div class="galaxy-type">椭圆星系</div>
+        <div class="galaxy-desc">Elliptical Galaxy — 椭圆形，年老，少气体，少新恒星</div>
+      </div>
+    </div>
+    <div class="galaxy-card" onclick="selectGalaxy(1)">
+      <div class="galaxy-canvas-wrap"><canvas id="gCanvas1" width="200" height="200"></canvas></div>
+      <div class="galaxy-card-body">
+        <div class="galaxy-type">螺旋星系 ✦ 银河系</div>
+        <div class="galaxy-desc">Spiral Galaxy — 旋臂，年轻恒星多，核球+盘面</div>
+      </div>
+    </div>
+    <div class="galaxy-card" onclick="selectGalaxy(2)">
+      <div class="galaxy-canvas-wrap"><canvas id="gCanvas2" width="200" height="200"></canvas></div>
+      <div class="galaxy-card-body">
+        <div class="galaxy-type">不规则星系</div>
+        <div class="galaxy-desc">Irregular Galaxy — 无固定形态，可能由碰撞变形</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mw-diagram">
+    <canvas id="mwCanvas" width="680" height="340"></canvas>
+  </div>
+
+  <div class="mw-facts">
+    <div class="mw-fact"><strong>≥1000亿</strong>银河系内恒星数量</div>
+    <div class="mw-fact"><strong>约400万 M☉</strong>银河系中心黑洞质量</div>
+    <div class="mw-fact"><strong>2.6万光年</strong>太阳距银河系中心</div>
+    <div class="mw-fact"><strong>猎户臂</strong>太阳所在的旋臂名称</div>
+    <div class="mw-fact"><strong>1光年 ≈ 9.46兆 km</strong>光在真空中传播1年的距离</div>
+  </div>
+</section>
+
+<!-- ═══ SECTION 6: 宇宙层次 ═══ -->
+<section class="section" id="sec-hierarchy">
+  <div class="label">12.6</div>
+  <h2 class="section-title glow-sky">宇宙中的天体系统</h2>
+  <p class="section-sub">从小到大，层层嵌套 — 点击每一层了解更多</p>
+
+  <div class="hierarchy-diagram" id="hierarchyDiagram">
+    <!-- filled by JS -->
+  </div>
+</section>
+
+<!-- ═══ SECTION 7: 大爆炸 ═══ -->
+<section class="section" id="sec-bigbang">
+  <div class="label">12.7</div>
+  <h2 class="section-title glow-sky">宇宙的起源 — 大爆炸理论</h2>
+  <p class="section-sub">约138亿年前，宇宙从一个极热、极密的状态诞生，并持续膨胀至今</p>
+
+  <div class="bigbang-timeline">
+    <div class="bb-track" id="bbTrack"><!-- filled by JS --></div>
+    <div class="bb-detail card" id="bbDetail">
+      <p style="color:var(--muted)">👆 点击时间轴上任意节点了解那个宇宙时刻</p>
+    </div>
+  </div>
+
+  <div class="expansion-demo">
+    <canvas id="expandCanvas"></canvas>
+  </div>
+
+  <div class="expand-controls">
+    <button class="expand-btn" id="expandPlayBtn" onclick="toggleExpansion()">▶ 播放宇宙膨胀</button>
+    <span class="expand-time-label">宇宙年龄：<span id="expandTimeDisplay">0</span></span>
+  </div>
+
+  <div class="card" style="max-width:680px;width:100%;margin-top:8px;">
+    <div class="label">科学家里程碑</div>
+    <div id="scientistsList" style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+</div><!-- #app -->
+
+<footer>
+  <!-- 峇株吧辖蔡逸众制作 -->
+  <div style="margin-bottom:6px;">初二科学 · 第12章 · 天体与宇宙 · 互动演示</div>
+  <div style="font-size:10px;letter-spacing:1px;color:var(--dim);">峇株吧辖华仁中学 · 蔡逸众制作 · Made by ecchua79</div>
+</footer>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════ -->
+<script>
+/* 华仁中学蔡逸众制作 */
+
+// ═══════════════════════
+// BG STARFIELD
+// ═══════════════════════
+(function() {
+  const c = document.getElementById('bg-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, stars = [];
+
+  function resize() {
+    W = c.width = window.innerWidth;
+    H = c.height = window.innerHeight;
+    stars = Array.from({length: 300}, () => ({
+      x: Math.random()*W, y: Math.random()*H,
+      r: Math.random()*1.4+0.2,
+      a: Math.random(),
+      v: Math.random()*0.003+0.001,
+      o: Math.random()*Math.PI*2,
+      c: ['#fff','#c8e8ff','#ffe8a0','#ffb8c8'][~~(Math.random()*4)]
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const t = Date.now()*0.001;
+    stars.forEach(s => {
+      const a = 0.15 + 0.6*(0.5+0.5*Math.sin(t*s.v*60+s.o));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = s.c;
+      ctx.globalAlpha = a;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize(); draw();
+})();
+
+// ═══════════════════════
+// NAV ACTIVE STATE
+// ═══════════════════════
+const sections = ['sec-hero','sec-objects','sec-constellations','sec-stars','sec-lifecycle','sec-galaxies','sec-hierarchy','sec-bigbang'];
+const navBtns = document.querySelectorAll('.nav-btn');
+
+function scrollToSec(id) {
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = sections.indexOf(e.target.id);
+      if (i >= 0) navBtns.forEach((b,j) => b.classList.toggle('active', i===j));
+    }
+  });
+}, {threshold:0.35});
+sections.forEach(id => { const el=document.getElementById(id); if(el) io.observe(el); });
+
+// ═══════════════════════
+// SECTION 1 — OBJECTS
+// ═══════════════════════
+const OBJECTS = [
+  { emoji:'☀️', name:'恒星', en:'Star',        desc:'自身能发光发热的天体，由核聚变产生能量。太阳就是离我们最近的恒星，距地球约1.5亿千米。', color:'#ffcc44' },
+  { emoji:'🌍', name:'行星', en:'Planet',      desc:'围绕恒星运行、自身不能发光的球形天体。地球是太阳系的八大行星之一。', color:'#44aaff' },
+  { emoji:'🌙', name:'卫星', en:'Moon/Satellite', desc:'围绕行星运行的天体。月球是地球的天然卫星，也是离我们最近的天体之一。', color:'#ccccbb' },
+  { emoji:'☄️', name:'彗星', en:'Comet',       desc:'由冰和尘埃组成的小天体，接近太阳时会产生明亮的彗尾。哈雷彗星约75年回归一次。', color:'#88ccff' },
+  { emoji:'🪨', name:'小行星', en:'Asteroid',  desc:'太阳系中大量的岩石碎片，多分布在小行星带（木星与火星之间）。', color:'#aa8855' },
+  { emoji:'✦',  name:'星团', en:'Star Cluster', desc:'超过10颗以上，相互受引力束缚的恒星集团。银河系内有很多美丽的星团。', color:'#ffffaa' },
+  { emoji:'🌌', name:'星云', en:'Nebula',       desc:'由气体和尘埃组成的巨大云雾状天体，是恒星诞生的摇篮，也是恒星死亡的遗迹。', color:'#cc88ff' },
+  { emoji:'🌀', name:'星系', en:'Galaxy',       desc:'由数千亿颗恒星、气体与尘埃在引力束缚下组成的庞大天体系统。银河系就是我们所在的星系。', color:'#7799ff' },
+  { emoji:'🛸', name:'人造天体', en:'Artificial Object', desc:'人类发射并在宇宙中运行的机器，如人造卫星、空间站、太空探测器。它们不是自然天体！', color:'#ffaa44', manmade:true },
+];
+
+(function buildObjects() {
+  const grid = document.getElementById('objectsGrid');
+  OBJECTS.forEach((o, i) => {
+    const div = document.createElement('div');
+    div.className = 'obj-card' + (o.manmade?' manmade':'');
+    div.innerHTML = `<span class="obj-emoji">${o.emoji}</span>
+      <div class="obj-name">${o.name}</div>
+      <div class="obj-en">${o.en}</div>`;
+    div.onclick = () => selectObject(i, div);
+    grid.appendChild(div);
+  });
+})();
+
+function selectObject(i, el) {
+  document.querySelectorAll('.obj-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const o = OBJECTS[i];
+  const det = document.getElementById('objDetail');
+  const tag = o.manmade ? `<span style="background:rgba(255,170,68,0.15);border:1px solid rgba(255,170,68,0.4);padding:2px 10px;border-radius:20px;font-size:11px;color:#ffaa44;">🛸 人造天体</span>` :
+    `<span style="background:rgba(34,255,184,0.1);border:1px solid rgba(34,255,184,0.3);padding:2px 10px;border-radius:20px;font-size:11px;color:var(--mint);">🌿 自然天体</span>`;
+  det.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:16px;">
+      <div style="font-size:52px;flex-shrink:0;filter:drop-shadow(0 0 10px ${o.color}88)">${o.emoji}</div>
+      <div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${o.name} <span style="font-size:13px;color:var(--muted);">${o.en}</span> ${tag}</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.7;">${o.desc}</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════
+// SECTION 2 — SKY / CONSTELLATIONS
+// ═══════════════════════
+// ═══════════════════════════════════════════════════════
+// 真实星座数据 — RA/Dec来自依巴谷星表(Hipparcos)
+// 每颗星: { ra(度), dec(度), mag(视星等), spec(光谱型), zh(中文名), en(英文名) }
+// ═══════════════════════════════════════════════════════
+
+// 光谱型 → 颜色（近似真实黑体辐射颜色）
+const SPEC_COLOR = {
+  'O': '#9bb0ff',  // 蓝
+  'B': '#aabfff',  // 蓝白
+  'A': '#f0f4ff',  // 白
+  'F': '#fff4e8',  // 黄白
+  'G': '#ffddb4',  // 黄
+  'K': '#ffbd6f',  // 橙
+  'M': '#ff7040'   // 橙红
+};
+
+const SEASON_CONSTELLATIONS = [
+  {
+    name:'狮子座', en:'Leo', season:'春',
+    desc:'春季代表星座，形似侧卧雄狮。镰刀形"狮头"（反问号形）由轩辕诸星组成，轩辕十四（Regulus）是最亮星，位于狮心。五帝座一（Denebola）代表狮尾。',
+    stars: [
+      // 赤经范围约148°~178°，赤纬+10°~+27°（Hipparcos数据）
+      { ra:152.09, dec:11.97, mag:1.36, spec:'B', zh:'轩辕十四', en:'Regulus'   }, // 0 α
+      { ra:177.26, dec:14.57, mag:2.14, spec:'A', zh:'五帝座一', en:'Denebola'  }, // 1 β 狮尾
+      { ra:154.90, dec:19.84, mag:2.01, spec:'K', zh:'轩辕十二', en:'Algieba'   }, // 2 γ
+      { ra:168.53, dec:20.52, mag:2.56, spec:'A', zh:'西上相',   en:'Zosma'     }, // 3 δ
+      { ra:168.53, dec:15.43, mag:3.33, spec:'A', zh:'西次相',   en:'Chertan'   }, // 4 θ
+      { ra:154.21, dec:23.42, mag:3.43, spec:'F', zh:'轩辕十一', en:'Adhafera'  }, // 5 ζ
+      { ra:148.12, dec:26.01, mag:3.88, spec:'K', zh:'轩辕十',   en:'Rasalas'   }, // 6 μ
+      { ra:146.46, dec:23.78, mag:2.97, spec:'G', zh:'轩辕九',   en:'Epsilon Leo'}, // 7 ε
+      { ra:151.77, dec:16.76, mag:3.48, spec:'A', zh:'轩辕十三', en:'Eta Leo'   }, // 8 η
+    ],
+    lines: [
+      [7,6],[6,5],[5,2],[2,8],[8,0], // 镰刀：ε→μ→ζ→γ→η→α
+      [2,3],[3,4],[4,1],              // 身体：γ→δ→θ→β(尾)
+      [3,1]                           // 背线
+    ]
+  },
+  {
+    name:'天蝎座', en:'Scorpius', season:'夏',
+    desc:'夏季代表星座，形似大蝎子。心宿二（Antares）是M型橙红超巨星，半径约700倍太阳，视星等约1.06。蝎尾向南大幅弯曲，末端有双星尾宿八（Shaula）和尾宿九（Lesath）形成的"蝎钩"。',
+    stars: [
+      // 赤经约239°~266°，赤纬约-20°~-43°
+      { ra:247.35, dec:-26.43, mag:1.06, spec:'M', zh:'心宿二',  en:'Antares'  }, // 0 α ★最亮橙红
+      { ra:241.36, dec:-19.80, mag:2.56, spec:'B', zh:'房宿四',  en:'Graffias' }, // 1 β 蝎头
+      { ra:240.08, dec:-22.62, mag:2.29, spec:'B', zh:'房宿三',  en:'Dschubba' }, // 2 δ
+      { ra:245.25, dec:-25.59, mag:2.90, spec:'B', zh:'心宿一',  en:'Alniyat'  }, // 3 σ
+      { ra:248.88, dec:-28.21, mag:2.82, spec:'B', zh:'心宿三',  en:'Tau Sco'  }, // 4 τ
+      { ra:252.50, dec:-34.29, mag:2.29, spec:'K', zh:'尾宿二',  en:'Wei'      }, // 5 ε
+      { ra:253.08, dec:-37.10, mag:3.00, spec:'B', zh:'尾宿三',  en:'Mu1 Sco'  }, // 6 μ
+      { ra:253.50, dec:-42.36, mag:3.62, spec:'O', zh:'尾宿四',  en:'Zeta Sco' }, // 7 ζ
+      { ra:258.00, dec:-43.24, mag:3.32, spec:'F', zh:'尾宿五',  en:'Eta Sco'  }, // 8 η
+      { ra:264.32, dec:-42.99, mag:1.86, spec:'F', zh:'尾宿六',  en:'Sargas'   }, // 9 θ 亮
+      { ra:265.50, dec:-39.03, mag:2.39, spec:'B', zh:'尾宿七',  en:'Kappa Sco'}, // 10 κ
+      { ra:263.40, dec:-37.10, mag:1.62, spec:'B', zh:'尾宿八',  en:'Shaula'   }, // 11 λ ★蝎钩
+      { ra:262.50, dec:-37.29, mag:2.70, spec:'B', zh:'尾宿九',  en:'Lesath'   }, // 12 υ 蝎钩
+      { ra:239.50, dec:-26.11, mag:2.89, spec:'B', zh:'房宿一',  en:'Pi Sco'   }, // 13 π 蝎头右
+    ],
+    lines: [
+      [13,2],[2,1],             // 蝎头：π→δ→β
+      [2,3],[3,0],[0,4],        // 心脏区：δ→σ→α→τ
+      [4,5],[5,6],[6,7],        // 蝎身：τ→ε→μ→ζ
+      [7,8],[8,9],[9,10],       // 尾部弯曲：ζ→η→θ→κ
+      [10,11],[11,12]           // 蝎钩：κ→λ→υ
+    ]
+  },
+  {
+    name:'飞马座', en:'Pegasus', season:'秋',
+    desc:'秋季代表星座。最显眼特征是"秋季四边形"——由飞马座三颗亮星加上仙女座α星（壁宿二/Alpheratz）组成，是秋夜星空最重要的导航路标。Enif（危宿三）是最亮的橙色星，代表马嘴。',
+    stars: [
+      // 赤经约320°~365°，赤纬约+8°~+34°
+      { ra:346.19, dec:15.21, mag:2.49, spec:'B', zh:'室宿一',  en:'Markab'    }, // 0 α 四边形右下
+      { ra:345.94, dec:28.08, mag:2.44, spec:'M', zh:'室宿二',  en:'Scheat'    }, // 1 β 四边形右上 ★橙红
+      { ra:  2.06, dec:15.18, mag:2.83, spec:'B', zh:'壁宿一',  en:'Algenib'   }, // 2 γ 四边形左下
+      { ra:  2.10, dec:29.09, mag:2.07, spec:'B', zh:'壁宿二',  en:'Alpheratz' }, // 3 仙女α 四边形左上
+      { ra:326.05, dec: 9.87, mag:2.38, spec:'K', zh:'危宿三',  en:'Enif'      }, // 4 ε ★马嘴，最亮橙色
+      { ra:340.75, dec:10.83, mag:3.41, spec:'B', zh:'雷电一',  en:'Homam'     }, // 5 ζ
+      { ra:332.55, dec: 6.20, mag:3.52, spec:'A', zh:'危宿二',  en:'Theta Peg' }, // 6 θ
+      { ra:340.66, dec:30.22, mag:2.93, spec:'G', zh:'离宫二',  en:'Matar'     }, // 7 η 马颈
+      { ra:353.79, dec:33.17, mag:3.76, spec:'A', zh:'离宫一',  en:'Baham'     }, // 8 θ And 四边形上延
+    ],
+    lines: [
+      [3,1],[1,0],[0,2],[2,3], // 秋季四边形（逆时针）
+      [1,7],[7,4],              // 马颈→马嘴
+      [0,5],[5,6],[6,4],        // 马头下轮廓
+      [3,8]                     // 向仙女方向延伸
+    ]
+  },
+  {
+    name:'猎户座', en:'Orion', season:'冬',
+    desc:'冬季最壮观星座，形如持盾猎人。参宿四（Betelgeuse，M型橙红，约3500K）与参宿七（Rigel，B型蓝白，约12000K）形成强烈色温对比。腰带三星（参宿一二三）几乎完美等间距排成一线。',
+    stars: [
+      // 赤经约75°~90°，赤纬约-10°~+10°
+      { ra: 88.79, dec: 7.41, mag:0.42, spec:'M', zh:'参宿四',  en:'Betelgeuse' }, // 0 α ★左肩橙红
+      { ra: 78.63, dec:-8.20, mag:0.18, spec:'B', zh:'参宿七',  en:'Rigel'      }, // 1 β ★右脚蓝白，全天第7亮
+      { ra: 81.28, dec: 6.35, mag:1.64, spec:'B', zh:'参宿五',  en:'Bellatrix'  }, // 2 γ 右肩蓝白
+      { ra: 86.94, dec:-9.67, mag:2.07, spec:'B', zh:'参宿六',  en:'Saiph'      }, // 3 κ 左脚
+      { ra: 83.00, dec:-0.30, mag:2.25, spec:'O', zh:'参宿三',  en:'Mintaka'    }, // 4 δ 腰带左
+      { ra: 84.05, dec:-1.20, mag:1.69, spec:'B', zh:'参宿二',  en:'Alnilam'    }, // 5 ε 腰带中
+      { ra: 85.19, dec:-1.94, mag:1.74, spec:'O', zh:'参宿一',  en:'Alnitak'    }, // 6 ζ 腰带右
+      { ra: 83.86, dec: 9.93, mag:3.39, spec:'O', zh:'觜宿一',  en:'Meissa'     }, // 7 λ 猎人头
+      { ra: 84.91, dec:-5.91, mag:2.75, spec:'O', zh:'伐一',    en:'Hatysa'     }, // 8 ι 剑
+      { ra: 83.82, dec:-5.39, mag:3.77, spec:'O', zh:'猎户θ1',  en:'Theta1 Ori' }, // 9 θ 猎户大星云
+      { ra: 76.63, dec: 5.60, mag:3.19, spec:'B', zh:'参宿增廿二',en:'Pi3 Ori'  }, // 10 π3 盾
+    ],
+    lines: [
+      [7,0],[7,2],              // 猎人头→双肩
+      [0,2],                    // 双肩连线
+      [0,4],[2,6],              // 肩→腰带两端
+      [4,5],[5,6],              // 腰带三星
+      [0,3],[1,3],              // 左脚两线
+      [2,1],                    // 右侧身体
+      [6,8],[8,9],              // 宝剑
+      [10,0]                    // 盾牌
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+// 核心投影算法：真实RA/Dec → Canvas坐标
+// 参考：Hipparcos星表 + cos(dec)赤经修正（等面积投影）
+// ═══════════════════════════════════════════════════════
+function projectConstellation(con, W, H) {
+  const stars = con.stars;
+
+  // 1. 找边界
+  let minRA = Infinity, maxRA = -Infinity;
+  let minDec = Infinity, maxDec = -Infinity;
+  stars.forEach(s => {
+    if (s.ra < minRA) minRA = s.ra;
+    if (s.ra > maxRA) maxRA = s.ra;
+    if (s.dec < minDec) minDec = s.dec;
+    if (s.dec > maxDec) maxDec = s.dec;
+  });
+
+  // 飞马座跨越0°/360°边界，需要修正
+  if (maxRA - minRA > 180) {
+    stars.forEach(s => { if (s.ra < 180) s._ra = s.ra + 360; else s._ra = s.ra; });
+    minRA = Infinity; maxRA = -Infinity;
+    stars.forEach(s => {
+      if (s._ra < minRA) minRA = s._ra;
+      if (s._ra > maxRA) maxRA = s._ra;
+    });
+  } else {
+    stars.forEach(s => { s._ra = s.ra; });
+  }
+
+  const avgDec = (minDec + maxDec) / 2;
+  // 2. cos(dec)修正：赤经在中纬度会"压缩"，还原真实形状
+  const raScale = Math.cos(avgDec * Math.PI / 180);
+  const trueW = (maxRA - minRA) * raScale;
+  const trueH = maxDec - minDec;
+
+  // 3. 映射到画布（留15%边距）
+  const padX = W * 0.15, padY = H * 0.15;
+  const drawW = W - padX * 2;
+  const drawH = H - padY * 2;
+  const sc = Math.min(drawW / (trueW || 1), drawH / (trueH || 1));
+
+  // 居中偏移
+  const offX = (W - trueW * sc) / 2;
+  const offY = (H - trueH * sc) / 2;
+
+  return stars.map(s => {
+    // 星图惯例：RA增大→向西（左），Dec增大→向北（上）
+    const px = offX + (maxRA - s._ra) * raScale * sc;
+    const py = offY + (maxDec - s.dec) * sc;
+    return { ...s, x: px, y: py };
+  });
+}
+
+let skyLayers = { stars:true, lines:true, labels:true, moon:false };
+let activeSeason = 0;
+let skyCanvas, skyCtx, skyW, skyH;
+
+function magToRadius(mag, scale) {
+  return Math.max(1.5, (5.2 - mag) * 2.2) * scale;
+}
+
+function magToAlpha(mag, moonOn) {
+  if (!moonOn) return 1.0;
+  return Math.max(0.05, 1.0 - (mag - 1.0) * 0.38);
+}
+
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '255,255,255';
+}
+
+function initSky() {
+  skyCanvas = document.getElementById('skyCanvas');
+  skyCtx = skyCanvas.getContext('2d');
+  resizeSky();
+  window.addEventListener('resize', resizeSky);
+  selectSeason(0);
+}
+
+function resizeSky() {
+  skyCanvas.width = skyCanvas.offsetWidth;
+  skyCanvas.height = skyCanvas.offsetHeight;
+  skyW = skyCanvas.width;
+  skyH = skyCanvas.height;
+  drawSky();
+}
+
+function selectSeason(idx) {
+  activeSeason = idx;
+  document.querySelectorAll('.season-card').forEach((c,i) => c.classList.toggle('active', i===idx));
+  drawSky();
+}
+
+function toggleSkyLayer(layer) {
+  // Made by ecchua79
+  skyLayers[layer] = !skyLayers[layer];
+  document.getElementById('btn'+layer.charAt(0).toUpperCase()+layer.slice(1)).classList.toggle('on', skyLayers[layer]);
+  drawSky();
+}
+
+function drawSky() {
+  if (!skyCtx) return;
+  const ctx = skyCtx;
+  const W = skyW, H = skyH;
+  const scale = Math.min(W, H) / 400;
+
+  // ── 背景 ──
+  const bg = ctx.createRadialGradient(W/2, H, 0, W/2, H, H*1.2);
+  bg.addColorStop(0, '#0a1840');
+  bg.addColorStop(1, '#010510');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  // ── 月亮光污染 ──
+  if (skyLayers.moon) {
+    const moon = ctx.createRadialGradient(W*0.88, H*0.12, 0, W*0.88, H*0.12, W*0.65);
+    moon.addColorStop(0, 'rgba(200,220,255,0.30)');
+    moon.addColorStop(1, 'rgba(200,220,255,0)');
+    ctx.fillStyle = moon;
+    ctx.fillRect(0,0,W,H);
+    ctx.beginPath();
+    ctx.arc(W*0.88, H*0.12, 18*scale, 0, Math.PI*2);
+    ctx.fillStyle = '#eeeedd';
+    ctx.shadowColor = '#bbbbcc';
+    ctx.shadowBlur = 24;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── 背景微星 ──
+  if (skyLayers.stars) {
+    const dim = skyLayers.moon ? 0.25 : 1;
+    for (let i = 0; i < 160; i++) {
+      const x = (Math.sin(i*2.399)*0.5+0.5)*W;
+      const y = (Math.sin(i*1.618+1.1)*0.5+0.5)*H;
+      const r = (i%7===0)?1.1:0.5;
+      const a = dim*(0.10+(i%9)*0.05);
+      const tints=['255,255,255','200,220,255','255,240,200','255,210,220'];
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${tints[i%4]},${a})`;
+      ctx.fill();
+    }
+  }
+
+  // ── 投影计算 ──
+  const con = SEASON_CONSTELLATIONS[activeSeason];
+  const projected = projectConstellation(con, W, H);
+
+  // ── 连线（颜色渐变：两端恒星各自光谱色） ──
+  if (skyLayers.lines) {
+    con.lines.forEach(([a, b]) => {
+      const sa = projected[a], sb = projected[b];
+      if (!sa || !sb) return;
+      const dimmerMag = Math.max(sa.mag, sb.mag);
+      const lineAlpha = skyLayers.moon ? Math.max(0.04, 0.45 - dimmerMag*0.07) : 0.38;
+      const grad = ctx.createLinearGradient(sa.x, sa.y, sb.x, sb.y);
+      const ca = SPEC_COLOR[sa.spec] || '#ffffff';
+      const cb = SPEC_COLOR[sb.spec] || '#ffffff';
+      grad.addColorStop(0, `rgba(${hexToRgb(ca)},${lineAlpha})`);
+      grad.addColorStop(1, `rgba(${hexToRgb(cb)},${lineAlpha})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.3 * scale;
+      ctx.beginPath();
+      ctx.moveTo(sa.x, sa.y);
+      ctx.lineTo(sb.x, sb.y);
+      ctx.stroke();
+    });
+  }
+
+  // ── 恒星（大小=视星等，颜色=光谱型） ──
+  if (skyLayers.stars) {
+    projected.forEach(s => {
+      const color = SPEC_COLOR[s.spec] || '#ffffff';
+      const r = magToRadius(s.mag, scale);
+      const alpha = magToAlpha(s.mag, skyLayers.moon);
+
+      // 光晕（亮星）
+      if (s.mag < 2.5 && alpha > 0.25) {
+        const glowR = r * 4;
+        const glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowR);
+        glow.addColorStop(0, `rgba(${hexToRgb(color)},${0.55*alpha})`);
+        glow.addColorStop(1, `rgba(${hexToRgb(color)},0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, glowR, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // 星体（白色核心 → 光谱色边缘）
+      ctx.globalAlpha = alpha;
+      const starGrad = ctx.createRadialGradient(s.x-r*0.3, s.y-r*0.3, 0, s.x, s.y, r);
+      starGrad.addColorStop(0, '#ffffff');
+      starGrad.addColorStop(0.45, color);
+      starGrad.addColorStop(1, color+'bb');
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+      ctx.fillStyle = starGrad;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = r * 2.2;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      // 亮星标签（mag < 2.2）
+      if (skyLayers.labels && s.mag < 2.2 && alpha > 0.4) {
+        const fs = Math.max(9, 10*scale);
+        ctx.font = `${fs}px 'Microsoft YaHei',sans-serif`;
+        ctx.fillStyle = color + 'dd';
+        ctx.textAlign = 'left';
+        ctx.shadowColor = '#000011';
+        ctx.shadowBlur = 4;
+        ctx.fillText(s.zh, s.x + r + 4, s.y + fs*0.38);
+        ctx.shadowBlur = 0;
+      }
+    });
+  }
+
+  // ── 星座名称 ──
+  if (skyLayers.labels) {
+    const fs = Math.max(13, W*0.028);
+    ctx.font = `bold ${fs}px 'Microsoft YaHei',sans-serif`;
+    ctx.fillStyle = 'rgba(180,215,255,0.88)';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000022';
+    ctx.shadowBlur = 6;
+    ctx.fillText(con.name, W*0.5, H*0.94);
+    ctx.shadowBlur = 0;
+    ctx.font = `${Math.max(10,fs*0.68)}px sans-serif`;
+    ctx.fillStyle = 'rgba(140,180,220,0.55)';
+    ctx.fillText(con.en, W*0.5, H*0.94 + fs + 2);
+  }
+}
+
+// Magnitude demo
+const MAG_DATA = [
+  { name:'太阳 ☀️', mag:-26.7, note:'距离最近' },
+  { name:'金星 ♀ (最亮时)', mag:-4.9, note:'最亮的行星' },
+  { name:'满月 🌕', mag:-12.7, note:'月光会遮盖暗星' },
+  { name:'天狼星 (Sirius) ★', mag:-1.44, note:'夜空最亮恒星' },
+  { name:'心宿二 (Antares)', mag:0.9, note:'天蝎座最亮星' },
+  { name:'肉眼极限', mag:6, note:'约6000+颗可见' },
+];
+(function buildMag() {
+  const div = document.getElementById('magnitudeDemo');
+  const minMag = -27, maxMag = 7, range = maxMag - minMag;
+  MAG_DATA.forEach(d => {
+    const frac = Math.max(0, Math.min(1, (maxMag - d.mag) / range));
+    const size = Math.max(4, Math.min(28, 4 + frac * 24));
+    const row = document.createElement('div');
+    row.className = 'mag-bar';
+    row.innerHTML = `
+      <div class="mag-star-dot" style="width:${size}px;height:${size}px;box-shadow:0 0 ${size}px rgba(255,255,255,${0.4+frac*0.6})"></div>
+      <div class="mag-info">
+        <div class="mag-name">${d.name}</div>
+        <div class="mag-num">视星等 ${d.mag > 0 ? '+':''}${d.mag}　<span style="color:var(--muted)">${d.note}</span></div>
+      </div>`;
+    div.appendChild(row);
+  });
+})();
+
+// ═══════════════════════
+// SECTION 3 — STAR TEMP
+// ═══════════════════════
+/* 峇株吧辖华仁中学蔡逸众制作 */
+const SPECTRAL_TYPES = [
+  { type:'O', color:'#8090ff', colorName:'蓝色',   tempRange:'> 30000 K',    minT:30000, maxT:50000,
+    examples:'宇宙中最热的恒星' },
+  { type:'B', color:'#b0d8ff', colorName:'蓝白色', tempRange:'10000–30000 K', minT:10000, maxT:30000,
+    examples:'参宿七(Rigel)、角宿一(Spica)' },
+  { type:'A', color:'#e8f4ff', colorName:'白色',   tempRange:'7500–10000 K',  minT:7500,  maxT:10000,
+    examples:'天狼星(Sirius)、织女星(Vega)、牛郎星(Altair)' },
+  { type:'F', color:'#ffffaa', colorName:'黄白色', tempRange:'6000–7500 K',   minT:6000,  maxT:7500,
+    examples:'老人星(Canopus)' },
+  { type:'G', color:'#ffdd44', colorName:'黄色',   tempRange:'5200–6000 K',   minT:5200,  maxT:6000,
+    examples:'太阳(Sun)、南门二(Rigil Kent)' },
+  { type:'K', color:'#ff9933', colorName:'淡橙色', tempRange:'3700–5200 K',   minT:3700,  maxT:5200,
+    examples:'大角星(Arcturus)、五车二(Capella)' },
+  { type:'M', color:'#ff5522', colorName:'橙红色', tempRange:'2400–3700 K',   minT:2400,  maxT:3700,
+    examples:'参宿四(Betelgeuse)、心宿二(Antares)' },
+];
+
+const STAR_TABLE_DATA = [
+  { name:'太阳 ☀️',   constellation:'-',       color:'#ffdd44', colorName:'黄色',   temp:'5200–6000 K',   type:'G' },
+  { name:'天狼星',    constellation:'大犬座',   color:'#e8f4ff', colorName:'白色',   temp:'7500–10000 K',  type:'A' },
+  { name:'老人星',    constellation:'船底座',   color:'#ffffaa', colorName:'黄白色', temp:'6000–7500 K',   type:'F' },
+  { name:'南门二',    constellation:'半人马座', color:'#ffdd44', colorName:'黄色',   temp:'5200–6000 K',   type:'G' },
+  { name:'大角星',    constellation:'牧夫座',   color:'#ff9933', colorName:'淡橙色', temp:'3700–5200 K',   type:'K' },
+  { name:'织女星',    constellation:'天琴座',   color:'#e8f4ff', colorName:'白色',   temp:'7500–10000 K',  type:'A' },
+  { name:'五车二',    constellation:'御夫座',   color:'#ff9933', colorName:'淡橙色', temp:'3700–5200 K',   type:'K' },
+  { name:'参宿七 ★', constellation:'猎户座',   color:'#b0d8ff', colorName:'蓝白色', temp:'10000–30000 K', type:'B' },
+  { name:'参宿四',    constellation:'猎户座',   color:'#ff5522', colorName:'橙红色', temp:'2400–3700 K',   type:'M' },
+  { name:'牛郎星',    constellation:'天鹰座',   color:'#e8f4ff', colorName:'白色',   temp:'7500–10000 K',  type:'A' },
+  { name:'角宿一',    constellation:'室女座',   color:'#b0d8ff', colorName:'蓝白色', temp:'10000–30000 K', type:'B' },
+  { name:'心宿二 ♏', constellation:'天蝎座',   color:'#ff5522', colorName:'橙红色', temp:'2400–3700 K',   type:'M' },
+];
+
+// Build table
+(function buildStarTable() {
+  const tbody = document.getElementById('starTableBody');
+  STAR_TABLE_DATA.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.constellation}</td>
+      <td><span class="color-swatch" style="background:${s.color};box-shadow:0 0 6px ${s.color}"></span>${s.colorName}</td>
+      <td>${s.temp}</td>
+      <td>${s.type}</td>`;
+    tbody.appendChild(tr);
+  });
+})();
+
+// Spectrum interactivity
+(function initSpectrum() {
+  const bar = document.getElementById('spectrumBar');
+
+  function update(px) {
+    const rect = bar.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (px - rect.left) / rect.width));
+    document.getElementById('specCursor').style.left = (frac*100)+'%';
+
+    // determine type
+    const typeIdx = Math.min(SPECTRAL_TYPES.length-1, Math.floor(frac * SPECTRAL_TYPES.length));
+    const sp = SPECTRAL_TYPES[typeIdx];
+
+    const circle = document.getElementById('specStarCircle');
+    circle.style.background = `radial-gradient(circle at 35% 35%, white, ${sp.color})`;
+    circle.style.boxShadow = `0 0 20px ${sp.color}, 0 0 40px ${sp.color}55`;
+
+    const box = document.getElementById('specInfoBox');
+    box.style.borderColor = sp.color+'88';
+    box.style.boxShadow = `0 0 24px ${sp.color}22`;
+
+    document.getElementById('specTypeBadge').textContent = sp.type;
+    document.getElementById('specName').textContent = `${sp.type}型 — ${sp.colorName}恒星`;
+    document.getElementById('specTemp').textContent = `表面温度：${sp.tempRange}`;
+    document.getElementById('specColor').textContent = `颜色：${sp.colorName}`;
+    document.getElementById('specExample').innerHTML = `<span style="color:var(--muted)">代表恒星：</span>${sp.examples}`;
+  }
+
+  bar.addEventListener('mousemove', e => update(e.clientX));
+  bar.addEventListener('click', e => update(e.clientX));
+  bar.addEventListener('touchmove', e => { e.preventDefault(); update(e.touches[0].clientX); }, {passive:false});
+
+  // init at G type (index 4 of 7, ~64%)
+  setTimeout(() => {
+    const rect = bar.getBoundingClientRect();
+    update(rect.left + rect.width * 0.64);
+  }, 400);
+})();
+
+// ═══════════════════════
+// SECTION 4 — LIFECYCLE
+// ═══════════════════════
+const LC_TRACKS = {
+  medium: [
+    { emoji:'🌌', label:'星云',    title:'星云 (Nebula)',
+      desc:'恒星诞生于星云——宇宙中由气体（主要是氢）和尘埃组成的巨大云雾状天体。引力使气体和尘埃开始坍缩聚集。',
+      fact:'猎户座大星云是著名的恒星形成区，距地球约1344光年。' },
+    { emoji:'🔴', label:'原恒星',  title:'原恒星 (Protostar)',
+      desc:'气体和尘埃在引力作用下持续坍缩，旋转加速，密度和温度不断升高，形成原恒星——恒星的"婴儿期"。',
+      fact:'此阶段，剩余气体和尘埃会形成"原行星盘"，未来可能演化成行星！' },
+    { emoji:'☀️', label:'主序星',  title:'主序星 (Main Sequence Star)',
+      desc:'当中心温度足够高，氢核聚变（H→He）开始，产生巨大能量，与引力达到平衡。这是恒星一生中最稳定的阶段。太阳目前就处于这个阶段，已稳定了约46亿年，还能再维持约50亿年。',
+      fact:'太阳总主序寿命约100亿年。质量是太阳10倍的恒星，主序寿命不足1亿年！' },
+    { emoji:'🟠', label:'红巨星',  title:'红巨星 (Red Giant)',
+      desc:'氢燃料耗尽后，核心坍缩，外层氢壳开始核聚变，产生额外热量使外层急剧膨胀。恒星体积可达原来数百倍，表面温度下降变成红色。',
+      fact:'约50亿年后，太阳会膨胀成红巨星，可能会吞噬地球！' },
+    { emoji:'💨', label:'行星状星云', title:'行星状星云 (Planetary Nebula)',
+      desc:'红巨星不断把外层物质抛向太空，形成美丽的行星状星云。这些物质将散布到宇宙中，成为孕育下一代恒星的"原材料"。',
+      fact:'"行星状星云"这个名字来自它们在早期望远镜中看起来像行星，实际上与行星无关。' },
+    { emoji:'⬜', label:'白矮星',  title:'白矮星 (White Dwarf)',
+      desc:'行星状星云的中心剩下一个体积极小、密度极大的核心——白矮星。白矮星已无法发生核聚变，只能缓慢冷却发光。',
+      fact:'一茶匙白矮星的物质重约5吨！密度是地球的100万倍。' },
+    { emoji:'⚫', label:'黑矮星',  title:'黑矮星 (Black Dwarf)',
+      desc:'白矮星经过漫长的时间（数万亿年）冷却后，最终变成不再发光的黑矮星。由于宇宙年龄只有138亿年，目前还没有任何黑矮星形成。',
+      fact:'宇宙太年轻了，还不存在任何黑矮星——这只是理论预测的恒星最终命运。' },
+  ],
+  massive: [
+    { emoji:'🌌', label:'星云',     title:'星云 (Nebula)',
+      desc:'大质量恒星同样诞生于星云中，但其质量超过8倍太阳质量，引力更强，坍缩速度更快。',
+      fact:'大质量恒星形成后会发出强烈的辐射，影响周围星云的演化。' },
+    { emoji:'🔴', label:'原恒星',   title:'原恒星 (Protostar)',
+      desc:'坍缩速度更快，温度升高更迅速，进入主序星阶段所需时间更短。',
+      fact:'大质量原恒星发出极强的紫外线辐射，会"吹走"周围还没用完的星云物质。' },
+    { emoji:'💙', label:'主序星',   title:'主序星 (蓝色巨星)',
+      desc:'大质量主序星呈蓝色或蓝白色，极为明亮，但寿命极短。质量=10倍太阳的恒星，主序寿命不足1亿年（太阳是100亿年）。',
+      fact:'"越重越短命"——大质量恒星引力更强，必须更快地燃烧燃料来抵抗引力。' },
+    { emoji:'🔴', label:'红超巨星', title:'红超巨星 (Red Supergiant)',
+      desc:'大质量恒星氢耗尽后膨胀成红超巨星，半径可达太阳的1000倍以上！这个阶段只持续数十万至数百万年——极其短暂。',
+      fact:'参宿四（猎户座）就是一颗红超巨星，半径约700–1000倍太阳，是宇宙中最大的恒星之一。' },
+    { emoji:'💥', label:'超新星',   title:'超新星爆炸 (Supernova)',
+      desc:'红超巨星最终发生剧烈爆炸——超新星！释放的能量在短短一秒内就相当于太阳一生的总能量！爆炸时亮度可超过整个星系。',
+      fact:'超新星爆炸产生了宇宙中大多数重元素（铁、金、铀等），我们身体里的铁就来自超新星！' },
+    { emoji:'💫', label:'中子星/黑洞', title:'中子星或黑洞',
+      desc:'爆炸后剩余核心：若质量 < 3倍太阳质量→中子星（密度极大，直径仅约20km，但质量超过太阳）；若质量 > 3倍太阳质量→黑洞（引力极强，连光都无法逃脱）。',
+      fact:'中子星一茶匙物质重约10亿吨！黑洞中心密度理论上为无穷大。' },
+  ]
+};
+
+let currentLCTrack = 'medium';
+let activeTLStep = -1;
+
+function setLCTrack(track) {
+  currentLCTrack = track;
+  document.querySelectorAll('.lc-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&track==='medium')||(i===1&&track==='massive')));
+  buildTimeline();
+}
+
+function buildTimeline() {
+  const steps = LC_TRACKS[currentLCTrack];
+  const track = document.getElementById('tlTrack');
+  track.innerHTML = '';
+  steps.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'tl-step';
+    div.innerHTML = `
+      <div class="tl-line"></div>
+      <div class="tl-node">${s.emoji}</div>
+      <div class="tl-label">${s.label}</div>`;
+    div.onclick = () => selectTLStep(i);
+    track.appendChild(div);
+  });
+  activeTLStep = -1;
+  document.getElementById('tlDetail').innerHTML = `<p style="color:var(--muted)">👆 点击上方任意阶段查看详细说明</p>`;
+}
+
+function selectTLStep(i) {
+  activeTLStep = i;
+  document.querySelectorAll('.tl-step').forEach((el,j) => el.classList.toggle('active', j===i));
+  const s = LC_TRACKS[currentLCTrack][i];
+  document.getElementById('tlDetail').innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-size:48px;flex-shrink:0;">${s.emoji}</div>
+      <div>
+        <div class="tl-detail-title">${s.title}</div>
+        <div class="tl-detail-desc">${s.desc}</div>
+        <div class="tl-detail-fact">💡 ${s.fact}</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════
+// SECTION 5 — GALAXIES
+// ═══════════════════════
+function drawEllipticalGalaxy(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#010308';
+  ctx.fillRect(0,0,W,H);
+
+  const cx=W/2, cy=H/2;
+  for (let i = 0; i < 1200; i++) {
+    const angle = Math.random() * Math.PI*2;
+    const d = Math.pow(Math.random(), 1.5);
+    const rx = d * W * 0.42, ry = d * H * 0.27;
+    const x = cx + rx * Math.cos(angle);
+    const y = cy + ry * Math.sin(angle);
+    const bright = 0.15 + (1-d)*0.7;
+    const size = Math.random() * 1.2 + 0.3;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI*2);
+    const col = d < 0.3 ? `rgba(255,230,180,${bright})` : `rgba(255,200,150,${bright*0.6})`;
+    ctx.fillStyle = col;
+    ctx.fill();
+  }
+  // glow center
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,W*0.2);
+  g.addColorStop(0,'rgba(255,230,180,0.6)');
+  g.addColorStop(1,'rgba(255,200,150,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+
+function drawSpiralGalaxy(canvas, highlight=false) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#010308';
+  ctx.fillRect(0,0,W,H);
+  const cx=W/2, cy=H/2;
+
+  // arms
+  for (let arm = 0; arm < 2; arm++) {
+    for (let j = 0; j < 600; j++) {
+      const t = j/600;
+      const angle = arm * Math.PI + t * Math.PI * 3.5;
+      const r = t * Math.min(W,H) * 0.44;
+      const scatter = (Math.random()-0.5) * r * 0.25;
+      const x = cx + Math.cos(angle) * (r + scatter);
+      const y = cy + Math.sin(angle) * (r*0.55 + scatter*0.55);
+      const bright = 0.1 + (1-t)*0.6 + Math.random()*0.2;
+      const size = Math.random() < 0.05 ? 2 : 0.8;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI*2);
+      ctx.fillStyle = t < 0.3 ? `rgba(200,230,255,${bright})` : `rgba(255,255,220,${bright*0.5})`;
+      ctx.fill();
+    }
+  }
+
+  // core
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,W*0.15);
+  g.addColorStop(0,'rgba(255,240,200,0.9)');
+  g.addColorStop(0.4,'rgba(255,210,150,0.4)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // highlight our sun's position
+  if (highlight) {
+    const sx = cx + Math.cos(0.8) * W*0.32;
+    const sy = cy + Math.sin(0.8) * H*0.18;
+    ctx.beginPath();
+    ctx.arc(sx,sy,4,0,Math.PI*2);
+    ctx.fillStyle='#ffff00';
+    ctx.shadowColor='#ffff00';
+    ctx.shadowBlur=16;
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.font='10px sans-serif';
+    ctx.fillStyle='#ffff88';
+    ctx.textAlign='center';
+    ctx.fillText('☀ 太阳',sx,sy-10);
+  }
+}
+
+function drawIrregularGalaxy(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#010308';
+  ctx.fillRect(0,0,W,H);
+  const cx=W/2, cy=H/2;
+
+  // random clumps
+  const clumps = [[0.3,0.35],[0.6,0.4],[0.5,0.6],[0.7,0.25],[0.25,0.6],[0.55,0.2]];
+  clumps.forEach(([fx,fy]) => {
+    const x=fx*W, y=fy*H;
+    const g=ctx.createRadialGradient(x,y,0,x,y,W*0.15);
+    g.addColorStop(0,'rgba(180,220,255,0.4)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  });
+  for (let i=0;i<900;i++) {
+    const cx2=clumps[i%clumps.length];
+    const x=cx2[0]*W+(Math.random()-0.5)*W*0.28;
+    const y=cx2[1]*H+(Math.random()-0.5)*H*0.28;
+    const b=Math.random()*0.5+0.1;
+    ctx.beginPath();
+    ctx.arc(x,y,Math.random()*1+0.3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(180,220,255,${b})`;
+    ctx.fill();
+  }
+}
+
+function drawMilkyWay() {
+  const canvas = document.getElementById('mwCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // bg
+  ctx.fillStyle = '#010510';
+  ctx.fillRect(0,0,W,H);
+
+  const cx=W/2, cy=H/2;
+
+  // disk glow
+  const diskG = ctx.createRadialGradient(cx,cy,0,cx,cy,W*0.45);
+  diskG.addColorStop(0,'rgba(255,230,180,0.25)');
+  diskG.addColorStop(0.3,'rgba(150,180,255,0.15)');
+  diskG.addColorStop(0.7,'rgba(100,140,255,0.06)');
+  diskG.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.save();
+  ctx.scale(1, 0.42);
+  ctx.translate(0, cy/0.42);
+  ctx.fillStyle = diskG;
+  ctx.beginPath();
+  ctx.arc(cx,0,W*0.48,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // arms
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.scale(1,0.42);
+
+  function drawArm(startAngle, color) {
+    for (let j=0;j<400;j++){
+      const t=j/400;
+      const angle=startAngle+t*Math.PI*3;
+      const r=30+t*W*0.38;
+      const sc=(Math.random()-0.5)*r*0.2;
+      const x=Math.cos(angle)*(r+sc);
+      const y=Math.sin(angle)*(r+sc);
+      const b=0.05+(1-t)*0.45+Math.random()*0.15;
+      ctx.beginPath();
+      ctx.arc(x,y,Math.random()<0.03?2:0.8,0,Math.PI*2);
+      ctx.fillStyle=color.replace('A',String(b.toFixed(2)));
+      ctx.fill();
+    }
+  }
+  drawArm(0,   'rgba(200,230,255,A)');
+  drawArm(Math.PI, 'rgba(200,230,255,A)');
+  drawArm(0.7, 'rgba(180,210,255,A)');
+  drawArm(Math.PI+0.7,'rgba(180,210,255,A)');
+  ctx.restore();
+
+  // core
+  const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,50);
+  cg.addColorStop(0,'rgba(255,240,200,0.95)');
+  cg.addColorStop(0.3,'rgba(255,200,120,0.5)');
+  cg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=cg; ctx.fillRect(0,0,W,H);
+
+  // label arms
+  ctx.font='bold 11px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle='rgba(200,230,255,0.7)';
+  ctx.textAlign='center';
+  ctx.fillText('猎户臂', cx+W*0.26, cy-H*0.06);
+  ctx.fillText('(太阳在这里)', cx+W*0.26, cy-H*0.06+14);
+
+  // Sun position
+  const sunX = cx + Math.cos(0.4)*W*0.26;
+  const sunY = cy + Math.sin(0.4)*H*0.11;
+  ctx.beginPath();
+  ctx.arc(sunX,sunY,5,0,Math.PI*2);
+  ctx.fillStyle='#ffff44';
+  ctx.shadowColor='#ffff44';
+  ctx.shadowBlur=20;
+  ctx.fill();
+  ctx.shadowBlur=0;
+
+  // distance line
+  ctx.setLineDash([3,3]);
+  ctx.strokeStyle='rgba(255,255,100,0.4)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(sunX,sunY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font='10px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle='rgba(255,255,100,0.8)';
+  ctx.textAlign='center';
+  ctx.fillText('☀ 太阳',sunX, sunY-10);
+
+  // scale label
+  ctx.font='12px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle='rgba(150,180,220,0.6)';
+  ctx.textAlign='center';
+  ctx.fillText('银河系（俯视示意图）', cx, H-12);
+
+  // center label
+  ctx.font='10px sans-serif';
+  ctx.fillStyle='rgba(255,200,100,0.7)';
+  ctx.textAlign='center';
+  ctx.fillText('核球 + 黑洞',cx,cy+20);
+}
+
+function selectGalaxy(i) {
+  document.querySelectorAll('.galaxy-card').forEach((c,j) => c.classList.toggle('active', i===j));
+}
+
+// init galaxy canvases
+(function initGalaxies() {
+  setTimeout(() => {
+    drawEllipticalGalaxy(document.getElementById('gCanvas0'));
+    drawSpiralGalaxy(document.getElementById('gCanvas1'), true);
+    drawIrregularGalaxy(document.getElementById('gCanvas2'));
+    drawMilkyWay();
+  }, 300);
+})();
+
+// ═══════════════════════
+// SECTION 6 — HIERARCHY
+// ═══════════════════════
+/* 峇株吧辖蔡逸众制作 */
+const HIERARCHY = [
+  { name:'地球', en:'Earth', emoji:'🌍', w:'60%', detail:'我们的家园，太阳系第三颗行星，距太阳约1.5亿千米（1天文单位）。',
+    color:'#44aaff' },
+  { name:'太阳系', en:'Solar System', emoji:'☀️', w:'70%', detail:'由太阳和8颗行星（以及无数小行星、彗星）组成的行星系。太阳系约形成于46亿年前。',
+    color:'#ffcc44' },
+  { name:'银河系', en:'Milky Way Galaxy', emoji:'🌀', w:'80%', detail:'我们所在的螺旋星系，拥有至少1000亿颗恒星，直径约10万光年。太阳位于猎户臂，距中心约2.6万光年。',
+    color:'#88aaff' },
+  { name:'本星系群', en:'Local Group', emoji:'🔵', w:'88%', detail:'由银河系、仙女星系等约50个星系组成的星系群，直径约1000万光年。仙女星系是离银河系最近的大星系。',
+    color:'#aa88ff' },
+  { name:'室女座超星系团', en:'Virgo Supercluster', emoji:'🌌', w:'94%', detail:'包含本星系群在内的更大尺度天体结构，直径超过1亿光年，包含数百个星系群和星系团。',
+    color:'#cc66ff' },
+  { name:'可观测宇宙（总星系）', en:'Observable Universe', emoji:'🔵', w:'100%', detail:'目前人类能观测到的宇宙范围，半径约465亿光年（因宇宙膨胀）。包含约2兆个星系，这是目前已知最大的天体系统。',
+    color:'#ff88cc' },
+];
+
+(function buildHierarchy() {
+  const diag = document.getElementById('hierarchyDiagram');
+  HIERARCHY.forEach((h, i) => {
+    const level = document.createElement('div');
+    level.className = 'hier-level';
+
+    if (i > 0) {
+      level.innerHTML += `<div class="hier-arrow">↑</div>`;
+    }
+
+    level.innerHTML += `
+      <div class="hier-box" style="--w:${h.w};width:var(--w);border-color:${h.color}33;" onclick="toggleHier(this, ${i})">
+        <div class="hier-name">${h.emoji} ${h.name}</div>
+        <div class="hier-en">${h.en}</div>
+      </div>
+      <div class="hier-detail" id="hier-detail-${i}">${h.detail}</div>`;
+    diag.appendChild(level);
+  });
+  // reverse order (largest on outside)
+  diag.innerHTML = '';
+  [...HIERARCHY].reverse().forEach((h, ri) => {
+    const i = HIERARCHY.length - 1 - ri;
+    const level = document.createElement('div');
+    level.className = 'hier-level';
+    level.innerHTML = `
+      <div class="hier-box" style="--w:${h.w};width:var(--w);border-color:${h.color}44;" onclick="toggleHier(this,${i})">
+        <div class="hier-name">${h.emoji} ${h.name}</div>
+        <div class="hier-en">${h.en}</div>
+      </div>
+      <div class="hier-detail" id="hier-detail-${i}">${h.detail}</div>`;
+    if (ri < HIERARCHY.length-1) {
+      level.innerHTML += `<div class="hier-arrow" style="color:${HIERARCHY[i].color}66">↓ 包含</div>`;
+    }
+    diag.appendChild(level);
+  });
+})();
+
+function toggleHier(el, i) {
+  const detail = document.getElementById('hier-detail-'+i);
+  const isOpen = detail.classList.contains('open');
+  document.querySelectorAll('.hier-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.hier-box').forEach(b => b.classList.remove('active'));
+  if (!isOpen) {
+    detail.classList.add('open');
+    el.classList.add('active');
+    el.style.borderColor = HIERARCHY[i].color;
+  }
+}
+
+// ═══════════════════════
+// SECTION 7 — BIG BANG
+// ═══════════════════════
+const BB_STEPS = [
+  { emoji:'⚡', time:'138亿年前', label:'大爆炸',
+    title:'大爆炸 (Big Bang)',
+    desc:'宇宙从一个密度无限大、温度无限高的"奇点"开始，在极短时间内迅速膨胀。这一刻是时间、空间和物质的起点。',
+    fact:'大爆炸理论由乔治·伽莫夫（George Gamow）在1940年代奠定基础。' },
+  { emoji:'🌡️', time:'~38万年后', label:'宇宙透明',
+    title:'宇宙变得透明',
+    desc:'随着宇宙膨胀和冷却，质子与电子结合成氢原子，光子得以自由传播——宇宙变得透明。此时留下的辐射就是今天我们观测到的"宇宙微波背景辐射"。',
+    fact:'宇宙微波背景辐射是大爆炸理论最重要的实验证据之一！' },
+  { emoji:'⭐', time:'~1-2亿年后', label:'第一批恒星',
+    title:'第一批恒星诞生',
+    desc:'宇宙黑暗时代结束，由氢和氦组成的气体云在引力下坍缩，形成宇宙中的第一批恒星——它们体积巨大，寿命极短。',
+    fact:'第一批恒星制造了重元素（碳、氧、铁等），在超新星爆炸后散播到宇宙中。' },
+  { emoji:'🌀', time:'~10亿年后', label:'星系形成',
+    title:'星系开始形成',
+    desc:'物质在引力作用下聚集，形成越来越大的结构——首先是星团，然后是星系。最早的星系出现在大爆炸约10亿年后。',
+    fact:'哈勃太空望远镜观测到了超过130亿年前形成的早期星系。' },
+  { emoji:'☀️', time:'~92亿年后', label:'太阳系诞生',
+    title:'太阳系诞生（46亿年前）',
+    desc:'宇宙诞生约92亿年后（即46亿年前），一片星云在引力作用下坍缩，形成了太阳和太阳系的行星，包括地球。',
+    fact:'太阳中的重元素（如铁、碳）都来自于更早一代恒星的超新星爆炸！' },
+  { emoji:'🌍', time:'~43亿年后', label:'地球生命',
+    title:'地球生命出现（约35亿年前）',
+    desc:'地球上最早的生命迹象出现于约35亿年前。经过漫长演化，人类在约30万年前出现。',
+    fact:'宇宙年龄138亿年，人类文明只有约1万年历史——我们在宇宙时间线上是刚刚诞生的"新生儿"。' },
+  { emoji:'🔭', time:'现在', label:'我们观测宇宙',
+    title:'现在（宇宙年龄138亿年）',
+    desc:'宇宙仍在持续膨胀，且膨胀在加速（1998年发现）。银河系与仙女星系预计将在约45亿年后碰撞合并。宇宙的奥秘仍在等待探索！',
+    fact:'哈勃（1929年）发现星系都在远离我们，越远离得越快——这是宇宙膨胀的直接证据。' },
+];
+
+(function buildBBTimeline() {
+  const track = document.getElementById('bbTrack');
+  BB_STEPS.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'bb-step';
+    div.innerHTML = `
+      <div class="bb-connector"></div>
+      <div class="bb-node">${s.emoji}</div>
+      <div class="bb-time">${s.time}</div>
+      <div class="bb-label">${s.label}</div>`;
+    div.onclick = () => selectBBStep(i, div);
+    track.appendChild(div);
+  });
+})();
+
+function selectBBStep(i, el) {
+  document.querySelectorAll('.bb-step').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  const s = BB_STEPS[i];
+  document.getElementById('bbDetail').innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+      <div style="font-size:52px;flex-shrink:0;">${s.emoji}</div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:12px;color:var(--violet);font-weight:700;margin-bottom:4px;">${s.time}</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">${s.title}</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.7;">${s.desc}</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 14px;border-radius:20px;background:rgba(153,85,255,0.12);border:1px solid rgba(153,85,255,0.3);font-size:12px;color:var(--violet);">
+          💡 ${s.fact}
+        </div>
+      </div>
+    </div>`;
+}
+
+// Universe expansion animation
+let expandRunning = false;
+let expandTime = 0;
+let expandRAF = null;
+
+(function initExpansion() {
+  const canvas = document.getElementById('expandCanvas');
+  canvas.width = canvas.offsetWidth || 640;
+  canvas.height = canvas.offsetHeight || 360;
+  drawExpansion(0);
+  window.addEventListener('resize', () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    drawExpansion(expandTime);
+  });
+})();
+
+function drawExpansion(t) {
+  const canvas = document.getElementById('expandCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle = '#010308';
+  ctx.fillRect(0,0,W,H);
+
+  const scale = 0.05 + t * 0.95;
+  const cx=W/2, cy=H/2;
+
+  // galaxy dots (10 of them in fixed relative positions)
+  const galaxies = [
+    [0,0],[0.3,0.2],[-0.25,0.3],[0.4,-0.25],[-0.35,-0.2],
+    [0.15,0.4],[-0.15,-0.4],[0.45,0.1],[-0.4,0.15],[0.1,-0.35]
+  ];
+
+  galaxies.forEach(([fx,fy], i) => {
+    const x = cx + fx * W * 0.45 * scale;
+    const y = cy + fy * H * 0.45 * scale;
+    const r = i===0 ? 6 : 4;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    const alpha = Math.min(1, scale * 2);
+    ctx.fillStyle = i===0 ? `rgba(255,255,100,${alpha})` : `rgba(180,210,255,${alpha})`;
+    ctx.shadowColor = i===0?'#ffff44':'#88ccff';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (i===0) {
+      ctx.font='10px sans-serif';
+      ctx.fillStyle=`rgba(255,255,100,${alpha})`;
+      ctx.textAlign='center';
+      ctx.fillText('我们',x,y-10);
+    }
+
+    // velocity arrows for non-center galaxies
+    if (i > 0 && t > 0.05) {
+      const vx = fx * W * 0.02 * scale;
+      const vy = fy * H * 0.02 * scale;
+      const arrowAlpha = Math.min(0.6, t * 0.8);
+      ctx.strokeStyle = `rgba(153,85,255,${arrowAlpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + vx*3, y + vy*3);
+      ctx.stroke();
+    }
+  });
+
+  // time label
+  const years = Math.round(t * 138);
+  document.getElementById('expandTimeDisplay').textContent = `${years}亿年`;
+}
+
+function toggleExpansion() {
+  const btn = document.getElementById('expandPlayBtn');
+  if (expandRunning) {
+    expandRunning = false;
+    cancelAnimationFrame(expandRAF);
+    btn.textContent = '▶ 播放宇宙膨胀';
+  } else {
+    expandRunning = true;
+    btn.textContent = '⏸ 暂停';
+    if (expandTime >= 1) expandTime = 0;
+    function step() {
+      expandTime = Math.min(1, expandTime + 0.003);
+      drawExpansion(expandTime);
+      if (expandTime < 1 && expandRunning) {
+        expandRAF = requestAnimationFrame(step);
+      } else {
+        expandRunning = false;
+        btn.textContent = '🔁 重新播放';
+      }
+    }
+    expandRAF = requestAnimationFrame(step);
+  }
+}
+
+// Scientists
+const SCIENTISTS = [
+  { year:'1917', name:'维斯托·斯莱弗 (Vesto Slipher)', note:'首次观察到星系正在远离我们', emoji:'🔭' },
+  { year:'1922', name:'亚历山大·弗里德曼 (Alexander Friedmann)', note:'首次提出宇宙可能正在膨胀的想法', emoji:'📐' },
+  { year:'1927', name:'乔治·勒梅特 (Georges Lemaître)', note:'重新发现膨胀宇宙解，提出"宇宙蛋"概念', emoji:'🧮' },
+  { year:'1929', name:'埃德温·哈勃 (Edwin Hubble)', note:'发现"哈勃定律"：越远的星系远离越快，证明宇宙膨胀', emoji:'🌌' },
+  { year:'1940s', name:'乔治·伽莫夫 (George Gamow)', note:'奠定大爆炸理论基础，预言宇宙微波背景辐射', emoji:'💥' },
+  { year:'1998', name:'索尔·帕尔马特等 (Perlmutter et al.)', note:'发现宇宙膨胀正在加速（暗能量的证据）', emoji:'⚡' },
+];
+
+(function buildScientists() {
+  const div = document.getElementById('scientistsList');
+  SCIENTISTS.forEach(s => {
+    div.innerHTML += `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:24px;flex-shrink:0;">${s.emoji}</div>
+        <div>
+          <div style="display:inline-block;font-size:11px;font-weight:700;color:var(--violet);background:rgba(153,85,255,0.12);border-radius:4px;padding:1px 7px;margin-bottom:3px;">${s.year}</div>
+          <div style="font-size:14px;font-weight:600;">${s.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${s.note}</div>
+        </div>
+      </div>`;
+  });
+})();
+
+// ═══════════════════════
+// INIT ALL
+// ═══════════════════════
+window.addEventListener('load', () => {
+  initSky();
+  buildTimeline();
+  // galaxy canvases respond to window resize
+  window.addEventListener('resize', () => {
+    const mw = document.getElementById('mwCanvas');
+    if (mw) { mw.width=680; mw.height=340; drawMilkyWay(); }
+  });
+});
+
+/* Made by ecchua79 */
+</script>
+</body>
+</html>
