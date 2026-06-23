@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第12章 · 物体的运动 — 时空导航站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/*峇株吧辖华仁中学蔡逸众制作*/
+:root{
+  --bg:#060A12;
+  --bg2:#0A1220;
+  --panel:#0D1626;
+  --panel2:#101D33;
+  --line:#1C2D45;
+  --cyan:#34E4EA;
+  --cyan-dim:#1A7A80;
+  --amber:#FF8A3D;
+  --violet:#9D7CFF;
+  --green:#4CD787;
+  --red:#FF5C72;
+  --text:#E7EEF5;
+  --muted:#7A8CA3;
+  --muted2:#4D5F78;
+  --font-d:'Orbitron',sans-serif;
+  --font-b:'Noto Sans SC',sans-serif;
+  --font-m:'Space Mono',monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-b);
+  overflow-x:hidden;
+  line-height:1.7;
+}
+body::before{
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(52,228,234,0.06), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(157,124,255,0.05), transparent 45%);
+  pointer-events:none; z-index:0;
+}
+::selection{background:var(--cyan); color:#06121A;}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+}
+
+/* ---------- scaffolding ---------- */
+.wrap{position:relative; z-index:1;}
+.panel{
+  min-height:100vh;
+  padding:90px 6vw 80px;
+  position:relative;
+  border-bottom:1px solid var(--line);
+}
+.panel-inner{max-width:1180px; margin:0 auto;}
+.tag{
+  font-family:var(--font-m);
+  font-size:12px;
+  letter-spacing:0.25em;
+  color:var(--cyan);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+  text-transform:uppercase;
+}
+.tag::before{content:'◆'; font-size:10px;}
+.tag .num{color:var(--muted2);}
+h1,h2,h3{font-family:var(--font-d); font-weight:700; letter-spacing:0.02em;}
+h2.title{
+  font-size:clamp(28px,4vw,46px);
+  color:#fff;
+  margin-bottom:8px;
+  text-shadow:0 0 30px rgba(52,228,234,0.15);
+}
+.sub{color:var(--muted); font-size:16px; max-width:680px; margin-bottom:36px;}
+.hud-frame{
+  position:relative;
+  border:1px solid var(--line);
+  background:linear-gradient(160deg, var(--panel), var(--bg2));
+  border-radius:4px;
+}
+.hud-frame::before, .hud-frame::after,
+.hud-frame .c2::before, .hud-frame .c2::after{
+  content:''; position:absolute; width:18px; height:18px;
+  border-color:var(--cyan); opacity:0.7;
+}
+.hud-frame::before{top:-1px; left:-1px; border-top:2px solid; border-left:2px solid;}
+.hud-frame::after{top:-1px; right:-1px; border-top:2px solid; border-right:2px solid;}
+.hud-frame .c2::before{bottom:-1px; left:-1px; border-bottom:2px solid var(--cyan); border-left:2px solid var(--cyan); position:absolute;}
+.hud-frame .c2::after{bottom:-1px; right:-1px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); position:absolute;}
+
+.btn{
+  font-family:var(--font-b); font-weight:700; font-size:14px;
+  background:var(--panel2); color:var(--cyan);
+  border:1px solid var(--cyan-dim); padding:11px 22px;
+  border-radius:3px; cursor:pointer; letter-spacing:0.03em;
+  transition:all .15s ease; user-select:none;
+}
+.btn:hover{background:var(--cyan); color:#06121A; box-shadow:0 0 18px rgba(52,228,234,0.4);}
+.btn:active{transform:translateY(1px);}
+.btn.alt{color:var(--amber); border-color:#7a4a1f;}
+.btn.alt:hover{background:var(--amber); color:#1A0E04; box-shadow:0 0 18px rgba(255,138,61,0.4);}
+.btn:disabled{opacity:.35; cursor:not-allowed;}
+.btn:focus-visible, button:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+
+.readout{
+  font-family:var(--font-m); font-size:26px; color:var(--cyan);
+}
+.readout .unit{font-size:14px; color:var(--muted);}
+.label{font-size:12px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase;}
+
+.grid2{display:grid; grid-template-columns:1.2fr 1fr; gap:28px;}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+@media (max-width:880px){ .grid2{grid-template-columns:1fr;} .grid3{grid-template-columns:1fr;} }
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:20px;}
+.divider{height:1px; background:linear-gradient(90deg, transparent, var(--line), transparent); margin:28px 0;}
+
+.kbd{font-family:var(--font-m); background:var(--bg2); border:1px solid var(--line); padding:2px 7px; border-radius:3px; font-size:13px; color:var(--amber);}
+
+.check-card{
+  background:var(--panel2); border-left:3px solid var(--violet);
+  padding:16px 18px; border-radius:4px; margin-top:18px;
+}
+.check-card .ttl{font-size:12px; color:var(--violet); letter-spacing:0.1em; margin-bottom:8px; font-weight:700;}
+.reveal-btn{
+  background:none; border:1px dashed var(--muted2); color:var(--muted);
+  font-family:var(--font-m); font-size:12px; padding:6px 12px; border-radius:3px; cursor:pointer;
+}
+.reveal-btn:hover{border-color:var(--cyan); color:var(--cyan);}
+.answer-box{
+  display:none; margin-top:10px; padding:12px 14px; background:rgba(76,215,135,0.08);
+  border:1px solid rgba(76,215,135,0.35); border-radius:4px; color:#bdeed1; font-size:14.5px;
+}
+.answer-box.show{display:block;}
+
+/* progress nav */
+#navdots{
+  position:fixed; right:18px; top:50%; transform:translateY(-50%);
+  z-index:50; display:flex; flex-direction:column; gap:14px;
+}
+#navdots a{
+  width:9px; height:9px; border-radius:50%; background:var(--muted2);
+  display:block; position:relative; transition:.2s;
+}
+#navdots a.active{background:var(--cyan); box-shadow:0 0 10px var(--cyan);}
+#navdots a .tip{
+  position:absolute; right:18px; top:-6px; white-space:nowrap;
+  font-family:var(--font-m); font-size:11px; color:var(--muted);
+  opacity:0; transition:.2s; pointer-events:none;
+}
+#navdots a:hover .tip{opacity:1;}
+@media (max-width:700px){ #navdots{display:none;} }
+
+/* topbar */
+#topbar{
+  position:fixed; top:0; left:0; right:0; z-index:60;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 5vw; background:rgba(6,10,18,0.75); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line); font-family:var(--font-m); font-size:12px;
+}
+#topbar .chap{color:var(--cyan); letter-spacing:0.1em;}
+#topbar .bar{flex:1; height:3px; background:var(--line); margin:0 24px; border-radius:2px; overflow:hidden;}
+#topbar .bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--cyan),var(--violet)); transition:width .2s;}
+#topbar .pct{color:var(--muted); min-width:42px; text-align:right;}
+
+/* black box widget */
+#blackbox{
+  position:fixed; left:18px; bottom:18px; z-index:55;
+  width:230px; font-family:var(--font-m); font-size:11.5px;
+  background:rgba(10,18,32,0.9); border:1px solid var(--cyan-dim);
+  border-radius:6px; padding:12px 14px; backdrop-filter:blur(6px);
+  box-shadow:0 0 24px rgba(0,0,0,0.5);
+}
+#blackbox .hdr{color:var(--amber); letter-spacing:0.15em; font-size:10px; margin-bottom:8px; display:flex; justify-content:space-between;}
+#blackbox .row{display:flex; justify-content:space-between; color:var(--muted); margin:3px 0;}
+#blackbox .row b{color:var(--text); font-weight:400;}
+@media (max-width:700px){ #blackbox{display:none;} }
+
+canvas{display:block; max-width:100%;}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:4px; background:var(--line); border-radius:2px; outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+  background:var(--cyan); cursor:pointer; box-shadow:0 0 8px var(--cyan);
+}
+input[type=text], input[type=number]{
+  background:var(--bg2); border:1px solid var(--line); color:var(--text);
+  padding:8px 10px; border-radius:3px; font-family:var(--font-m); font-size:14px;
+}
+table{width:100%; border-collapse:collapse; font-size:14px;}
+table th, table td{border:1px solid var(--line); padding:8px 10px; text-align:center;}
+table th{color:var(--cyan); font-family:var(--font-m); font-weight:400; font-size:12px;}
+
+.scrollcue{
+  position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+  font-family:var(--font-m); font-size:11px; color:var(--muted); letter-spacing:.2em;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.scrollcue .arrow{width:14px; height:14px; border-right:2px solid var(--cyan); border-bottom:2px solid var(--cyan); transform:rotate(45deg); animation:bob 1.6s infinite;}
+@keyframes bob{0%,100%{transform:rotate(45deg) translate(0,0);}50%{transform:rotate(45deg) translate(5px,5px);}}
+
+.pill{
+  display:inline-flex; align-items:center; gap:6px; font-family:var(--font-m); font-size:12px;
+  padding:4px 10px; border-radius:20px; border:1px solid var(--line); color:var(--muted);
+}
+.pill.on{border-color:var(--cyan); color:var(--cyan);}
+
+footer{
+  text-align:center; padding:50px 5vw 90px; color:var(--muted2); font-size:12.5px;
+  font-family:var(--font-m); position:relative; z-index:1;
+}
+footer .credit{margin-top:10px; color:var(--muted2); opacity:.6;}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="chap">CH.12 物体的运动</span>
+  <div class="bar"><i id="progressbar"></i></div>
+  <span class="pct" id="progresspct">0%</span>
+</div>
+
+<nav id="navdots">
+  <a href="#hero" data-i="0"><span class="tip">起点</span></a>
+  <a href="#m1" data-i="1"><span class="tip">01 参照物</span></a>
+  <a href="#m2" data-i="2"><span class="tip">02 运动分类</span></a>
+  <a href="#m3" data-i="3"><span class="tip">03 路程与位移</span></a>
+  <a href="#m4" data-i="4"><span class="tip">04 速率与速度</span></a>
+  <a href="#m5" data-i="5"><span class="tip">05 匀速直线运动</span></a>
+  <a href="#quiz" data-i="6"><span class="tip">返航检测</span></a>
+  <a href="#cert" data-i="7"><span class="tip">登舰证书</span></a>
+</nav>
+
+<div id="blackbox">
+  <div class="hdr"><span>◆ 黑匣子记录仪</span><span id="bbtime">00:00</span></div>
+  <div class="row"><span>当前舱段</span><b id="bbsec">起点</b></div>
+  <div class="row"><span>路程 s</span><b id="bbdist">0 m</b></div>
+  <div class="row"><span>位移 x</span><b id="bbdisp">0 m</b></div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ HERO ============ -->
+<section class="panel" id="hero" style="display:flex; align-items:center;">
+  <div class="panel-inner" style="width:100%;">
+    <div class="tag"><span class="num">SCI·F1·CH12</span> 时空导航站 · 启动序列</div>
+    <h1 style="font-size:clamp(34px,6vw,68px); color:#fff; line-height:1.1; margin-bottom:18px;">
+      物体的<span style="color:var(--cyan); text-shadow:0 0 26px rgba(52,228,234,.5);">运动</span>
+    </h1>
+    <p class="sub" style="font-size:18px; max-width:720px;">
+      欢迎登上导航站。在接下来的飞行任务中，你将学会用科学家的方式描述"运动"——
+      判断参照物、区分路程与位移、辨别速率与速度，并掌握匀速直线运动的规律。
+    </p>
+
+    <div class="grid2" style="margin-top:30px; align-items:stretch;">
+      <div class="hud-frame" style="padding:22px 24px;"><div class="c2"></div>
+        <div class="tag" style="margin-bottom:14px;">历史档案 · 协和式客机</div>
+        <p style="font-size:14.5px; color:var(--muted);">
+          民航客机的巡航速率长期维持在每小时800–900km之间——这是耗损、油耗、噪音与舒适度的最优解。
+          1976年投入服务的协和式客机飞行速率可达声速两倍以上（约2100km/h），却因燃料消耗与噪音问题，
+          于2003年10月24日退役。速度越快，不一定越好。
+        </p>
+      </div>
+      <div class="hud-frame" style="padding:22px 24px; display:flex; flex-direction:column; justify-content:center;"><div class="c2"></div>
+        <div class="tag" style="margin-bottom:14px;">本章提问</div>
+        <ul style="list-style:none; display:flex; flex-direction:column; gap:14px;">
+          <li style="font-family:var(--font-m); font-size:14px; color:var(--text); border-left:2px solid var(--cyan); padding-left:12px;">生活中和科学上所指的运动是否相同？</li>
+          <li style="font-family:var(--font-m); font-size:14px; color:var(--text); border-left:2px solid var(--amber); padding-left:12px;">物体运动的快慢该如何表达？</li>
+          <li style="font-family:var(--font-m); font-size:14px; color:var(--text); border-left:2px solid var(--violet); padding-left:12px;">物体运动位置变化的快慢该如何表达？</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:34px; display:flex; gap:14px; flex-wrap:wrap;">
+      <a href="#m1" class="btn">▶ 开始飞行任务</a>
+      <span class="pill">5 个模块</span>
+      <span class="pill">10 道返航检测</span>
+      <span class="pill">完成可获登舰证书</span>
+    </div>
+  </div>
+  <div class="scrollcue"><span>向下滚动</span><span class="arrow"></span></div>
+</section>
+
+<!-- ============ MODULE 1: 参照物与运动 ============ -->
+<section class="panel" id="m1">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">MODULE 01</span> 什么是运动？</div>
+    <h2 class="title">参照物 · 一切运动都是相对的</h2>
+    <p class="sub">科学上，运动是指物体的位置随时间发生变化，这称为<b style="color:#fff;">机械运动</b>。但要判断物体是否运动，必须先选定一个比较标准——<b style="color:var(--cyan);">参照物</b>。选择不同的参照物，结论可能完全不同。</p>
+
+    <div class="grid2">
+      <div class="hud-frame" style="padding:18px;"><div class="c2"></div>
+        <canvas id="trainCanvas" width="640" height="260" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center;">
+          <button class="btn" id="trainToggle">▶ 播放</button>
+          <button class="btn alt" id="frameToggle">切换参照物：站台视角</button>
+          <span class="label" style="margin-left:auto;">速率 <span id="trainSpeedLabel" style="color:var(--amber);">中速</span></span>
+        </div>
+        <input type="range" id="trainSpeed" min="1" max="5" value="2" step="1" style="margin-top:10px;">
+      </div>
+
+      <div class="card" id="frameConclusion" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div class="label">实时结论</div>
+          <p id="frameText" style="font-size:16px; margin-top:8px; color:var(--text);">以<b style="color:var(--cyan);">站台</b>为参照物：火车与站台之间的位置不断改变 → 火车在<b style="color:var(--green);">运动</b>。</p>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:14px; color:var(--muted);">试一试：点击"切换参照物"，把参照物换成<b style="color:var(--text);">车厢里的乘客</b>，观察结论会如何改变——这正是"运动是相对的"的含义。</p>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="ttl">动动脑 · 火车进站</div>
+      <p>当火车驶入车站时，你认为火车站是静止的，还是在运动的？</p>
+      <button class="reveal-btn" data-target="a1">显示参考思路 ▾</button>
+      <div class="answer-box" id="a1">
+        通常我们以<b>地面（大地）</b>作为参照物，此时火车站相对于地面没有位置变化，所以火车站是<b>静止</b>的。但如果你选择"行驶中的火车"作为参照物，火车站相对于火车的位置在不断改变，那么火车站就是"运动"的。——结论取决于你选择的参照物，这就是相对运动。
+      </div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--cyan);">
+      <div class="ttl">学习检测</div>
+      <p>什么是参照物？什么是运动？</p>
+      <button class="reveal-btn" data-target="a2">显示答案 ▾</button>
+      <div class="answer-box" id="a2">
+        <b>运动</b>：物体在空间中的位置随时间发生变化，称为机械运动。<br>
+        <b>参照物</b>：判断物体是否运动时，所选用作比较标准的另一物体。物体相对于参照物的位置若随时间改变，则物体在运动；若没有改变，则物体静止。
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ MODULE 2: 机械运动的分类 ============ -->
+<section class="panel" id="m2">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">MODULE 02</span> 机械运动可分为哪几类？</div>
+    <h2 class="title">直线运动 · 曲线运动</h2>
+    <p class="sub">游乐场里藏着两类机械运动：沿一条直线进行的<b style="color:var(--cyan);">直线运动</b>，与沿弯曲路径进行的<b style="color:var(--amber);">曲线运动</b>。把下面的运动项目拖进正确的轨道。</p>
+
+    <div class="grid2" style="align-items:start;">
+      <div>
+        <div class="hud-frame" id="zone-line" style="padding:16px; min-height:170px; border-color:var(--cyan-dim);"><div class="c2"></div>
+          <div class="label" style="color:var(--cyan);">直线运动轨道</div>
+          <div class="dropzone" data-type="line" style="display:flex; flex-wrap:wrap; gap:10px; min-height:90px; margin-top:10px;"></div>
+        </div>
+        <div class="hud-frame" id="zone-curve" style="padding:16px; min-height:170px; margin-top:18px; border-color:#7a4a1f;"><div class="c2"></div>
+          <div class="label" style="color:var(--amber);">曲线运动轨道</div>
+          <div class="dropzone" data-type="curve" style="display:flex; flex-wrap:wrap; gap:10px; min-height:90px; margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">待分类项目（拖动 / 或点击后选择轨道）</div>
+        <div id="poolzone" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;"></div>
+        <div class="divider"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="label">正确 <b id="sortScore" style="color:var(--green); font-family:var(--font-m);">0</b>/8</span>
+          <button class="btn" id="sortReset">↺ 重新开始</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--cyan); margin-top:30px;">
+      <div class="ttl">学习检测</div>
+      <p>机械运动可分为哪几类？</p>
+      <button class="reveal-btn" data-target="a3">显示答案 ▾</button>
+      <div class="answer-box" id="a3">机械运动基本上可分为两大类：<b>直线运动</b>（如汽车直行、自由落体）和<b>曲线运动</b>（如汽车绕圆环行驶、过山车、海盗船）。</div>
+    </div>
+  </div>
+</section>
+<!-- ============ MODULE 3: 路程与位移 ============ -->
+<section class="panel" id="m3">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">MODULE 03</span> 路程和位移的差别在哪里？</div>
+    <h2 class="title">路程 s · 位移 x</h2>
+    <p class="sub"><b style="color:var(--amber);">路程</b>是物体运动轨迹的实际长度，只有大小；<b style="color:var(--violet);">位移</b>是物体位置的变化量（末位置－初位置），既有大小也有方向。在导航图上点击，画出你自己的路线，实时比较两者。</p>
+
+    <div class="grid2">
+      <div class="hud-frame" style="padding:18px;"><div class="c2"></div>
+        <canvas id="mapCanvas" width="640" height="420" style="width:100%; height:auto; background:var(--bg2); border-radius:4px; cursor:crosshair;"></canvas>
+        <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+          <button class="btn" id="mapUndo">↺ 撤销上一点</button>
+          <button class="btn" id="mapClear">✕ 清空航线</button>
+          <button class="btn alt" id="mapDemo">▶ 演示：小昆虫例题</button>
+        </div>
+        <p class="label" style="margin-top:10px;">在画布上依次点击，规划从起点（绿色）出发的航线。每格代表 1 cm。</p>
+      </div>
+
+      <div class="card" style="display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <div class="label">航程路程 s（橙色折线总长）</div>
+          <div class="readout" style="color:var(--amber);"><span id="mapDist">0.0</span><span class="unit"> cm</span></div>
+        </div>
+        <div>
+          <div class="label">航程位移 x（紫色直线箭头）</div>
+          <div class="readout" style="color:var(--violet);"><span id="mapDisp">0.0</span><span class="unit"> cm</span></div>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:14px; color:var(--muted);" id="mapNote">路程只能 ≥ 位移大小。当航线笔直且不折返时，路程 = 位移大小；航线越曲折、折返越多，两者差距越大。</p>
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="ttl">例12.1 · 小昆虫的爬行</div>
+      <p>小昆虫从原点东方2cm的A点爬到B点（东方5cm），再从B点转向西方爬到C点（西方4cm）。求路程与位移。点击上方"演示：小昆虫例题"按钮观看动画，再核对下面的计算。</p>
+      <button class="reveal-btn" data-target="a4">显示完整计算 ▾</button>
+      <div class="answer-box" id="a4">
+        路程 = (5－2) + [5－(－4)] = 3 + 9 = <b>12 cm</b><br>
+        位移 = 末位置－初位置 = （－4）－2 = <b>－6 cm</b>（即在初位置西方6cm处）<br>
+        答：小昆虫走过的路程是12cm，位移是在原来位置西方6cm的地方。
+      </div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--amber);">
+      <div class="ttl">动动脑 · 小美的路线</div>
+      <p>小美向正东方走10m，然后转向正北方走15m，再转向正西方走10m。小美走过的路程是多少米？位移是多少米？</p>
+      <div class="grid2" style="align-items:start; margin-top:12px;">
+        <canvas id="meiCanvas" width="320" height="320" style="width:100%; max-width:280px; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+        <div>
+          <div style="display:flex; gap:10px; margin:10px 0; flex-wrap:wrap;">
+            <input type="number" id="meiDist" placeholder="路程 (m)" style="width:130px;">
+            <input type="number" id="meiDisp" placeholder="位移大小 (m)" style="width:150px;">
+            <button class="btn" id="meiCheck">提交检测</button>
+          </div>
+          <p id="meiResult" style="font-size:14px;"></p>
+          <button class="reveal-btn" data-target="a5">显示完整解析 ▾</button>
+          <div class="answer-box" id="a5">
+            路程 = 10 + 15 + 10 = <b>35 m</b>。<br>
+            东走10m与西走10m在东西方向上相互抵消，最终只剩下正北方向15m的位置变化，所以位移大小 = <b>15 m</b>（方向为正北）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--cyan);">
+      <div class="ttl">学习检测</div>
+      <p>什么叫做路程？什么叫做位移？</p>
+      <button class="reveal-btn" data-target="a6">显示答案 ▾</button>
+      <div class="answer-box" id="a6">
+        <b>路程</b>：物体运动时所经过的路径长度，只有大小，没有方向，国际单位是米(m)。<br>
+        <b>位移</b>：物体在运动过程中位置的变化量（末位置－初位置），既有大小也有方向，国际单位同样是米(m)。
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ MODULE 4: 速率与速度 ============ -->
+<section class="panel" id="m4">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">MODULE 04</span> 速率和速度的差别在哪里？</div>
+    <h2 class="title">速率 v = s/t · 速度 v = x/t</h2>
+    <p class="sub"><b style="color:var(--amber);">速率</b> = 路程 ÷ 时间，只有大小；<b style="color:var(--violet);">速度</b> = 位移 ÷ 时间，既有大小也有方向。调整下方跑道上的两段行程，观察折返时速率与速度会如何分道而行。</p>
+
+    <div class="hud-frame" style="padding:18px;"><div class="c2"></div>
+      <canvas id="trackCanvas" width="900" height="180" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center;">
+        <span class="label">出发方向：</span>
+        <button class="btn dirbtn" id="dirWE" data-dir="-1">◀ 先向西，再向东</button>
+        <button class="btn dirbtn" id="dirEW" data-dir="1">先向东，再向西 ▶</button>
+      </div>
+      <div class="grid3" style="margin-top:14px;">
+        <div class="card">
+          <div class="label">第一段距离 (m)</div>
+          <input type="range" id="legA" min="0" max="100" value="60">
+          <div class="readout" style="font-size:18px;"><span id="legAval">60</span><span class="unit"> m</span></div>
+        </div>
+        <div class="card">
+          <div class="label">第二段距离（反方向折返）(m)</div>
+          <input type="range" id="legB" min="0" max="100" value="80">
+          <div class="readout" style="font-size:18px;"><span id="legBval">80</span><span class="unit"> m</span></div>
+        </div>
+        <div class="card">
+          <div class="label">总用时 (s)</div>
+          <input type="range" id="legT" min="5" max="60" value="20">
+          <div class="readout" style="font-size:18px;"><span id="legTval">20</span><span class="unit"> s</span></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:14px;">
+        <div class="card" style="border-left:3px solid var(--amber);">
+          <div class="label">总路程 s</div>
+          <div class="readout" style="color:var(--amber); font-size:20px;"><span id="distOut">0</span><span class="unit"> m</span></div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--violet);">
+          <div class="label">总位移 x</div>
+          <div class="readout" style="color:var(--violet); font-size:20px;"><span id="dispOut">0</span><span class="unit"> m</span></div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--amber);">
+          <div class="label">平均速率 v = s / t</div>
+          <div class="readout" style="color:var(--amber);"><span id="speedOut">0</span><span class="unit"> m/s</span></div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--violet);">
+          <div class="label">平均速度 v = x / t</div>
+          <div class="readout" style="color:var(--violet);"><span id="velOut">0</span><span class="unit"> m/s</span></div>
+        </div>
+      </div>
+      <p class="label" id="trackNote" style="margin-top:10px;"></p>
+    </div>
+
+    <div class="check-card">
+      <div class="ttl">例12.2 · 小华的100m跑</div>
+      <p>小华沿笔直跑道跑了100m，花了10s。求小华运动的平均速率。</p>
+      <button class="reveal-btn" data-target="a7">显示计算 ▾</button>
+      <div class="answer-box" id="a7">速率 v = s/t = 100m ÷ 10s = <b>10 m/s</b></div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--amber);">
+      <div class="ttl">动动脑 · 张杰 VS 李立，谁跑得快？</div>
+      <p>张杰25s跑200m；李立20s跑160m。点击按钮让两人同台竞速，看看结果是否出乎意料。</p>
+      <button class="btn" id="raceBtn" style="margin:10px 0;">▶ 开始竞速</button>
+      <canvas id="raceCanvas" width="640" height="110" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+      <div id="raceResult" style="margin-top:10px; font-size:14px;"></div>
+      <button class="reveal-btn" data-target="a8" style="margin-top:8px;">显示计算 ▾</button>
+      <div class="answer-box" id="a8">
+        张杰：v = 200m ÷ 25s = 8 m/s。<br>
+        李立：v = 160m ÷ 20s = 8 m/s。<br>
+        两人速率相同——表面用时和路程不同，结果却是一样快！
+      </div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--violet);">
+      <div class="ttl">动动脑 · 限速牌指的是哪种速率？</div>
+      <p>高速公路上某路段的告示牌对小客车的限速为100km/h。这里所限制的，是平均速率还是瞬时速率？</p>
+      <div style="display:flex; gap:10px; margin:10px 0;">
+        <button class="btn" data-ans="avg">平均速率</button>
+        <button class="btn" data-ans="inst">瞬时速率</button>
+      </div>
+      <p id="limitResult" style="font-size:14px;"></p>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--cyan);">
+      <div class="ttl">例12.3 · 跑道上的一圈</div>
+      <p>运动员在400m跑道跑一圈回到起点，用时50s。求平均速率和平均速度。</p>
+      <button class="reveal-btn" data-target="a9">显示计算 ▾</button>
+      <div class="answer-box" id="a9">
+        平均速率 v = s/t = 400m ÷ 50s = <b>8 m/s</b>。<br>
+        平均速度 v = x/t = 0m ÷ 50s = <b>0 m/s</b>（因为回到起点，末位置=初位置，位移为零）。
+      </div>
+    </div>
+
+    <div class="check-card">
+      <div class="ttl">动动脑 · 平均速率何时等于平均速度？</div>
+      <button class="reveal-btn" data-target="a10">显示答案 ▾</button>
+      <div class="answer-box" id="a10">当物体始终沿同一方向做直线运动、没有折返时，路程的大小就等于位移的大小，此时平均速率 = 平均速度的大小，即做<b>匀速直线运动</b>（或沿直线单向运动）的情况。</div>
+    </div>
+  </div>
+</section>
+<!-- ============ MODULE 5: 匀速直线运动 ============ -->
+<section class="panel" id="m5">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">MODULE 05</span> 什么是匀速直线运动？</div>
+    <h2 class="title">匀速直线运动 · 位置–时间图 / 速度–时间图</h2>
+    <p class="sub">当物体每单位时间内经过的路程都相同、方向也不变时，称为<b style="color:var(--cyan);">匀速直线运动</b>（又称等速度运动）。此时平均速率＝瞬时速率＝瞬时速度。启动电动扶梯，观察两张图如何同步生成。</p>
+
+    <div class="grid2">
+      <div class="hud-frame" style="padding:18px;"><div class="c2"></div>
+        <canvas id="escCanvas" width="560" height="260" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+        <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+          <button class="btn" id="escPlay">▶ 启动扶梯</button>
+          <button class="btn alt" id="escReset">↺ 重置</button>
+          <span class="label" style="margin-left:auto;">速度恒为 <span style="color:var(--cyan); font-family:var(--font-m);">1 m/s</span></span>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+        <canvas id="ptCanvas" width="320" height="150" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+        <div class="label" style="text-align:center;">位置–时间图（斜率 = 速度）</div>
+        <canvas id="vtCanvas" width="320" height="150" style="width:100%; height:auto; background:var(--bg2); border-radius:4px;"></canvas>
+        <div class="label" style="text-align:center;">速度–时间图（阴影面积 = 路程）</div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px;">
+      <div class="card"><div class="label">已走时间</div><div class="readout"><span id="escT">0.0</span><span class="unit"> s</span></div></div>
+      <div class="card"><div class="label">已走距离（阴影面积验证）</div><div class="readout" style="color:var(--green);"><span id="escD">0.0</span><span class="unit"> m</span></div></div>
+    </div>
+
+    <div class="check-card" style="border-left-color:var(--cyan); margin-top:24px;">
+      <div class="ttl">学习检测</div>
+      <p>什么是匀速直线运动？</p>
+      <button class="reveal-btn" data-target="a11">显示答案 ▾</button>
+      <div class="answer-box" id="a11">物体在运动过程中，若每单位时间内经过的路程都相同，且运动方向始终不变，这种运动称为匀速直线运动（匀速度运动/等速度运动）。其平均速率＝瞬时速率＝瞬时速度，三者在任何时刻都相等。</div>
+    </div>
+  </div>
+</section>
+<!-- ============ QUIZ ============ -->
+<section class="panel" id="quiz">
+  <div class="panel-inner">
+    <div class="tag"><span class="num">FINAL CHECK</span> 返航检测</div>
+    <h2 class="title">10 题检测 · 安全返航</h2>
+    <p class="sub">综合本章所学，完成以下检测。每题作答后会立即显示对错，最终得分会显示在登舰证书上。</p>
+
+    <div class="card" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <span class="label">当前得分</span>
+      <span class="readout"><span id="quizScore">0</span><span class="unit"> / 10</span></span>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:16px;">
+      <p><b>1.</b> 判断物体是否运动，必须先选定____作为比较标准。</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 时间</button>
+        <button class="btn qopt" data-opt="B">B. 参照物</button>
+        <button class="btn qopt" data-opt="C">C. 路程</button>
+        <button class="btn qopt" data-opt="D">D. 速度</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:16px;">
+      <p><b>2.</b> 机械运动基本上可分为哪两类？</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 快与慢</button>
+        <button class="btn qopt" data-opt="B">B. 直线运动与曲线运动</button>
+        <button class="btn qopt" data-opt="C">C. 平均与瞬时</button>
+        <button class="btn qopt" data-opt="D">D. 路程与位移</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="calc" style="margin-bottom:16px;">
+      <p><b>3.</b> 一只昆虫从原点向东爬6m到A点，再转向西爬10m到B点。求它走过的路程和位移大小（单位：m）。</p>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <input type="number" class="qinput" data-ans="16" placeholder="路程 (m)" style="width:140px;">
+        <input type="number" class="qinput" data-ans="4" placeholder="位移大小 (m)" style="width:160px;">
+        <button class="btn qsubmit">提交</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="C" style="margin-bottom:16px;">
+      <p><b>4.</b> 路程是____量，位移是____量。</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 标量；标量</button>
+        <button class="btn qopt" data-opt="B">B. 矢量；矢量</button>
+        <button class="btn qopt" data-opt="C">C. 标量；矢量</button>
+        <button class="btn qopt" data-opt="D">D. 矢量；标量</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="calc" style="margin-bottom:16px;">
+      <p><b>5.</b> 一辆车行驶60km，用了1.5小时，求它的平均速率（km/h）。</p>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <input type="number" class="qinput" data-ans="40" placeholder="平均速率 (km/h)" style="width:180px;">
+        <button class="btn qsubmit">提交</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:16px;">
+      <p><b>6.</b> 与速率相比，速度多出了哪个要素？</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 大小</button>
+        <button class="btn qopt" data-opt="B">B. 方向</button>
+        <button class="btn qopt" data-opt="C">C. 时间</button>
+        <button class="btn qopt" data-opt="D">D. 路程</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="calc" style="margin-bottom:16px;">
+      <p><b>7.</b> 运动员在直跑道上跑了200m用时25s，随后沿原路跑回起点又用了25s。求全程的平均速率与平均速度（单位：m/s）。</p>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <input type="number" class="qinput" data-ans="8" placeholder="平均速率 (m/s)" style="width:170px;">
+        <input type="number" class="qinput" data-ans="0" placeholder="平均速度 (m/s)" style="width:170px;">
+        <button class="btn qsubmit">提交</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:16px;">
+      <p><b>8.</b> 高速公路告示牌上的限速100km/h，指的是哪一种速率？</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 平均速率</button>
+        <button class="btn qopt" data-opt="B">B. 瞬时速率</button>
+        <button class="btn qopt" data-opt="C">C. 平均速度</button>
+        <button class="btn qopt" data-opt="D">D. 瞬时速度</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:16px;">
+      <p><b>9.</b> 在匀速直线运动中，平均速率、瞬时速率与瞬时速度三者的关系是？</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 三者都不相等</button>
+        <button class="btn qopt" data-opt="B">B. 三者都相等</button>
+        <button class="btn qopt" data-opt="C">C. 只有平均速率等于瞬时速率</button>
+        <button class="btn qopt" data-opt="D">D. 三者无法比较</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+
+    <div class="qz card" data-type="mc" data-answer="B" style="margin-bottom:30px;">
+      <p><b>10.</b> 在速度–时间图中，速度水平线下方的阴影面积代表什么？</p>
+      <div class="qopts" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn qopt" data-opt="A">A. 位移</button>
+        <button class="btn qopt" data-opt="B">B. 路程</button>
+        <button class="btn qopt" data-opt="C">C. 加速度</button>
+        <button class="btn qopt" data-opt="D">D. 时间</button>
+      </div>
+      <p class="qfeedback" style="margin-top:8px; font-size:14px;"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CERTIFICATE ============ -->
+<section class="panel" id="cert" style="display:flex; align-items:center;">
+  <div class="panel-inner" style="width:100%;">
+    <div class="tag"><span class="num">MISSION COMPLETE</span> 任务完成</div>
+    <h2 class="title">领取你的登舰证书</h2>
+    <p class="sub">输入姓名，生成属于你的"时空导航站 · 第12章 物体的运动"完成证书。</p>
+
+    <div class="grid2" style="align-items:center;">
+      <div class="card">
+        <div class="label">学生姓名</div>
+        <input type="text" id="certName" placeholder="请输入姓名" style="width:100%; margin-top:8px; margin-bottom:16px;">
+        <div class="label">最终得分</div>
+        <div class="readout" style="margin:6px 0 16px;"><span id="certScore">0</span><span class="unit"> / 10</span></div>
+        <button class="btn" id="genCert">生成证书</button>
+        <button class="btn alt" id="dlCert" style="display:none; margin-left:10px;">⬇ 下载证书</button>
+      </div>
+      <div class="hud-frame" style="padding:14px; display:flex; align-items:center; justify-content:center;"><div class="c2"></div>
+        <canvas id="certCanvas" width="700" height="460" style="width:100%; height:auto; border-radius:4px;"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /.wrap -->
+
+<footer>
+  峇株吧辖华仁中学 · 科学教学互动课件 · 第12章 物体的运动<br>
+  <span class="credit">//峇株吧辖华仁中学蔡逸众制作 ｜ Made by ecchua79</span>
+</footer>
+
+<script>
+//峇株吧辖蔡逸众制作
+(function(){
+"use strict";
+
+/* ---------- topbar progress + navdots ---------- */
+var sections = ["hero","m1","m2","m3","m4","m5","quiz","cert"];
+var navlabels = {hero:"起点",m1:"01 参照物",m2:"02 运动分类",m3:"03 路程与位移",m4:"04 速率与速度",m5:"05 匀速直线运动",quiz:"返航检测",cert:"登舰证书"};
+var progressbar = document.getElementById("progressbar");
+var progresspct = document.getElementById("progresspct");
+var bbsec = document.getElementById("bbsec");
+
+function onScroll(){
+  var doc = document.documentElement;
+  var scrollTop = window.scrollY || doc.scrollTop;
+  var max = doc.scrollHeight - doc.clientHeight;
+  var pct = max > 0 ? Math.min(100, Math.round(scrollTop / max * 100)) : 0;
+  progressbar.style.width = pct + "%";
+  progresspct.textContent = pct + "%";
+}
+window.addEventListener("scroll", onScroll, {passive:true});
+onScroll();
+
+var navdots = document.querySelectorAll("#navdots a");
+var io = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){
+      var id = e.target.id;
+      navdots.forEach(function(d){ d.classList.toggle("active", d.getAttribute("href") === "#"+id); });
+      if(bbsec && navlabels[id]) bbsec.textContent = navlabels[id];
+    }
+  });
+}, {threshold:0.5});
+sections.forEach(function(id){
+  var el = document.getElementById(id);
+  if(el) io.observe(el);
+});
+
+/* ---------- blackbox clock ---------- */
+var bbtime = document.getElementById("bbtime");
+var startTs = Date.now();
+setInterval(function(){
+  var s = Math.floor((Date.now()-startTs)/1000);
+  var mm = String(Math.floor(s/60)).padStart(2,"0");
+  var ss = String(s%60).padStart(2,"0");
+  if(bbtime) bbtime.textContent = mm+":"+ss;
+}, 1000);
+
+var bbdist = document.getElementById("bbdist");
+var bbdisp = document.getElementById("bbdisp");
+function updateBlackbox(d, x){
+  if(bbdist) bbdist.textContent = d.toFixed(1)+" m";
+  if(bbdisp) bbdisp.textContent = x.toFixed(1)+" m";
+}
+
+/* ---------- generic reveal buttons ---------- */
+document.querySelectorAll(".reveal-btn").forEach(function(btn){
+  var origLabel = btn.textContent;
+  btn.addEventListener("click", function(){
+    var target = document.getElementById(btn.dataset.target);
+    if(!target) return;
+    var show = !target.classList.contains("show");
+    target.classList.toggle("show", show);
+    btn.textContent = show ? "收起 ▴" : origLabel;
+  });
+});
+
+/* =========================================================
+   MODULE 1 — 参照物与运动（火车与站台）
+   ========================================================= */
+(function(){
+  var cv = document.getElementById("trainCanvas");
+  if(!cv) return;
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var playing = false;
+  var frameMode = "platform"; // platform | cabin
+  var speedLevel = 2;
+  var worldX = 0;             // total distance travelled, only ever increases (one direction)
+  var raf = null;
+
+  var TRAIN_W = 150;
+  var GAP = 160;                       // gap between consecutive trains (platform view)
+  var CYCLE = W + TRAIN_W + GAP;        // one full loop: a train enters left, exits right, next one follows
+  var STATION_SPACING = 420;            // world-distance between stations (cabin view)
+
+  var toggleBtn = document.getElementById("trainToggle");
+  var frameBtn = document.getElementById("frameToggle");
+  var speedSlider = document.getElementById("trainSpeed");
+  var speedLabel = document.getElementById("trainSpeedLabel");
+  var frameText = document.getElementById("frameText");
+
+  var speedNames = {1:"很慢",2:"中速",3:"较快",4:"快速",5:"极速"};
+
+  function drawScene(){
+    ctx.clearRect(0,0,W,H);
+    var g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#0A1322"); g.addColorStop(1,"#0D1B2E");
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    var groundY = H-60;
+
+    if(frameMode === "platform"){
+      drawPlatformMode(groundY);
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.font = "11px 'Space Mono', monospace";
+      ctx.fillText("视角：站台（火车不断从左边进站，往右边离去）", 14, 22);
+    } else {
+      drawCabinMode(groundY);
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.font = "11px 'Space Mono', monospace";
+      ctx.fillText("视角：车厢内乘客（窗外的站台不断后退，一站接一站）", 14, 22);
+    }
+  }
+
+  function drawRailBase(groundY, offset){
+    ctx.strokeStyle = "#1C2D45"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0,groundY+30); ctx.lineTo(W,groundY+30); ctx.stroke();
+    ctx.fillStyle = "#1C2D45";
+    var phase = ((offset||0) % 40 + 40) % 40;
+    for(var tx = -phase; tx < W; tx += 40){
+      ctx.fillRect(tx, groundY+26, 22, 6);
+    }
+  }
+
+  // ---- 站台视角：站台固定不动，一列又一列的火车持续从左边进场，往右边离去 ----
+  function drawPlatformMode(groundY){
+    drawRailBase(groundY, 0);
+
+    // fixed platform & station (this is the reference object — it never moves)
+    ctx.fillStyle = "#152339";
+    ctx.fillRect(0, groundY-10, W, 14);
+    ctx.fillStyle = "#1A2C46";
+    ctx.fillRect(40, groundY-90, 130, 80);
+    ctx.fillStyle = "#34E4EA";
+    ctx.font = "11px 'Space Mono', monospace";
+    ctx.fillText("STATION 站台", 52, groundY-95);
+    ctx.fillStyle = "#243A57";
+    for(var px=220; px<W-20; px+=90){
+      ctx.fillRect(px, groundY-60, 8, 60);
+    }
+
+    // train screen position loops: enters at -TRAIN_W, exits past W, then the next train repeats the cycle
+    var screenX = -TRAIN_W + (worldX % CYCLE);
+    drawTrain(screenX, groundY-26);
+  }
+
+  // ---- 车厢视角：火车（车厢）固定在画面中央，站台与一站接一站地向后退去 ----
+  function drawCabinMode(groundY){
+    var trainScreenX = 260;
+    var platformOffset = -worldX; // world scrolls backward as the train moves forward
+
+    drawRailBase(groundY, platformOffset);
+
+    ctx.save();
+    ctx.translate(platformOffset, 0);
+    ctx.fillStyle = "#152339";
+    ctx.fillRect(-200, groundY-10, W + worldX + 400, 14);
+
+    // repeating stations, spaced along the world axis — each one a *new* station, endlessly
+    var firstIdx = Math.floor(worldX / STATION_SPACING) - 1;
+    var lastWorldX = worldX + W + STATION_SPACING;
+    for(var sx = firstIdx*STATION_SPACING; sx < lastWorldX; sx += STATION_SPACING){
+      var stationNum = Math.round(sx / STATION_SPACING) + 1;
+      ctx.fillStyle = "#1A2C46";
+      ctx.fillRect(sx+20, groundY-90, 130, 80);
+      ctx.fillStyle = "#34E4EA";
+      ctx.font = "11px 'Space Mono', monospace";
+      ctx.fillText("第 " + stationNum + " 站", sx+32, groundY-95);
+      ctx.fillStyle = "#243A57";
+      for(var px2 = sx+200; px2 < sx+STATION_SPACING-40; px2+=90){
+        ctx.fillRect(px2, groundY-60, 8, 60);
+      }
+    }
+    ctx.restore();
+
+    drawTrain(trainScreenX, groundY-26);
+
+    var currentStation = Math.floor(worldX / STATION_SPACING) + 1;
+    ctx.fillStyle = "#FF8A3D"; ctx.font = "11px 'Space Mono', monospace";
+    ctx.fillText("窗外刚经过：第 " + currentStation + " 站", 14, H-12);
+  }
+
+  function drawTrain(x,y){
+    ctx.fillStyle = "#E7EEF5";
+    ctx.fillRect(x, y-30, TRAIN_W, 36);
+    ctx.fillStyle = "#FF8A3D";
+    ctx.fillRect(x, y-30, TRAIN_W, 6);
+    for(var i=0;i<4;i++){
+      ctx.fillStyle = "#34E4EA";
+      ctx.fillRect(x+12+i*34, y-22, 20, 14);
+    }
+    ctx.fillStyle = "#0D1626";
+    ctx.beginPath(); ctx.arc(x+24,y+8,7,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+126,y+8,7,0,Math.PI*2); ctx.fill();
+  }
+
+  function tick(){
+    if(playing){
+      worldX += speedLevel * 1.4;
+    }
+    drawScene();
+    raf = requestAnimationFrame(tick);
+  }
+
+  toggleBtn.addEventListener("click", function(){
+    playing = !playing;
+    toggleBtn.textContent = playing ? "⏸ 暂停" : "▶ 播放";
+  });
+
+  frameBtn.addEventListener("click", function(){
+    frameMode = (frameMode === "platform") ? "cabin" : "platform";
+    frameBtn.textContent = "切换参照物：" + (frameMode==="platform" ? "站台视角" : "车厢视角");
+    if(frameMode === "platform"){
+      frameText.innerHTML = '以<b style="color:var(--cyan);">站台</b>为参照物：火车与站台之间的位置不断改变 → 火车在<b style="color:var(--green);">运动</b>。站台本身固定不动，一列又一列的火车持续驶过。';
+    } else {
+      frameText.innerHTML = '以<b style="color:var(--amber);">车厢里的乘客</b>为参照物：乘客与车厢座位之间的位置始终没有改变 → 火车（相对乘客）是<b style="color:var(--red);">静止</b>的；此时窗外的站台反而不断向后退去，一站接一站，没有尽头。';
+    }
+  });
+
+  speedSlider.addEventListener("input", function(){
+    speedLevel = parseInt(speedSlider.value,10);
+    speedLabel.textContent = speedNames[speedLevel];
+  });
+
+  tick();
+})();
+
+
+/* =========================================================
+   MODULE 2 — 机械运动分类（直线 / 曲线）拖放分类
+   ========================================================= */
+//峇株吧辖蔡逸众制作
+(function(){
+  var pool = document.getElementById("poolzone");
+  if(!pool) return;
+  var items = [
+    {id:"car", name:"汽车直行", type:"line"},
+    {id:"fall", name:"自由落体", type:"line"},
+    {id:"lift", name:"电梯上下", type:"line"},
+    {id:"rocket", name:"火箭升空", type:"line"},
+    {id:"coaster", name:"过山车", type:"curve"},
+    {id:"ship", name:"海盗船", type:"curve"},
+    {id:"wheel", name:"摩天轮", type:"curve"},
+    {id:"loop", name:"汽车绕圆环行驶", type:"curve"}
+  ];
+  var placed = {};
+  var selected = null;
+  var scoreEl = document.getElementById("sortScore");
+  var lineZone = document.querySelector('.dropzone[data-type="line"]');
+  var curveZone = document.querySelector('.dropzone[data-type="curve"]');
+
+  function shuffle(arr){
+    for(var i=arr.length-1; i>0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+    }
+    return arr;
+  }
+  shuffle(items);
+
+  function makeChip(it){
+    var b = document.createElement("button");
+    b.className = "btn";
+    b.style.fontSize = "13px";
+    b.textContent = it.name;
+    b.dataset.id = it.id;
+    b.addEventListener("click", function(){
+      document.querySelectorAll("#poolzone .btn").forEach(function(x){ x.style.boxShadow=""; });
+      selected = it.id;
+      b.style.boxShadow = "0 0 0 2px var(--cyan)";
+    });
+    return b;
+  }
+
+  function renderPool(){
+    pool.innerHTML = "";
+    items.forEach(function(it){
+      if(!placed[it.id]) pool.appendChild(makeChip(it));
+    });
+  }
+
+  function dropInto(zoneEl, type){
+    zoneEl.addEventListener("click", function(){
+      if(!selected) return;
+      var it = items.find(function(x){return x.id===selected;});
+      if(!it) return;
+      placed[it.id] = type;
+      selected = null;
+      renderPool();
+      renderZones();
+      updateScore();
+    });
+  }
+  dropInto(lineZone, "line");
+  dropInto(curveZone, "curve");
+
+  function renderZones(){
+    [lineZone, curveZone].forEach(function(zone){
+      var type = zone.dataset.type;
+      zone.innerHTML = "";
+      items.forEach(function(it){
+        if(placed[it.id] === type){
+          var chip = document.createElement("span");
+          chip.className = "pill " + (it.type===type ? "on":"");
+          chip.style.borderColor = it.type===type ? "var(--green)" : "var(--red)";
+          chip.style.color = it.type===type ? "var(--green)" : "var(--red)";
+          chip.textContent = it.name + (it.type===type ? " ✓" : " ✕");
+          zone.appendChild(chip);
+        }
+      });
+    });
+  }
+
+  function updateScore(){
+    var correct = 0;
+    items.forEach(function(it){ if(placed[it.id] === it.type) correct++; });
+    scoreEl.textContent = correct;
+  }
+
+  document.getElementById("sortReset").addEventListener("click", function(){
+    placed = {};
+    selected = null;
+    shuffle(items);
+    renderPool();
+    renderZones();
+    updateScore();
+  });
+
+  renderPool();
+  renderZones();
+  updateScore();
+})();
+
+/* =========================================================
+   MODULE 3 — 路程与位移（互动地图）
+   ========================================================= */
+//华仁中学蔡逸众制作
+(function(){
+  var cv = document.getElementById("mapCanvas");
+  if(!cv) return;
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var SCALE = 30; // px per "cm"
+  var points = [];
+
+  function toCm(px){ return px / SCALE; }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "#0A1220";
+    ctx.fillRect(0,0,W,H);
+    // grid
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for(var x=0;x<W;x+=SCALE){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for(var y=0;y<H;y+=SCALE){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    if(points.length === 0){
+      ctx.fillStyle = "var(--muted)";
+      ctx.font = "13px 'Noto Sans SC', sans-serif";
+      ctx.fillText("点击画布，规划航线起点……", W/2-90, H/2);
+      return;
+    }
+
+    // path (distance) - orange
+    ctx.strokeStyle = "#FF8A3D";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for(var i=1;i<points.length;i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.stroke();
+
+    // displacement (straight line) - violet, dashed, with arrowhead
+    if(points.length > 1){
+      var p0 = points[0], p1 = points[points.length-1];
+      ctx.save();
+      ctx.strokeStyle = "#9D7CFF";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([7,6]);
+      ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.lineTo(p1.x,p1.y); ctx.stroke();
+      ctx.setLineDash([]);
+      var ang = Math.atan2(p1.y-p0.y, p1.x-p0.x);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p1.x - 12*Math.cos(ang-0.4), p1.y - 12*Math.sin(ang-0.4));
+      ctx.lineTo(p1.x - 12*Math.cos(ang+0.4), p1.y - 12*Math.sin(ang+0.4));
+      ctx.closePath(); ctx.fillStyle = "#9D7CFF"; ctx.fill();
+      ctx.restore();
+    }
+
+    // points
+    points.forEach(function(p,i){
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,6,0,Math.PI*2);
+      ctx.fillStyle = i===0 ? "#4CD787" : (i===points.length-1 ? "#9D7CFF" : "#FF8A3D");
+      ctx.fill();
+      ctx.strokeStyle = "#06121A"; ctx.lineWidth=2; ctx.stroke();
+    });
+  }
+
+  function computeAndShow(){
+    var dist = 0;
+    for(var i=1;i<points.length;i++){
+      var dx = points[i].x-points[i-1].x, dy = points[i].y-points[i-1].y;
+      dist += Math.sqrt(dx*dx+dy*dy);
+    }
+    var disp = 0;
+    if(points.length>1){
+      var dx2 = points[points.length-1].x - points[0].x;
+      var dy2 = points[points.length-1].y - points[0].y;
+      disp = Math.sqrt(dx2*dx2+dy2*dy2);
+    }
+    var distCm = toCm(dist), dispCm = toCm(disp);
+    document.getElementById("mapDist").textContent = distCm.toFixed(1);
+    document.getElementById("mapDisp").textContent = dispCm.toFixed(1);
+    var note = document.getElementById("mapNote");
+    if(points.length < 2){
+      note.textContent = "路程只能 ≥ 位移大小。当航线笔直且不折返时，路程 = 位移大小；航线越曲折、折返越多，两者差距越大。";
+    } else if(Math.abs(distCm-dispCm) < 0.3){
+      note.textContent = "这条航线是直线且没有折返，所以路程 ≈ 位移大小！";
+    } else {
+      note.textContent = "路程 (" + distCm.toFixed(1) + " cm) 大于位移大小 (" + dispCm.toFixed(1) + " cm)——航线发生了转折或折返。";
+    }
+    updateBlackbox(distCm, dispCm);
+  }
+
+  cv.addEventListener("click", function(e){
+    var rect = cv.getBoundingClientRect();
+    var x = (e.clientX-rect.left) * (W/rect.width);
+    var y = (e.clientY-rect.top) * (H/rect.height);
+    points.push({x:x,y:y});
+    draw();
+    computeAndShow();
+  });
+
+  document.getElementById("mapUndo").addEventListener("click", function(){
+    points.pop();
+    draw();
+    computeAndShow();
+  });
+  document.getElementById("mapClear").addEventListener("click", function(){
+    points = [];
+    draw();
+    computeAndShow();
+  });
+
+  document.getElementById("mapDemo").addEventListener("click", function(){
+    var originX = W/2, originY = H/2;
+    var demo = [
+      {x:originX, y:originY},
+      {x:originX + 2*SCALE, y:originY},
+      {x:originX + 5*SCALE, y:originY},
+      {x:originX - 4*SCALE, y:originY}
+    ];
+    points = [];
+    draw();
+    var i = 0;
+    var step = function(){
+      points.push(demo[i]);
+      draw();
+      computeAndShow();
+      i++;
+      if(i < demo.length) setTimeout(step, 600);
+    };
+    step();
+  });
+
+  draw();
+  computeAndShow();
+
+  // 小美路线示意图
+  (function(){
+    var mc = document.getElementById("meiCanvas");
+    if(!mc) return;
+    var mctx = mc.getContext("2d");
+    var MW = mc.width, MH = mc.height;
+    var sc = 10; // px per metre
+    var startX = 70, startY = MH-60;
+    var p0 = {x:startX, y:startY};
+    var p1 = {x:startX+10*sc, y:startY};        // 东 10m
+    var p2 = {x:startX+10*sc, y:startY-15*sc};   // 北 15m
+    var p3 = {x:startX, y:startY-15*sc};         // 西 10m，回到与起点同一竖线
+
+    function arrowHead(ctx,x,y,ang,color){
+      ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,-5); ctx.lineTo(-10,5); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.restore();
+    }
+
+    mctx.clearRect(0,0,MW,MH);
+    mctx.fillStyle = "#0A1220"; mctx.fillRect(0,0,MW,MH);
+    // compass
+    mctx.fillStyle = "#4D5F78"; mctx.font = "11px 'Space Mono', monospace"; mctx.textAlign="center";
+    mctx.fillText("北 ↑", startX, 16);
+
+    // leg1 东 (cyan)
+    mctx.strokeStyle = "#34E4EA"; mctx.lineWidth = 4;
+    mctx.beginPath(); mctx.moveTo(p0.x,p0.y); mctx.lineTo(p1.x,p1.y); mctx.stroke();
+    arrowHead(mctx, p1.x, p1.y, 0, "#34E4EA");
+    mctx.fillStyle = "#34E4EA"; mctx.font="12px 'Noto Sans SC', sans-serif";
+    mctx.fillText("东 10m", (p0.x+p1.x)/2, p0.y+18);
+
+    // leg2 北 (amber)
+    mctx.strokeStyle = "#FF8A3D"; mctx.lineWidth = 4;
+    mctx.beginPath(); mctx.moveTo(p1.x,p1.y); mctx.lineTo(p2.x,p2.y); mctx.stroke();
+    arrowHead(mctx, p2.x, p2.y, -Math.PI/2, "#FF8A3D");
+    mctx.save(); mctx.translate(p1.x+16, (p1.y+p2.y)/2); mctx.rotate(-Math.PI/2);
+    mctx.fillStyle = "#FF8A3D"; mctx.textAlign="center"; mctx.fillText("北 15m", 0, 0); mctx.restore();
+
+    // leg3 西 (cyan)
+    mctx.strokeStyle = "#34E4EA"; mctx.lineWidth = 4;
+    mctx.beginPath(); mctx.moveTo(p2.x,p2.y); mctx.lineTo(p3.x,p3.y); mctx.stroke();
+    arrowHead(mctx, p3.x, p3.y, Math.PI, "#34E4EA");
+    mctx.fillStyle = "#34E4EA"; mctx.textAlign="center";
+    mctx.fillText("西 10m", (p2.x+p3.x)/2, p2.y-10);
+
+    // 位移 (violet dashed), offset slightly to the right so it doesn't overlap the path
+    var offsetX = 26;
+    mctx.save();
+    mctx.strokeStyle = "#9D7CFF"; mctx.lineWidth = 3; mctx.setLineDash([7,6]);
+    mctx.beginPath(); mctx.moveTo(p0.x+offsetX,p0.y); mctx.lineTo(p3.x+offsetX,p3.y); mctx.stroke();
+    mctx.setLineDash([]);
+    arrowHead(mctx, p3.x+offsetX, p3.y, -Math.PI/2, "#9D7CFF");
+    mctx.fillStyle = "#9D7CFF"; mctx.textAlign="left";
+    mctx.fillText("位移 15m", p3.x+offsetX+8, (p0.y+p3.y)/2);
+    mctx.restore();
+
+    // start / end markers
+    mctx.beginPath(); mctx.arc(p0.x,p0.y,5,0,Math.PI*2); mctx.fillStyle="#4CD787"; mctx.fill();
+    mctx.fillStyle="#4CD787"; mctx.textAlign="right"; mctx.fillText("起点", p0.x-10, p0.y+4);
+    mctx.beginPath(); mctx.arc(p3.x,p3.y,5,0,Math.PI*2); mctx.fillStyle="#9D7CFF"; mctx.fill();
+    mctx.textAlign="left";
+  })();
+
+  // 小美 check
+  document.getElementById("meiCheck").addEventListener("click", function(){
+    var d = parseFloat(document.getElementById("meiDist").value);
+    var x = parseFloat(document.getElementById("meiDisp").value);
+    var result = document.getElementById("meiResult");
+    var okD = Math.abs(d-35) < 0.6;
+    var okX = Math.abs(x-15) < 0.6;
+    if(okD && okX){
+      result.innerHTML = '<span style="color:var(--green);">✓ 正确！路程35m，位移15m（方向正北）。</span>';
+    } else {
+      result.innerHTML = '<span style="color:var(--red);">✗ 再想想：东西方向的位移会相互抵消，只剩南北方向。</span>';
+    }
+  });
+})();
+
+/* =========================================================
+   MODULE 4 — 速率与速度
+   ========================================================= */
+//峇株吧辖华仁中学蔡逸众制作
+(function(){
+  var cv = document.getElementById("trackCanvas");
+  if(!cv) return;
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var legA = document.getElementById("legA");
+  var legB = document.getElementById("legB");
+  var legT = document.getElementById("legT");
+  var dirWE = document.getElementById("dirWE"); // 先西后东 => first leg direction = -1 (west)
+  var dirEW = document.getElementById("dirEW"); // 先东后西 => first leg direction = +1 (east)
+  var firstDir = 1; // +1 = east first, -1 = west first
+
+  function setDir(d){
+    firstDir = d;
+    dirEW.style.boxShadow = d===1 ? "0 0 0 2px var(--cyan)" : "";
+    dirWE.style.boxShadow = d===-1 ? "0 0 0 2px var(--cyan)" : "";
+    draw();
+  }
+  dirEW.addEventListener("click", function(){ setDir(1); });
+  dirWE.addEventListener("click", function(){ setDir(-1); });
+
+  function draw(){
+    var a = parseFloat(legA.value), b = parseFloat(legB.value), t = parseFloat(legT.value);
+    document.getElementById("legAval").textContent = a;
+    document.getElementById("legBval").textContent = b;
+    document.getElementById("legTval").textContent = t;
+
+    var dist = a+b;
+    var disp = firstDir*a - firstDir*b; // second leg always runs the opposite way of the first
+    var speed = dist/t;
+    var vel = disp/t;
+    document.getElementById("distOut").textContent = dist.toFixed(1);
+    document.getElementById("dispOut").textContent = Math.abs(disp).toFixed(1);
+    document.getElementById("speedOut").textContent = speed.toFixed(2);
+    document.getElementById("velOut").textContent = vel.toFixed(2);
+
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "#0A1220"; ctx.fillRect(0,0,W,H);
+
+    var baseY = H/2;
+    var centerX = W/2;
+    var maxRange = 100;
+    var halfLen = W*0.42;
+    var px = function(m){ return centerX + (m/maxRange)*halfLen; };
+
+    // baseline spans the full width, start sits in the middle
+    ctx.strokeStyle = "#1C2D45"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(20, baseY); ctx.lineTo(W-20, baseY); ctx.stroke();
+    // compass labels
+    ctx.fillStyle = "#4D5F78"; ctx.font = "11px 'Space Mono', monospace";
+    ctx.textAlign = "left"; ctx.fillText("◀ 西", 24, baseY-46);
+    ctx.textAlign = "right"; ctx.fillText("东 ▶", W-24, baseY-46);
+    ctx.textAlign = "left";
+
+    var x0 = px(0);
+    var x1 = px(firstDir*a);
+    var xEnd = px(firstDir*a - firstDir*b);
+
+    // leg 1 - amber, above line
+    ctx.strokeStyle = "#FF8A3D"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(x0, baseY-22); ctx.lineTo(x1, baseY-22); ctx.stroke();
+    arrow(ctx, x1, baseY-22, x1>x0?0:Math.PI, "#FF8A3D");
+
+    // leg 2 (return, opposite direction) - red, below
+    ctx.strokeStyle = "#FF5C72"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(x1, baseY+22); ctx.lineTo(xEnd, baseY+22); ctx.stroke();
+    if(b>0) arrow(ctx, xEnd, baseY+22, xEnd<x1?Math.PI:0, "#FF5C72");
+
+    // displacement (violet) on baseline
+    ctx.strokeStyle = "#9D7CFF"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x0, baseY); ctx.lineTo(xEnd, baseY); ctx.stroke();
+    if(Math.abs(xEnd-x0) > 1) arrow(ctx, xEnd, baseY, xEnd<x0?Math.PI:0, "#9D7CFF");
+
+    // markers
+    dot(ctx, x0, baseY, "#4CD787");
+    dot(ctx, x1, baseY, "#34E4EA");
+    dot(ctx, xEnd, baseY, "#9D7CFF");
+
+    ctx.fillStyle = "#7A8CA3"; ctx.font = "11px 'Space Mono', monospace";
+    ctx.fillText("起点", x0-10, baseY+42);
+    ctx.fillText("转折点", x1-16, baseY-32);
+    ctx.fillText("终点", xEnd-10, baseY+42);
+
+    var note = document.getElementById("trackNote");
+    if(disp === 0){
+      note.textContent = "位移为 0 ——折返后恰好回到起点，速度为零，但速率仍大于零。";
+    } else if(disp > 0){
+      note.textContent = "净位移方向为东，大小 " + Math.abs(disp).toFixed(1) + " m。";
+    } else {
+      note.textContent = "净位移方向为西，大小 " + Math.abs(disp).toFixed(1) + " m。";
+    }
+  }
+
+  function arrow(ctx,x,y,angle,color){
+    ctx.save();
+    ctx.translate(x,y); ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(-10,-6); ctx.lineTo(-10,6); ctx.closePath();
+    ctx.fillStyle = color; ctx.fill();
+    ctx.restore();
+  }
+  function dot(ctx,x,y,color){
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+  }
+
+  [legA,legB,legT].forEach(function(s){ s.addEventListener("input", draw); });
+  setDir(1);
+
+  // 张杰 vs 李立 race
+  var raceBtn = document.getElementById("raceBtn");
+  var raceCv = document.getElementById("raceCanvas");
+  var rctx = raceCv.getContext("2d");
+  var RW = raceCv.width, RH = raceCv.height;
+  var racing = false;
+
+  function drawRace(simT){
+    rctx.clearRect(0,0,RW,RH);
+    rctx.fillStyle = "#0A1220"; rctx.fillRect(0,0,RW,RH);
+    var marginL = 70, marginR = 30;
+    var trackW = RW-marginL-marginR;
+    var distA = 200, distB = 160;
+    var pxPerM = trackW/distA;
+
+    function lane(y, label, dist, color, posM, done){
+      rctx.strokeStyle = "#1C2D45"; rctx.lineWidth=1;
+      rctx.beginPath(); rctx.moveTo(marginL,y); rctx.lineTo(marginL+dist*pxPerM,y); rctx.stroke();
+      rctx.fillStyle="#7A8CA3"; rctx.font="11px 'Space Mono', monospace";
+      rctx.fillText(label, 6, y+4);
+      rctx.beginPath(); rctx.arc(marginL+dist*pxPerM,y,4,0,Math.PI*2); rctx.strokeStyle=color; rctx.lineWidth=1.5; rctx.stroke();
+      var px = marginL + Math.min(posM,dist)*pxPerM;
+      rctx.beginPath(); rctx.arc(px,y,7,0,Math.PI*2); rctx.fillStyle = done? "#4CD787":color; rctx.fill();
+    }
+    var posA = Math.min(simT,25)*8;
+    var posB = Math.min(simT,20)*8;
+    lane(35,"张杰", distA, "#34E4EA", posA, posA>=200);
+    lane(80,"李立", distB, "#FF8A3D", posB, posB>=160);
+  }
+  drawRace(0);
+
+  raceBtn.addEventListener("click", function(){
+    if(racing) return;
+    racing = true;
+    raceBtn.disabled = true;
+    var startT = null;
+    var SIMRATE = 5; // 5x speed
+    function frame(ts){
+      if(!startT) startT = ts;
+      var simT = (ts-startT)/1000*SIMRATE;
+      drawRace(simT);
+      if(simT < 25){
+        requestAnimationFrame(frame);
+      } else {
+        drawRace(25);
+        racing = false;
+        raceBtn.disabled = false;
+        document.getElementById("raceResult").innerHTML =
+          '<span style="color:var(--green);">两人全程并肩同速！</span> 张杰：200m÷25s ＝ 8 m/s；李立：160m÷20s ＝ 8 m/s —— 速率完全相同，只是李立先到达终点。';
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+
+  // speed limit question
+  document.querySelectorAll('.check-card .btn[data-ans]').forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var ans = btn.dataset.ans;
+      var result = document.getElementById("limitResult");
+      if(!result) return;
+      if(ans === "inst"){
+        result.innerHTML = '<span style="color:var(--green);">✓ 正确！</span> 限速牌限制的是瞬时速率——车辆经过该地点那一瞬间的速率，而非整段行程的平均值。';
+      } else {
+        result.innerHTML = '<span style="color:var(--red);">✗ 再想想：</span> 限速针对的是车辆经过那一点时的速率，也就是瞬时速率。';
+      }
+    });
+  });
+})();
+
+/* =========================================================
+   MODULE 5 — 匀速直线运动 + 图像
+   ========================================================= */
+//Made by ecchua79
+(function(){
+  var esc = document.getElementById("escCanvas");
+  if(!esc) return;
+  var ectx = esc.getContext("2d");
+  var EW = esc.width, EH = esc.height;
+  var pt = document.getElementById("ptCanvas"), ptx = pt.getContext("2d");
+  var vt = document.getElementById("vtCanvas"), vtx = vt.getContext("2d");
+  var PW = pt.width, PH = pt.height;
+
+  var t = 0, playing = false, raf=null, lastTs=null;
+  var MAXT = 8, V = 1; // 1 m/s
+
+  function drawEsc(){
+    ectx.clearRect(0,0,EW,EH);
+    ectx.fillStyle = "#0A1220"; ectx.fillRect(0,0,EW,EH);
+
+    // incline: bottom-left (boarding) -> top-right (exit) — one single upward direction
+    var x0 = 70, y0 = EH-36;
+    var x1 = EW-60, y1 = 46;
+    var dx = x1-x0, dy = y1-y0;
+    var len = Math.sqrt(dx*dx+dy*dy);
+    var ux = dx/len, uy = dy/len;        // unit vector ALONG the incline (direction of travel)
+    var nx = uy, ny = -ux;               // unit normal pointing toward the screen "up" side of the belt
+    var halfW = 24;
+
+    function along(frac){ return {x: x0+dx*frac, y: y0+dy*frac}; }
+
+    // boarding / exit platforms
+    ectx.fillStyle = "#152339";
+    ectx.fillRect(0, y0-2, x0+36, 14);
+    ectx.fillRect(x1-36, y1-2, EW-(x1-36), 14);
+    ectx.fillStyle = "#7A8CA3"; ectx.font = "11px 'Space Mono', monospace"; ectx.textAlign="left";
+    ectx.fillText("起点 0 m", 8, y0+24);
+    ectx.textAlign="right";
+    ectx.fillText(MAXT+" m 出口", EW-8, y1-14);
+    ectx.textAlign="left";
+
+    // ---- single moving belt (the escalator surface) — only ONE element animates, everything on it travels together ----
+    ectx.save();
+    ectx.beginPath();
+    ectx.moveTo(x0+nx*halfW, y0+ny*halfW);
+    ectx.lineTo(x1+nx*halfW, y1+ny*halfW);
+    ectx.lineTo(x1-nx*halfW, y1-ny*halfW);
+    ectx.lineTo(x0-nx*halfW, y0-ny*halfW);
+    ectx.closePath();
+    var bandGrad = ectx.createLinearGradient(x0,y0,x1,y1);
+    bandGrad.addColorStop(0, "#101D33"); bandGrad.addColorStop(1, "#152339");
+    ectx.fillStyle = bandGrad; ectx.fill();
+    ectx.strokeStyle = "#243A57"; ectx.lineWidth = 1.5; ectx.stroke();
+    ectx.clip();
+
+    // tread lines on the belt, all sliding in the SAME direction (bottom -> top) at the SAME speed as the rider
+    var stepGap = 22;
+    var phase = (t * (len/MAXT)) % stepGap;
+    ectx.strokeStyle = "rgba(52,228,234,0.4)"; ectx.lineWidth = 2;
+    for(var d = phase - stepGap; d < len+halfW*2; d += stepGap){
+      var px = x0 + ux*d, py = y0 + uy*d;
+      ectx.beginPath();
+      ectx.moveTo(px+nx*halfW, py+ny*halfW);
+      ectx.lineTo(px-nx*halfW, py-ny*halfW);
+      ectx.stroke();
+    }
+    ectx.restore();
+
+    // belt edge rails — drawn parallel to the SAME belt, so they read as one object, not separate lines
+    ectx.strokeStyle = "#34E4EA"; ectx.lineWidth = 2.5;
+    ectx.beginPath();
+    ectx.moveTo(x0+nx*halfW, y0+ny*halfW); ectx.lineTo(x1+nx*halfW, y1+ny*halfW);
+    ectx.stroke();
+    ectx.strokeStyle = "#1A7A80"; ectx.lineWidth = 2.5;
+    ectx.beginPath();
+    ectx.moveTo(x0-nx*halfW, y0-ny*halfW); ectx.lineTo(x1-nx*halfW, y1-ny*halfW);
+    ectx.stroke();
+
+    // big directional arrow next to the escalator, confirming everything moves the SAME way
+    ectx.save();
+    var midx = (x0+x1)/2 + nx*(halfW+34), midy = (y0+y1)/2 + ny*(halfW+34);
+    ectx.translate(midx, midy);
+    ectx.rotate(Math.atan2(dy,dx));
+    ectx.strokeStyle = "#FF8A3D"; ectx.fillStyle = "#FF8A3D"; ectx.lineWidth = 3; ectx.lineCap="round";
+    ectx.beginPath(); ectx.moveTo(-46,0); ectx.lineTo(46,0); ectx.stroke();
+    ectx.beginPath(); ectx.moveTo(46,0); ectx.lineTo(34,-8); ectx.lineTo(34,8); ectx.closePath(); ectx.fill();
+    ectx.restore();
+    ectx.fillStyle = "#FF8A3D"; ectx.font="11px 'Noto Sans SC', sans-serif"; ectx.textAlign="center";
+    ectx.fillText("载着学生向上移动", midx, midy-12);
+
+    // rider position — exactly on the belt's centerline, moving WITH the belt
+    var frac = Math.min(t,MAXT)/MAXT;
+    var p = along(frac);
+
+    // 1-metre markers on the belt centerline (static reference grid, same direction as everything else)
+    ectx.fillStyle = "#34E4EA";
+    for(var m=0; m<=MAXT; m++){
+      var tp = along(m/MAXT);
+      ectx.beginPath(); ectx.arc(tp.x, tp.y, 1.6, 0, Math.PI*2); ectx.fill();
+    }
+
+    // rider figure — stands upright on the belt; lifted along the belt's own normal (not a raw vertical offset),
+    // so the figure visibly sits ON the moving surface instead of floating off at an angle of its own.
+    var standH = 30;
+    var fx = p.x + nx*standH, fy = p.y + ny*standH;
+    ectx.save();
+    ectx.translate(fx, fy);
+    ectx.fillStyle = "#FF8A3D";
+    ectx.beginPath(); ectx.arc(0,-20,8,0,Math.PI*2); ectx.fill(); // head
+    ectx.fillRect(-7,-12,14,20); // body
+    ectx.strokeStyle = "#FF8A3D"; ectx.lineWidth=3; ectx.lineCap="round";
+    ectx.beginPath(); ectx.moveTo(-7,-2); ectx.lineTo(-11,12); ectx.stroke(); // leg
+    ectx.beginPath(); ectx.moveTo(7,-2); ectx.lineTo(11,12); ectx.stroke(); // leg
+    ectx.fillStyle = "#06121A"; ectx.font="11px 'Noto Sans SC', sans-serif"; ectx.textAlign="center";
+    ectx.fillText("学生", 0, -42);
+    // small foot-platform marker tying the figure visibly to the belt point beneath it
+    ectx.strokeStyle = "rgba(255,138,61,0.6)"; ectx.lineWidth = 1.5; ectx.setLineDash([3,3]);
+    ectx.beginPath(); ectx.moveTo(0,12); ectx.lineTo(-nx*standH, -ny*standH+12); ectx.stroke();
+    ectx.setLineDash([]);
+    ectx.restore();
+  }
+
+
+  function drawGraphs(){
+    [ptx,vtx].forEach(function(c){ c.clearRect(0,0,PW,PH); c.fillStyle="#0A1220"; c.fillRect(0,0,PW,PH); });
+    var padL=34, padB=24, padT=10, padR=10;
+    var gw = PW-padL-padR, gh = PH-padT-padB;
+    function axes(c){
+      c.strokeStyle="#1C2D45"; c.lineWidth=1;
+      c.beginPath(); c.moveTo(padL,padT); c.lineTo(padL,PH-padB); c.lineTo(PW-padR,PH-padB); c.stroke();
+    }
+    axes(ptx); axes(vtx);
+
+    // position-time line: x = V*t, plot 0..t
+    ptx.strokeStyle="#34E4EA"; ptx.lineWidth=2.5;
+    ptx.beginPath();
+    var n=40;
+    for(var i=0;i<=n;i++){
+      var tt = t*i/n;
+      var xx = padL + (tt/MAXT)*gw;
+      var yy = (PH-padB) - (V*tt/MAXT)*gh;
+      if(i===0) ptx.moveTo(xx,yy); else ptx.lineTo(xx,yy);
+    }
+    ptx.stroke();
+    ptx.fillStyle="#7A8CA3"; ptx.font="10px 'Space Mono', monospace";
+    ptx.fillText("t(s)", PW-26, PH-10); ptx.fillText("x(m)",4,12);
+
+    // velocity-time: horizontal line at V, shade area 0..t
+    var yV = (PH-padB) - (V/MAXT)*gh;
+    var xT = padL + (t/MAXT)*gw;
+    vtx.fillStyle = "rgba(255,138,61,0.25)";
+    vtx.fillRect(padL, yV, xT-padL, (PH-padB)-yV);
+    vtx.strokeStyle="#FF8A3D"; vtx.lineWidth=2.5;
+    vtx.beginPath(); vtx.moveTo(padL,yV); vtx.lineTo(padL+gw,yV); vtx.stroke();
+    vtx.strokeStyle="#9D7CFF"; vtx.lineWidth=1.5; vtx.setLineDash([4,4]);
+    vtx.beginPath(); vtx.moveTo(xT,PH-padB); vtx.lineTo(xT,yV); vtx.stroke();
+    vtx.setLineDash([]);
+    vtx.fillStyle="#7A8CA3"; vtx.font="10px 'Space Mono', monospace";
+    vtx.fillText("t(s)", PW-26, PH-10); vtx.fillText("v(m/s)",4,12);
+  }
+
+  function render(){
+    drawEsc();
+    drawGraphs();
+    document.getElementById("escT").textContent = t.toFixed(1);
+    document.getElementById("escD").textContent = (V*t).toFixed(1);
+  }
+
+  function tick(ts){
+    if(!lastTs) lastTs = ts;
+    var dt = (ts-lastTs)/1000;
+    lastTs = ts;
+    if(playing){
+      t += dt;
+      if(t >= MAXT){ t = MAXT; playing=false; document.getElementById("escPlay").textContent="▶ 启动扶梯"; }
+    }
+    render();
+    raf = requestAnimationFrame(tick);
+  }
+
+  document.getElementById("escPlay").addEventListener("click", function(){
+    playing = !playing;
+    this.textContent = playing ? "⏸ 暂停" : "▶ 启动扶梯";
+  });
+  document.getElementById("escReset").addEventListener("click", function(){
+    t = 0; playing=false; document.getElementById("escPlay").textContent="▶ 启动扶梯";
+    render();
+  });
+
+  render();
+  raf = requestAnimationFrame(tick);
+})();
+
+/* =========================================================
+   QUIZ ENGINE
+   ========================================================= */
+//峇株吧辖蔡逸众制作
+(function(){
+  var quizScoreEl = document.getElementById("quizScore");
+  var certScoreEl = document.getElementById("certScore");
+  var score = 0;
+
+  function bump(){
+    score++;
+    quizScoreEl.textContent = score;
+    if(certScoreEl) certScoreEl.textContent = score;
+  }
+
+  document.querySelectorAll('.qz[data-type="mc"]').forEach(function(qz){
+    var answer = qz.dataset.answer;
+    var answered = false;
+    qz.querySelectorAll(".qopt").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        if(answered) return;
+        answered = true;
+        var fb = qz.querySelector(".qfeedback");
+        qz.querySelectorAll(".qopt").forEach(function(b){ b.disabled = true; });
+        if(btn.dataset.opt === answer){
+          btn.style.boxShadow = "0 0 0 2px var(--green)";
+          fb.innerHTML = '<span style="color:var(--green);">✓ 正确！</span>';
+          bump();
+        } else {
+          btn.style.boxShadow = "0 0 0 2px var(--red)";
+          qz.querySelectorAll(".qopt").forEach(function(b){ if(b.dataset.opt===answer) b.style.boxShadow="0 0 0 2px var(--green)"; });
+          fb.innerHTML = '<span style="color:var(--red);">✗ 正确答案是 ' + answer + '</span>';
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.qz[data-type="calc"]').forEach(function(qz){
+    var counted = false;
+    var btn = qz.querySelector(".qsubmit");
+    btn.addEventListener("click", function(){
+      var inputs = qz.querySelectorAll(".qinput");
+      var allOk = true;
+      inputs.forEach(function(inp){
+        var ans = parseFloat(inp.dataset.ans);
+        var val = parseFloat(inp.value);
+        var ok = !isNaN(val) && Math.abs(val-ans) < 0.6;
+        inp.style.borderColor = ok ? "var(--green)" : "var(--red)";
+        if(!ok) allOk = false;
+      });
+      var fb = qz.querySelector(".qfeedback");
+      if(allOk){
+        fb.innerHTML = '<span style="color:var(--green);">✓ 全部正确！</span>';
+        if(!counted){ counted = true; bump(); inputs.forEach(function(i){ i.disabled=true; }); btn.disabled=true; }
+      } else {
+        fb.innerHTML = '<span style="color:var(--red);">✗ 有答案不对，再检查一次。</span>';
+      }
+    });
+  });
+})();
+
+/* =========================================================
+   CERTIFICATE
+   ========================================================= */
+//华仁中学蔡逸众制作
+(function(){
+  var canvas = document.getElementById("certCanvas");
+  if(!canvas) return;
+  var ctx = canvas.getContext("2d");
+  var W = canvas.width, H = canvas.height;
+  var genBtn = document.getElementById("genCert");
+  var dlBtn = document.getElementById("dlCert");
+
+  function placeholder(){
+    ctx.fillStyle = "#0A1220"; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = "#1C2D45"; ctx.strokeRect(20,20,W-40,H-40);
+    ctx.fillStyle = "#4D5F78"; ctx.font = "14px 'Noto Sans SC', sans-serif"; ctx.textAlign="center";
+    ctx.fillText("输入姓名后点击「生成证书」", W/2, H/2);
+    ctx.textAlign="left";
+  }
+  placeholder();
+
+  genBtn.addEventListener("click", function(){
+    var name = (document.getElementById("certName").value || "同学").trim();
+    var score = document.getElementById("certScore").textContent;
+    var d = new Date();
+    var dateStr = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+
+    var g = ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,"#0A1322"); g.addColorStop(1,"#0D1B2E");
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle = "#34E4EA"; ctx.lineWidth = 2;
+    ctx.strokeRect(24,24,W-48,H-48);
+    ctx.strokeStyle = "rgba(52,228,234,0.3)"; ctx.lineWidth=1;
+    ctx.strokeRect(34,34,W-68,H-68);
+
+    // corner brackets
+    ctx.strokeStyle = "#34E4EA"; ctx.lineWidth=3;
+    [[24,24,1,1],[W-24,24,-1,1],[24,H-24,1,-1],[W-24,H-24,-1,-1]].forEach(function(c){
+      ctx.beginPath();
+      ctx.moveTo(c[0], c[1]+22*c[3]);
+      ctx.lineTo(c[0], c[1]);
+      ctx.lineTo(c[0]+22*c[2], c[1]);
+      ctx.stroke();
+    });
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#7A8CA3"; ctx.font = "13px 'Space Mono', monospace";
+    ctx.fillText("SCIENCE LAB · MOTION MODULE · CH.12", W/2, 75);
+
+    ctx.fillStyle = "#fff"; ctx.font = "bold 34px 'Noto Sans SC', sans-serif";
+    ctx.fillText("登 舰 证 书", W/2, 130);
+
+    ctx.fillStyle = "#34E4EA"; ctx.font = "16px 'Space Mono', monospace";
+    ctx.fillText("CERTIFICATE OF COMPLETION", W/2, 154);
+
+    ctx.fillStyle = "#E7EEF5"; ctx.font = "15px 'Noto Sans SC', sans-serif";
+    ctx.fillText("兹证明", W/2, 210);
+
+    ctx.fillStyle = "#FF8A3D"; ctx.font = "bold 30px 'Noto Sans SC', sans-serif";
+    ctx.fillText(name, W/2, 256);
+
+    ctx.fillStyle = "#E7EEF5"; ctx.font = "15px 'Noto Sans SC', sans-serif";
+    ctx.fillText("已完成《第12章 · 物体的运动》全部飞行任务", W/2, 296);
+    ctx.fillText("掌握参照物、路程与位移、速率与速度、匀速直线运动等核心概念", W/2, 320);
+
+    ctx.fillStyle = "#9D7CFF"; ctx.font = "bold 22px 'Space Mono', monospace";
+    ctx.fillText("返航检测得分： " + score + " / 10", W/2, 366);
+
+    ctx.fillStyle = "#4D5F78"; ctx.font = "12px 'Space Mono', monospace";
+    ctx.fillText("日期 " + dateStr, W/2, 400);
+    ctx.fillText("峇株吧辖华仁中学 · 蔡逸众 ScienceLab", W/2, 422);
+
+    ctx.textAlign = "left";
+    dlBtn.style.display = "inline-block";
+  });
+
+  dlBtn.addEventListener("click", function(){
+    var link = document.createElement("a");
+    var name = (document.getElementById("certName").value || "同学").trim();
+    link.download = "物体的运动_登舰证书_" + name + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+})();
+
+})();
+//Made by ecchua79
+
+</script>
+</body>
+</html>
