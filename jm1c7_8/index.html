@@ -139,9 +139,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#ffb84d;
 #cover.hide{display:none}
 
 /* ── DRAGGABLE PANELS ── */
-.ep,.ctrl{cursor:default}
-.ep-label,.ctrl-hd .title{cursor:grab;touch-action:none}
-.ep-label:active,.ctrl-hd.dragging .title{cursor:grabbing}
+.ep, .ctrl { cursor:default }
+/* 修正点4：把 touch-action: none 扩大到整个控制栏头部，而不仅是内部的文字 title */
+.ep, .ctrl-hd { touch-action: none; } 
+.ep-label, .ctrl-hd .title { cursor:grab }
+.ep-label:active, .ctrl-hd.dragging .title { cursor:grabbing }
 
 /* ── REFLECTION TOGGLE ── */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;
@@ -313,47 +315,86 @@ document.getElementById('cover-btn').addEventListener('click', () => {
 
 // ── Draggable panels ────────────────────────────────────────────
 // Drag handle = the element passed; the panel itself follows via left/top.
-function makeDraggable(panel, handle) {
-  let dragging=false, sx=0, sy=0, sl=0, st=0;
+function makeDraggable(panel, handle, onClick) {
+  let dragging = false, sx = 0, sy = 0, sl = 0, st = 0;
+  let hasDragged = false; // 修正点1：改为局部变量，让左侧栏和右侧栏的判定互不干扰
+  
   function toAbs() {
-    // Convert current centred position (top:50%, transform) to absolute left/top
+    if(panel.style.left && panel.style.top) return;
     const r = panel.getBoundingClientRect();
-    panel.style.left = r.left+'px';
-    panel.style.top  = r.top +'px';
-    panel.style.right = 'auto';
     panel.style.transform = 'none';
+    panel.style.left = r.left + 'px';
+    panel.style.top = r.top + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
   }
+  
   function down(e) {
     const p = e.touches ? e.touches[0] : e;
     dragging = true;
+    hasDragged = false; // 每次按下时重置状态
     toAbs();
-    sx=p.clientX; sy=p.clientY;
-    const r=panel.getBoundingClientRect();
-    sl=r.left; st=r.top;
-    e.preventDefault();
+    sx = p.clientX; sy = p.clientY;
+    const r = panel.getBoundingClientRect();
+    sl = r.left; st = r.top;
   }
+  
   function move(e) {
     if(!dragging) return;
     const p = e.touches ? e.touches[0] : e;
-    if (Math.abs(p.clientX-sx)>4 || Math.abs(p.clientY-sy)>4) _ctrlDidDrag=true;
-    let nl = sl + (p.clientX - sx);
-    let nt = st + (p.clientY - sy);
-    const r=panel.getBoundingClientRect();
-    nl = Math.max(2, Math.min(innerWidth - r.width - 2, nl));
-    nt = Math.max(2, Math.min(innerHeight - r.height - 2, nt));
-    panel.style.left = nl+'px';
-    panel.style.top  = nt+'px';
+    
+    // 修正点2：一体机大触屏手指轻点容易产生微小的像素抖动
+    // 如果是触控事件(e.touches)，将判定拖拽的阈值提高到 12 像素；鼠标模式保持 4 像素
+    const threshold = e.touches ? 12 : 4;
+    
+    if (Math.abs(p.clientX - sx) > threshold || Math.abs(p.clientY - sy) > threshold) {
+      hasDragged = true;
+    }
+    
+    if (hasDragged) {
+      let nl = sl + (p.clientX - sx);
+      let nt = st + (p.clientY - sy);
+      const r = panel.getBoundingClientRect();
+      nl = Math.max(2, Math.min(innerWidth - r.width - 2, nl));
+      nt = Math.max(2, Math.min(innerHeight - r.height - 2, nt));
+      panel.style.left = nl + 'px';
+      panel.style.top  = nt + 'px';
+      
+      if (e.touches) e.preventDefault(); // 仅在确认是拖拽时，才阻止页面滚动
+    }
   }
-  function up() { dragging=false; }
+  
+  function up(e) {
+    // 修正点3：如果确实发生了dragging，但位移没超过阈值(hasDragged为false)，
+    // 说明这就是一次纯粹的“轻触/点击”，直接安全地触发传入的回调函数
+    if (dragging && !hasDragged && onClick) {
+      onClick(); 
+    }
+    dragging = false;
+  }
+  
   handle.addEventListener('mousedown', down);
-  handle.addEventListener('touchstart', down, {passive:false});
+  handle.addEventListener('touchstart', down, {passive: true}); // 改为 true 允许触屏事件更顺畅传导
   window.addEventListener('mousemove', move);
-  window.addEventListener('touchmove', move, {passive:false});
+  window.addEventListener('touchmove', move, {passive: false});
   window.addEventListener('mouseup', up);
   window.addEventListener('touchend', up);
 }
+
+// ── 面板初始化 ──────────────────────────────────────────
+// 左侧元件栏，不需要点击回调，正常初始化即可
 makeDraggable(document.querySelector('.ep'), document.querySelector('.ep-label'));
-makeDraggable(document.querySelector('.ctrl'), document.getElementById('ctrl-hd'));
+
+// 右侧控制栏，直接把展开/折叠逻辑当作第三个参数（onClick回调）传进去
+// 这样可以彻底绕开一体机浏览器对标准 click 事件模拟不准的传统老BUG
+makeDraggable(document.querySelector('.ctrl'), document.getElementById('ctrl-hd'), () => {
+  const bd = document.getElementById('ctrl-bd');
+  const ar = document.getElementById('ctrl-arrow');
+  bd.classList.toggle('open');
+  ar.classList.toggle('up');
+});
+
+// 原本声明在全局的 let _ctrlDidDrag=false; 连同底下的旧 click 监听器可以整段删掉了！
 
 // ── Constants ──────────────────────────────────────────────────
 const APR    = 1.8;   // aperture radius (scene units)
