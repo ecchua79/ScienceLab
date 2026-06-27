@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流星雨形成与透视原理模拟器</title>
+    <!-- 引入 Tailwind CSS 构建现代 UI 界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Three.js 构建 3D 场景 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入 Three.js 轨道控制器实现手势与鼠标视角移动 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 引入 GSAP 制作平滑的镜头补间动画 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- 引入 Google Fonts 提升排版美观度 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #030308;
+        }
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-slate-100 relative">
+
+    <!-- 左侧/顶部控制与科普面板 (支持移动端向上、桌面端向左滑动折叠) -->
+    <div id="left-panel" class="fixed top-0 left-0 w-full md:w-[450px] h-2/5 md:h-full bg-slate-950/85 backdrop-blur-xl border-b md:border-b-0 md:border-r border-slate-800/60 z-20 flex flex-col pointer-events-auto shrink-0 shadow-2xl transition-transform duration-500 ease-in-out transform translate-y-0 md:translate-x-0">
+        
+        <!-- 头部标题 -->
+        <div class="p-6 border-b border-slate-800/60 shrink-0">
+            <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
+                ☄️ 流星雨透视与形成模拟
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">手势拖拽旋转 3D 星空 · 双指缩放焦距</p>
+        </div>
+
+        <!-- Tab 切换栏 -->
+        <div class="flex border-b border-slate-800/60 text-sm font-semibold shrink-0 bg-slate-900/30">
+            <button id="tab-btn-sim" class="flex-1 py-3 text-center border-b-2 border-indigo-500 text-indigo-400 bg-indigo-500/5 transition-all">
+                🛰️ 3D 互动探索
+            </button>
+            <button id="tab-btn-edu" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all">
+                📖 形成原理科普
+            </button>
+        </div>
+
+        <!-- Tab 内容容器 -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            <div id="tab-content-sim" class="space-y-6">
+                <!-- 预设视角切换 -->
+                <div class="space-y-3">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">选择观测视界</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button id="view-earth" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-left transition-all border border-indigo-400/20 shadow-lg shadow-indigo-600/10 flex items-center justify-between">
+                            <span>🌍 迎面视角 (地面观测)</span>
+                            <span class="text-xs font-normal opacity-80">产生辐射点</span>
+                        </button>
+                        <button id="view-side" class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-left transition-all border border-slate-800 flex items-center justify-between">
+                            <span>🛰️ 侧面视角 (平行真相)</span>
+                            <span class="text-xs font-normal opacity-80">平行穿梭迹</span>
+                        </button>
+                        <button id="view-cosmic" class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-left transition-all border border-slate-800 flex items-center justify-between">
+                            <span>🪐 宇宙交汇 (轨道全景)</span>
+                            <span class="text-xs font-normal opacity-80">地球撞击带</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 辅助渲染配置 -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800/50 space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">视觉辅助叠加</h3>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">平行辅助线</p>
+                            <p class="text-xs text-slate-400">绘制流星运行的绝对平行参考轨</p>
+                        </div>
+                        <button id="toggle-guides" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-all">
+                            已开启
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">大气发光层</p>
+                            <p class="text-xs text-slate-400">地球周边受摩擦汽化的保护屏障</p>
+                        </div>
+                        <button id="toggle-atmosphere" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-all">
+                            已开启
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 流星属性滑块 -->
+                <div class="space-y-4 p-4 rounded-xl bg-slate-900/40 border border-slate-800/50">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">流星物理属性调节</h3>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300">相对穿梭速度</span>
+                            <span id="speed-val" class="font-bold text-indigo-400">2.0x</span>
+                        </div>
+                        <input type="range" id="slider-speed" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300">流星物质密度</span>
+                            <span id="density-val" class="font-bold text-indigo-400">800 颗</span>
+                        </div>
+                        <input type="range" id="slider-density" min="200" max="1500" step="50" value="800" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- 轨道交汇探测与物理加速 -->
+                <div class="p-4 rounded-xl bg-indigo-950/20 border border-indigo-500/20 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">🪐 轨道交汇状态监测</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-300 font-semibold">当前交汇位置：</span>
+                        <span id="intersection-status" class="text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-400">探测中...</span>
+                    </div>
+                    <button id="btn-jump-intersection" class="w-full py-2.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20 border border-indigo-500/30">
+                        🚀 逆时针加速推进至交汇点
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab-content-edu" class="hidden space-y-6 text-sm leading-relaxed text-slate-300">
+                <!-- 第一板块：脏雪球 -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800/50 space-y-3 hover:border-slate-700/50 transition-all">
+                    <h3 class="text-base font-semibold text-amber-400 flex items-center gap-1.5">
+                        ☄️ 1. 宇宙中的 “脏雪球”
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        彗星本质上是宇宙中的<b>“脏雪球”</b>，由冰块、尘埃和岩石碎屑混合而成。当一颗彗星沿着椭圆轨道靠近太阳时，太阳的热量会让彗星表面的冰直接升华成气体。
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        在这个过程中，原本冻结在冰里的尘埃和砂砾就会被释放出来，散落在彗星经过的轨道上。随着时间推移，这条轨道就变成了一条充满碎屑的<b>“宇宙垃圾带”</b>。
+                    </p>
+                    <button onclick="triggerCosmicDemo(true)" class="w-full py-2 px-3 mt-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-bold transition-all text-center flex items-center justify-center gap-1">
+                        🔍 观测彗星垃圾带 (进入宇宙视角)
+                    </button>
+                </div>
+
+                <!-- 第二板块：地球公转撞击 -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800/50 space-y-3 hover:border-slate-700/50 transition-all">
+                    <h3 class="text-base font-semibold text-blue-400 flex items-center gap-1.5">
+                        🌍 2. 地球的 “公转穿梭”
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        地球每年都会沿着自己的公转轨道绕太阳一圈。当明显的流星雨发生时，正是<b>地球的轨道刚好穿过了某条彗星留下的碎屑带</b>。
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        当地球以每秒近 30 公里的高速冲入这个垃圾带时，大批碎屑以几乎完全平行的轨迹一拥而入撞进我们的大气层。
+                    </p>
+                    <button onclick="triggerSideDemo()" class="w-full py-2 px-3 mt-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-xs font-bold transition-all text-center flex items-center justify-center gap-1">
+                        🔍 观察平行撞击轨 (进入侧面视角)
+                    </button>
+                </div>
+
+                <!-- 第三板块：绝热压缩与发光 -->
+                <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800/50 space-y-3 hover:border-slate-700/50 transition-all">
+                    <h3 class="text-base font-semibold text-purple-400 flex items-center gap-1.5">
+                        ✨ 3. 大气高热与透视错觉
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        当碎屑撞上地球，因为速度极高产生<b>绝热压缩</b>放出上千度的高热，使砂砾汽化发光并产生流星。
+                    </p>
+                    <p class="text-xs text-slate-400">
+                        因为它们都是<b>平行冲向我们</b>的，受著名的<b>“透视几何错觉”</b>影响（类似火车的平行铁轨在远方交汇），我们抬头望去，就会产生所有流星从同一个中心辐射点喷薄而出的视觉奇观！
+                    </p>
+                    <button onclick="triggerEarthDemo()" class="w-full py-2 px-3 mt-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-xs font-bold transition-all text-center flex items-center justify-center gap-1">
+                        🔍 体验地面辐射点视角 (进入迎面视角)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 底部视角动态说明 -->
+        <div class="p-5 bg-slate-950 border-t border-slate-800/60 shrink-0">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">实时视界报告：</p>
+            <p id="status-desc" class="text-sm mt-1 text-indigo-400 font-semibold leading-snug">
+                迎面视角：地球正穿过彗星碎屑中心，流星在天空发生透视扩散。
+            </p>
+        </div>
+    </div>
+
+    <!-- 永远固定、不丢失的控制面板切换按钮（通过 CSS 与 JS 动画，时刻粘附在面板边缘） -->
+    <button id="panel-toggle-btn" class="fixed z-30 bg-slate-950/95 hover:bg-slate-900 text-slate-200 px-4 py-2.5 rounded-full md:rounded-none md:rounded-r-xl border border-slate-800/80 md:border-l-0 shadow-2xl transition-all duration-500 ease-in-out flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95 hover:text-indigo-400 hover:border-indigo-500/50">
+        <span id="toggle-icon-arrow">◀</span>
+        <span id="toggle-text">收起面板</span>
+    </button>
+
+    <!-- 右侧/背景 3D Canvas 舞台 -->
+    <div id="stage-container" class="absolute inset-0 w-full h-full overflow-hidden">
+        <!-- 3D 渲染挂载点 -->
+        <div id="three-canvas-container" class="absolute inset-0 w-full h-full z-10"></div>
+        
+        <!-- 宇宙视角下的相交警报提示（当3D地球碰撞到红碎屑带时闪烁） -->
+        <div id="orbit-warning" class="absolute top-6 right-6 z-30 pointer-events-none hidden flex items-center gap-3 bg-red-950/80 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl backdrop-blur-md shadow-2xl animate-pulse">
+            <span class="flex h-3 w-3 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+            <div class="text-xs">
+                <p class="font-bold">轨道穿梭交汇中 (Meteor Shower Active)</p>
+                <p class="opacity-80">地球正以 30km/s 冲进彗星垃圾带</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab elements
+        const tabSim = document.getElementById('tab-btn-sim');
+        const tabEdu = document.getElementById('tab-btn-edu');
+        const contentSim = document.getElementById('tab-content-sim');
+        const contentEdu = document.getElementById('tab-content-edu');
+
+        // Tab click listeners
+        tabSim.addEventListener('click', () => {
+            tabSim.className = "flex-1 py-3 text-center border-b-2 border-indigo-500 text-indigo-400 bg-indigo-500/5 transition-all";
+            tabEdu.className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all";
+            contentSim.classList.remove('hidden');
+            contentEdu.classList.add('hidden');
+        });
+
+        tabEdu.addEventListener('click', () => {
+            tabEdu.className = "flex-1 py-3 text-center border-b-2 border-indigo-500 text-indigo-400 bg-indigo-500/5 transition-all";
+            tabSim.className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all";
+            contentEdu.classList.remove('hidden');
+            contentSim.classList.add('hidden');
+        });
+
+        // 面板展开与折叠控制逻辑 (全新边缘粘附算法)
+        const panel = document.getElementById('left-panel');
+        const toggleBtn = document.getElementById('panel-toggle-btn');
+        const toggleArrow = document.getElementById('toggle-icon-arrow');
+        const toggleText = document.getElementById('toggle-text');
+        let isPanelCollapsed = false;
+
+        function updateToggleBtnPosition() {
+            const isPC = window.innerWidth >= 768;
+            if (isPC) {
+                // PC 端：固定在中间高度，贴着面板的右边界
+                toggleBtn.style.bottom = "auto";
+                toggleBtn.style.left = isPanelCollapsed ? "0px" : "450px";
+                toggleBtn.style.top = "40px";
+                toggleBtn.style.transform = "none";
+                toggleArrow.innerText = isPanelCollapsed ? '▶' : '◀';
+                toggleText.innerText = isPanelCollapsed ? '展开面板' : '收起面板';
+            } else {
+                // 移动端：固定在中间宽度，贴着面板的下边沿 (高度为屏幕的 40%)
+                toggleBtn.style.top = isPanelCollapsed ? "0px" : "40vh";
+                toggleBtn.style.left = "50%";
+                toggleBtn.style.bottom = "auto";
+                toggleBtn.style.transform = "translateX(-50%)";
+                toggleArrow.innerText = isPanelCollapsed ? '▼' : '▲';
+                toggleText.innerText = isPanelCollapsed ? '展开面板' : '收起面板';
+            }
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            isPanelCollapsed = !isPanelCollapsed;
+            if (isPanelCollapsed) {
+                // 隐藏面板：PC端左滑，移动端上滑
+                panel.classList.add('-translate-y-full', 'md:-translate-x-full');
+                panel.classList.remove('translate-y-0', 'md:translate-x-0');
+            } else {
+                // 展开面板
+                panel.classList.remove('-translate-y-full', 'md:-translate-x-full');
+                panel.classList.add('translate-y-0', 'md:translate-x-0');
+            }
+            updateToggleBtnPosition();
+        });
+
+        // 窗口尺寸/姿态改变时重算位置
+        window.addEventListener('resize', updateToggleBtnPosition);
+        // 初始化按钮定位
+        updateToggleBtnPosition();
+
+        const container = document.getElementById('three-canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030308, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1500);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // 初始化 OrbitControls，支持平滑手势阻尼
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600;
+        controls.minDistance = 2;
+
+        // 光源设置
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xfff5ea, 1.8);
+        sunLight.position.set(-120, 60, -100);
+        scene.add(sunLight);
+
+        // 创建两个主 3D 分组，隔离和切换两个尺度的物体
+        const closeupGroup = new THREE.Group(); // 包含局部细节：写实地球、平行流星雨、平行轨道
+        const cosmicGroup = new THREE.Group();  // 包含宏观宇宙：太阳、地球公转环、彗星垃圾轨道、迷你小地球
+        scene.add(closeupGroup);
+        scene.add(cosmicGroup);
+        cosmicGroup.visible = false; // 默认展示局部细节
+
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 3500;
+        const starPositions = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount; i++) {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * 2.0 * Math.PI;
+            const phi = Math.acos(2.0 * v - 1.0);
+            const r = 450 + Math.random() * 200; // 在远处分布
+            starPositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            starPositions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+            starPositions[i*3+2] = r * Math.cos(phi);
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMat = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.1,
+            transparent: true,
+            opacity: 0.75,
+            sizeAttenuation: true
+        });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField); // 两个视角公用星空
+
+        // 利用 HTML5 Canvas 运行时渲染高度写实且精准的地球地形图层 (带有海洋深度、绿洲、荒漠和极地冰盖)
+        function generateRealisticEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // 1. 渐变深邃海洋基础
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, h);
+            oceanGrad.addColorStop(0, '#041124');
+            oceanGrad.addColorStop(0.5, '#020a16');
+            oceanGrad.addColorStop(1, '#01050a');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // 绘制浅海大陆架发光(浅蓝色)
+            ctx.fillStyle = '#0f345c';
+            ctx.filter = 'blur(20px)'; // 柔化大陆架边缘
+
+            // 定义写实全球主要陆地的多边形坐标(映射到 2048x1024 分辨率)
+            const continents = [
+                // 亚欧非大陆板块 (巨大联合体)
+                [
+                    [1000, 200], [1100, 180], [1250, 160], [1400, 150], [1650, 160], [1750, 220], 
+                    [1800, 300], [1700, 420], [1550, 500], [1500, 580], [1400, 520], [1300, 550], 
+                    [1200, 600], [1280, 700], [1150, 900], [1050, 950], [980, 800], [950, 650],
+                    [900, 550], [800, 500], [820, 380], [900, 300], [950, 250]
+                ],
+                // 北美洲大陆板块
+                [
+                    [150, 180], [300, 150], [450, 120], [600, 140], [650, 220], [550, 320], 
+                    [480, 420], [420, 500], [380, 480], [350, 420], [390, 380], [280, 350], 
+                    [180, 350], [120, 280]
+                ],
+                // 南美洲大陆板块
+                [
+                    [480, 520], [580, 540], [680, 600], [640, 750], [520, 920], [480, 950], 
+                    [450, 850], [420, 720], [440, 600]
+                ],
+                // 澳大利亚大陆板块
+                [
+                    [1500, 680], [1650, 660], [1720, 720], [1700, 820], [1580, 850], [1480, 780]
+                ],
+                // 格陵兰岛
+                [
+                    [650, 80], [780, 60], [750, 130], [680, 150]
+                ]
+            ];
+
+            // 先用浅蓝色画出大陆架背景，产生海底发光效果
+            continents.forEach(poly => {
+                ctx.beginPath();
+                poly.forEach((pt, idx) => {
+                    if (idx === 0) ctx.moveTo(pt[0], pt[1]);
+                    else ctx.lineTo(pt[0], pt[1]);
+                });
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            ctx.filter = 'none'; // 关闭模糊
+
+            // 2. 填充陆地内部纹理 (使用多层色彩叠加)
+            continents.forEach((poly, cIndex) => {
+                // 创建复杂的陆地渐变 (绿地、沙漠到山脉)
+                const landGrad = ctx.createRadialGradient(
+                    poly[0][0], poly[0][1], 100, 
+                    poly[0][0] + 300, poly[0][1] + 300, 800
+                );
+                
+                if (cIndex === 4) { // 格陵兰岛：常年冰雪
+                    landGrad.addColorStop(0, '#ffffff');
+                    landGrad.addColorStop(1, '#e2e8f0');
+                } else {
+                    landGrad.addColorStop(0, '#1c4a25'); // 茂密雨林深绿
+                    landGrad.addColorStop(0.3, '#326e3c'); // 温带绿地
+                    landGrad.addColorStop(0.6, '#82784b'); // 荒漠与戈壁
+                    landGrad.addColorStop(0.9, '#402a15'); // 高原山脉深褐
+                    landGrad.addColorStop(1, '#1b3820');
+                }
+
+                ctx.fillStyle = landGrad;
+                ctx.beginPath();
+                poly.forEach((pt, idx) => {
+                    if (idx === 0) ctx.moveTo(pt[0], pt[1]);
+                    else ctx.lineTo(pt[0], pt[1]);
+                });
+                ctx.closePath();
+                ctx.fill();
+
+                // 在陆地上绘制程序化细节噪声，模拟山脊和河流纹理
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 2;
+                for (let j = 0; j < 6; j++) {
+                    ctx.beginPath();
+                    const startNode = poly[Math.floor(Math.random() * poly.length)];
+                    ctx.moveTo(startNode[0], startNode[1]);
+                    ctx.quadraticCurveTo(
+                        startNode[0] + (Math.random() - 0.5) * 300,
+                        startNode[1] + (Math.random() - 0.5) * 300,
+                        startNode[0] + (Math.random() - 0.5) * 150,
+                        startNode[1] + (Math.random() - 0.5) * 150
+                    );
+                    ctx.stroke();
+                }
+            });
+
+            // 3. 绘制南北极写实白色极冠
+            const polarGradNorth = ctx.createLinearGradient(0, 0, 0, 120);
+            polarGradNorth.addColorStop(0, '#ffffff');
+            polarGradNorth.addColorStop(0.8, '#eaf2f8');
+            polarGradNorth.addColorStop(1, 'rgba(234, 242, 248, 0)');
+            ctx.fillStyle = polarGradNorth;
+            ctx.fillRect(0, 0, w, 120);
+
+            const polarGradSouth = ctx.createLinearGradient(0, h - 120, 0, h);
+            polarGradSouth.addColorStop(0, 'rgba(234, 242, 248, 0)');
+            polarGradSouth.addColorStop(0.2, '#eaf2f8');
+            polarGradSouth.addColorStop(1, '#ffffff');
+            ctx.fillStyle = polarGradSouth;
+            ctx.fillRect(0, h - 120, w, 120);
+
+            // 4. 产生海岸波光：高对比度高光反射
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            return texture;
+        }
+
+        // 云层纹理生成 (更写实的螺旋风暴形态)
+        function generateCloudTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 1024, 512);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            // 绘制横向风带和旋转云团
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * 1024;
+                const y = 100 + Math.random() * 312;
+                const r = 25 + Math.random() * 85;
+                ctx.beginPath();
+                ctx.ellipse(x, y, r * 3, r * 0.75, (Math.random() - 0.5) * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 产生一些高对比度的风暴气旋云核
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            for(let i=0; i<6; i++) {
+                const x = 200 + Math.random() * 600;
+                const y = 150 + Math.random() * 200;
+                ctx.beginPath();
+                ctx.arc(x, y, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 创建精致写实地球实体 (半径为 6)
+        const earthRadius = 6;
+        const earthGroup = new THREE.Group();
+
+        // 地球本体 (加载全新绘制的写实纹理，并开启镜面高光反射)
+        const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
+        const earthMat = new THREE.MeshPhongMaterial({
+            map: generateRealisticEarthTexture(),
+            shininess: 35,
+            specular: 0x445566 // 赋予海洋反射月光/阳光的金属镜面质感
+        });
+        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+        earthGroup.add(earthMesh);
+
+        // 缓缓自转的逼真云层 (半径 6.08)
+        const cloudGeo = new THREE.SphereGeometry(earthRadius + 0.08, 64, 64);
+        const cloudMat = new THREE.MeshBasicMaterial({
+            map: generateCloudTexture(),
+            transparent: true,
+            opacity: 0.88,
+            blending: THREE.NormalBlending
+        });
+        const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+        earthGroup.add(cloudMesh);
+
+        // 外围发光大气层晕轮 (半径 6.35)
+        const atmosGeo = new THREE.SphereGeometry(earthRadius + 0.35, 64, 64);
+        const atmosMat = new THREE.MeshBasicMaterial({
+            color: 0x4f46e5,
+            transparent: true,
+            opacity: 0.16,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+        earthGroup.add(atmosMesh);
+
+        // 将局部地球置于局部细节分组中
+        closeupGroup.add(earthGroup);
+
+        let currentDensity = 800;
+        let currentSpeed = 2.0;
+        let meteorGeometry, meteorMaterial, meteorLines;
+        let velocities = [];
+
+        function createMeteors(count) {
+            if (meteorLines) closeupGroup.remove(meteorLines);
+
+            meteorGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 6); // 每条流星线：起点和终点
+            velocities = [];
+
+            // 流星散播边界参数
+            const spreadX = 110;
+            const spreadY = 110;
+            const startZ = -250;
+            const endZ = 30;
+
+            for (let i = 0; i < count; i++) {
+                const x = (Math.random() - 0.5) * spreadX;
+                const y = (Math.random() - 0.5) * spreadY;
+                const z = Math.random() * (endZ - startZ) + startZ;
+
+                // 终点
+                const length = Math.random() * 5 + 3;
+                positions[i * 6] = x;
+                positions[i * 6 + 1] = y;
+                positions[i * 6 + 2] = z;
+
+                positions[i * 6 + 3] = x;
+                positions[i * 6 + 4] = y;
+                positions[i * 6 + 5] = z + length;
+
+                velocities.push({
+                    speedFactor: Math.random() * 0.6 + 0.7,
+                    length: length
+                });
+            }
+
+            meteorGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            meteorMaterial = new THREE.LineBasicMaterial({
+                color: 0xa5b4fc,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                linewidth: 1.5
+            });
+
+            meteorLines = new THREE.LineSegments(meteorGeometry, meteorMaterial);
+            closeupGroup.add(meteorLines);
+        }
+        createMeteors(currentDensity);
+
+        const guidesGroup = new THREE.Group();
+        const numGuides = 12;
+        const guideRadius = 26;
+
+        for (let i = 0; i < numGuides; i++) {
+            const angle = (i / numGuides) * Math.PI * 2;
+            const gx = Math.cos(angle) * guideRadius;
+            const gy = Math.sin(angle) * guideRadius;
+
+            const points = [
+                new THREE.Vector3(gx, gy, -250),
+                new THREE.Vector3(gx, gy, 35)
+            ];
+
+            const guideGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const guideMat = new THREE.LineDashedMaterial({
+                color: 0x4f46e5,
+                dashSize: 4,
+                gapSize: 4,
+                transparent: true,
+                opacity: 0.22
+            });
+
+            const guideLine = new THREE.Line(guideGeo, guideMat);
+            guideLine.computeLineDistances();
+            guidesGroup.add(guideLine);
+        }
+        closeupGroup.add(guidesGroup);
+
+        // 1. 核心大太阳
+        const sunGeo = new THREE.SphereGeometry(14, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffa500 });
+        const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+        sunMesh.position.set(-60, 0, -60);
+        cosmicGroup.add(sunMesh);
+
+        // 太阳光晕
+        const sunGlowGeo = new THREE.SphereGeometry(17, 32, 32);
+        const sunGlowMat = new THREE.MeshBasicMaterial({
+            color: 0xff4500,
+            transparent: true,
+            opacity: 0.25,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const sunGlow = new THREE.Mesh(sunGlowGeo, sunGlowMat);
+        sunGlow.position.copy(sunMesh.position);
+        cosmicGroup.add(sunGlow);
+
+        // 2. 地球圆形公转轨道 (半径 85)
+        const orbitRadius = 85;
+        const earthOrbitGeo = new THREE.BufferGeometry();
+        const earthOrbitPoints = [];
+        for (let i = 0; i <= 180; i++) {
+            const theta = (i / 180) * Math.PI * 2;
+            earthOrbitPoints.push(new THREE.Vector3(
+                sunMesh.position.x + Math.cos(theta) * orbitRadius,
+                0,
+                sunMesh.position.z + Math.sin(theta) * orbitRadius
+            ));
+        }
+        earthOrbitGeo.setFromPoints(earthOrbitPoints);
+        const earthOrbitMat = new THREE.LineBasicMaterial({
+            color: 0x3b82f6,
+            transparent: true,
+            opacity: 0.4
+        });
+        const earthOrbitLine = new THREE.Line(earthOrbitGeo, earthOrbitMat);
+        cosmicGroup.add(earthOrbitLine);
+
+        // 3. 彗星椭圆轨道 (倾斜相交)
+        const cometOrbitGeo = new THREE.BufferGeometry();
+        const cometOrbitPoints = [];
+        const semimajor = 125; 
+        const semiminor = 55;
+        for (let i = 0; i <= 180; i++) {
+            const theta = (i / 180) * Math.PI * 2;
+            const localX = Math.cos(theta) * semimajor - 40; 
+            const localZ = Math.sin(theta) * semiminor;
+            const localY = Math.sin(theta) * 22; 
+
+            cometOrbitPoints.push(new THREE.Vector3(
+                sunMesh.position.x + localX,
+                localY,
+                sunMesh.position.z + localZ
+            ));
+        }
+        cometOrbitGeo.setFromPoints(cometOrbitPoints);
+        const cometOrbitMat = new THREE.LineDashedMaterial({
+            color: 0xf59e0b,
+            dashSize: 4,
+            gapSize: 4,
+            transparent: true,
+            opacity: 0.35
+        });
+        const cometOrbitLine = new THREE.Line(cometOrbitGeo, cometOrbitMat);
+        cometOrbitLine.computeLineDistances();
+        cosmicGroup.add(cometOrbitLine);
+
+        // 4. 彗星散落在轨道上的 3D 球形陨石碎屑带 (具有随机不规则尺寸与物理质感)
+        const debrisCount = 140;
+        const cometDebrisGroup = new THREE.Group();
+        cosmicGroup.add(cometDebrisGroup);
+
+        for (let i = 0; i < debrisCount; i++) {
+            let theta;
+            if (Math.random() < 0.6) {
+                theta = (Math.random() - 0.5) * 0.9;
+            } else {
+                theta = Math.random() * Math.PI * 2;
+            }
+
+            const localX = Math.cos(theta) * semimajor - 40;
+            const localZ = Math.sin(theta) * semiminor;
+            const localY = Math.sin(theta) * 22;
+
+            // 产生不同直径的 3D 实心小碎屑球
+            const sphereRadius = 0.3 + Math.random() * 1.5;
+            const sphereGeo = new THREE.SphereGeometry(sphereRadius, 8, 8);
+            
+            const sphereMat = new THREE.MeshPhongMaterial({
+                color: 0xff5511,
+                emissive: 0x220500,
+                shininess: 10,
+                flatShading: true // 低模扁平着色，增强太空陨石的嶙峋立体质感
+            });
+
+            const debrisMesh = new THREE.Mesh(sphereGeo, sphereMat);
+            
+            const spread = 5.0;
+            debrisMesh.position.set(
+                sunMesh.position.x + localX + (Math.random() - 0.5) * spread * 2,
+                localY + (Math.random() - 0.5) * spread,
+                sunMesh.position.z + localZ + (Math.random() - 0.5) * spread * 2
+            );
+
+            cometDebrisGroup.add(debrisMesh);
+        }
+
+        // 5. 宇宙尺度里的迷你地球 (公转中)
+        const miniEarthGroup = new THREE.Group();
+        // 同样在宇宙交汇中使用写实纹理
+        const miniEarthGeo = new THREE.SphereGeometry(2.6, 32, 32);
+        const miniEarthMat = new THREE.MeshPhongMaterial({
+            map: generateRealisticEarthTexture(),
+            shininess: 15
+        });
+        const miniEarthMesh = new THREE.Mesh(miniEarthGeo, miniEarthMat);
+        miniEarthGroup.add(miniEarthMesh);
+
+        const miniGlowGeo = new THREE.SphereGeometry(3.2, 16, 16);
+        const miniGlowMat = new THREE.MeshBasicMaterial({
+            color: 0xef4444,
+            transparent: true,
+            opacity: 0.1,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const miniGlow = new THREE.Mesh(miniGlowGeo, miniGlowMat);
+        miniEarthGroup.add(miniGlow);
+        
+        cosmicGroup.add(miniEarthGroup);
+
+        let activeView = 'earth'; 
+        let cosmicAngle = 1.1; 
+
+        // 优雅切换预设视角 (将 GSAP 插值与 OrbitControls 状态深度绑定)
+        function switchCameraView(viewName) {
+            activeView = viewName;
+            controls.enabled = false; 
+
+            // 恢复/清理所有面板按钮态
+            document.getElementById('view-earth').className = "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-left transition-all border border-slate-800 flex items-center justify-between";
+            document.getElementById('view-side').className = "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-left transition-all border border-slate-800 flex items-center justify-between";
+            document.getElementById('view-cosmic').className = "w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-left transition-all border border-slate-800 flex items-center justify-between";
+
+            const activeBtn = document.getElementById(`view-${viewName}`);
+            
+            let targetPos = new THREE.Vector3();
+            let lookTarget = new THREE.Vector3();
+
+            if (viewName === 'earth') {
+                activeBtn.className = "w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-left transition-all border border-indigo-400/20 shadow-lg shadow-indigo-600/10 flex items-center justify-between";
+                document.getElementById('status-desc').innerText = "迎面视角：摄像机置于地表外表面仰视。漫天流星贴着您的头顶与两侧划过，产生壮美的透视散射感。";
+                
+                closeupGroup.visible = true;
+                cosmicGroup.visible = false;
+                document.getElementById('orbit-warning').classList.add('hidden');
+
+                targetPos.set(0, 5.9, -2.5); // 地面观测：置于地表最边缘，完美躲避地球遮挡
+                lookTarget.set(0, 16, -120);
+
+            } else if (viewName === 'side') {
+                activeBtn.className = "w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-left transition-all border border-emerald-400/20 shadow-lg shadow-emerald-600/10 flex items-center justify-between";
+                document.getElementById('status-desc').innerText = "侧面视角：从侧方高空俯瞰地球。此时可清晰看到流星雨其实是在真空中完全平行前行。";
+                
+                closeupGroup.visible = true;
+                cosmicGroup.visible = false;
+                document.getElementById('orbit-warning').classList.add('hidden');
+
+                targetPos.set(-52, 15, -25);
+                lookTarget.set(0, 2, -35);
+
+            } else if (viewName === 'cosmic') {
+                activeBtn.className = "w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-left transition-all border border-amber-400/20 shadow-lg shadow-amber-600/10 flex items-center justify-between";
+                document.getElementById('status-desc').innerText = "宇宙视角：全局俯瞰太阳系。地球轨道为蓝色，当逆时针公转切入橙黄色彗星碎屑带时触发警报。";
+                
+                closeupGroup.visible = false;
+                cosmicGroup.visible = true;
+
+                targetPos.set(sunMesh.position.x + 30, 165, sunMesh.position.z + 165);
+                lookTarget.set(sunMesh.position.x + 20, 0, sunMesh.position.z + 30);
+            }
+
+            // 平滑插值相机位置
+            gsap.killTweensOf(camera.position);
+            gsap.to(camera.position, {
+                x: targetPos.x,
+                y: targetPos.y,
+                z: targetPos.z,
+                duration: 2.0,
+                ease: "power2.inOut",
+                onUpdate: () => {
+                    controls.update();
+                }
+            });
+
+            // 平滑插值控制器的焦点目标
+            gsap.killTweensOf(controls.target);
+            gsap.to(controls.target, {
+                x: lookTarget.x,
+                y: lookTarget.y,
+                z: lookTarget.z,
+                duration: 2.0,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    controls.enabled = true; 
+                }
+            });
+        }
+
+        // 按钮事件注册
+        document.getElementById('view-earth').addEventListener('click', () => switchCameraView('earth'));
+        document.getElementById('view-side').addEventListener('click', () => switchCameraView('side'));
+        document.getElementById('view-cosmic').addEventListener('click', () => switchCameraView('cosmic'));
+
+        // 科普 Tab 点击事件联动
+        window.triggerEarthDemo = function() {
+            tabSim.click();
+            switchCameraView('earth');
+        };
+        window.triggerSideDemo = function() {
+            tabSim.click();
+            switchCameraView('side');
+        };
+        window.triggerCosmicDemo = function() {
+            tabSim.click();
+            switchCameraView('cosmic');
+        };
+
+        // 辅助线控制
+        let guidesEnabled = true;
+        document.getElementById('toggle-guides').addEventListener('click', (e) => {
+            guidesEnabled = !guidesEnabled;
+            guidesGroup.visible = guidesEnabled;
+            e.target.innerText = guidesEnabled ? "已开启" : "已关闭";
+            e.target.className = guidesEnabled 
+                ? "px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-all"
+                : "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-xs font-semibold hover:bg-slate-700 transition-all";
+        });
+
+        // 大气发光层控制
+        let atmosphereEnabled = true;
+        document.getElementById('toggle-atmosphere').addEventListener('click', (e) => {
+            atmosphereEnabled = !atmosphereEnabled;
+            atmosMesh.visible = atmosphereEnabled;
+            e.target.innerText = atmosphereEnabled ? "已开启" : "已关闭";
+            e.target.className = atmosphereEnabled 
+                ? "px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition-all"
+                : "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-xs font-semibold hover:bg-slate-700 transition-all";
+        });
+
+        // 速度物理控制
+        document.getElementById('slider-speed').addEventListener('input', (e) => {
+            currentSpeed = parseFloat(e.target.value);
+            document.getElementById('speed-val').innerText = `${currentSpeed.toFixed(1)}x`;
+        });
+
+        // 密度物质控制
+        document.getElementById('slider-density').addEventListener('input', (e) => {
+            currentDensity = parseInt(e.target.value);
+            document.getElementById('density-val').innerText = `${currentDensity} 颗`;
+            createMeteors(currentDensity);
+        });
+
+        // 推进至下一个交汇公转角度 (无跳跃顺畅加速)
+        document.getElementById('btn-jump-intersection').addEventListener('click', () => {
+            const currentCycle = Math.ceil(cosmicAngle / (Math.PI * 2));
+            const targetAngle = currentCycle * Math.PI * 2;
+            
+            gsap.to(window, {
+                cosmicAngle: targetAngle,
+                duration: 2.5,
+                ease: "power2.inOut",
+                onUpdate: () => {
+                    cosmicAngle = window.cosmicAngle;
+                }
+            });
+            switchCameraView('cosmic');
+        });
+
+        window.cosmicAngle = cosmicAngle;
+
+        // 核心动力：近景流速与数量表现受当前与交汇区物理交界指数 (factor) 动态关联控制
+        function animateMeteorsWithFactor(factor) {
+            if (!meteorGeometry) return;
+            const pos = meteorGeometry.attributes.position.array;
+
+            meteorMaterial.opacity = 0.05 + 0.85 * factor;
+
+            for (let i = 0; i < currentDensity; i++) {
+                const idx = i * 6;
+                let zStart = pos[idx + 2];
+                
+                const step = currentSpeed * velocities[i].speedFactor * (0.3 + 0.7 * factor);
+                zStart += step;
+
+                if (zStart > 35) {
+                    zStart = -250 - Math.random() * 30;
+                    const x = (Math.random() - 0.5) * 110;
+                    const y = (Math.random() - 0.5) * 110;
+                    
+                    pos[idx] = x;
+                    pos[idx + 1] = y;
+                    pos[idx + 3] = x;
+                    pos[idx + 4] = y;
+                }
+
+                pos[idx + 2] = zStart;
+                pos[idx + 5] = zStart + velocities[i].length;
+            }
+            meteorGeometry.attributes.position.needsUpdate = true;
+        }
+
+        // 渲染循环主引擎
+        function render() {
+            requestAnimationFrame(render);
+
+            // 保持手势惯性更新
+            if (controls.enabled) {
+                controls.update();
+            }
+
+            // 1. 写实地球与云层的差异化自转 (云层比地表转速稍快，更具真实漂移效果)
+            earthMesh.rotation.y += 0.0013;
+            cloudMesh.rotation.y += 0.0020;
+
+            // 2. 地球逆时针公转 (完美吻合 CCW 公转规律)
+            cosmicAngle += 0.0015 * (currentSpeed * 0.5 + 0.5);
+            window.cosmicAngle = cosmicAngle; 
+
+            const mx = sunMesh.position.x + Math.cos(cosmicAngle) * orbitRadius;
+            const mz = sunMesh.position.z - Math.sin(cosmicAngle) * orbitRadius;
+            miniEarthGroup.position.set(mx, 0, mz);
+
+            // 3. 计算地球公转位置与橙黄彗星带交汇点 (25, 0, -60) 的绝对三维距离
+            const intersectPoint = new THREE.Vector3(25, 0, -60);
+            const dist = miniEarthGroup.position.distanceTo(intersectPoint);
+
+            let showerFactor = 0.03; 
+            const statusEl = document.getElementById('intersection-status');
+
+            if (dist < 25) {
+                // 进入彗星轨道碎屑群中！
+                showerFactor = 1.0 - (dist / 25.0); 
+                if (statusEl) {
+                    statusEl.innerText = "🟢 公转相交 (核心暴发期!)";
+                    statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-500/30 animate-pulse";
+                }
+                
+                miniGlow.material.opacity = 0.65 * showerFactor;
+                document.getElementById('orbit-warning').classList.remove('hidden');
+            } else {
+                if (statusEl) {
+                    statusEl.innerText = "🔴 远离交汇带 (极少流星)";
+                    statusEl.className = "text-xs font-bold px-2 py-1 rounded bg-rose-950 text-rose-400 border border-rose-500/20";
+                }
+                miniGlow.material.opacity = 0.02;
+                document.getElementById('orbit-warning').classList.add('hidden');
+            }
+
+            // 3. 迎面和侧面视角的流星飞逝动画
+            if (closeupGroup.visible) {
+                animateMeteorsWithFactor(showerFactor);
+            }
+
+            // 4. 宇宙视角的地球自主转动
+            if (cosmicGroup.visible) {
+                miniEarthMesh.rotation.y += 0.008;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 初始化默认相机仰望位置
+        switchCameraView('earth');
+
+        // 监听并自适应屏幕尺寸变更 (保持画布铺满全屏)
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            updateToggleBtnPosition();
+        });
+
+        // 启动主渲染循环
+        window.onload = function() {
+            render();
+        }
+    </script>
+</body>
+</html>
