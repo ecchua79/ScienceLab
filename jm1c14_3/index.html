@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日食与月食几何模拟器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="text-gray-100 font-sans select-none">
+
+    <!-- 主容器 -->
+    <div class="relative w-screen h-screen flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- 左侧仿真画布区 -->
+        <div id="canvasArea" class="relative flex-1 h-[55vh] md:h-full w-full bg-slate-950 flex flex-col">
+            <!-- 头部标题 -->
+            <div class="absolute top-4 left-4 z-10 flex flex-col gap-1 pr-32">
+                <h1 class="text-lg md:text-2xl font-bold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-400 to-indigo-400">
+                    日食与月食科学几何仿真器
+                </h1>
+                <p class="text-[10px] md:text-xs text-gray-400">
+                    科学演示白道面与黄道面夹角（5.14°）及逆时针公转对食相的影响
+                </p>
+            </div>
+
+            <!-- 视图切换选项卡 -->
+            <div class="absolute top-4 right-4 z-10 bg-slate-900/90 backdrop-blur-md p-1 rounded-lg border border-slate-700/50 flex gap-1">
+                <button id="btnViewOrbits" onclick="switchView('orbits')" class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all bg-indigo-600 text-white shadow">
+                    三维公转 (3D)
+                </button>
+                <button id="btnViewSide" onclick="switchView('side')" class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-gray-400 hover:text-white">
+                    侧视投影 (2D)
+                </button>
+            </div>
+
+            <!-- SVG 渲染容器 -->
+            <div class="flex-1 w-full relative flex items-center justify-center p-2">
+                
+                <!-- 视图 1: 三维公转俯瞰视图 -->
+                <svg id="svgOrbits" class="w-full h-full max-h-[85vh]" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <!-- 太阳光晕 -->
+                        <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#fffbbf" stop-opacity="1" />
+                            <stop offset="25%" stop-color="#ff9d00" stop-opacity="0.8" />
+                            <stop offset="65%" stop-color="#ff3c00" stop-opacity="0.2" />
+                            <stop offset="100%" stop-color="#ff3c00" stop-opacity="0" />
+                        </radialGradient>
+                        <!-- 地球本影和半影过渡 -->
+                        <linearGradient id="umbraCone" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#070913" stop-opacity="0.85" />
+                            <stop offset="100%" stop-color="#020306" stop-opacity="0.98" />
+                        </linearGradient>
+                        <linearGradient id="penumbraCone" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#1e293b" stop-opacity="0.4" />
+                            <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- 背景星空 -->
+                    <g id="stars-group" opacity="0.6"></g>
+
+                    <!-- 太阳光线背景 -->
+                    <g opacity="0.1">
+                        <line x1="100" y1="350" x2="1000" y2="150" stroke="#fef08a" stroke-width="1"/>
+                        <line x1="100" y1="350" x2="1000" y2="350" stroke="#fef08a" stroke-width="1"/>
+                        <line x1="100" y1="350" x2="1000" y2="550" stroke="#fef08a" stroke-width="1"/>
+                    </g>
+
+                    <!-- 太阳实体 -->
+                    <g transform="translate(100, 350)">
+                        <circle r="130" fill="url(#sunGlow)" />
+                        <circle r="40" fill="#fffb1e" />
+                        <text x="0" y="5" text-anchor="middle" fill="#78350f" font-size="14" font-weight="bold">太阳</text>
+                    </g>
+                    <!-- 太阳平行光指示虚线 -->
+                    <path d="M 140 290 L 650 290 M 140 350 L 650 350 M 140 410 L 650 410" stroke="#fef08a" stroke-width="1" stroke-dasharray="8,8" opacity="0.25"/>
+
+                    <!-- 地球公转黄道面 (参考基准面) -->
+                    <ellipse cx="650" cy="350" rx="300" ry="120" fill="none" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="8,8" opacity="0.3"/>
+                    
+                    <!-- 升降交点线 (白道面与黄道面交界线) -->
+                    <line id="lineOfNodes" x1="450" y1="350" x2="850" y2="350" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,5" opacity="0.8"/>
+                    
+                    <!-- 阴影锥体 -->
+                    <g id="earthShadowCones">
+                        <!-- 地球半影 -->
+                        <polygon points="650,312 1000,240 1000,460 650,388" fill="url(#penumbraCone)" />
+                        <!-- 地球本影 -->
+                        <polygon points="650,323 1000,312 1000,388 650,377" fill="url(#umbraCone)" />
+                    </g>
+
+                    <!-- 地球系统组 -->
+                    <g id="earthSystem">
+                        <!-- 地球 -->
+                        <g id="earthGroup" transform="translate(650, 350)">
+                            <!-- 大气折射蓝光 -->
+                            <circle r="42" fill="#3b82f6" opacity="0.15" />
+                            <!-- 地球球体 -->
+                            <circle r="30" fill="#1d4ed8" />
+                            <!-- 晨昏线昼夜划分 (左侧向光，右侧背光) -->
+                            <path d="M 0 -30 A 30 30 0 0 1 0 30 Z" fill="#030712" />
+                            <circle r="30" fill="none" stroke="#60a5fa" stroke-width="1" />
+                            <!-- 陆地简化装饰线 -->
+                            <path d="M -15 -10 Q -5 -20 5 -10 T 15 15" fill="none" stroke="#10b981" stroke-width="2" opacity="0.5"/>
+                            <text x="0" y="48" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="bold">地球</text>
+
+                            <!-- 月球公转轨道 (倾斜白道面) -->
+                            <g id="moonOrbitContainer">
+                                <!-- 轨道环线 -->
+                                <ellipse id="moonOrbitLine" cx="0" cy="0" rx="200" ry="85" fill="none" stroke="#818cf8" stroke-width="1.8" opacity="0.6" />
+                                
+                                <!-- 升交点与降交点 -->
+                                <circle id="nodeAsc" cx="-200" cy="0" r="5.5" fill="#ef4444" />
+                                <circle id="nodeDesc" cx="200" cy="0" r="5.5" fill="#ef4444" />
+                                <text x="-225" y="-8" fill="#f87171" font-size="10" font-weight="semibold">升交点</text>
+                                <text x="185" y="-8" fill="#f87171" font-size="10" font-weight="semibold">降交点</text>
+
+                                <!-- 新月时月球投影遮罩 -->
+                                <polygon id="moonShadow" points="0,0 0,0 0,0" fill="#020617" opacity="0"/>
+
+                                <!-- 月球实体组 -->
+                                <g id="moonGroup">
+                                    <!-- 月球基底 (向光面) -->
+                                    <circle r="12" fill="#f1f5f9" />
+                                    <!-- 陨石坑细节 (仅明亮面可见) -->
+                                    <circle cx="-3" cy="-2" r="1.5" fill="#cbd5e1" opacity="0.6"/>
+                                    <circle cx="-1" cy="4" r="2" fill="#cbd5e1" opacity="0.6"/>
+                                    <!-- 阴暗面遮罩 (由于太阳在最左侧，月球右半球永远是暗面) -->
+                                    <path d="M 0 -12 A 12 12 0 0 1 0 12 Z" fill="#090d16" />
+                                    <!-- 轨道环交接描边 -->
+                                    <circle r="12" fill="none" stroke="#a5b4fc" stroke-width="0.7" opacity="0.5"/>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+
+                    <!-- 底部科学说明 -->
+                    <g transform="translate(650, 500)">
+                        <rect x="-140" y="0" width="280" height="24" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" />
+                        <text x="0" y="16" text-anchor="middle" fill="#94a3b8" font-size="11">红虚线 = 升降交点线 (地球与月球轨道面交界)</text>
+                    </g>
+                </svg>
+
+                <!-- 视图 2: 侧视几何投影视图 -->
+                <svg id="svgSideView" class="w-full h-full max-h-[85vh] hidden" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+                    <!-- 背景基准面 -->
+                    <line x1="100" y1="300" x2="900" y2="300" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6,6" opacity="0.3"/>
+                    <text x="120" y="285" fill="#f59e0b" font-size="13" font-weight="bold">地球公转轨道面 (黄道面)</text>
+
+                    <!-- 太阳光射入方向 -->
+                    <path d="M 50 150 L 350 150 M 50 300 L 350 300 M 50 450 L 350 450" stroke="#fef08a" stroke-width="1.5" stroke-dasharray="10,10" opacity="0.15"/>
+                    <text x="80" y="130" fill="#fbbf24" font-size="12" opacity="0.5">太阳光照射方向 ──&gt;</text>
+
+                    <!-- 地球本影和半影锥 (侧视) -->
+                    <polygon points="500,268 950,288 950,312 500,332" fill="url(#umbraCone)" />
+                    <polygon points="500,258 950,205 950,395 500,342" fill="url(#penumbraCone)" />
+
+                    <!-- 用于管理层级的容器 -->
+                    <g id="sideViewContainer">
+                        <!-- 白道面旋转参考线（永远在最底层） -->
+                        <g id="sideOrbitPlaneBehind" transform="translate(500, 300)">
+                            <line id="lineSideOrbit" x1="-320" y1="0" x2="320" y2="0" stroke="#818cf8" stroke-width="3" />
+                            <circle cx="0" cy="0" r="7" fill="#ef4444" />
+                            <text x="15" y="-12" fill="#ef4444" font-size="12" font-weight="bold">轨道交点</text>
+                            <text x="-310" y="-15" fill="#a5b4fc" font-size="12" font-weight="semibold">白道面 (月球公转轨道面)</text>
+                        </g>
+
+                        <!-- 【后景月球容器】(当月球处于 0 ~ 180度运行至地球后方时移入此处) -->
+                        <g id="sideBehindGroup" transform="translate(500, 300)"></g>
+
+                        <!-- 地球实体（处于夹心层） -->
+                        <g id="sideEarth" transform="translate(500, 300)">
+                            <circle r="42" fill="#1e40af" stroke="#60a5fa" stroke-width="2" />
+                            <!-- 晨昏背光罩 -->
+                            <path d="M 0 -42 A 42 42 0 0 1 0 42 Z" fill="#020617" />
+                            <text x="0" y="-52" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="bold">地球</text>
+                        </g>
+
+                        <!-- 【前景月球容器】(当月球处于 180 ~ 360度运行至地球前方时移入此处) -->
+                        <g id="sideFrontGroup" transform="translate(500, 300)">
+                            <!-- 动态公转运行的侧视月球实体 -->
+                            <g id="sideMoonActive">
+                                <circle r="14" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+                                <!-- 侧向月球阴暗面 - 同样背向右侧太阳 -->
+                                <path d="M 0 -14 A 14 14 0 0 1 0 14 Z" fill="#0f172a" />
+                                <text id="lblSideMoon" x="0" y="32" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">月球</text>
+                                
+                                <!-- 垂直降落到黄道面的偏离指示线 -->
+                                <line id="sideDevLine" x1="0" y1="0" x2="0" y2="0" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="3,3" />
+                            </g>
+                        </g>
+                    </g>
+
+                    <!-- 动态夹角弧度与数值标注 -->
+                    <g transform="translate(500, 300)">
+                        <path id="angleArc" d="M 120 0 A 120 120 0 0 0 120 -10" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+                        <text id="txtAngleValue" x="135" y="-15" fill="#f59e0b" font-size="14" font-weight="bold">轨道倾角: 5.14°</text>
+                    </g>
+
+                    <!-- 底部原理讲解 -->
+                    <g transform="translate(100, 515)">
+                        <rect width="800" height="65" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+                        <text x="400" y="25" text-anchor="middle" fill="#e2e8f0" font-size="13">
+                            通过动态公转可以清晰观察：月球只有在<tspan fill="#4ade80" font-weight="bold">交点</tspan>附近穿过黄道面。当它在左侧/右侧偏离黄道面时，
+                        </text>
+                        <text x="400" y="45" text-anchor="middle" fill="#fb7185" font-size="12" font-weight="bold">
+                            由于垂直偏差的存在，月球黑影/地球本影在三维空间中会完美错开目标，无法引发任何食相！
+                        </text>
+                    </g>
+                </svg>
+
+                <!-- 可拖动悬浮画中画：地表/月表真实观测视角 -->
+                <div id="pipWindow" class="absolute bottom-4 left-4 bg-slate-900/95 backdrop-blur-md p-3 rounded-xl border border-slate-700 w-[170px] md:w-[190px] shadow-2xl flex flex-col items-center cursor-move active:scale-105 transition-transform duration-100 touch-none z-30 select-none">
+                    <!-- 拖动提示条 -->
+                    <div class="w-8 h-1 bg-slate-700 rounded-full mb-2 pointer-events-none"></div>
+                    <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-2 pointer-events-none">地表/天表真实观测</span>
+                    
+                    <div class="w-24 h-24 md:w-28 md:h-28 rounded-full bg-black border border-slate-800 relative overflow-hidden flex items-center justify-center pointer-events-none">
+                        <svg id="svgLiveObserver" class="w-full h-full" viewBox="0 0 100 100">
+                            <!-- 太空黑背景 -->
+                            <rect width="100" height="100" fill="#020617"/>
+                            
+                            <!-- 1. 太阳实体 (仅在日食区作为底色显示) -->
+                            <!-- 黄色/温暖色太阳，与灰色月盘对比明显 -->
+                            <circle id="obsSun" cx="50" cy="50" r="22" fill="#f59e0b" class="hidden"/>
+                            <g id="obsSunCorona" class="hidden">
+                                <circle cx="50" cy="50" r="28" fill="none" stroke="#fbbf24" stroke-width="4" opacity="0.4" />
+                                <circle cx="50" cy="50" r="24" fill="none" stroke="#fffbeb" stroke-width="2" opacity="0.8" />
+                            </g>
+                            
+                            <!-- 2. 月球本体层 (在月食区作为被食天体，在日食区作为遮挡天体) -->
+                            <!-- 大小与太阳保持一致（同为22像素） -->
+                            <g id="obsMoonGroup">
+                                <circle id="obsBody" cx="50" cy="50" r="22" fill="#e2e8f0" />
+                                <g id="obsMoonDetails">
+                                    <circle cx="42" cy="42" r="3" fill="#cbd5e1" opacity="0.6" />
+                                    <circle cx="58" cy="56" r="4" fill="#cbd5e1" opacity="0.6" />
+                                    <path d="M 38 45 Q 44 40 50 48" stroke="#cbd5e1" stroke-width="1" fill="none" opacity="0.5" />
+                                </g>
+                            </g>
+
+                            <!-- 3. 地球阴影遮蔽层（月食时渲染在最前面，红色本影覆盖在月球表面） -->
+                            <circle id="obsEarthShadow" cx="50" cy="50" r="35" fill="rgba(239, 68, 68, 0.15)" stroke="rgba(239, 68, 68, 0.3)" stroke-width="1.5" class="hidden" style="mix-blend-mode: multiply;"/>
+                            <circle id="obsEarthUmbra" cx="50" cy="50" r="23" fill="rgba(153, 27, 27, 0.85)" stroke="#ef4444" stroke-width="1" class="hidden" style="mix-blend-mode: multiply;"/>
+                        </svg>
+                    </div>
+                    <span id="lblObserverStatus" class="text-[10px] font-bold text-yellow-400 mt-2 text-center pointer-events-none">常规状态</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧控制面板 -->
+        <div id="controlPanel" class="w-full md:w-[380px] bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col transition-all duration-300 relative z-20">
+            <!-- 折叠拉手 -->
+            <button id="btnTogglePanel" onclick="togglePanel()" class="absolute -top-3 left-1/2 -translate-x-1/2 md:top-1/2 md:-left-3 md:-translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white w-8 h-6 md:w-6 md:h-12 rounded-full flex items-center justify-center shadow-lg focus:outline-none transition-all">
+                <i id="toggleIcon" data-lucide="chevron-down" class="w-4 h-4 md:rotate-90"></i>
+            </button>
+
+            <!-- 滚动内容区 -->
+            <div id="panelContent" class="flex-1 overflow-y-auto p-5 space-y-6">
+                
+                <!-- 控制面板首部 -->
+                <div class="space-y-3">
+                    <h2 class="text-sm font-bold text-gray-300 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-indigo-400"></i> 运行控制
+                    </h2>
+                    
+                    <!-- 运行与暂停 -->
+                    <div class="flex items-center gap-2">
+                        <button id="btnPlayPause" onclick="togglePlay()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all">
+                            <i id="iconPlay" data-lucide="pause" class="w-4 h-4"></i>
+                            <span id="txtPlay">暂停模拟</span>
+                        </button>
+                        <button onclick="resetSimulation()" class="bg-slate-800 hover:bg-slate-700 text-gray-200 p-2.5 rounded-lg transition-all" title="重置">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- 速度控制 -->
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>运行速度 (月球公转)</span>
+                            <span id="lblSpeed">1.0x</span>
+                        </div>
+                        <input type="range" id="rngSpeed" min="0" max="4" step="0.1" value="1.0" oninput="changeSpeed(this.value)" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- 几何参数滑块 -->
+                <div class="space-y-4">
+                    <h2 class="text-sm font-bold text-gray-300 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i> 轨道物理参数
+                    </h2>
+
+                    <!-- 核心演示：白黄轨道夹角 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-semibold text-gray-300 flex items-center gap-1">
+                                黄白道交角 
+                                <span class="bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded text-[10px]">核心演示</span>
+                            </span>
+                            <span id="lblInclination" class="text-xs font-bold text-amber-400">5.14°</span>
+                        </div>
+                        <input type="range" id="rngInclination" min="0" max="10" step="0.05" value="5.14" oninput="setInclination(this.value)" class="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-[11px] text-gray-400 mt-1">
+                            科学原理：当夹角设为 <strong class="text-green-400">0°</strong> 时，轨道共面。此时<strong class="text-green-400">每次新月必定日全食，每次满月必定月全食</strong>！只要有夹角存在，就极难形成全食。
+                        </p>
+                    </div>
+
+                    <!-- 手动调节公转位置 -->
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>手动推动月球位置 (轨道角度)</span>
+                            <span id="lblMoonPos">180°</span>
+                        </div>
+                        <input type="range" id="rngMoonPos" min="0" max="360" step="0.5" value="180" oninput="setMoonPosition(this.value)" class="w-full accent-blue-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-gray-500 mt-1 px-1">
+                            <span>0°/360° (满月/月食点)</span>
+                            <span>180° (新月/日食点)</span>
+                        </div>
+                    </div>
+
+                    <!-- 升降交点位置微调 -->
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>微调交点线位置 (回归进动)</span>
+                            <span id="lblNodeAngle">0° (完全对齐太阳)</span>
+                        </div>
+                        <input type="range" id="rngNodeAngle" min="-90" max="90" step="1" value="0" oninput="setNodeAngle(this.value)" class="w-full accent-red-500 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        <p class="text-[11px] text-gray-500 mt-1">
+                            提示：若交点线偏离 0°，说明轨道平面与太阳连线未重合，此时哪怕在朔望日也无法形成食。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 场景快捷对准 -->
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-gray-300 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i data-lucide="navigation" class="w-4 h-4 text-indigo-400"></i> 真实天象对齐预设
+                    </h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="presets('solar-eclipse')" class="bg-amber-950/50 hover:bg-amber-900/50 border border-amber-800/60 text-amber-300 p-2.5 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all">
+                            <span class="text-sm">🌑</span>
+                            一键对准：日全食条件
+                        </button>
+                        <button onclick="presets('lunar-eclipse')" class="bg-red-950/50 hover:bg-red-900/50 border border-red-800/60 text-red-300 p-2.5 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all">
+                            <span class="text-sm">🌕</span>
+                            一键对准：月全食条件
+                        </button>
+                        <button onclick="presets('high-miss')" class="bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-gray-300 p-2.5 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 col-span-2 transition-all">
+                            <span>🚫 差之毫厘：错过任何食</span>
+                            演示：虽然刚好新月/满月，但因垂直夹角错过
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 原理科普小卡片 -->
+                <div class="bg-slate-950/90 p-4 rounded-xl border border-indigo-950 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-300 font-bold text-sm">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i> 核心物理概念科普
+                    </div>
+                    <ul class="text-xs text-gray-400 space-y-2 list-disc pl-4 leading-relaxed">
+                        <li><strong>逆时针公转：</strong> 从北极俯瞰，月球围绕地球呈逆时针运行。在侧视图中，从左往右行进时穿过地球前方，从右往左行进时穿过地球后方（会被遮蔽）。</li>
+                        <li><strong>日全食 vs 日偏食：</strong> 只有在黄白交角极接近于 <strong class="text-amber-400">0°</strong> 且尺寸契合时，月球才能完美遮挡住黄金色的太阳（产生日全食）。</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 常驻浮动控制台展开按钮 (解决收起后找不到返回路的问题) -->
+    <button id="floatingShowPanelBtn" onclick="togglePanel()" class="fixed top-20 right-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white p-3 rounded-full shadow-2xl border border-indigo-400 z-50 flex items-center justify-center transition-all duration-300 translate-x-20 opacity-0" title="打开控制面板">
+        <i data-lucide="settings" class="w-5 h-5 animate-spin-slow"></i>
+    </button>
+
+    <!-- 简易非侵入式 Toast 浮窗 -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-indigo-950 border border-indigo-500 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <i data-lucide="info" class="w-5 h-5 text-indigo-300"></i>
+        <span id="toastText" class="text-sm font-medium"></span>
+    </div>
+
+    <script>
+        // 初始化 Lucide 图标
+        lucide.createIcons();
+
+        // 核心天体物理状态数据
+        const state = {
+            isPlaying: true,
+            speed: 1.0,
+            inclination: 5.14,
+            moonAngle: 180, // 180°代表新月，0°/360°代表满月
+            nodeAngle: 0,   // 交点线对齐角度（0度代表对齐地日连线）
+            viewMode: 'orbits',
+            isPanelOpen: true
+        };
+
+        // DOM 元素引用
+        const canvasArea = document.getElementById('canvasArea');
+        const svgOrbits = document.getElementById('svgOrbits');
+        const svgSideView = document.getElementById('svgSideView');
+        const moonGroup = document.getElementById('moonGroup');
+        const moonOrbitLine = document.getElementById('moonOrbitLine');
+        const moonShadow = document.getElementById('moonShadow');
+        const nodeAsc = document.getElementById('nodeAsc');
+        const nodeDesc = document.getElementById('nodeDesc');
+        const lineOfNodes = document.getElementById('lineOfNodes');
+        
+        // 侧视图元素
+        const lineSideOrbit = document.getElementById('lineSideOrbit');
+        const sideMoonActive = document.getElementById('sideMoonActive');
+        const angleArc = document.getElementById('angleArc');
+        const txtAngleValue = document.getElementById('txtAngleValue');
+        const sideDevLine = document.getElementById('sideDevLine');
+        const lblSideMoon = document.getElementById('lblSideMoon');
+
+        // 侧向层级变换容器
+        const sideBehindGroup = document.getElementById('sideBehindGroup');
+        const sideFrontGroup = document.getElementById('sideFrontGroup');
+
+        // 画中画观测窗口元素与拖拽状态
+        const pipWindow = document.getElementById('pipWindow');
+        const obsSun = document.getElementById('obsSun');
+        const obsSunCorona = document.getElementById('obsSunCorona');
+        const obsEarthShadow = document.getElementById('obsEarthShadow');
+        const obsEarthUmbra = document.getElementById('obsEarthUmbra');
+        const obsBody = document.getElementById('obsBody');
+        const obsMoonDetails = document.getElementById('obsMoonDetails');
+        const lblObserverStatus = document.getElementById('lblObserverStatus');
+
+        // 生成背景繁星
+        function makeBackgroundStars() {
+            const starsGroup = document.getElementById('stars-group');
+            starsGroup.innerHTML = '';
+            for (let i = 0; i < 90; i++) {
+                const cx = Math.random() * 1000;
+                const cy = Math.random() * 700;
+                const r = Math.random() * 1.5 + 0.4;
+                const opacity = Math.random() * 0.7 + 0.3;
+                
+                const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                c.setAttribute("cx", cx);
+                c.setAttribute("cy", cy);
+                c.setAttribute("r", r);
+                c.setAttribute("fill", "#ffffff");
+                c.setAttribute("opacity", opacity);
+                starsGroup.appendChild(c);
+            }
+        }
+        makeBackgroundStars();
+
+        // ==========================================
+        // 原生触控 & 鼠标拖拽画中画面板逻辑 (PIP Dragging)
+        // ==========================================
+        let isDragging = false;
+        let startX, startY;
+        let originalLeft, originalTop;
+
+        // 获取窗口边界限制，防止拖出可视区
+        function initDragEvents() {
+            const onStart = (e) => {
+                isDragging = true;
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                startX = clientX;
+                startY = clientY;
+                
+                const rect = pipWindow.getBoundingClientRect();
+                originalLeft = rect.left;
+                originalTop = rect.top;
+                
+                // 去除右下角的原有自适应定位
+                pipWindow.style.right = 'auto';
+                pipWindow.style.bottom = 'auto';
+                pipWindow.style.left = originalLeft + 'px';
+                pipWindow.style.top = originalTop + 'px';
+            };
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                
+                let newLeft = originalLeft + dx;
+                let newTop = originalTop + dy;
+                
+                // 边界限制
+                const containerRect = canvasArea.getBoundingClientRect();
+                const pipRect = pipWindow.getBoundingClientRect();
+                
+                if (newLeft < containerRect.left) newLeft = containerRect.left;
+                if (newLeft + pipRect.width > containerRect.right) newLeft = containerRect.right - pipRect.width;
+                if (newTop < containerRect.top) newTop = containerRect.top;
+                if (newTop + pipRect.height > containerRect.bottom) newTop = containerRect.bottom - pipRect.height;
+                
+                pipWindow.style.left = newLeft + 'px';
+                pipWindow.style.top = newTop + 'px';
+            };
+
+            const onEnd = () => {
+                isDragging = false;
+            };
+
+            pipWindow.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            pipWindow.addEventListener('touchstart', onStart, { passive: true });
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onEnd);
+        }
+        initDragEvents();
+
+        // 仿真主时钟循环
+        let lastTimestamp = 0;
+        function loop(time) {
+            if (!lastTimestamp) lastTimestamp = time;
+            const dt = (time - lastTimestamp) / 1000;
+            lastTimestamp = time;
+
+            if (state.isPlaying) {
+                // 逆时针公转：推动月球角度增加
+                const step = dt * 18 * state.speed; 
+                state.moonAngle = (state.moonAngle + step) % 360;
+                
+                // 平滑更新控制台滑轨显示
+                document.getElementById('rngMoonPos').value = state.moonAngle.toFixed(1);
+                document.getElementById('lblMoonPos').innerText = Math.round(state.moonAngle) + '°';
+            }
+
+            renderOrbitsView();
+            renderSideView();
+            renderObserverView();
+
+            requestAnimationFrame(loop);
+        }
+
+        // ==========================================
+        // 1. 三维公转仿真视图渲染
+        // ==========================================
+        function renderOrbitsView() {
+            const incRad = (state.inclination * Math.PI) / 180;
+            const baseRy = 85; 
+            const projectedRy = baseRy * Math.cos(incRad);
+            
+            // 调整投影出的白道轨道扁平度
+            moonOrbitLine.setAttribute("ry", projectedRy);
+            
+            // 旋转交点轴线
+            const nodeAngleDeg = state.nodeAngle;
+            document.getElementById('moonOrbitContainer').setAttribute("transform", `rotate(${nodeAngleDeg})`);
+
+            // 轨道极轴公式计算月球在黄道面投影上的坐标
+            const moonRad = (state.moonAngle * Math.PI) / 180;
+            const rx = 200;
+            const ry = projectedRy;
+            
+            let mx = rx * Math.cos(moonRad);
+            // 月球公转逆时针
+            let my = -ry * Math.sin(moonRad);
+
+            // Z轴高度偏差计算 (考虑交角和进动)
+            const relativeRad = moonRad - (nodeAngleDeg * Math.PI / 180);
+            const zDeviation = rx * Math.sin(relativeRad) * Math.sin(incRad);
+
+            // 深度缩放 (近大远小效果)
+            const moonScale = 1 - (0.15 * Math.sin(moonRad)); 
+            moonGroup.setAttribute("transform", `translate(${mx}, ${my}) scale(${moonScale})`);
+
+            // 更新升交点与降交点坐标
+            nodeAsc.setAttribute("cx", -rx);
+            nodeAsc.setAttribute("cy", 0);
+            nodeDesc.setAttribute("cx", rx);
+            nodeDesc.setAttribute("cy", 0);
+
+            // 调整交线对齐指示线
+            lineOfNodes.setAttribute("transform", `rotate(${nodeAngleDeg}, 650, 350)`);
+
+            // 计算日食影子投射 (新月 180° 附近)
+            const moonGlobalX = 650 + (mx * Math.cos(nodeAngleDeg * Math.PI / 180) - my * Math.sin(nodeAngleDeg * Math.PI / 180));
+            const moonGlobalY = 350 + (mx * Math.sin(nodeAngleDeg * Math.PI / 180) + my * Math.cos(nodeAngleDeg * Math.PI / 180));
+            
+            const inNewMoonWindow = Math.abs(state.moonAngle - 180) < 35;
+            if (inNewMoonWindow) {
+                const len = 300;
+                const xEnd = moonGlobalX + len;
+                const yEnd = moonGlobalY;
+                
+                moonShadow.setAttribute("points", `${moonGlobalX},${moonGlobalY - 4} ${xEnd},${yEnd - 20} ${xEnd},${yEnd + 20} ${moonGlobalX},${moonGlobalY + 4}`);
+                
+                // 影子深度随高度偏离度减弱
+                const shadowStrength = Math.max(0, 0.85 * (1 - Math.abs(zDeviation) / 18));
+                moonShadow.setAttribute("opacity", shadowStrength);
+            } else {
+                moonShadow.setAttribute("opacity", 0);
+            }
+        }
+
+        // ==========================================
+        // 2. 侧视投影视图渲染与物理遮蔽 (Side View)
+        // ==========================================
+        function renderSideView() {
+            const incVal = parseFloat(state.inclination);
+            lineSideOrbit.setAttribute("transform", `rotate(${-incVal})`);
+            
+            // 夹角标志弧
+            const arcRadius = 110;
+            const incRad = (incVal * Math.PI) / 180;
+            const arcX = arcRadius * Math.cos(-incRad);
+            const arcY = arcRadius * Math.sin(-incRad);
+            angleArc.setAttribute("d", `M ${arcRadius} 0 A ${arcRadius} ${arcRadius} 0 0 0 ${arcX} ${arcY}`);
+            txtAngleValue.innerHTML = `轨道倾角: ${incVal.toFixed(2)}°`;
+
+            // 轨道公转计算
+            const sideOrbitLength = 250;
+            const moonRad = (state.moonAngle * Math.PI) / 180;
+            
+            // 横向投影位移
+            const sideX = sideOrbitLength * Math.cos(moonRad);
+            // 考虑倾角算出的高度投影位移
+            const sideY = sideX * Math.sin(-incRad);
+
+            // 地球对月球的遮挡机制
+            const isBehindEarth = (state.moonAngle > 0 && state.moonAngle < 180);
+            
+            if (isBehindEarth) {
+                if (sideMoonActive.parentNode !== sideBehindGroup) {
+                    sideBehindGroup.appendChild(sideMoonActive);
+                }
+                
+                const distToEarthCenter = Math.abs(sideX);
+                if (distToEarthCenter < 42) {
+                    const hideFactor = Math.max(0, (distToEarthCenter - 28) / 14);
+                    sideMoonActive.setAttribute("opacity", hideFactor);
+                } else {
+                    sideMoonActive.setAttribute("opacity", "1");
+                }
+            } else {
+                if (sideMoonActive.parentNode !== sideFrontGroup) {
+                    sideFrontGroup.appendChild(sideMoonActive);
+                }
+                sideMoonActive.setAttribute("opacity", "1");
+            }
+
+            // 更新月球平面坐标
+            sideMoonActive.setAttribute("transform", `translate(${sideX}, ${sideY})`);
+
+            // 垂直回落到黄道面的偏离指示线
+            sideDevLine.setAttribute("x1", 0);
+            sideDevLine.setAttribute("y1", 0);
+            sideDevLine.setAttribute("x2", 0);
+            sideDevLine.setAttribute("y2", -sideY);
+
+            // 动态评估共面误差指示灯
+            const absoluteY = Math.abs(sideY);
+            if (absoluteY < 10) {
+                sideDevLine.setAttribute("stroke", "#22c55e");
+                sideDevLine.setAttribute("stroke-width", "2");
+            } else {
+                sideDevLine.setAttribute("stroke", "#ef4444");
+                sideDevLine.setAttribute("stroke-width", "1.2");
+            }
+
+            // 标签名称修正
+            if (Math.abs(state.moonAngle - 180) < 30) {
+                lblSideMoon.innerText = `新月 (日食段 - 偏离: ${Math.round(absoluteY / 5)}°)`;
+            } else if (state.moonAngle < 30 || state.moonAngle > 330) {
+                lblSideMoon.innerText = `满月 (月食段 - 偏离: ${Math.round(absoluteY / 5)}°)`;
+            } else {
+                lblSideMoon.innerText = `公转中 (偏离: ${Math.round(absoluteY / 5)}°)`;
+            }
+        }
+
+        // ==========================================
+        // 3. 画中画真实食相渲染 (PIP Observer)
+        // ==========================================
+        function renderObserverView() {
+            const incRad = (state.inclination * Math.PI) / 180;
+            const moonRad = (state.moonAngle * Math.PI) / 180;
+            
+            const nodeOffsetRad = (state.nodeAngle * Math.PI) / 180;
+            const relativeRad = moonRad - nodeOffsetRad;
+            const verticalDist = 200 * Math.sin(relativeRad) * Math.sin(incRad);
+
+            // 核心物理修正：拓宽角度检测窗口至 55°，使月球与地球影子能从边界（视野外）平滑过渡切入/切出，不闪现
+            const isNewMoonZone = Math.abs(state.moonAngle - 180) < 55;
+            
+            let angleDiff = state.moonAngle;
+            if (angleDiff > 180) angleDiff -= 360; // 映射到 [-180, 180] 连续区间
+            const isFullMoonZone = Math.abs(angleDiff) < 55;
+
+            if (isNewMoonZone) {
+                // ------------------ 【日食观测模式】 ------------------
+                obsSun.classList.remove('hidden');
+                obsSunCorona.classList.remove('hidden');
+                obsEarthShadow.classList.add('hidden');
+                obsEarthUmbra.classList.add('hidden');
+                obsMoonDetails.classList.add('hidden');
+                
+                obsBody.setAttribute("fill", "#090d16"); // 新月遮挡，呈现灰暗月球表面
+                obsBody.setAttribute("r", "22");        // 确保半径与太阳高度契合
+
+                // 核心物理修正：月亮作逆时针公转，其遮蔽投影【自右向左】移动
+                const deltaX = -(state.moonAngle - 180) * 1.5;
+                const deltaY = verticalDist * 0.9;
+
+                obsBody.setAttribute("cx", 50 + deltaX);
+                obsBody.setAttribute("cy", 50 + deltaY);
+
+                const offsetDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                // 根据物理上连续的 offset 偏距判断食相，由于去除了任何离散Math.sign跳跃，偏心食相极其平滑
+                if (offsetDistance < 2.0) {
+                    lblObserverStatus.innerText = "日全食 (完美对齐)";
+                    lblObserverStatus.className = "text-[10px] font-bold text-red-500 mt-2 text-center pointer-events-none";
+                    obsSunCorona.setAttribute("opacity", 1);
+                } else if (offsetDistance < 22) {
+                    lblObserverStatus.innerText = "日偏食";
+                    lblObserverStatus.className = "text-[10px] font-bold text-amber-500 mt-2 text-center pointer-events-none";
+                    obsSunCorona.setAttribute("opacity", (1 - offsetDistance / 22) * 0.5);
+                } else if (offsetDistance < 44) {
+                    lblObserverStatus.innerText = "新月 (食相临界)";
+                    lblObserverStatus.className = "text-[10px] font-bold text-yellow-600 mt-2 text-center pointer-events-none";
+                    obsSunCorona.setAttribute("opacity", 0);
+                } else {
+                    lblObserverStatus.innerText = "新月 (无食)";
+                    lblObserverStatus.className = "text-[10px] font-bold text-gray-500 mt-2 text-center pointer-events-none";
+                    obsSunCorona.setAttribute("opacity", 0);
+                    // 月球会在这里顺滑地滑出 100x100 的 SVG 画布外
+                }
+
+            } else if (isFullMoonZone) {
+                // ------------------ 【月食观测模式】 ------------------
+                obsSun.classList.add('hidden');
+                obsSunCorona.classList.add('hidden');
+                obsEarthShadow.classList.remove('hidden');
+                obsEarthUmbra.classList.remove('hidden');
+                obsMoonDetails.classList.remove('hidden');
+
+                // 月球归位处于正中
+                obsBody.setAttribute("cx", 50);
+                obsBody.setAttribute("cy", 50);
+                obsBody.setAttribute("fill", "#fafaf9");
+                obsBody.setAttribute("r", "22");
+
+                // 核心物理及用户反馈修正：地影严格【自右向左】移动
+                // angleDiff 在进入前为负（右边），掠过时为0（正中），离开后为正（左边）。
+                // 为了让地影自右向左横扫，其X坐标公式应为 50 - (angleDiff * 1.5)
+                const shadowX = 50 - angleDiff * 1.5;
+                const shadowY = 50 - verticalDist * 0.9;
+
+                // 地球本影和半影，置于月盘上方遮盖
+                obsEarthShadow.setAttribute("cx", shadowX);
+                obsEarthShadow.setAttribute("cy", shadowY);
+                obsEarthUmbra.setAttribute("cx", shadowX);
+                obsEarthUmbra.setAttribute("cy", shadowY);
+
+                // 物理测距（地球阴影中心相对于月面正中心的偏离向量）
+                const shadowDistance = Math.sqrt((shadowX - 50) * (shadowX - 50) + (shadowY - 50) * (shadowY - 50));
+                
+                // 【月全食与月偏食判定】
+                if (shadowDistance < 8) {
+                    obsBody.setAttribute("fill", "#fb7185"); // 血红色月全食（本影深处）
+                    lblObserverStatus.innerText = "红月亮 (月全食)";
+                    lblObserverStatus.className = "text-[10px] font-bold text-red-500 mt-2 text-center pointer-events-none";
+                } else if (shadowDistance < 22) {
+                    lblObserverStatus.innerText = "月偏食";
+                    lblObserverStatus.className = "text-[10px] font-bold text-amber-500 mt-2 text-center pointer-events-none";
+                    obsBody.setAttribute("fill", "#fafaf9"); // 遮蔽前为高亮白
+                } else if (shadowDistance < 32) {
+                    lblObserverStatus.innerText = "半影月食";
+                    lblObserverStatus.className = "text-[10px] font-bold text-indigo-400 mt-2 text-center pointer-events-none";
+                    obsBody.setAttribute("fill", "#e2e8f0");
+                } else if (shadowDistance < 57) {
+                    lblObserverStatus.innerText = "满月 (食相临界)";
+                    lblObserverStatus.className = "text-[10px] font-bold text-indigo-300 mt-2 text-center pointer-events-none";
+                    obsBody.setAttribute("fill", "#fafaf9");
+                } else {
+                    lblObserverStatus.innerText = "常规满月";
+                    lblObserverStatus.className = "text-[10px] font-bold text-slate-300 mt-2 text-center pointer-events-none";
+                    obsBody.setAttribute("fill", "#fafaf9");
+                }
+
+            } else {
+                // ------------------ 【非食相窗口】 ------------------
+                obsSun.classList.add('hidden');
+                obsSunCorona.classList.add('hidden');
+                obsEarthShadow.classList.add('hidden');
+                obsEarthUmbra.classList.add('hidden');
+                obsMoonDetails.classList.add('hidden');
+                obsBody.setAttribute("cx", -200);
+
+                lblObserverStatus.innerText = "非食相观测窗口";
+                lblObserverStatus.className = "text-[10px] font-bold text-gray-500 mt-2 text-center pointer-events-none";
+            }
+        }
+
+        // ==========================================
+        // 4. UI 核心控制方法
+        // ==========================================
+
+        function togglePlay() {
+            state.isPlaying = !state.isPlaying;
+            const btn = document.getElementById('btnPlayPause');
+            const icon = document.getElementById('iconPlay');
+            const txt = document.getElementById('txtPlay');
+
+            if (state.isPlaying) {
+                icon.setAttribute("data-lucide", "pause");
+                txt.innerText = "暂停模拟";
+                btn.className = "flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all";
+            } else {
+                icon.setAttribute("data-lucide", "play");
+                txt.innerText = "开始运行";
+                btn.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all";
+            }
+            lucide.createIcons();
+        }
+
+        function changeSpeed(val) {
+            state.speed = parseFloat(val);
+            document.getElementById('lblSpeed').innerText = state.speed.toFixed(1) + 'x';
+        }
+
+        function setInclination(val) {
+            state.inclination = parseFloat(val);
+            document.getElementById('lblInclination').innerText = state.inclination.toFixed(2) + '°';
+            if (state.inclination === 0) {
+                showToast("💡 轨道完美重叠！新月必定发生日全食，满月必定发生月全食。");
+            }
+        }
+
+        function setMoonPosition(val) {
+            state.moonAngle = parseFloat(val);
+            document.getElementById('lblMoonPos').innerText = Math.round(val) + '°';
+        }
+
+        function setNodeAngle(val) {
+            state.nodeAngle = parseInt(val);
+            document.getElementById('lblNodeAngle').innerText = val + '°' + (val === 0 ? ' (完全对齐地日轴线)' : '');
+        }
+
+        function resetSimulation() {
+            state.moonAngle = 180;
+            state.inclination = 5.14;
+            state.speed = 1.0;
+            state.nodeAngle = 0;
+            
+            document.getElementById('rngMoonPos').value = 180;
+            document.getElementById('rngInclination').value = 5.14;
+            document.getElementById('rngSpeed').value = 1.0;
+            document.getElementById('rngNodeAngle').value = 0;
+
+            document.getElementById('lblMoonPos').innerText = '180°';
+            document.getElementById('lblInclination').innerText = '5.14°';
+            document.getElementById('lblSpeed').innerText = '1.0x';
+            document.getElementById('lblNodeAngle').innerText = '0° (完全对齐地日轴线)';
+            
+            showToast("🔄 仿真器状态已重置");
+        }
+
+        // 场景预设一键加载
+        function presets(type) {
+            state.isPlaying = false;
+            const playBtn = document.getElementById('btnPlayPause');
+            const playIcon = document.getElementById('iconPlay');
+            const playTxt = document.getElementById('txtPlay');
+            
+            playIcon.setAttribute("data-lucide", "play");
+            playTxt.innerText = "开始运行";
+            playBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all";
+            lucide.createIcons();
+
+            if (type === 'solar-eclipse') {
+                state.moonAngle = 180;
+                state.nodeAngle = 0;
+                state.inclination = 0;
+
+                document.getElementById('rngMoonPos').value = 180;
+                document.getElementById('rngNodeAngle').value = 0;
+                document.getElementById('rngInclination').value = 0;
+                
+                document.getElementById('lblMoonPos').innerText = '180°';
+                document.getElementById('lblNodeAngle').innerText = '0° (完全对齐地日轴线)';
+                document.getElementById('lblInclination').innerText = '0.00°';
+                showToast("🌑 已对准【日全食】完美共面！大小对齐遮挡。");
+
+            } else if (type === 'lunar-eclipse') {
+                state.moonAngle = 360;
+                state.nodeAngle = 0;
+                state.inclination = 0;
+
+                document.getElementById('rngMoonPos').value = 360;
+                document.getElementById('rngNodeAngle').value = 0;
+                document.getElementById('rngInclination').value = 0;
+
+                document.getElementById('lblMoonPos').innerText = '360°';
+                document.getElementById('lblNodeAngle').innerText = '0° (完全对齐地日轴线)';
+                document.getElementById('lblInclination').innerText = '0.00°';
+                showToast("🌕 已对准【月全食】！红色阴影精准覆盖。");
+
+            } else if (type === 'high-miss') {
+                state.moonAngle = 180;
+                state.nodeAngle = -90;
+                state.inclination = 5.14;
+
+                document.getElementById('rngMoonPos').value = 180;
+                document.getElementById('rngNodeAngle').value = -90;
+                document.getElementById('rngInclination').value = 5.14;
+
+                document.getElementById('lblMoonPos').innerText = '180°';
+                document.getElementById('lblNodeAngle').innerText = '-90°';
+                document.getElementById('lblInclination').innerText = '5.14°';
+                showToast("🚫 虽然此时是新月，但因垂直交角偏斜，投影错失地球。");
+            }
+        }
+
+        // 切换三维或侧视模式
+        function switchView(mode) {
+            state.viewMode = mode;
+            const btnOrbits = document.getElementById('btnViewOrbits');
+            const btnSide = document.getElementById('btnViewSide');
+
+            if (mode === 'orbits') {
+                svgOrbits.classList.remove('hidden');
+                svgSideView.classList.add('hidden');
+                
+                btnOrbits.className = "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all bg-indigo-600 text-white shadow";
+                btnSide.className = "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-gray-400 hover:text-white";
+            } else {
+                svgOrbits.classList.add('hidden');
+                svgSideView.classList.remove('hidden');
+
+                btnOrbits.className = "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-gray-400 hover:text-white";
+                btnSide.className = "px-2.5 py-1.5 rounded-md text-xs font-medium transition-all bg-indigo-600 text-white shadow";
+            }
+        }
+
+        // 控制面板侧边折叠/展开动画逻辑
+        function togglePanel() {
+            state.isPanelOpen = !state.isPanelOpen;
+            const panel = document.getElementById('controlPanel');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const floatingBtn = document.getElementById('floatingShowPanelBtn');
+            const isMobile = window.innerWidth < 768;
+
+            if (isMobile) {
+                if (state.isPanelOpen) {
+                    panel.style.transform = "translateY(0)";
+                    toggleIcon.setAttribute("data-lucide", "chevron-down");
+                    
+                    // 渐变藏起常驻悬浮按钮
+                    floatingBtn.classList.add('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.remove('opacity-100', 'translate-x-0');
+                } else {
+                    panel.style.transform = "translateY(calc(100% - 40px))";
+                    toggleIcon.setAttribute("data-lucide", "chevron-up");
+                    
+                    // 渐变展现常驻悬浮按钮
+                    floatingBtn.classList.remove('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.add('opacity-100', 'translate-x-0');
+                }
+            } else {
+                if (state.isPanelOpen) {
+                    panel.style.width = "380px";
+                    panel.style.minWidth = "380px";
+                    toggleIcon.setAttribute("data-lucide", "chevron-right");
+                    toggleIcon.className = "w-4 h-4 md:rotate-90";
+                    
+                    floatingBtn.classList.add('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.remove('opacity-100', 'translate-x-0');
+                } else {
+                    panel.style.width = "0px";
+                    panel.style.minWidth = "0px";
+                    toggleIcon.setAttribute("data-lucide", "chevron-left");
+                    toggleIcon.className = "w-4 h-4 md:-rotate-90";
+                    
+                    floatingBtn.classList.remove('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.add('opacity-100', 'translate-x-0');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        // 窗口拉伸重置布局参数
+        function handleResize() {
+            const isMobile = window.innerWidth < 768;
+            const panel = document.getElementById('controlPanel');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const floatingBtn = document.getElementById('floatingShowPanelBtn');
+
+            if (!isMobile) {
+                panel.style.transform = "none";
+                if (state.isPanelOpen) {
+                    panel.style.width = "380px";
+                    panel.style.minWidth = "380px";
+                    toggleIcon.setAttribute("data-lucide", "chevron-right");
+                    floatingBtn.classList.add('opacity-0', 'translate-x-20');
+                } else {
+                    panel.style.width = "0px";
+                    panel.style.minWidth = "0px";
+                    toggleIcon.setAttribute("data-lucide", "chevron-left");
+                    floatingBtn.classList.remove('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.add('opacity-100', 'translate-x-0');
+                }
+            } else {
+                panel.style.width = "100%";
+                panel.style.minWidth = "auto";
+                if (state.isPanelOpen) {
+                    panel.style.transform = "translateY(0)";
+                    toggleIcon.setAttribute("data-lucide", "chevron-down");
+                    floatingBtn.classList.add('opacity-0', 'translate-x-20');
+                } else {
+                    panel.style.transform = "translateY(calc(100% - 40px))";
+                    toggleIcon.setAttribute("data-lucide", "chevron-up");
+                    floatingBtn.classList.remove('opacity-0', 'translate-x-20');
+                    floatingBtn.classList.add('opacity-100', 'translate-x-0');
+                }
+            }
+            lucide.createIcons();
+        }
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        // 简易非阻碍式 Toast 提示
+        let toastTimeout;
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            
+            clearTimeout(toastTimeout);
+            toastText.innerText = text;
+            toast.classList.remove('opacity-0', 'translate-y-20');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-20');
+            }, 4000);
+        }
+
+        // 启动仿真周期
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
