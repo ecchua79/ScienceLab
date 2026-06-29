@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人体呼吸系统与呼吸运动模拟器 (初中生物)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f0f7f6;
+        }
+        /* 呼吸动画过渡 */
+        .respiratory-element {
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* 点击高亮闪烁效果 */
+        @keyframes pulse-highlight {
+            0%, 100% { stroke-width: 2px; filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5)); }
+            50% { stroke-width: 4px; filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8)); }
+        }
+        .active-part {
+            animation: pulse-highlight 2s infinite;
+            stroke: #3b82f6 !important;
+        }
+        /* 气体粒子动画 */
+        @keyframes flow-in {
+            0% { transform: translateY(-20px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(80px); opacity: 0; }
+        }
+        @keyframes flow-out {
+            0% { transform: translateY(80px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-20px); opacity: 0; }
+        }
+        .particle-in {
+            animation: flow-in 1.5s infinite linear;
+        }
+        .particle-out {
+            animation: flow-out 1.5s infinite linear;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 导航栏 -->
+    <header class="bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg py-4 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-teal-600 p-2.5 rounded-full shadow-inner">
+                    <i class="fa-solid fa-lungs fa-2x"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-wide">初中生物·人体呼吸系统与呼吸运动模拟器</h1>
+                    <p class="text-xs text-teal-100 mt-0.5">七年级下册核心重难点：发生在肺内的气体交换</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchTab('simulator')" id="btn-simulator" class="tab-btn bg-white text-teal-700 px-4 py-2 rounded-lg font-bold shadow transition-all duration-200">
+                    <i class="fa-solid fa-gamepad mr-1"></i> 模拟与探究
+                </button>
+                <button onclick="switchTab('quiz')" id="btn-quiz" class="tab-btn bg-teal-700 text-teal-100 hover:bg-teal-800 px-4 py-2 rounded-lg font-bold transition-all duration-200">
+                    <i class="fa-solid fa-graduation-cap mr-1"></i> 巩固自测
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体内容 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 选项卡 1：模拟与探究 -->
+        <div id="tab-simulator-content" class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- 左侧：呼吸系统与运动动画 (7列) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl shadow-md border border-slate-100 p-4 flex flex-col justify-between">
+                
+                <!-- 控制面板首部 -->
+                <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                            <span class="w-2.5 h-2.5 bg-teal-500 rounded-full mr-2"></span>
+                            动态呼吸生理模型
+                        </h2>
+                        <p class="text-xs text-slate-500">点击图中的器官零件可查看其详细的中考考点</p>
+                    </div>
+                    
+                    <!-- 呼吸状态快速切换 -->
+                    <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+                        <button id="btn-inhale" onclick="setBreathingState('inhale')" class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 bg-white text-blue-600 shadow-sm">
+                            <i class="fa-solid fa-arrow-down mr-1"></i> 吸气
+                        </button>
+                        <button id="btn-pause" onclick="setBreathingState('pause')" class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 text-slate-600 hover:bg-slate-200">
+                            <i class="fa-solid fa-pause mr-1"></i> 暂停
+                        </button>
+                        <button id="btn-exhale" onclick="setBreathingState('exhale')" class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 text-red-600 hover:bg-slate-200">
+                            <i class="fa-solid fa-arrow-up mr-1"></i> 呼气
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 交互核心：SVG 区域 -->
+                <div class="relative flex-grow flex items-center justify-center bg-slate-50 rounded-xl py-6 min-h-[420px]">
+                    
+                    <!-- 动态氧气/二氧化碳流向特效 -->
+                    <div id="gas-flow-indicator" class="absolute top-4 left-4 bg-white/90 backdrop-blur border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs space-y-1 z-10">
+                        <div class="flex items-center space-x-1">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                            <span class="text-slate-600">蓝色小球：吸入氧气 (O₂)</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="w-2 h-2 rounded-full bg-red-400 inline-block animate-pulse"></span>
+                            <span class="text-slate-600">红色小球：呼出二氧化碳 (CO₂)</span>
+                        </div>
+                    </div>
+
+                    <!-- SVG 矢量人体呼吸系统结构 -->
+                    <svg id="respiratory-svg" class="w-full max-w-[420px] h-auto" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+                        <g id="body-contour">
+                            <!-- 人体上半身轮廓背景 -->
+                            <path d="M 120 70 C 120 40, 280 40, 280 70 C 280 110, 290 120, 310 140 C 340 170, 350 250, 350 350 C 350 430, 310 470, 290 480 L 110 480 C 90 470, 50 430, 50 350 C 50 250, 60 170, 90 140 C 110 120, 120 110, 120 70 Z" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" />
+                            <!-- 肋骨轮廓暗示线 -->
+                            <path d="M 80 190 Q 150 210, 150 250 M 80 240 Q 150 260, 150 300 M 80 290 Q 150 310, 150 350" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round" />
+                            <path d="M 320 190 Q 250 210, 250 250 M 320 240 Q 250 260, 250 300 M 320 290 Q 250 310, 250 350" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round" />
+                        </g>
+
+                        <!-- 呼吸气体粒子轨道 -->
+                        <g id="gas-particles" class="pointer-events-none">
+                            <!-- 粒子运动路径：鼻->咽->喉->气管 -->
+                            <!-- 气体粒子将在呼吸状态更新时用 JS 生成 -->
+                        </g>
+
+                        <!-- 1. 鼻腔 (Nasal Cavity) -->
+                        <g id="part-nose" class="cursor-pointer group" onclick="selectOrgan('nose')">
+                            <!-- 鼻子轮廓 -->
+                            <path class="respiratory-element" d="M 190 55 C 190 45, 175 45, 175 60 C 175 65, 195 70, 195 75 Z" fill="#fed7aa" stroke="#f97316" stroke-width="1.5" />
+                            <!-- 鼻腔腔体内部 -->
+                            <path id="svg-nose" class="respiratory-element" d="M 197 58 Q 208 55, 208 65 Q 198 75, 195 74 Z" fill="#fecdd3" stroke="#e11d48" stroke-width="1.5" />
+                            <!-- 标签指示点 -->
+                            <circle cx="203" cy="64" r="3" fill="#e11d48" />
+                        </g>
+
+                        <!-- 2. 咽 (Pharynx) -->
+                        <g id="part-pharynx" class="cursor-pointer group" onclick="selectOrgan('pharynx')">
+                            <path id="svg-pharynx" class="respiratory-element" d="M 206 65 Q 212 70, 210 82 L 199 80 Q 200 70, 197 65 Z" fill="#fda4af" stroke="#db2777" stroke-width="1.5" />
+                            <circle cx="205" cy="74" r="3" fill="#db2777" />
+                        </g>
+
+                        <!-- 3. 喉 (Larynx) -->
+                        <g id="part-larynx" class="cursor-pointer group" onclick="selectOrgan('larynx')">
+                            <!-- 倒三角形喉部 -->
+                            <polygon id="svg-larynx" class="respiratory-element" points="196,80 213,82 209,95 200,94" fill="#fb7185" stroke="#be123c" stroke-width="1.5" />
+                            <circle cx="204" cy="88" r="3" fill="#be123c" />
+                        </g>
+
+                        <!-- 4. 气管与支气管 (Trachea and Bronchi) -->
+                        <g id="part-trachea" class="cursor-pointer group" onclick="selectOrgan('trachea')">
+                            <!-- 气管（带环状软骨纹理） -->
+                            <path id="svg-trachea" class="respiratory-element" d="M 200,94 L 209,95 L 209,150 L 200,150 Z" fill="#e2e8f0" stroke="#475569" stroke-width="1.5" />
+                            <!-- 气管环纹路 -->
+                            <line x1="200" y1="105" x2="209" y2="105" stroke="#94a3b8" stroke-width="2" />
+                            <line x1="200" y1="116" x2="209" y2="116" stroke="#94a3b8" stroke-width="2" />
+                            <line x1="200" y1="127" x2="209" y2="127" stroke="#94a3b8" stroke-width="2" />
+                            <line x1="200" y1="138" x2="209" y2="138" stroke="#94a3b8" stroke-width="2" />
+                            
+                            <!-- 左右支气管分叉 -->
+                            <path id="svg-bronchi" class="respiratory-element" d="M 200,150 Q 204,153 160,180 L 165,188 Q 204,159 204,153 Z" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+                            <path class="respiratory-element" d="M 209,150 Q 205,153 245,180 L 240,188 Q 205,159 205,153 Z" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+                            
+                            <circle cx="204" cy="130" r="3" fill="#475569" />
+                        </g>
+
+                        <!-- 5. 肺 (Lungs - 核心伸缩动画元素) -->
+                        <g class="cursor-pointer" onclick="selectOrgan('lungs')">
+                            <!-- 左肺 (页面右侧) -->
+                            <path id="svg-left-lung" class="respiratory-element" d="M 215,160 C 230,140 275,145 285,170 C 295,200 305,250 290,320 C 280,350 250,340 225,325 C 215,310 210,250 215,160 Z" fill="#fca5a5" stroke="#dc2626" stroke-width="2" opacity="0.9" />
+                            <!-- 右肺 (页面左侧) - 稍微大一点，分三叶（美工上精细化） -->
+                            <path id="svg-right-lung" class="respiratory-element" d="M 194,160 C 179,140 134,145 124,170 C 114,200 104,250 119,320 C 129,350 159,340 184,325 C 194,310 199,250 194,160 Z" fill="#fca5a5" stroke="#dc2626" stroke-width="2" opacity="0.9" />
+                            
+                            <!-- 肺内部支气管树分支示意 -->
+                            <!-- 右肺分支 -->
+                            <path d="M 160,180 Q 140,210 130,250 M 160,180 Q 165,220 170,260 M 160,180 Q 145,195 135,210" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" />
+                            <!-- 左肺分支 -->
+                            <path d="M 245,180 Q 265,210 275,250 M 245,180 Q 240,220 235,260 M 245,180 Q 260,195 270,210" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" />
+                        </g>
+
+                        <!-- 6. 横膈膜 (Diaphragm - 上下起伏动画的核心) -->
+                        <g id="part-diaphragm" class="cursor-pointer group" onclick="selectOrgan('diaphragm')">
+                            <!-- 横膈膜：通过吸气和呼气重绘贝塞尔曲线来体现“起伏变平” -->
+                            <path id="svg-diaphragm" class="respiratory-element" d="M 95,355 Q 204,295 315,355 L 310,375 Q 204,315 100,375 Z" fill="#93c5fd" stroke="#2563eb" stroke-width="2.5" />
+                            <text x="180" y="380" fill="#1d4ed8" font-size="12" font-weight="bold" class="pointer-events-none">横膈膜 (膈肌)</text>
+                        </g>
+
+                        <!-- 胸廓/胸腔参考线 (可变动) -->
+                        <path id="svg-ribcage-edge" class="respiratory-element" d="M 90,350 Q 204,290 318,350" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
+
+                        <!-- 肺泡微观入口气泡 (快捷跳转到肺泡视图) -->
+                        <g id="alveoli-node" class="cursor-pointer" onclick="selectOrgan('alveoli')">
+                            <circle cx="270" cy="280" r="14" fill="#ffe4e6" stroke="#e11d48" stroke-width="1.5" class="animate-bounce" />
+                            <circle cx="270" cy="280" r="11" fill="none" stroke="#e11d48" stroke-width="1" stroke-dasharray="2,2" />
+                            <!-- 显微镜符号 -->
+                            <text x="264" y="284" font-family="FontAwesome" font-size="11" fill="#be123c">&#xf00e;</text>
+                            <rect x="245" y="245" width="50" height="18" rx="4" fill="#be123c" class="opacity-90" />
+                            <text x="250" y="258" fill="white" font-size="9" font-weight="bold">肺泡微观</text>
+                        </g>
+
+                        <!-- 绘制外部文字标签与连线 -->
+                        <g id="svg-labels" font-size="11" font-weight="bold" fill="#334155">
+                            <!-- 鼻腔标签 -->
+                            <line x1="203" y1="64" x2="280" y2="64" stroke="#e11d48" stroke-width="1" />
+                            <text x="285" y="68" class="hover:fill-rose-600 cursor-pointer" onclick="selectOrgan('nose')">① 鼻腔</text>
+
+                            <!-- 咽标签 -->
+                            <line x1="205" y1="74" x2="280" y2="84" stroke="#db2777" stroke-width="1" />
+                            <text x="285" y="88" class="hover:fill-pink-600 cursor-pointer" onclick="selectOrgan('pharynx')">② 咽</text>
+
+                            <!-- 喉标签 -->
+                            <line x1="204" y1="88" x2="280" y2="108" stroke="#be123c" stroke-width="1" />
+                            <text x="285" y="112" class="hover:fill-red-600 cursor-pointer" onclick="selectOrgan('larynx')">③ 喉</text>
+
+                            <!-- 气管标签 -->
+                            <line x1="204" y1="130" x2="280" y2="135" stroke="#475569" stroke-width="1" />
+                            <text x="285" y="139" class="hover:fill-slate-600 cursor-pointer" onclick="selectOrgan('trachea')">④ 气管</text>
+
+                            <!-- 支气管 -->
+                            <line x1="175" y1="170" x2="60" y2="170" stroke="#475569" stroke-width="1" />
+                            <text x="15" y="174" class="hover:fill-slate-600 cursor-pointer" onclick="selectOrgan('trachea')">⑤ 支气管</text>
+
+                            <!-- 肺标签 -->
+                            <line x1="150" y1="230" x2="50" y2="230" stroke="#dc2626" stroke-width="1" />
+                            <text x="15" y="234" class="hover:fill-red-600 cursor-pointer" onclick="selectOrgan('lungs')">⑥ 肺 (呼吸系统核心)</text>
+                        </g>
+                    </svg>
+
+                    <!-- 手动滑动条（辅助直观调节横膈膜高度） -->
+                    <div class="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur px-4 py-3 rounded-xl shadow-md border border-slate-200">
+                        <div class="flex justify-between items-center text-xs mb-1.5 font-bold">
+                            <span class="text-blue-600"><i class="fa-solid fa-lungs mr-0.5"></i> 吸气 (膈肌收缩)</span>
+                            <span class="text-slate-500">拖动滑块模拟横膈膜运动</span>
+                            <span class="text-red-500">呼气 (膈肌舒张) <i class="fa-solid fa-lungs-flip mr-0.5"></i></span>
+                        </div>
+                        <input id="diaphragm-slider" type="range" min="0" max="100" value="50" oninput="manualDiaphragmAdjust(this.value)" class="w-full h-2 bg-gradient-to-r from-blue-300 via-slate-200 to-red-300 rounded-lg appearance-none cursor-pointer accent-teal-600">
+                    </div>
+                </div>
+
+                <!-- 底部：呼吸运动核心物理参数看板 -->
+                <div class="grid grid-cols-4 gap-2 mt-4 text-center">
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <p class="text-[10px] text-slate-500">膈肌运动状态</p>
+                        <p id="board-diaphragm" class="text-sm font-black text-slate-700 mt-1">舒张/上升</p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <p class="text-[10px] text-slate-500">胸廓与肺容量</p>
+                        <p id="board-volume" class="text-sm font-black text-slate-700 mt-1">变小/回缩</p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <p class="text-[10px] text-slate-500">肺内气压关系</p>
+                        <p id="board-pressure" class="text-sm font-black text-slate-700 mt-1">肺内压 > 外界压</p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <p class="text-[10px] text-slate-500">实时气体流动</p>
+                        <p id="board-flow" class="text-sm font-black text-slate-700 mt-1">呼出气体</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：器官详情、微观肺泡与教学解析 (5列) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- 1. 动态交互信息展示面板 -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-black text-lg text-slate-800 flex items-center">
+                            <i class="fa-solid fa-circle-info text-teal-500 mr-2"></i>
+                            结构详情与功能解析
+                        </h3>
+                        <span id="organ-badge" class="bg-teal-100 text-teal-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
+                            基础结构
+                        </span>
+                    </div>
+
+                    <!-- 动态注入的器官详细内容 -->
+                    <div id="detail-box" class="space-y-4">
+                        <div class="text-center py-8 text-slate-400">
+                            <i class="fa-solid fa-hand-pointer text-4xl mb-3 block animate-bounce"></i>
+                            <p class="font-medium text-sm">点击左图中的任何呼吸器官或横膈膜</p>
+                            <p class="text-xs mt-1">即可获取初中生物课本核心知识及中考考点提炼！</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 微观肺泡气体交换模块 (Alveoli Close-up) -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-black text-md text-slate-800 flex items-center">
+                                <i class="fa-solid fa-magnifying-glass-chart text-rose-500 mr-2"></i>
+                                肺泡与血液的气体交换 (微观放大)
+                            </h3>
+                            <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">中考必考</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-4">肺泡是肺部进行气体交换的结构和功能基本单位。</p>
+                    </div>
+
+                    <!-- 肺泡微观动画 SVG -->
+                    <div class="bg-slate-900 rounded-xl p-4 flex justify-center items-center relative overflow-hidden h-[180px]">
+                        <svg class="w-full h-full" viewBox="0 0 300 150">
+                            <!-- 肺泡内腔背景 -->
+                            <path d="M 80 10 C 160 -10, 240 40, 220 100 C 200 140, 110 160, 80 120 C 50 100, 40 40, 80 10" fill="#334155" opacity="0.3" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="3,3" />
+                            <text x="110" y="70" fill="#94a3b8" font-size="10" font-weight="bold">肺泡腔 (O₂浓度高)</text>
+
+                            <!-- 毛细血管网 -->
+                            <path id="capillary-flow" d="M 10 130 Q 80 150, 150 110 T 290 80" fill="none" stroke="#ef4444" stroke-width="24" stroke-linecap="round" opacity="0.4" />
+                            <!-- 血管壁内衬 -->
+                            <path d="M 10 130 Q 80 150, 150 110 T 290 80" fill="none" stroke="#fca5a5" stroke-width="20" stroke-linecap="round" opacity="0.3" />
+
+                            <!-- 红细胞流动与气体扩散指示 -->
+                            <!-- 红细胞 (RBC) -->
+                            <g class="micro-animation">
+                                <!-- 缺氧红细胞(暗红) 逐渐变为 富氧红细胞(鲜红) -->
+                                <circle cx="35" cy="125" r="8" fill="#7f1d1d" opacity="0.9">
+                                    <animate attributeName="cx" values="35;120;275" dur="4s" repeatCount="indefinite" />
+                                    <animate attributeName="cy" values="125;115;82" dur="4s" repeatCount="indefinite" />
+                                    <animate attributeName="fill" values="#7f1d1d;#ef4444;#b91c1c" dur="4s" repeatCount="indefinite" />
+                                </circle>
+                                <circle cx="85" cy="128" r="8" fill="#991b1b" opacity="0.9">
+                                    <animate attributeName="cx" values="85;170;290" dur="4s" repeatCount="indefinite" />
+                                    <animate attributeName="cy" values="128;105;78" dur="4s" repeatCount="indefinite" />
+                                    <animate attributeName="fill" values="#991b1b;#f87171;#ef4444" dur="4s" repeatCount="indefinite" />
+                                </circle>
+                            </g>
+
+                            <!-- 氧气扩散(进入血液) -->
+                            <g>
+                                <path d="M 110,85 L 120,110" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="2,2">
+                                    <animate attributeName="stroke-dashoffset" values="10;0" dur="1s" repeatCount="indefinite" />
+                                </path>
+                                <circle cx="115" cy="98" r="3" fill="#3b82f6">
+                                    <animate attributeName="cy" values="85;110" dur="2s" repeatCount="indefinite" />
+                                    <animate attributeName="opacity" values="1;0" dur="2s" repeatCount="indefinite" />
+                                </circle>
+                                <text x="125" y="100" fill="#60a5fa" font-size="9">氧气 (O₂)</text>
+                            </g>
+
+                            <!-- 二氧化碳扩散(进入肺泡) -->
+                            <g>
+                                <path d="M 160,115 L 150,90" stroke="#f87171" stroke-width="1.5" stroke-dasharray="2,2" />
+                                <circle cx="155" cy="102" r="3" fill="#f87171">
+                                    <animate attributeName="cy" values="115;90" dur="2s" repeatCount="indefinite" />
+                                    <animate attributeName="opacity" values="1;0" dur="2s" repeatCount="indefinite" />
+                                </circle>
+                                <text x="165" y="85" fill="#f87171" font-size="9">二氧化碳 (CO₂)</text>
+                            </g>
+
+                            <!-- SVG 箭头定义 -->
+                            <defs>
+                                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+                                </marker>
+                            </defs>
+                        </svg>
+
+                        <!-- 文字说明叠层 -->
+                        <div class="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-[10px] text-emerald-400 font-mono">
+                            血液流向: 右心室(肺动脉) ➔ 肺部毛细血管 ➔ 左心房(肺静脉)
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-xs text-slate-600 bg-rose-50 p-2.5 rounded-lg border border-rose-100">
+                        <span class="font-bold text-rose-700">气体交换原理：</span>
+                        气体扩散作用（气体总是从浓度高的地方向浓度低的地方扩散）。
+                        交换后，血液由<strong class="text-blue-600">静脉血</strong>变成了含氧丰富的<strong class="text-red-600">动脉血</strong>。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 选项卡 2：巩固自测 -->
+        <div id="tab-quiz-content" class="lg:col-span-12 hidden">
+            <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-md border border-slate-100 p-6">
+                <div class="flex justify-between items-center border-b pb-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-feather-pointed text-teal-500 mr-2"></i>
+                            呼吸系统学案测试与中考模拟
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">配合七年级下册考点，包含识图题与原理判断题</p>
+                    </div>
+                    <button onclick="resetQuiz()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> 重新测试
+                    </button>
+                </div>
+
+                <!-- 答题进度 -->
+                <div class="mb-6">
+                    <div class="flex justify-between text-xs text-slate-500 mb-1.5 font-bold">
+                        <span>答题进度: <span id="quiz-progress-text">1 / 5</span></span>
+                        <span>当前得分: <span id="quiz-score" class="text-teal-600">0 分</span></span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                        <div id="quiz-progress-bar" class="bg-gradient-to-r from-teal-500 to-cyan-500 h-full transition-all duration-300" style="width: 20%;"></div>
+                    </div>
+                </div>
+
+                <!-- 问题容器 -->
+                <div id="quiz-container" class="space-y-6">
+                    <!-- 动态生成问题 -->
+                </div>
+
+                <!-- 翻页/提交控制 -->
+                <div class="flex justify-between items-center mt-8 pt-4 border-t">
+                    <button id="btn-prev-question" onclick="navigateQuestion(-1)" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition disabled:opacity-50" disabled>
+                        上一题
+                    </button>
+                    <button id="btn-next-question" onclick="navigateQuestion(1)" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold shadow-md transition">
+                        下一题 / 提交
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 脚注 -->
+    <footer class="bg-slate-800 text-slate-400 py-4 px-6 border-t border-slate-700 text-center text-xs mt-8">
+        <p>© 初中生物智慧课堂教学辅助课件 - 人体呼吸系统多维度动态模拟</p>
+        <p class="mt-1 text-slate-500">提示：本课件完全基于人教版七年级生物学下册教材编制，横膈膜运动比例经过适当夸大以方便直观观察。</p>
+    </footer>
+
+    <!-- 数据驱动与控制器脚本 -->
+    <script>
+        // 1. 各个呼吸器官的结构、功能与中考考点数据库
+        const organDatabase = {
+            nose: {
+                name: "鼻腔",
+                badge: "呼吸道起点",
+                features: "内表面分布有鼻黏膜，粘膜内含有丰富的毛细血管，且长有鼻毛。",
+                function: "不仅是气体的通道，还能使吸入的空气变得<strong>温暖、湿润、清洁</strong>。",
+                examPoints: [
+                    "鼻腔黏膜分泌的黏液（俗称鼻涕）可阻挡灰尘，且富含溶菌酶杀菌。",
+                    "中考常考：呼吸道对气体的处理能力是<strong>有限的</strong>，因此在雾霾天气戴口罩是非常必要的。",
+                    "‘用鼻呼吸比用口呼吸好’的原因就是因为鼻腔有温暖、湿润、清洁空气的功能。"
+                ]
+            },
+            pharynx: {
+                name: "咽",
+                badge: "共同通道",
+                features: "位于口腔后方，是呼吸系统和消化系统共有的关键通道。",
+                function: "气体与食物的共同走廊。咽部有<strong>会厌软骨</strong>在吞咽时盖住喉口，防止食物误入气管。",
+                examPoints: [
+                    "中考常考：<strong>‘吃饭时不要大声说笑’</strong>的生理学机制：大声说笑时会厌软骨来不及盖住喉口，食物容易误入气管，引起剧烈咳嗽甚至窒息危险。"
+                ]
+            },
+            larynx: {
+                name: "喉",
+                badge: "发声器官",
+                features: "由软骨和声带组成，是气体的通道。",
+                function: "既是气体的通道，又是<strong>发声的器官</strong>。当空气通过喉部引起声带振动时，便发出了声音。",
+                examPoints: [
+                    "声带处于喉部，青少年变声期要注意保护声带，避免大喊大叫。"
+                ]
+            },
+            trachea: {
+                name: "气管与支气管",
+                badge: "清洁排痰",
+                features: "管壁有‘C’字形软骨支撑，保证气流畅通。内壁有纤毛，并能分泌黏液。",
+                function: "气体的通道。纤毛向喉部方向不停地摆动，将吸入的灰尘、细菌和黏液一起推向咽部，通过咳嗽排出，形成<strong>痰</strong>。",
+                examPoints: [
+                    "<strong>痰的形成部位</strong>是在气管和支气管，而不是鼻腔，也不是肺。",
+                    "痰中含有大量的病菌，因此<strong>严禁随地吐痰</strong>，防止呼吸道传染病（如肺结核、流感等）的传播。",
+                    "‘C’形软骨的作用是：保证气管在任何情况下都保持敞开、畅通无阻。"
+                ]
+            },
+            lungs: {
+                name: "肺",
+                badge: "呼吸系统核心",
+                features: "由无数个微小的肺泡组成，质地柔软，呈粉红色，富有弹性。",
+                function: "<strong>呼吸系统的主要器官</strong>，是进行<strong>气体交换</strong>的唯一场所。",
+                examPoints: [
+                    "中考高频：肺适于气体交换的特点：① 肺泡数量极多（表面积巨大）；② 肺泡外缠绕着丰富的毛细血管；③ 肺泡壁和毛细血管壁都<strong>极薄（仅由一层扁平上皮细胞构成）</strong>。",
+                    "这些结构特点充分体现了生物学<strong>‘结构与功能相适应’</strong>的核心观点。"
+                ]
+            },
+            diaphragm: {
+                name: "横膈膜 (膈肌)",
+                badge: "动力源泉",
+                features: "介于胸腔与腹腔之间的扁平肌肉。呈圆顶/拱形结构。",
+                function: "通过自身的<strong>收缩与舒张</strong>改变胸腔的上下径，从而改变胸腔容积和肺内气压，是呼吸运动的<strong>主要动力来源</strong>。",
+                examPoints: [
+                    "<strong>吸气时</strong>：膈肌收缩 ➔ 膈顶下降（横膈膜往下移、变平） ➔ 胸廓上下径增大 ➔ 胸腔容积变大 ➔ 肺扩张 ➔ 肺内气压下降（低于外界气压） ➔ 气体被吸入肺内。",
+                    "<strong>呼气时</strong>：膈肌舒张 ➔ 膈顶上升（横膈膜往上弹、变拱） ➔ 胸廓上下径变小 ➔ 胸腔容积变小 ➔ 肺回缩 ➔ 肺内气压升高（大于外界气压） ➔ 气体被排出肺外。",
+                    "中考口诀：<strong>收缩吸气，膈顶下降，容积增大，气压变小</strong>；舒张呼气反之。"
+                ]
+            },
+            alveoli: {
+                name: "肺泡 (微观)",
+                badge: "气体交换终端",
+                features: "直径约 0.2 毫米，壁薄如纸（单层细胞），外面缠绕着密密麻麻的毛细血管。",
+                function: "在这里，吸入的氧气（O₂）扩散进入血液，血液中的二氧化碳（CO₂）扩散进入肺泡，随呼气排出体外。",
+                examPoints: [
+                    "为什么是单层上皮细胞？因为这样可以极大缩短气体扩散的距离，提高交换效率。",
+                    "气体扩散的动力：<strong>浓度差</strong>（肺泡内氧气浓度高，血液内二氧化碳浓度高）。"
+                ]
+            }
+        };
+
+        // 2. 状态变量
+        let breathingState = 'pause'; // 'inhale', 'exhale', 'pause'
+        let currentDiaphragmValue = 50; // 0 (极度收缩/吸气完成) 到 100 (极度舒张/呼气完成)
+        let breathingInterval = null;
+        let selectedOrganId = '';
+
+        // 3. 页面初始化
+        window.onload = function() {
+            // 默认选中横膈膜进行讲解
+            selectOrgan('diaphragm');
+            // 启动呼吸循环模拟
+            startBreathingLoop();
+            // 初始化测验
+            initQuiz();
+        };
+
+        // 4. 自动呼吸运动循环逻辑
+        function startBreathingLoop() {
+            let direction = -1; // -1 代表吸气(横膈膜下移/数值减小), 1 代表呼气(横膈膜上升/数值增大)
+            
+            breathingInterval = setInterval(() => {
+                if (breathingState === 'pause') return;
+
+                if (breathingState === 'inhale') {
+                    direction = -1;
+                } else if (breathingState === 'exhale') {
+                    direction = 1;
+                }
+
+                // 渐变更新
+                currentDiaphragmValue += direction * 2;
+
+                // 边界碰撞
+                if (currentDiaphragmValue <= 10) {
+                    currentDiaphragmValue = 10;
+                    if (breathingState === 'inhale') {
+                        // 自动呼吸模式下在极值点回弹，单向手动控制则保持
+                        breathingState = 'exhale'; 
+                        updateBreathingStateUI('exhale');
+                    }
+                } else if (currentDiaphragmValue >= 90) {
+                    currentDiaphragmValue = 90;
+                    if (breathingState === 'exhale') {
+                        breathingState = 'inhale';
+                        updateBreathingStateUI('inhale');
+                    }
+                }
+
+                // 更新滑块位置与呼吸图形变化
+                document.getElementById('diaphragm-slider').value = currentDiaphragmValue;
+                applyBreathingPhysics(currentDiaphragmValue);
+            }, 50);
+        }
+
+        // 修改呼吸状态
+        function setBreathingState(state) {
+            breathingState = state;
+            updateBreathingStateUI(state);
+        }
+
+        // 更新控制按钮高亮
+        function updateBreathingStateUI(state) {
+            const btnInhale = document.getElementById('btn-inhale');
+            const btnExhale = document.getElementById('btn-exhale');
+            const btnPause = document.getElementById('btn-pause');
+
+            // 重置
+            [btnInhale, btnExhale, btnPause].forEach(btn => {
+                btn.className = "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 text-slate-600 hover:bg-slate-200";
+            });
+
+            if (state === 'inhale') {
+                btnInhale.className = "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 bg-blue-600 text-white shadow-md";
+            } else if (state === 'exhale') {
+                btnExhale.className = "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 bg-red-600 text-white shadow-md";
+            } else {
+                btnPause.className = "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 bg-slate-500 text-white shadow-md";
+            }
+        }
+
+        // 手动滑块控制横膈膜
+        function manualDiaphragmAdjust(value) {
+            // 自动设为暂停模式
+            setBreathingState('pause');
+            currentDiaphragmValue = parseInt(value);
+            applyBreathingPhysics(currentDiaphragmValue);
+        }
+
+        // 5. 【核心】应用呼吸运动物理状态与 SVG 变形
+        function applyBreathingPhysics(val) {
+            // val: 10 (深吸气) -> 90 (深呼气)
+            
+            // 5.1 横膈膜弧度计算 (越吸气(值小)越扁平，越呼气(值大)越弯曲拱起)
+            // 呼气峰值路径: Q 204, 275 (高度上升) 
+            // 吸气谷值路径: Q 204, 345 (高度下降，变平)
+            const controlY = 275 + (val / 100) * 80; // 275 ~ 355 之间
+            const dDiaphragm = `M 95,355 Q 204,${controlY} 315,355 L 310,375 Q 204,${controlY + 20} 100,375 Z`;
+            document.getElementById('svg-diaphragm').setAttribute('d', dDiaphragm);
+
+            // 5.2 肺泡/肺部收缩扩张计算 (吸气时变宽、下延，呼气时变窄)
+            // 根据 val 计算缩放比例 (val 越小，肺容量越大)
+            const lungScaleX = 1.15 - (val / 100) * 0.25; // 0.90 ~ 1.15 范围
+            const lungScaleY = 1.10 - (val / 100) * 0.20; // 0.90 ~ 1.10 范围
+
+            const leftLung = document.getElementById('svg-left-lung');
+            const rightLung = document.getElementById('svg-right-lung');
+
+            // 使用 transform 围绕各自中心点进行伸缩
+            leftLung.style.transform = `scale(${lungScaleX}, ${lungScaleY})`;
+            leftLung.style.transformOrigin = "250px 180px";
+            
+            rightLung.style.transform = `scale(${lungScaleX}, ${lungScaleY})`;
+            rightLung.style.transformOrigin = "150px 180px";
+
+            // 5.3 物理参数仪表盘逻辑计算
+            const boardDiaphragm = document.getElementById('board-diaphragm');
+            const boardVolume = document.getElementById('board-volume');
+            const boardPressure = document.getElementById('board-pressure');
+            const boardFlow = document.getElementById('board-flow');
+
+            // 粒子系统重置控制
+            const particleGroup = document.getElementById('gas-particles');
+
+            if (val < 45) { // 吸气状态
+                boardDiaphragm.innerText = "收缩 (膈顶下降)";
+                boardDiaphragm.className = "text-sm font-black text-blue-600 mt-1";
+                
+                boardVolume.innerText = "胸廓扩大/肺扩张";
+                boardVolume.className = "text-sm font-black text-blue-600 mt-1";
+                
+                boardPressure.innerText = "肺内气压 < 外界气压";
+                boardPressure.className = "text-sm font-black text-blue-600 mt-1";
+                
+                boardFlow.innerText = "气体入肺 (吸气)";
+                boardFlow.className = "text-sm font-black text-blue-600 mt-1";
+
+                // 生成吸气蓝色粒子动画 (氧气)
+                if (particleGroup.childElementCount < 6) {
+                    createGasParticle(true);
+                }
+            } else if (val > 55) { // 呼气状态
+                boardDiaphragm.innerText = "舒张 (膈顶上升)";
+                boardDiaphragm.className = "text-sm font-black text-red-600 mt-1";
+                
+                boardVolume.innerText = "胸廓缩小/肺回缩";
+                boardVolume.className = "text-sm font-black text-red-600 mt-1";
+                
+                boardPressure.innerText = "肺内气压 > 外界气压";
+                boardPressure.className = "text-sm font-black text-red-600 mt-1";
+                
+                boardFlow.innerText = "气体出肺 (呼气)";
+                boardFlow.className = "text-sm font-black text-red-600 mt-1";
+
+                // 生成呼气红色粒子动画 (二氧化碳)
+                if (particleGroup.childElementCount < 6) {
+                    createGasParticle(false);
+                }
+            } else { // 呼吸交替屏息状态
+                boardDiaphragm.innerText = "起伏交替中";
+                boardDiaphragm.className = "text-sm font-black text-slate-500 mt-1";
+                boardVolume.innerText = "处于过渡态";
+                boardVolume.className = "text-sm font-black text-slate-500 mt-1";
+                boardPressure.innerText = "肺内压 ≈ 外界压";
+                boardPressure.className = "text-sm font-black text-slate-500 mt-1";
+                boardFlow.innerText = "暂无流动";
+                boardFlow.className = "text-sm font-black text-slate-500 mt-1";
+            }
+        }
+
+        // 6. 辅助粒子发生器：模拟气体进出路径
+        function createGasParticle(isInhaling) {
+            const particleGroup = document.getElementById('gas-particles');
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            
+            circle.setAttribute("r", "3.5");
+            circle.setAttribute("fill", isInhaling ? "#3b82f6" : "#f87171"); // 蓝/红
+
+            // 粒子流动路径的近似计算
+            const anim = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
+            anim.setAttribute("dur", "1.8s");
+            anim.setAttribute("repeatCount", "1");
+            
+            // 吸气路径：鼻腔腔体 (203,64) -> 气管 (204,130) -> 支气管及肺内
+            // 呼气路径相反
+            const pathInhale = "M 197,58 Q 205,75 204,110 L 204,145 Q 204,153 160,185";
+            const pathExhale = "M 160,185 Q 204,153 204,145 L 204,110 Q 205,75 197,58";
+
+            anim.setAttribute("path", isInhaling ? pathInhale : pathExhale);
+            anim.setAttribute("fill", "freeze");
+
+            circle.appendChild(anim);
+            particleGroup.appendChild(circle);
+
+            // 播放完自动删除
+            setTimeout(() => {
+                if (circle.parentNode === particleGroup) {
+                    particleGroup.removeChild(circle);
+                }
+            }, 1800);
+        }
+
+        // 7. 选项卡切换 (模拟器 VS 测验)
+        function switchTab(tab) {
+            const tabSim = document.getElementById('tab-simulator-content');
+            const tabQuiz = document.getElementById('tab-quiz-content');
+            const btnSim = document.getElementById('btn-simulator');
+            const btnQuiz = document.getElementById('btn-quiz');
+
+            if (tab === 'simulator') {
+                tabSim.classList.remove('hidden');
+                tabQuiz.classList.add('hidden');
+                btnSim.className = "tab-btn bg-white text-teal-700 px-4 py-2 rounded-lg font-bold shadow transition-all duration-200";
+                btnQuiz.className = "tab-btn bg-teal-700 text-teal-100 hover:bg-teal-800 px-4 py-2 rounded-lg font-bold transition-all duration-200";
+            } else {
+                tabSim.classList.add('hidden');
+                tabQuiz.classList.remove('hidden');
+                btnSim.className = "tab-btn bg-teal-700 text-teal-100 hover:bg-teal-800 px-4 py-2 rounded-lg font-bold transition-all duration-200";
+                btnQuiz.className = "tab-btn bg-white text-teal-700 px-4 py-2 rounded-lg font-bold shadow transition-all duration-200";
+                // 自动暂停呼吸动画以保存性能
+                setBreathingState('pause');
+            }
+        }
+
+        // 8. 器官点击选中逻辑
+        function selectOrgan(organId) {
+            selectedOrganId = organId;
+            const data = organDatabase[organId];
+            if (!data) return;
+
+            // 更新高亮样式
+            const organGroupIds = ['part-nose', 'part-pharynx', 'part-larynx', 'part-trachea', 'part-diaphragm'];
+            organGroupIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const paths = element.querySelectorAll('path, polygon, circle');
+                    paths.forEach(p => p.classList.remove('active-part'));
+                }
+            });
+
+            // 肺泡有自己的高亮逻辑
+            document.getElementById('alveoli-node').querySelector('circle').classList.remove('active-part');
+
+            // 为当前选中对象上高亮效果
+            let targetGroup = document.getElementById(`part-${organId}`);
+            if (organId === 'lungs') {
+                document.getElementById('svg-left-lung').classList.add('active-part');
+                document.getElementById('svg-right-lung').classList.add('active-part');
+            } else if (organId === 'alveoli') {
+                document.getElementById('alveoli-node').querySelector('circle').classList.add('active-part');
+            } else if (targetGroup) {
+                const paths = targetGroup.querySelectorAll('path, polygon, rect, circle');
+                paths.forEach(p => p.classList.add('active-part'));
+            }
+
+            // 更新详情卡片
+            const detailBox = document.getElementById('detail-box');
+            document.getElementById('organ-badge').innerText = data.badge;
+
+            let pointsHtml = '';
+            data.examPoints.forEach(pt => {
+                pointsHtml += `
+                    <li class="flex items-start text-xs text-slate-700">
+                        <span class="text-rose-500 font-bold mr-1.5">★</span>
+                        <span>${pt}</span>
+                    </li>`;
+            });
+
+            detailBox.innerHTML = `
+                <div>
+                    <h4 class="text-xl font-bold text-teal-800 flex items-center">
+                        ${data.name}
+                        <span class="ml-2 text-xs font-normal text-slate-500">(${data.badge})</span>
+                    </h4>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">结构特点</p>
+                    <p class="text-xs text-slate-700 leading-relaxed">${data.features}</p>
+                </div>
+                <div class="bg-teal-50/50 p-3 rounded-lg border border-teal-100">
+                    <p class="text-xs font-bold text-teal-700 uppercase tracking-wider mb-1">主要功能</p>
+                    <p class="text-xs text-teal-900 leading-relaxed font-medium">${data.function}</p>
+                </div>
+                <div class="border-t pt-3">
+                    <p class="text-xs font-bold text-rose-500 flex items-center mb-2">
+                        <i class="fa-solid fa-star-of-life mr-1"></i>
+                        中考重难点提炼 (速记背诵)
+                    </p>
+                    <ul class="space-y-2">
+                        ${pointsHtml}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // 9. 智能巩固小测验系统 (学案数据结构)
+        // ==========================================
+        const quizQuestions = [
+            {
+                type: "single",
+                question: "当你在深吸气时，你的横膈膜（膈肌）和胸腔容积的状态变化分别是：",
+                options: [
+                    "膈肌舒张，膈顶上升，胸腔容积增大",
+                    "膈肌收缩，膈顶下降，胸腔容积增大",
+                    "膈肌收缩，膈顶上升，胸腔容积缩小",
+                    "膈肌舒张，膈顶下降，胸腔容积缩小"
+                ],
+                answer: 1, // B
+                explanation: "吸气时：膈肌收缩，膈顶下降（横膈膜往下移、变平），使胸腔的上下径变大，胸腔容积随之扩大。"
+            },
+            {
+                type: "single",
+                question: "人们随地吐痰容易传播呼吸道疾病。痰液形成于呼吸系统的什么部位？",
+                options: [
+                    "鼻腔黏膜",
+                    "咽喉壁膜",
+                    "气管和支气管",
+                    "肺泡细胞"
+                ],
+                answer: 2, // C
+                explanation: "气管和支气管内表面的纤毛向喉部方向不停地摆动，将吸入的灰尘、细菌和黏液一起推向咽部，通过咳嗽排出形成痰。因此，痰形成于气管和支气管。"
+            },
+            {
+                type: "single",
+                question: "肺适于进行气体交换的结构特点非常突出。下列关于肺泡适于交换的描述中，错误的是：",
+                options: [
+                    "肺泡的数量极多，总表面积非常庞大",
+                    "每个肺泡外都紧密缠绕着丰富的毛细血管网",
+                    "肺泡壁极其菲薄，由多层结实致密的上皮细胞构成",
+                    "肺泡壁和毛细血管壁都只有一层扁平的上皮细胞"
+                ],
+                answer: 2, // C
+                explanation: "肺泡壁和毛细血管壁都非常薄，仅仅由‘一层’扁平的上皮细胞构成，而不是‘多层细胞’。极薄的结构大大缩短了气体扩散距离，体现了结构与功能相适应。"
+            },
+            {
+                type: "single",
+                question: "某同学在吸气结束的一瞬间，他肺内的气压（肺内压）与外界大气压的关系是：",
+                options: [
+                    "肺内气压大于外界大气压",
+                    "肺内气压小于外界大气压",
+                    "肺内气压等于外界大气压",
+                    "肺内气压等于零"
+                ],
+                answer: 2, // C
+                explanation: "吸气过程中，肺内气压小于外界大气压；但在吸气结束（或呼气结束）的‘一瞬间’，气体停止流动，肺内压和外界大气压正好相等。"
+            },
+            {
+                type: "single",
+                question: "当血液流经肺部毛细血管网后，血液中气体成分发生的变化是：",
+                options: [
+                    "氧气减少，二氧化碳增多，变成静脉血",
+                    "氧气增多，二氧化碳减少，变成动脉血",
+                    "氧气和二氧化碳都减少，血液变稀",
+                    "氧气和二氧化碳都增多，颜色变深"
+                ],
+                answer: 1, // B
+                explanation: "血液流经肺泡外毛细血管时，肺泡内的氧气扩散进入血液，血液内的二氧化碳扩散进入肺泡。因此，血液中的氧气增多，二氧化碳减少，由暗红色的静脉血变成了鲜红色的动脉血。"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(quizQuestions.length).fill(null);
+
+        function initQuiz() {
+            showQuestion(currentQuestionIndex);
+        }
+
+        function showQuestion(index) {
+            const q = quizQuestions[index];
+            const container = document.getElementById('quiz-container');
+            
+            // 题头
+            let html = `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
+                    <span class="bg-teal-600 text-white text-xs px-2.5 py-0.5 rounded font-black mr-2">单选题</span>
+                    <span class="text-sm text-slate-500 font-medium">第 ${index + 1} 题 / 共 ${quizQuestions.length} 题</span>
+                    <p class="text-base font-bold text-slate-800 mt-2 leading-relaxed">${q.question}</p>
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+            `;
+
+            // 选项列表
+            q.options.forEach((opt, idx) => {
+                const optionLetter = String.fromCharCode(65 + idx); // A, B, C, D
+                const isSelected = userAnswers[index] === idx;
+                
+                let btnStyle = "border-slate-200 hover:bg-slate-50 text-slate-700";
+                let badgeStyle = "bg-slate-200 text-slate-700";
+
+                if (isSelected) {
+                    btnStyle = "border-teal-500 bg-teal-50/70 text-teal-800 ring-2 ring-teal-500/20";
+                    badgeStyle = "bg-teal-600 text-white";
+                }
+
+                html += `
+                    <button onclick="selectQuizOption(${index}, ${idx})" class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center space-x-3 group ${btnStyle}">
+                        <span class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm transition ${badgeStyle}">
+                            ${optionLetter}
+                        </span>
+                        <span class="text-sm font-medium leading-relaxed">${opt}</span>
+                    </button>
+                `;
+            });
+
+            html += `</div>`;
+
+            // 如果本题已答过，直接展示答案解析
+            if (userAnswers[index] !== null) {
+                const isCorrect = userAnswers[index] === q.answer;
+                html += `
+                    <div class="mt-5 p-4 rounded-xl border ${isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}">
+                        <div class="flex items-center space-x-2 font-bold text-sm mb-1.5">
+                            <i class="${isCorrect ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-solid fa-circle-xmark text-rose-600'} text-lg"></i>
+                            <span>${isCorrect ? '回答正确！' : '回答错误！'}</span>
+                            <span class="text-xs opacity-80">正确答案: ${String.fromCharCode(65 + q.answer)}</span>
+                        </div>
+                        <p class="text-xs leading-relaxed"><strong class="font-bold">名师精讲：</strong>${q.explanation}</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+
+            // 更新控制按钮状态
+            document.getElementById('quiz-progress-text').innerText = `${index + 1} / ${quizQuestions.length}`;
+            document.getElementById('quiz-progress-bar').style.width = `${((index + 1) / quizQuestions.length) * 100}%`;
+            document.getElementById('btn-prev-question').disabled = index === 0;
+
+            const nextBtn = document.getElementById('btn-next-question');
+            if (index === quizQuestions.length - 1) {
+                nextBtn.innerText = "查看最终测试结果";
+                nextBtn.className = "px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition";
+            } else {
+                nextBtn.innerText = "下一题";
+                nextBtn.className = "px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold shadow-md transition";
+            }
+
+            // 更新当前总分
+            calculateScore();
+        }
+
+        // 选中某个选项
+        function selectQuizOption(questionIdx, optionIdx) {
+            // 如果已经回答了这一题，就不允许更改了，实现单次巩固效果
+            if (userAnswers[questionIdx] !== null) return;
+
+            userAnswers[questionIdx] = optionIdx;
+            showQuestion(questionIdx);
+        }
+
+        // 下一题 / 上一题 导航
+        function navigateQuestion(step) {
+            const nextIndex = currentQuestionIndex + step;
+            
+            if (nextIndex >= 0 && nextIndex < quizQuestions.length) {
+                currentQuestionIndex = nextIndex;
+                showQuestion(currentQuestionIndex);
+            } else if (nextIndex === quizQuestions.length) {
+                // 已到最后，展示完整答题卡与建议
+                showQuizResultReport();
+            }
+        }
+
+        // 计算当前分数
+        function calculateScore() {
+            let score = 0;
+            userAnswers.forEach((ans, idx) => {
+                if (ans === quizQuestions[idx].answer) {
+                    score += 20; // 5题，每题20分
+                }
+            });
+            document.getElementById('quiz-score').innerText = `${score} 分`;
+            return score;
+        }
+
+        // 渲染完整的成绩诊断单
+        function showQuizResultReport() {
+            const score = calculateScore();
+            const container = document.getElementById('quiz-container');
+            
+            let level = "需要努力";
+            let advice = "不要灰心，再对照模拟器中的横膈膜和肺部动画多加演练，你一定能掌握核心概念的！";
+            let colorClass = "text-rose-600";
+
+            if (score === 100) {
+                level = "呼吸大师 (满分)";
+                advice = "太棒了！你对呼吸系统器官及呼吸运动物理学变化掌握得炉火纯青，中考呼吸大题难不倒你！";
+                colorClass = "text-emerald-600";
+            } else if (score >= 80) {
+                level = "优异";
+                advice = "非常出色！你已基本理清了膈肌收缩舒张与气压的关系，个别错题可以看看解析进行针对性复习。";
+                colorClass = "text-teal-600";
+            } else if (score >= 60) {
+                level = "合格";
+                advice = "表现不错！但对‘气压差’和‘痰形成位置’等细节可能还有所混淆，请再次点击模拟器加深印象。";
+                colorClass = "text-amber-600";
+            }
+
+            let reportHtml = `
+                <div class="text-center py-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <i class="fa-solid fa-trophy text-5xl text-yellow-500 mb-2 animate-bounce"></i>
+                    <p class="text-sm text-slate-500 font-bold">小测验挑战完成</p>
+                    <h3 class="text-4xl font-black ${colorClass} mt-1">${score} 分</h3>
+                    <p class="text-sm font-black text-slate-700 mt-2">评估等级：${level}</p>
+                    <p class="text-xs text-slate-500 max-w-md mx-auto mt-2 leading-relaxed px-4">${advice}</p>
+                </div>
+
+                <div class="mt-6">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">答题卡诊断详情:</h4>
+                    <div class="grid grid-cols-5 gap-2">
+            `;
+
+            userAnswers.forEach((ans, idx) => {
+                const isCorrect = ans === quizQuestions[idx].answer;
+                const statusColor = isCorrect ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-rose-100 border-rose-300 text-rose-800';
+                const statusIcon = isCorrect ? 'fa-check' : 'fa-xmark';
+
+                reportHtml += `
+                    <button onclick="jumpToQuestion(${idx})" class="border p-3 rounded-xl text-center flex flex-col items-center justify-center transition hover:shadow-md ${statusColor}">
+                        <span class="text-xs font-black">第 ${idx+1} 题</span>
+                        <i class="fa-solid ${statusIcon} text-xs mt-1"></i>
+                    </button>
+                `;
+            });
+
+            reportHtml += `
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = reportHtml;
+
+            // 修改下一题按钮为“重新开始”
+            const nextBtn = document.getElementById('btn-next-question');
+            nextBtn.innerText = "重做一次";
+            nextBtn.className = "px-5 py-2 bg-slate-700 text-white rounded-xl text-sm font-bold shadow transition";
+            nextBtn.onclick = resetQuiz;
+        }
+
+        function jumpToQuestion(idx) {
+            currentQuestionIndex = idx;
+            showQuestion(idx);
+            // 恢复控制按钮原方法
+            document.getElementById('btn-next-question').onclick = function() { navigateQuestion(1); };
+        }
+
+        // 重置测验
+        function resetQuiz() {
+            currentQuestionIndex = 0;
+            userAnswers = new Array(quizQuestions.length).fill(null);
+            document.getElementById('btn-next-question').onclick = function() { navigateQuestion(1); };
+            showQuestion(0);
+        }
+    </script>
+</body>
+</html>
