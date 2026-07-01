@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日食与月食 3D 科学模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+        canvas:focus { outline: none; }
+
+        /* 控制面板滚动条 */
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15,23,42,0.3); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.5); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.8); }
+
+        /* 月相图示动画 */
+        @keyframes moonGlow {
+            0%, 100% { box-shadow: 0 0 6px 1px rgba(148,163,184,0.3); }
+            50%       { box-shadow: 0 0 12px 3px rgba(148,163,184,0.6); }
+        }
+        .moon-phase-icon { animation: moonGlow 3s ease-in-out infinite; }
+
+        /* 食相状态徽章脉动 */
+        @keyframes eclipsePulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.5; }
+        }
+        .eclipse-active { animation: eclipsePulse 0.8s ease-in-out infinite; }
+
+        /* 快进按钮高亮 */
+        .skip-btn-active {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            box-shadow: 0 0 12px rgba(124,58,237,0.5);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen">
+
+    <!-- 三维渲染画布容器 -->
+    <div id="canvas-container" class="w-full h-full absolute inset-0 z-0"></div>
+
+    <!-- 顶部标题栏 -->
+    <div class="absolute top-4 left-4 right-4 z-10 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-slate-800/80 shadow-2xl pointer-events-auto">
+        <div>
+            <h1 class="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-blue-400 to-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-circle-half-stroke animate-pulse text-yellow-400"></i>日食与月食 3D 科学模拟器
+            </h1>
+            <p class="text-[11px] text-slate-400 mt-1">
+                精确还原 13.368:1 恒星月运行比例，通过"黄白交角（5.14°）"解释食相的真实发生机理
+            </p>
+        //峇株吧辖华仁中学蔡逸众制作
+        </div>
+        <p style="font-size:0.52rem;color:rgba(56,189,248,0.15);margin:2px 0 0 0;letter-spacing:0.02em;">峇株吧辖华仁中学蔡逸众制作</p>
+        <div class="mt-2 md:mt-0 flex flex-wrap gap-2 text-xs">
+            <span class="px-2 py-1 bg-yellow-500/10 text-yellow-300 rounded-md border border-yellow-500/20"><i class="fa-solid fa-sun mr-1"></i>太阳：恒星光源</span>
+            <span class="px-2 py-1 bg-blue-500/10 text-blue-300 rounded-md border border-blue-500/20"><i class="fa-solid fa-earth-asia mr-1"></i>地球：绕日公转</span>
+            <span class="px-2 py-1 bg-slate-500/10 text-slate-300 rounded-md border border-slate-500/20"><i class="fa-solid fa-moon mr-1"></i>月球：绕地公转</span>
+        </div>
+    </div>
+
+    <!-- 可拖拽折叠控制面板 -->
+    <div id="control-panel" class="absolute top-24 left-4 z-20 w-80 md:w-96 bg-slate-950/90 backdrop-blur-lg border border-slate-800 rounded-xl shadow-2xl transition-all duration-300 ease-in-out">
+        <!-- 拖拽手柄 -->
+        <div id="panel-header" class="flex justify-between items-center px-4 py-3 bg-slate-900/90 rounded-t-xl cursor-grab active:cursor-grabbing border-b border-slate-800/80 select-none">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                <span class="font-medium text-xs text-slate-200">科学控制台 <span class="text-[10px] text-slate-500">（按住可拖动）</span></span>
+            </div>
+            <button id="collapse-btn" class="text-slate-400 hover:text-white transition-colors duration-200 p-1">
+                <i class="fa-solid fa-chevron-up" id="collapse-icon"></i>
+            </button>
+        </div>
+
+        <!-- 面板主体 -->
+        <div id="panel-body" class="p-4 space-y-4 text-sm max-h-[75vh] overflow-y-auto custom-scrollbar">
+
+            <!-- 运行控制 -->
+            <div class="space-y-2">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">时间运行控制</label>
+                <div class="flex gap-2">
+                    <button id="play-pause-btn" class="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition duration-200 flex items-center justify-center gap-2">
+                        <i id="play-icon" class="fa-solid fa-pause"></i><span id="play-text">暂停模拟</span>
+                    </button>
+                    <button id="reset-btn" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 font-medium transition duration-200">
+                        <i class="fa-solid fa-rotate-left mr-1"></i>重置
+                    </button>
+                </div>
+                <!-- 快进到下一次食象按钮 -->
+                <button id="skip-eclipse-btn" class="w-full py-2 px-3 bg-violet-900/60 hover:bg-violet-800/80 border border-violet-700/40 rounded-lg text-violet-300 text-xs font-medium transition duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-forward-fast"></i>快进到下一次食象
+                </button>
+            </div>
+
+            <!-- 速度调节 -->
+            <div class="space-y-1">
+                <div class="flex justify-between items-center">
+                    <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">模拟时间流速</label>
+                    <span id="speed-value" class="text-xs text-indigo-400 font-mono">1.0x</span>
+                </div>
+                <input id="speed-slider" type="range" min="0.1" max="4.0" step="0.1" value="1.0" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- 黄白交角开关 -->
+            <div class="space-y-2">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">黄白交角设定</label>
+                <div class="flex items-center justify-between p-2.5 bg-slate-900/50 rounded-lg border border-slate-800/60">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-medium text-slate-200">启用真实白道倾角（5.14°）</span>
+                        <span class="text-[10px] text-slate-500">关闭则黄白同面，月月有食</span>
+                    </div>
+                    <button id="tilt-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full bg-indigo-600 transition-colors duration-200">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 translate-x-6" id="toggle-knob"></span>
+                    </button>
+                </div>
+        //峇株吧辖蔡逸众制作
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- 观测视角 -->
+            <div class="space-y-2">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">空间观测视角</label>
+                <div class="grid grid-cols-3 gap-1">
+                    <button id="view-space" class="py-2 px-1 text-xs bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 rounded-lg font-medium hover:bg-indigo-900/80 transition duration-200">俯视宇宙</button>
+                    <button id="view-earth" class="py-2 px-1 text-xs bg-slate-900 border border-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition duration-200">地球特写</button>
+                    <button id="view-side" class="py-2 px-1 text-xs bg-slate-900 border border-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition duration-200">黄道侧面</button>
+                </div>
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- 实时天体数据 -->
+            <div class="space-y-2">
+                <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">实时天体遥测</label>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/40">
+                        <div class="text-slate-500 text-[10px]">模拟地球日</div>
+                        <div id="sim-days" class="text-sm font-semibold text-slate-200 font-mono">0.0 天</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/40">
+                        <div class="text-slate-500 text-[10px]">月球绕地圈数</div>
+                        <div id="moon-orbits" class="text-sm font-semibold text-slate-200 font-mono">0.00 圈</div>
+                    </div>
+                    <!-- 月相：带图示的卡片 -->
+                    <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/40 flex items-center gap-2">
+                        <div id="moon-phase-icon" class="moon-phase-icon w-7 h-7 rounded-full flex-shrink-0 bg-slate-700 border border-slate-600 overflow-hidden relative" style="position:relative;width:28px;height:28px;overflow:hidden;border-radius:9999px;flex-shrink:0;">
+                            <!-- 动态月相遮罩由 JS 控制；内联样式确保即使外部CSS加载失败也不会铺满全屏 -->
+                            <div id="moon-phase-shadow" class="absolute inset-0 rounded-full bg-slate-950" style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:9999px;"></div>
+                        </div>
+                        <div>
+                            <div class="text-slate-500 text-[10px]">当前月相</div>
+                            <div id="moon-phase" class="text-xs font-semibold text-indigo-300">新月</div>
+                        </div>
+                    </div>
+                    <!-- 食相状态卡片 -->
+                    <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/40">
+                        <div class="text-slate-500 text-[10px]">食相状态</div>
+                        <div id="eclipse-status" class="text-xs font-semibold text-emerald-400">正常</div>
+                        <div id="eclipse-type" class="text-[10px] text-slate-500 mt-0.5"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 物理校验提示 -->
+            <div class="p-2.5 bg-indigo-950/20 rounded-lg border border-indigo-900/30 text-[10px] leading-relaxed text-indigo-300">
+                <i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i>
+                物理周期校验：地球完成公转 1 周（365.25 天）时，月球在此比例下完成约 13.368 圈公转，契合真实天文常数。
+            </div>
+        </div>
+    </div>
+
+    <!-- 科学原理解说面板 -->
+    <div id="explanation-panel" class="absolute bottom-4 right-4 z-20 max-w-sm md:max-w-md bg-slate-950/90 backdrop-blur-lg border border-slate-800 p-4 rounded-xl shadow-2xl space-y-3 pointer-events-auto">
+        <div class="flex justify-between items-center">
+            <h3 class="font-bold text-xs text-yellow-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-graduation-cap text-sm"></i>为什么不是每月都发生食？
+            </h3>
+            <button id="hide-explain-btn" class="text-slate-500 hover:text-slate-300 text-xs">隐藏</button>
+        </div>
+        //华仁中学蔡逸众制作
+        <div class="text-[11px] text-slate-300 space-y-2.5 leading-relaxed" id="explain-content">
+            <p>
+                <strong>1. 轨道夹角（黄白交角）：</strong>
+                地球绕太阳公转的轨道面叫<span class="text-blue-400 font-semibold">黄道面</span>，月球绕地球公转的轨道面叫<span class="text-slate-400 font-semibold">白道面</span>。两面存在约 <span class="text-yellow-400 font-bold">5.14°</span> 的固定夹角。
+            </p>
+            <p>
+                <strong>2. 空间错开：</strong>
+                因为这个夹角，新月或满月发生时，月球绝大部分时间都运行在黄道面的上方或下方，三者并没有在空间中连成一线，投影互相错开，故不发生食相。
+            </p>
+            <p>
+                <strong>3. 交点线与食季：</strong>
+                黄白两面相交产生一条<span class="text-indigo-400 font-semibold">交点线</span>（升交点与降交点的连线）。只有当月球走到交点线附近，同时又是新月或满月时，三者才能真正连成一线，食相才会发生——这就是"食季"。
+            </p>
+        </div>
+        <button id="show-explain-btn" class="hidden text-xs text-indigo-400 hover:text-indigo-300 font-medium py-1">显示科普说明</button>
+    </div>
+
+    <!-- 食相预警全屏特效层 -->
+    <div id="eclipse-alert-overlay" class="absolute inset-0 pointer-events-none z-30 transition-all duration-300"></div>
+
+    <script>
+        // ============================================================
+        // 第一部分：UI 交互逻辑（拖拽、折叠、隐藏）
+        // ============================================================
+        const controlPanel = document.getElementById('control-panel');
+        const panelHeader  = document.getElementById('panel-header');
+        const collapseBtn  = document.getElementById('collapse-btn');
+        const collapseIcon = document.getElementById('collapse-icon');
+        const panelBody    = document.getElementById('panel-body');
+
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        panelHeader.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button')) return;
+            isDragging = true;
+            panelHeader.style.cursor = 'grabbing';
+            startX = e.clientX; startY = e.clientY;
+            initialX = controlPanel.offsetLeft; initialY = controlPanel.offsetTop;
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            controlPanel.style.left   = `${initialX + e.clientX - startX}px`;
+            controlPanel.style.top    = `${initialY + e.clientY - startY}px`;
+            controlPanel.style.right  = 'auto';
+            controlPanel.style.bottom = 'auto';
+        });
+        document.addEventListener('mouseup', () => { isDragging = false; panelHeader.style.cursor = 'grab'; });
+
+        // 触摸屏支持
+        panelHeader.addEventListener('touchstart', (e) => {
+            if (e.target.closest('button')) return;
+            isDragging = true;
+            const t = e.touches[0];
+            startX = t.clientX; startY = t.clientY;
+            initialX = controlPanel.offsetLeft; initialY = controlPanel.offsetTop;
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const t = e.touches[0];
+            controlPanel.style.left   = `${initialX + t.clientX - startX}px`;
+            controlPanel.style.top    = `${initialY + t.clientY - startY}px`;
+            controlPanel.style.right  = 'auto';
+            controlPanel.style.bottom = 'auto';
+        //Made by ecchua79
+        });
+        document.addEventListener('touchend', () => { isDragging = false; });
+
+        // 折叠 / 展开
+        let isCollapsed = false;
+        collapseBtn.addEventListener('click', () => {
+            isCollapsed = !isCollapsed;
+            panelBody.style.display     = isCollapsed ? 'none' : 'block';
+            collapseIcon.className      = isCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+            controlPanel.style.height   = 'auto';
+        });
+
+        // 科普说明隐藏 / 显示
+        const hideExplainBtn = document.getElementById('hide-explain-btn');
+        const showExplainBtn = document.getElementById('show-explain-btn');
+        const explainContent = document.getElementById('explain-content');
+        hideExplainBtn.addEventListener('click', () => {
+            explainContent.style.display = 'none';
+            hideExplainBtn.classList.add('hidden');
+            showExplainBtn.classList.remove('hidden');
+        });
+        showExplainBtn.addEventListener('click', () => {
+            explainContent.style.display = 'block';
+            hideExplainBtn.classList.remove('hidden');
+            showExplainBtn.classList.add('hidden');
+        });
+
+        // ============================================================
+        // 第二部分：Three.js 天体物理仿真系统
+        // ============================================================
+        const container = document.getElementById('canvas-container');
+        let scene, camera, renderer, controls;
+        let sun, earth, moon;
+        let earthOrbitLine, moonOrbitLine, nodeLine;
+        let shadowCone, moonShadowCone;
+
+        // 天体缩放常数（科学折中可视化模型）
+        const SUN_RADIUS         = 16;
+        const EARTH_RADIUS       = 4.2;
+        const MOON_RADIUS        = 1.1;
+        const EARTH_ORBIT_RADIUS = 90;
+        const MOON_ORBIT_RADIUS  = 15;
+        const INCLINATION_RAD    = 5.14 * (Math.PI / 180);
+        const ORBIT_RATIO        = 13.368;
+
+        // 动力学状态机
+        let state = {
+            isPlaying      : true,
+            speed          : 1.0,
+            hasInclination : true,
+            earthAngle     : 0,
+            moonAngle      : 0,
+            activeView     : 'space',
+            isSkipping     : false,  // 快进搜索食象标记
+            // 交点线在世界坐标系中的方向角（相对于世界X轴）
+            // 初始设为 π/4（45°），使得食象不在模拟开始就发生
+            // 真实中约18.6年进动一圈，此处用极慢速度象征性进动
+            nodeWorldAngle : Math.PI / 4
+        };
+
+        // UI 元素绑定
+        const playPauseBtn    = document.getElementById('play-pause-btn');
+        const playIcon        = document.getElementById('play-icon');
+        const playText        = document.getElementById('play-text');
+        //峇株吧辖华仁中学蔡逸众制作
+        const resetBtn        = document.getElementById('reset-btn');
+        const speedSlider     = document.getElementById('speed-slider');
+        const speedValueEl    = document.getElementById('speed-value');
+        const tiltToggle      = document.getElementById('tilt-toggle');
+        const toggleKnob      = document.getElementById('toggle-knob');
+        const viewSpaceBtn    = document.getElementById('view-space');
+        const viewEarthBtn    = document.getElementById('view-earth');
+        const viewSideBtn     = document.getElementById('view-side');
+        const simDaysText     = document.getElementById('sim-days');
+        const moonOrbitsText  = document.getElementById('moon-orbits');
+        const moonPhaseText   = document.getElementById('moon-phase');
+        const moonPhaseShadow = document.getElementById('moon-phase-shadow');
+        const eclipseStatusText = document.getElementById('eclipse-status');
+        const eclipseTypeText   = document.getElementById('eclipse-type');
+        const alertOverlay    = document.getElementById('eclipse-alert-overlay');
+        const skipEclipseBtn  = document.getElementById('skip-eclipse-btn');
+
+        // ── 场景初始化 ──────────────────────────────────────────────
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color('#030712');
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 110, 160);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance   = 350;
+            controls.minDistance   = 25;
+
+            // 弱环境光（保留暗部可见度）
+            scene.add(new THREE.AmbientLight(0xffffff, 0.08));
+
+            // 太阳点光源（投射真实阴影）
+            const sunLight = new THREE.PointLight(0xffffff, 2.5, 500, 0.5);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width  = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near    = 10;
+            sunLight.shadow.camera.far     = 250;
+            sunLight.shadow.bias           = -0.0005;
+            scene.add(sunLight);
+
+            createStars();
+            createCelestialBodies();
+            createOrbitsAndNodes();
+            createVisualShadowCones();
+
+            window.addEventListener('resize', onWindowResize);
+            setupUIEvents();
+        }
+
+        // ── 星空背景 ─────────────────────────────────────────────────
+        function createStars() {
+            const count     = 1000;
+            const positions = new Float32Array(count * 3);
+        //峇株吧辖蔡逸众制作
+            for (let i = 0; i < count * 3; i += 3) {
+                const u     = Math.random(), v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi   = Math.acos(2.0 * v - 1.0);
+                const r     = 260 + Math.random() * 40;
+                positions[i]     = r * Math.sin(phi) * Math.cos(theta);
+                positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i + 2] = r * Math.cos(phi);
+            }
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            scene.add(new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, transparent: true, opacity: 0.8 })));
+        }
+
+        // ── 天体建模 ─────────────────────────────────────────────────
+        function createCelestialBodies() {
+            // 太阳
+            sun = new THREE.Mesh(
+                new THREE.SphereGeometry(SUN_RADIUS, 64, 64),
+                new THREE.MeshBasicMaterial({ color: 0xffaa00 })
+            );
+            scene.add(sun);
+            // 太阳日冕光晕
+            const sunGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(SUN_RADIUS * 1.05, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.2, side: THREE.BackSide })
+            );
+            sun.add(sunGlow);
+
+            // 地球
+            earth = new THREE.Mesh(
+                new THREE.SphereGeometry(EARTH_RADIUS, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.6, metalness: 0.1 })
+            );
+            earth.castShadow    = true;
+            earth.receiveShadow = true;
+            earth.rotation.z    = (23.5 * Math.PI) / 180;
+            scene.add(earth);
+
+            // 地球大气光晕（蓝色薄边）
+            const atmoGeom = new THREE.SphereGeometry(EARTH_RADIUS * 1.12, 32, 32);
+            const atmoMat  = new THREE.MeshBasicMaterial({
+                color      : 0x38bdf8,
+                transparent: true,
+                opacity    : 0.13,
+                side       : THREE.BackSide
+            });
+            const atmosphere = new THREE.Mesh(atmoGeom, atmoMat);
+            earth.add(atmosphere);
+
+            // 大气外层（更淡、更大，增加层次感）
+            const atmoOuter = new THREE.Mesh(
+                new THREE.SphereGeometry(EARTH_RADIUS * 1.22, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.045, side: THREE.BackSide })
+            );
+            earth.add(atmoOuter);
+
+            // 月球
+            moon = new THREE.Mesh(
+                new THREE.SphereGeometry(MOON_RADIUS, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.85, metalness: 0.0 })
+            );
+            moon.castShadow    = true;
+            moon.receiveShadow = true;
+        //华仁中学蔡逸众制作
+            scene.add(moon);
+        }
+
+        // ── 轨道线与交点线 ───────────────────────────────────────────
+        function createOrbitsAndNodes() {
+            // 地球黄道面轨道圈
+            earthOrbitLine = new THREE.Mesh(
+                new THREE.RingGeometry(EARTH_ORBIT_RADIUS - 0.2, EARTH_ORBIT_RADIUS + 0.2, 128),
+                new THREE.MeshBasicMaterial({ color: 0x1e40af, side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+            );
+            earthOrbitLine.rotation.x = Math.PI / 2;
+            scene.add(earthOrbitLine);
+
+            // 黄道基准格网
+            const grid = new THREE.GridHelper(EARTH_ORBIT_RADIUS * 2.2, 24, 0x1e293b, 0x0f172a);
+            grid.position.y = -0.05;
+            scene.add(grid);
+
+            // 月球白道面轨道线
+            buildMoonOrbit();
+
+            // 交点线（黄白交线）
+            const nodeLineGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-MOON_ORBIT_RADIUS * 1.4, 0, 0),
+                new THREE.Vector3( MOON_ORBIT_RADIUS * 1.4, 0, 0)
+            ]);
+            nodeLine = new THREE.Line(nodeLineGeom,
+                new THREE.LineDashedMaterial({ color: 0x818cf8, dashSize: 1, gapSize: 1, transparent: true, opacity: 0.6 })
+            );
+            nodeLine.computeLineDistances();
+            scene.add(nodeLine);
+
+            // 升交点 / 降交点标记小球
+            const nodeSphereGeom = new THREE.SphereGeometry(0.5, 12, 12);
+            const nodeSphereMat  = new THREE.MeshBasicMaterial({ color: 0x818cf8 });
+            const nodeA = new THREE.Mesh(nodeSphereGeom, nodeSphereMat);
+            const nodeB = new THREE.Mesh(nodeSphereGeom, nodeSphereMat);
+            nodeA.position.set( MOON_ORBIT_RADIUS * 1.4, 0, 0);
+            nodeB.position.set(-MOON_ORBIT_RADIUS * 1.4, 0, 0);
+            nodeLine.add(nodeA);
+            nodeLine.add(nodeB);
+        }
+
+        // 重建月球轨道线（倾角切换或交点角变化时重调用）
+        // 白道面的倾斜轴 = 交点线方向（nodeWorldAngle）
+        // 倾斜轴垂直于交点线，即绕交点线方向旋转 inc 角度
+        function buildMoonOrbit() {
+            if (moonOrbitLine) scene.remove(moonOrbitLine);
+            const points = [];
+            const inc = state.hasInclination ? INCLINATION_RAD : 0;
+            // 交点线方向单位向量（在XZ平面内）
+            const nx = Math.cos(state.nodeWorldAngle);
+            const nz = Math.sin(state.nodeWorldAngle);
+            for (let i = 0; i <= 128; i++) {
+                const a = (i / 128) * Math.PI * 2;
+                // 月球在黄道面内的基础位置
+                const bx = Math.cos(a) * MOON_ORBIT_RADIUS;
+                const bz = -Math.sin(a) * MOON_ORBIT_RADIUS;
+                // 月球沿交点线方向的分量（此方向不抬升）
+                const along = bx * nx + bz * nz;
+                // 月球垂直于交点线的分量（此方向抬升）
+                const perp  = -bx * nz + bz * nx;
+                // 抬升后的Y坐标
+                const by = perp * Math.sin(inc);
+        //Made by ecchua79
+                // 重新合成XZ（沿交点线不变，垂直方向压缩cos(inc)）
+                const fx = along * nx - perp * Math.cos(inc) * nz;
+                const fz = along * nz + perp * Math.cos(inc) * nx;
+                points.push(new THREE.Vector3(fx, by, fz));
+            }
+            moonOrbitLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(points),
+                new THREE.LineBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.6 })
+            );
+            scene.add(moonOrbitLine);
+        }
+
+        // ── 阴影锥辅助对象 ───────────────────────────────────────────
+        function createVisualShadowCones() {
+            // 地球本影锥
+            const coneGeom = new THREE.CylinderGeometry(EARTH_RADIUS * 0.1, EARTH_RADIUS, 35, 16, 1, true);
+            coneGeom.translate(0, 17.5, 0);
+            shadowCone = new THREE.Mesh(coneGeom,
+                new THREE.MeshBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+            );
+            scene.add(shadowCone);
+
+            // 月球阴影锥
+            const mConeGeom = new THREE.CylinderGeometry(MOON_RADIUS * 0.05, MOON_RADIUS, 12, 16, 1, true);
+            mConeGeom.translate(0, 6, 0);
+            moonShadowCone = new THREE.Mesh(mConeGeom,
+                new THREE.MeshBasicMaterial({ color: 0x111827, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
+            );
+            scene.add(moonShadowCone);
+        }
+
+        // ============================================================
+        // 第三部分：UI 事件绑定
+        // ============================================================
+        function setupUIEvents() {
+            playPauseBtn.addEventListener('click', () => {
+                state.isPlaying = !state.isPlaying;
+                updatePlayPauseUI();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                state.earthAngle    = 0;
+                state.moonAngle     = 0;
+                state.nodeWorldAngle = Math.PI / 4;
+                state.isPlaying  = true;
+                state.isSkipping = false;
+                skipEclipseBtn.classList.remove('skip-btn-active');
+                skipEclipseBtn.innerHTML = '<i class="fa-solid fa-forward-fast"></i>快进到下一次食象';
+                updatePlayPauseUI();
+            });
+
+            speedSlider.addEventListener('input', (e) => {
+                state.speed = parseFloat(e.target.value);
+                speedValueEl.textContent = `${state.speed.toFixed(1)}x`;
+            });
+
+            // 快进到下一次食象
+            skipEclipseBtn.addEventListener('click', () => {
+                if (state.isSkipping) {
+                    // 再次点击取消快进
+                    state.isSkipping = false;
+                    skipEclipseBtn.classList.remove('skip-btn-active');
+        //峇株吧辖华仁中学蔡逸众制作
+                    skipEclipseBtn.innerHTML = '<i class="fa-solid fa-forward-fast"></i>快进到下一次食象';
+                } else {
+                    state.isSkipping = true;
+                    state.isPlaying  = true;
+                    updatePlayPauseUI();
+                    skipEclipseBtn.classList.add('skip-btn-active');
+                    skipEclipseBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>搜索食象中… 点击取消';
+                }
+            });
+
+            // 倾角开关
+            tiltToggle.addEventListener('click', () => {
+                state.hasInclination = !state.hasInclination;
+                toggleKnob.classList.toggle('translate-x-6', state.hasInclination);
+                tiltToggle.classList.toggle('bg-indigo-600',  state.hasInclination);
+                tiltToggle.classList.toggle('bg-slate-600',  !state.hasInclination);
+                buildMoonOrbit();
+            });
+
+            viewSpaceBtn.addEventListener('click', () => setActiveView('space', viewSpaceBtn));
+            viewEarthBtn.addEventListener('click', () => setActiveView('earth', viewEarthBtn));
+            viewSideBtn.addEventListener('click',  () => setActiveView('side',  viewSideBtn));
+        }
+
+        function updatePlayPauseUI() {
+            if (state.isPlaying) {
+                playIcon.className  = 'fa-solid fa-pause';
+                playText.textContent = '暂停模拟';
+                playPauseBtn.className = 'flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition duration-200 flex items-center justify-center gap-2';
+            } else {
+                playIcon.className  = 'fa-solid fa-play';
+                playText.textContent = '运行模拟';
+                playPauseBtn.className = 'flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-medium transition duration-200 flex items-center justify-center gap-2';
+            }
+        }
+
+        function setActiveView(view, activeBtn) {
+            state.activeView = view;
+            [viewSpaceBtn, viewEarthBtn, viewSideBtn].forEach(btn => {
+                btn.className = 'py-2 px-1 text-xs bg-slate-900 border border-slate-800 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition duration-200';
+            });
+            activeBtn.className = 'py-2 px-1 text-xs bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 rounded-lg font-medium hover:bg-indigo-900/80 transition duration-200';
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ============================================================
+        // 第四部分：月相图示更新（CSS 遮罩模拟月相形状）
+        // ============================================================
+        function updateMoonPhaseIcon(cosPhase) {
+            // cosPhase: 日地方向 dot 地月方向
+            // cosPhase ~ -1 → 新月（月球在太阳方向）
+            // cosPhase ~ +1 → 满月（月球在太阳对面）
+            // 将 cosPhase 映射为 0~1 的"亮度比例"（0=新月，1=满月）
+            const lit = (cosPhase + 1) / 2; // 0(新月) → 1(满月)
+
+            // 用 box-shadow 在圆形上制造半亮半暗效果：
+            // 遮罩层从左/右推移来模拟月牙形
+            const shadow = moonPhaseShadow;
+            const base = 'position:absolute;top:0;left:0;width:28px;height:28px;border-radius:9999px;';
+            if (lit < 0.03) {
+        //峇株吧辖蔡逸众制作
+                // 新月：全暗
+                shadow.style.cssText = base + 'background:#0f172a;';
+            } else if (lit > 0.97) {
+                // 满月：全亮
+                shadow.style.cssText = base + 'background:transparent;';
+            } else if (lit <= 0.5) {
+                // 上弦前（娥眉月→上弦）：右侧亮，左侧暗
+                const pct = lit * 200; // 0→100
+                shadow.style.cssText = base + `background:linear-gradient(to right, #0f172a ${100-pct}%, transparent ${100-pct}%);`;
+            } else {
+                // 上弦后（凸月→满月→渐亏）：左侧亮，右侧渐暗
+                const pct = (lit - 0.5) * 200; // 0→100
+                shadow.style.cssText = base + `background:linear-gradient(to left, #0f172a ${100-pct}%, transparent ${100-pct}%);`;
+            }
+        }
+
+        // ============================================================
+        // 第五部分：食相检测辅助函数
+        // ============================================================
+        function detectEclipse(cosPhase, perpDistance) {
+            // 返回 { active, statusText, typeText, overlayStyle }
+            const result = { active: false, statusText: '正常', typeText: '', overlayStyle: '' };
+
+            if (cosPhase < -0.98) {
+                // 新月期 → 可能日食
+                if (perpDistance < EARTH_RADIUS * 0.5) {
+                    result.active      = true;
+                    result.statusText  = '🌑 日食发生中';
+                    result.typeText    = perpDistance < EARTH_RADIUS * 0.2 ? '全食 / 环食' : '偏食';
+                    result.overlayStyle = 'border-[8px] md:border-[16px] border-yellow-500/25 bg-yellow-950/10';
+                } else if (perpDistance < EARTH_RADIUS * 0.9) {
+                    result.active      = true;
+                    result.statusText  = '🌑 日食发生中';
+                    result.typeText    = '偏食';
+                    result.overlayStyle = 'border-[6px] md:border-[12px] border-yellow-500/15 bg-yellow-950/5';
+                }
+            } else if (cosPhase > 0.98) {
+                // 满月期 → 可能月食
+                if (perpDistance < EARTH_RADIUS * 0.4) {
+                    result.active      = true;
+                    result.statusText  = '🌕 月食发生中';
+                    result.typeText    = '月全食';
+                    result.overlayStyle = 'border-[8px] md:border-[16px] border-rose-600/25 bg-rose-950/10';
+                } else if (perpDistance < EARTH_RADIUS * 0.85) {
+                    result.active      = true;
+                    result.statusText  = '🌕 月食发生中';
+                    result.typeText    = '月偏食';
+                    result.overlayStyle = 'border-[6px] md:border-[12px] border-rose-500/15 bg-rose-950/5';
+                } else if (perpDistance < EARTH_RADIUS * 1.3) {
+                    result.active      = true;
+                    result.statusText  = '🌕 月食发生中';
+                    result.typeText    = '半影月食';
+                    result.overlayStyle = 'border-[4px] border-rose-400/10 bg-transparent';
+                }
+            }
+            return result;
+        }
+
+        // ============================================================
+        // 第六部分：主渲染循环
+        // ============================================================
+        const clock = new THREE.Clock();
+        // 快进时使用的高速步进增量
+        const SKIP_SPEED = 0.15;
+        //华仁中学蔡逸众制作
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+
+            // 确定本帧的角度增量
+            let earthDelta;
+            if (state.isSkipping) {
+                // 快进模式：固定高速，不受速度滑块影响
+                earthDelta = SKIP_SPEED * dt;
+            } else if (state.isPlaying) {
+                earthDelta = dt * state.speed * 0.05;
+            } else {
+                earthDelta = 0;
+            }
+
+            state.earthAngle += earthDelta;
+            state.moonAngle  += earthDelta * ORBIT_RATIO;
+
+            // 地球位置（黄道面）
+            const ex = Math.cos(state.earthAngle) * EARTH_ORBIT_RADIUS;
+            const ez = -Math.sin(state.earthAngle) * EARTH_ORBIT_RADIUS;
+            earth.position.set(ex, 0, ez);
+            if (earthDelta > 0) earth.rotation.y -= dt * (state.isSkipping ? 3 : state.speed) * 0.5;
+
+            // 月球位置（白道面，在地球局部坐标系中正确计算）
+            // 交点线方向：nodeWorldAngle 是交点线在世界XZ平面中的方向角
+            // 白道面绕交点线倾斜 inc 角度
+            const inc = state.hasInclination ? INCLINATION_RAD : 0;
+            // 极慢进动：象征性，约每地球年转0.02弧度（真实18.6年一圈）
+            state.nodeWorldAngle += earthDelta * 0.02;
+            const nx = Math.cos(state.nodeWorldAngle);
+            const nz = Math.sin(state.nodeWorldAngle);
+            // 月球在黄道面内的基础局部坐标（以地球为原点）
+            const bx = Math.cos(state.moonAngle) * MOON_ORBIT_RADIUS;
+            const bz = -Math.sin(state.moonAngle) * MOON_ORBIT_RADIUS;
+            // 分解为沿交点线方向 和 垂直交点线方向
+            const along = bx * nx + bz * nz;  // 沿交点线：不抬升
+            const perp  = -bx * nz + bz * nx; // 垂直交点线：产生Y轴偏移
+            // 抬升后的月球局部坐标
+            const my = perp * Math.sin(inc);
+            const fx = along * nx - perp * Math.cos(inc) * nz;
+            const fz = along * nz + perp * Math.cos(inc) * nx;
+            moon.position.set(ex + fx, my, ez + fz);
+
+            // 轨道线跟随地球，交点线方向随 nodeWorldAngle 旋转
+            moonOrbitLine.position.copy(earth.position);
+            nodeLine.position.copy(earth.position);
+            // 交点线绕Y轴旋转对齐 nodeWorldAngle
+            nodeLine.rotation.y = -state.nodeWorldAngle;
+
+            // 阴影锥朝向：固定指向"背向太阳"方向，使用四元数对齐避免 lookAt 抖动
+            // 地球阴影锥：方向 = 从太阳指向地球（即背向太阳延伸）
+            const dirES = new THREE.Vector3().copy(earth.position).normalize();
+            shadowCone.position.copy(earth.position);
+            shadowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirES);
+
+            // 月球阴影锥：方向 = 从太阳指向月球
+            const dirMS = new THREE.Vector3().copy(moon.position).normalize();
+            moonShadowCone.position.copy(moon.position);
+            moonShadowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirMS);
+
+            // 视角跟随
+            if (state.activeView === 'space') {
+                controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+            } else if (state.activeView === 'earth') {
+                controls.target.lerp(earth.position, 0.08);
+        //Made by ecchua79
+                camera.position.lerp(new THREE.Vector3(ex + 25, 12, ez + 35), 0.05);
+            } else if (state.activeView === 'side') {
+                controls.target.lerp(earth.position, 0.08);
+                camera.position.lerp(new THREE.Vector3(ex, 1, ez + 60), 0.05);
+            }
+
+            // 统计量更新
+            const simulatedDays = (state.earthAngle / (Math.PI * 2)) * 365.25;
+            const moonOrbits    = state.moonAngle  / (Math.PI * 2);
+            simDaysText.textContent    = `${simulatedDays.toFixed(1)} 天`;
+            moonOrbitsText.textContent = `${moonOrbits.toFixed(2)} 圈`;
+
+            // 月相计算
+            const vecSunToEarth  = new THREE.Vector3().copy(earth.position).normalize();
+            const vecEarthToMoon = new THREE.Vector3().subVectors(moon.position, earth.position).normalize();
+            const cosPhase       = vecSunToEarth.dot(vecEarthToMoon);
+
+            // 月相文字
+            let moonPhaseName;
+            if      (cosPhase < -0.94)           moonPhaseName = '新月（朔）';
+            else if (cosPhase >  0.94)           moonPhaseName = '满月（望）';
+            else if (Math.abs(cosPhase) < 0.12) {
+                const cross = new THREE.Vector3().crossVectors(vecSunToEarth, vecEarthToMoon);
+                moonPhaseName = cross.y > 0 ? '上弦月' : '下弦月';
+            } else if (cosPhase < 0)             moonPhaseName = '娥眉月';
+            else                                  moonPhaseName = '凸月';
+            moonPhaseText.textContent = moonPhaseName;
+
+            // 月相图示更新
+            updateMoonPhaseIcon(cosPhase);
+
+            // 食相检测
+            const moonRelative      = new THREE.Vector3().subVectors(moon.position, earth.position);
+            const projLen           = moonRelative.dot(vecSunToEarth);
+            const projPt            = new THREE.Vector3().copy(vecSunToEarth).multiplyScalar(projLen);
+            const perpDistance      = new THREE.Vector3().subVectors(moonRelative, projPt).length();
+            const eclipse           = detectEclipse(cosPhase, perpDistance);
+
+            eclipseStatusText.textContent = eclipse.statusText;
+            eclipseTypeText.textContent   = eclipse.typeText;
+
+            if (eclipse.active) {
+                eclipseStatusText.className = 'text-xs font-semibold text-rose-400 eclipse-active';
+                alertOverlay.className = `absolute inset-0 pointer-events-none z-30 transition-all duration-300 ${eclipse.overlayStyle}`;
+
+                // 食象找到 → 停止快进
+                if (state.isSkipping) {
+                    state.isSkipping = false;
+                    skipEclipseBtn.classList.remove('skip-btn-active');
+                    skipEclipseBtn.innerHTML = '<i class="fa-solid fa-forward-fast"></i>快进到下一次食象';
+                }
+            } else {
+                eclipseStatusText.className = 'text-xs font-semibold text-emerald-400';
+                alertOverlay.className = 'absolute inset-0 pointer-events-none z-30 transition-all duration-300';
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => { init(); animate(); };
+    </script>
+</body>
+</html>
