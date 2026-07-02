@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>第14章 地月运动 | 互动天文观测站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+:root{
+  --bg-void:#060814;
+  --bg-deep:#0b0f20;
+  --panel:#10162c;
+  --panel-2:#161d38;
+  --line:#27305a;
+  --text:#e7ecfb;
+  --text-dim:#8f9bc4;
+  --sun:#ffb84d;
+  --sun-2:#ff7a3d;
+  --moon:#d9dbe6;
+  --moon-dark:#3a3f55;
+  --earth-day:#2f8fd6;
+  --earth-night:#0b1530;
+  --cyan:#3fe4d0;
+  --violet:#9b7bff;
+  --rose:#ff6ea8;
+  --warn:#ffd23f;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, #0d1430 0%, var(--bg-void) 55%, #030410 100%);
+  color:var(--text);
+  font-family:"Noto Sans SC",sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff 50%, transparent 50%),
+    radial-gradient(1px 1px at 80% 10%, #fff 50%, transparent 50%),
+    radial-gradient(1px 1px at 35% 65%, #fff 50%, transparent 50%),
+    radial-gradient(2px 2px at 60% 40%, #fff 50%, transparent 50%),
+    radial-gradient(1px 1px at 90% 80%, #fff 50%, transparent 50%),
+    radial-gradient(1px 1px at 15% 90%, #fff 50%, transparent 50%),
+    radial-gradient(1px 1px at 50% 12%, #fff 50%, transparent 50%),
+    radial-gradient(2px 2px at 70% 70%, #fff 50%, transparent 50%);
+  opacity:.35;
+  pointer-events:none;
+  z-index:0;
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 16px 80px;}
+
+/* ---------- HEADER ---------- */
+header.top{
+  padding:34px 16px 22px;
+  text-align:center;
+  position:relative;
+}
+.eyebrow{
+  font-family:"Orbitron",sans-serif;
+  font-size:11px;
+  letter-spacing:.32em;
+  color:var(--cyan);
+  text-transform:uppercase;
+  opacity:.85;
+}
+h1.title{
+  font-family:"Orbitron",sans-serif;
+  font-weight:900;
+  font-size:clamp(26px,6vw,46px);
+  margin:10px 0 6px;
+  letter-spacing:.02em;
+  background:linear-gradient(135deg,#ffffff 10%, var(--cyan) 55%, var(--violet) 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 40px rgba(63,228,208,.25);
+}
+.subtitle{color:var(--text-dim); font-size:14px; letter-spacing:.04em;}
+
+/* ---------- NAV ---------- */
+nav.tabs{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  margin:22px 0 18px;
+  position:sticky; top:8px; z-index:50;
+}
+.tab-btn{
+  font-family:"Noto Sans SC",sans-serif;
+  font-weight:700; font-size:13px;
+  padding:10px 16px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(16,22,44,.85);
+  backdrop-filter:blur(8px);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:all .25s ease;
+  white-space:nowrap;
+}
+.tab-btn .num{color:var(--cyan); margin-right:5px; font-family:"Orbitron",sans-serif;}
+.tab-btn:hover{border-color:var(--cyan); color:var(--text);}
+.tab-btn.active{
+  background:linear-gradient(135deg, rgba(63,228,208,.22), rgba(155,123,255,.22));
+  border-color:var(--cyan); color:#fff;
+  box-shadow:0 0 22px rgba(63,228,208,.25);
+}
+
+/* ---------- SECTIONS ---------- */
+section.scene{display:none;}
+section.scene.active{display:block; animation:fadeUp .45s ease;}
+@keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+.scene-head{margin:18px 0 14px;}
+.scene-head .kicker{
+  font-family:"Orbitron",sans-serif; font-size:12px; letter-spacing:.18em;
+  color:var(--violet); text-transform:uppercase;
+}
+.scene-head h2{
+  font-size:clamp(20px,4vw,28px); margin:6px 0 8px; font-weight:900;
+  color:#fff;
+}
+.scene-head p{color:var(--text-dim); font-size:14.5px; line-height:1.75; max-width:760px;}
+
+.card{
+  background:linear-gradient(160deg, var(--panel) 0%, var(--bg-deep) 100%);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:18px;
+  box-shadow:0 18px 40px -20px rgba(0,0,0,.6);
+}
+
+/* sub-mode pills */
+.pillrow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.pill{
+  font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:10px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim);
+  cursor:pointer; transition:.2s;
+}
+.pill.active{background:rgba(63,228,208,.16); color:var(--cyan); border-color:var(--cyan);}
+.pill:hover{color:#fff;}
+
+canvas.stage{
+  width:100%; display:block; border-radius:14px;
+  background:radial-gradient(ellipse at 50% 30%, #0c1330 0%, #050714 80%);
+  touch-action:none;
+}
+
+/* SVG moon-motion stage (14.2) */
+.svg-stage-wrap{position:relative; width:100%;}
+svg.svg-stage{
+  width:100%; aspect-ratio:1/1; display:block; border-radius:14px;
+  background:radial-gradient(ellipse at 50% 30%, #0c1330 0%, #050714 80%);
+  border:1px solid var(--line);
+}
+.float-card{
+  position:absolute; left:50%; bottom:14px; transform:translateX(-50%) scale(.85);
+  background:rgba(16,22,44,.92); border:1px solid var(--line); border-radius:14px;
+  padding:9px 16px; display:flex; align-items:center; gap:12px;
+  box-shadow:0 10px 26px -10px rgba(0,0,0,.7);
+  opacity:0; pointer-events:none; transition:all .25s ease;
+  backdrop-filter:blur(6px);
+}
+.float-card.show{opacity:1; transform:translateX(-50%) scale(1);}
+.float-card .lbl{font-size:10px; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase; font-weight:700;}
+.float-card .val{font-size:14px; font-weight:900; color:var(--cyan); font-family:"Orbitron",sans-serif;}
+#distance-detail-card{left:14px; right:14px; bottom:14px; transform:translateY(14px); width:auto; justify-content:space-between;}
+#distance-detail-card.show{transform:translateY(0);}
+#distance-detail-card .val{color:var(--rose);}
+#distance-detail-card .val.spd{color:var(--warn);}
+
+/* Earth's-motion dashboard panel (14.1) */
+.dash-panel{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  background:var(--panel-2); border:1px solid var(--line); border-radius:14px;
+  padding:12px 16px; margin-top:14px; transition:.25s;
+}
+.dash-left{display:flex; align-items:center; gap:11px;}
+.dash-badge{width:9px; height:38px; border-radius:6px; transition:background .3s;}
+.dash-label{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; font-weight:700;}
+.dash-value{font-size:14.5px; font-weight:900; color:#fff; margin-top:2px;}
+.dash-right{text-align:right;}
+.dash-accent{font-size:12.5px; font-weight:800; color:var(--cyan); margin-top:2px;}
+
+.controls{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:14px;}
+.ctrl-group{
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+  padding:8px 14px;
+}
+.ctrl-group label{font-size:12.5px; color:var(--text-dim); white-space:nowrap;}
+input[type=range]{width:130px; accent-color:var(--cyan);}
+.btn{
+  font-family:"Noto Sans SC",sans-serif; font-weight:700; font-size:13px;
+  padding:9px 16px; border-radius:10px; border:1px solid var(--cyan);
+  background:rgba(63,228,208,.1); color:var(--cyan); cursor:pointer; transition:.2s;
+}
+.btn:hover{background:rgba(63,228,208,.25);}
+.btn.alt{border-color:var(--violet); color:var(--violet); background:rgba(155,123,255,.08);}
+.btn.alt:hover{background:rgba(155,123,255,.22);}
+.readout{
+  font-family:"Orbitron",sans-serif; font-size:12.5px; color:var(--warn);
+  background:rgba(255,210,63,.08); border:1px solid rgba(255,210,63,.3);
+  padding:6px 12px; border-radius:8px;
+}
+
+.info-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px;}
+.info-box{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+}
+.info-box .h{font-size:12px; color:var(--cyan); font-weight:700; margin-bottom:4px; letter-spacing:.03em;}
+.info-box .b{font-size:13.5px; color:var(--text); line-height:1.6;}
+
+.note{
+  border-left:3px solid var(--violet); background:rgba(155,123,255,.06);
+  padding:10px 14px; border-radius:0 10px 10px 0; font-size:13.5px; color:var(--text-dim); line-height:1.7; margin-top:12px;
+}
+.note b{color:#fff;}
+
+/* legend */
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--text-dim); margin-top:10px;}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.dot{width:10px;height:10px;border-radius:50%; display:inline-block;}
+
+/* table-ish cards */
+.cardrow{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
+.minicard{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:16px;
+}
+.minicard h4{margin:0 0 8px; color:var(--cyan); font-size:15px;}
+.minicard p{margin:0; font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+.minicard .tag{
+  display:inline-block; font-size:11px; padding:3px 9px; border-radius:999px;
+  background:rgba(255,184,77,.15); color:var(--sun); margin-bottom:8px; font-weight:700;
+}
+
+/* quiz */
+.quiz-q{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:14px;
+}
+.quiz-q .qtext{font-size:14.5px; font-weight:700; margin-bottom:12px; color:#fff;}
+.qopt{
+  display:block; width:100%; text-align:left;
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:10px 14px; margin-bottom:8px; color:var(--text); font-size:13.5px;
+  cursor:pointer; transition:.18s;
+}
+.qopt:hover{border-color:var(--cyan);}
+.qopt.correct{border-color:#3fe48a; background:rgba(63,228,138,.12); color:#3fe48a;}
+.qopt.wrong{border-color:var(--rose); background:rgba(255,110,168,.12); color:var(--rose);}
+.qopt.disabled{cursor:default; pointer-events:none;}
+.qexplain{font-size:13px; color:var(--text-dim); margin-top:8px; line-height:1.6; display:none;}
+.qexplain.show{display:block;}
+.scorebar{
+  display:flex; justify-content:space-between; align-items:center;
+  background:linear-gradient(135deg, rgba(63,228,208,.14), rgba(155,123,255,.14));
+  border:1px solid var(--line); border-radius:14px; padding:14px 18px; margin-bottom:18px;
+}
+.scorebar .big{font-family:"Orbitron",sans-serif; font-size:22px; color:var(--cyan); font-weight:900;}
+
+footer.foot{
+  text-align:center; color:var(--text-dim); font-size:11.5px; padding:30px 0 10px; opacity:.7;
+}
+
+@media (max-width:640px){
+  .tab-btn{font-size:12px; padding:8px 12px;}
+  .tab-btn .num{display:none;}
+  input[type=range]{width:100px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">华仁中学 · 科学实验室</div>
+  <h1 class="title">第14章 · 地月运动</h1>
+  <div class="subtitle">互动天文观测站 — 自转公转 · 月球运动 · 日食月食 · 潮汐 · 历法</div>
+</header>
+
+<nav class="tabs" id="tabnav">
+  <button class="tab-btn active" data-scene="s1"><span class="num">14.1</span>地球如何运动</button>
+  <button class="tab-btn" data-scene="s2"><span class="num">14.2</span>月球如何运动</button>
+  <button class="tab-btn" data-scene="s3"><span class="num">14.3</span>日食与月食</button>
+  <button class="tab-btn" data-scene="s4"><span class="num">14.4</span>潮汐</button>
+  <button class="tab-btn" data-scene="s5"><span class="num">14.5</span>历法</button>
+  <button class="tab-btn" data-scene="s6"><span class="num">★</span>挑战检测</button>
+</nav>
+
+<!-- ============ SECTION 1 ============ -->
+<section class="scene active" id="s1">
+  <div class="scene-head">
+    <div class="kicker">Earth's Motion</div>
+    <h2>14.1 地球如何运动?</h2>
+    <p>地球一边绕地轴<b>自转</b>,一边围绕太阳<b>公转</b>。自转造成了昼夜交替与天体的东升西落;公转配合地轴倾角,造成了四季与近日点、远日点的距离变化。切换下方场景探索这些现象。</p>
+  </div>
+
+  <div class="card">
+    <div class="pillrow" id="s1pills">
+      <button class="pill active" data-mode="rotate">🌍 自转与昼夜</button>
+      <button class="pill" data-mode="revolve">☀️ 公转与四季</button>
+      <button class="pill" data-mode="trails">✨ 星轨摄影</button>
+    </div>
+
+    <div class="svg-stage-wrap">
+      <svg id="earth-svg" viewBox="0 0 400 400" class="svg-stage">
+        <defs>
+          <filter id="e-sun-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <radialGradient id="e-ocean-grad" cx="40%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#3fa9e0" /><stop offset="70%" stop-color="#2f8fd6" /><stop offset="100%" stop-color="#143e6b" />
+          </radialGradient>
+          <radialGradient id="e-sphere-shading" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#fff" stop-opacity="0.12" /><stop offset="50%" stop-color="#000" stop-opacity="0.35" /><stop offset="100%" stop-color="#000" stop-opacity="0.92" />
+          </radialGradient>
+          <clipPath id="e-earth-clip"><circle cx="200" cy="200" r="85" /></clipPath>
+          <clipPath id="e-small-earth-clip"><circle cx="0" cy="0" r="14" /></clipPath>
+          <marker id="e-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#3fe4d0"/>
+          </marker>
+        </defs>
+
+        <g opacity="0.55">
+          <circle cx="45" cy="65" r="1" fill="#fff" /><circle cx="120" cy="40" r="1.5" fill="#fff" opacity="0.8" />
+          <circle cx="280" cy="70" r="0.8" fill="#fff" /><circle cx="340" cy="110" r="1.2" fill="#fff" />
+          <circle cx="90" cy="310" r="1" fill="#fff" /><circle cx="250" cy="350" r="1.5" fill="#fff" opacity="0.5" />
+          <circle cx="50" cy="220" r="0.7" fill="#fff" /><circle cx="360" cy="280" r="1" fill="#fff" />
+        </g>
+
+        <!-- TAB 0: 自转与昼夜 -->
+        <g id="group-e-tab-0">
+          <g id="e-rays" opacity="0.35">
+            <line x1="10" y1="100" x2="80" y2="100" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="4 4" />
+            <line x1="10" y1="200" x2="80" y2="200" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="4 4" />
+            <line x1="10" y1="300" x2="80" y2="300" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="4 4" />
+            <text x="15" y="85" fill="#ffd479" font-size="10">☀ 太阳光方向(从左向右平照)</text>
+          </g>
+
+          <g transform="rotate(23.5, 200, 200)">
+            <line x1="200" y1="50" x2="200" y2="350" stroke="#ff6ea8" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8" />
+            <g clip-path="url(#e-earth-clip)">
+              <circle cx="200" cy="200" r="85" fill="url(#e-ocean-grad)" />
+              <path d="M 115,200 Q 200,215 285,200" fill="none" stroke="#7fe3ff" stroke-width="1" opacity="0.4" />
+              <path d="M 130,140 Q 200,152 270,140" fill="none" stroke="#7fe3ff" stroke-width="0.8" opacity="0.3" />
+              <path d="M 130,260 Q 200,272 270,260" fill="none" stroke="#7fe3ff" stroke-width="0.8" opacity="0.3" />
+              <g id="e-continents">
+                <path d="M 10,180 Q 30,120 70,140 T 110,160 T 150,220 T 100,250 Z" fill="#3fd98a" opacity="0.85" />
+                <path d="M 40,240 Q 60,280 90,260 T 110,230 Z" fill="#2bb873" opacity="0.85" />
+                <circle cx="130" cy="130" r="10" fill="#3fd98a" opacity="0.8" />
+                <path d="M 210,180 Q 230,120 270,140 T 310,160 T 350,220 T 300,250 Z" fill="#3fd98a" opacity="0.85" />
+                <path d="M 240,240 Q 260,280 290,260 T 310,230 Z" fill="#2bb873" opacity="0.85" />
+                <circle cx="330" cy="130" r="10" fill="#3fd98a" opacity="0.8" />
+                <path d="M -190,180 Q -170,120 -130,140 T -90,160 T -50,220 T -100,250 Z" fill="#3fd98a" opacity="0.85" />
+                <circle cx="-70" cy="130" r="10" fill="#3fd98a" opacity="0.8" />
+              </g>
+              <circle cx="200" cy="200" r="85" fill="url(#e-sphere-shading)" />
+            </g>
+            <text x="200" y="40" fill="#ff6ea8" font-size="11" font-weight="bold" text-anchor="middle">北极(N)</text>
+            <text x="200" y="365" fill="#ff6ea8" font-size="11" font-weight="bold" text-anchor="middle">南极(S)</text>
+          </g>
+
+          <path d="M 200,115 A 85,85 0 0,1 200,285 Z" fill="#03050f" opacity="0.82" />
+          <line x1="200" y1="115" x2="200" y2="285" stroke="#03050f" stroke-width="4" opacity="0.6" />
+          <line x1="200" y1="80" x2="200" y2="110" stroke="#3fe4d0" stroke-width="1" />
+          <text x="200" y="72" fill="#3fe4d0" font-size="10" text-anchor="middle">晨昏线(昼夜分界)</text>
+          <text x="130" y="205" fill="#ffffff" font-size="14" font-weight="bold" opacity="0.85" text-anchor="middle">白昼面</text>
+          <text x="270" y="205" fill="#8f9bc4" font-size="14" font-weight="bold" text-anchor="middle">黑夜面</text>
+        </g>
+
+        <!-- TAB 1: 公转与四季 -->
+        <g id="group-e-tab-1" display="none">
+          <ellipse cx="200" cy="200" rx="165" ry="75" fill="none" stroke="#27305a" stroke-width="1.5" stroke-dasharray="4 4" />
+          <circle cx="200" cy="200" r="30" fill="#ffb84d" filter="url(#e-sun-glow)" />
+          <circle cx="200" cy="200" r="15" fill="#ffe9b0" />
+          <text x="200" y="245" fill="#ffb84d" font-size="12" font-weight="bold" text-anchor="middle">太阳</text>
+
+          <g id="node-summer" transform="translate(35, 200)">
+            <circle cx="0" cy="0" r="4" fill="#ff6ea8" />
+            <text x="-10" y="-12" fill="#ff6ea8" font-size="11" font-weight="bold" text-anchor="end">夏至(6月21日)</text>
+            <text x="-10" y="2" fill="#8f9bc4" font-size="9" text-anchor="end">直射北回归线</text>
+          </g>
+          <g id="node-autumn" transform="translate(200, 275)">
+            <circle cx="0" cy="0" r="4" fill="#ffb84d" />
+            <text x="0" y="16" fill="#ffb84d" font-size="11" font-weight="bold" text-anchor="middle">秋分(9月23日)</text>
+            <text x="0" y="28" fill="#8f9bc4" font-size="9" text-anchor="middle">直射赤道</text>
+          </g>
+          <g id="node-winter" transform="translate(365, 200)">
+            <circle cx="0" cy="0" r="4" fill="#3fe4d0" />
+            <text x="10" y="-12" fill="#3fe4d0" font-size="11" font-weight="bold">冬至(12月22日)</text>
+            <text x="10" y="2" fill="#8f9bc4" font-size="9">直射南回归线</text>
+          </g>
+          <g id="node-spring" transform="translate(200, 125)">
+            <circle cx="0" cy="0" r="4" fill="#3fd98a" />
+            <text x="0" y="-22" fill="#3fd98a" font-size="11" font-weight="bold" text-anchor="middle">春分(3月21日)</text>
+            <text x="0" y="-10" fill="#8f9bc4" font-size="9" text-anchor="middle">直射赤道</text>
+          </g>
+
+          <path d="M 120,135 Q 160,127 200,125" fill="none" stroke="#3fe4d0" stroke-width="1.5" marker-end="url(#e-arrow)" opacity="0.55" />
+          <path d="M 280,265 Q 240,273 200,275" fill="none" stroke="#3fe4d0" stroke-width="1.5" marker-end="url(#e-arrow)" opacity="0.55" />
+
+          <g id="t1-earth" transform="translate(35, 200)">
+            <g transform="rotate(23.5)">
+              <line x1="0" y1="-22" x2="0" y2="22" stroke="#ff6ea8" stroke-width="1.2" />
+              <g clip-path="url(#e-small-earth-clip)">
+                <circle cx="0" cy="0" r="14" fill="#2f8fd6" />
+                <path d="M -8,-5 Q 0,-10 6,-3 T -2,6 Z" fill="#3fd98a" />
+              </g>
+            </g>
+            <g id="t1-earth-shadow">
+              <path d="M 0,-14 A 14,14 0 0,1 0,14 Z" fill="#03050f" opacity="0.78" />
+            </g>
+          </g>
+        </g>
+      </svg>
+
+      <canvas class="stage" id="cv1" height="460" style="display:none;"></canvas>
+    </div>
+
+    <div id="e-dash-0" class="dash-panel">
+      <div class="dash-left">
+        <div class="dash-badge" style="background:var(--cyan);"></div>
+        <div><div class="dash-label">地球自转周期</div><div class="dash-value">恒星日 ≈ 23小时56分</div></div>
+      </div>
+      <div class="dash-right"><div class="dash-label">空间方向</div><div class="dash-accent">自西向东(北极上空俯视为逆时针)</div></div>
+    </div>
+
+    <div id="e-dash-1" class="dash-panel" style="display:none;">
+      <div class="dash-left">
+        <div class="dash-badge" id="e-season-badge" style="background:var(--cyan);"></div>
+        <div><div class="dash-label" id="e-season-date">--月--日</div><div class="dash-value" id="e-season-title">--</div></div>
+      </div>
+      <div class="dash-right"><div class="dash-label">北半球昼夜特征</div><div class="dash-accent" id="e-season-desc">--</div></div>
+    </div>
+
+    <div id="s1-rotate-ctrl" class="controls">
+      <div class="ctrl-group"><label>运行速度</label><input type="range" id="r1speed" min="0.2" max="3" step="0.1" value="1"></div>
+      <button class="btn" id="e-playbtn-0">⏸ 暂停</button>
+      <span class="readout">由西向东自转 · 北极上空俯视为逆时针</span>
+    </div>
+
+    <div id="s1-revolve-ctrl" class="controls" style="display:none;">
+      <div class="ctrl-group"><label>运行速度</label><input type="range" id="r2speed" min="0.2" max="3" step="0.1" value="1"></div>
+      <button class="btn" id="e-playbtn-1">⏸ 暂停</button>
+      <span class="readout">逆时针公转 · 地轴倾角方向恒定不变</span>
+    </div>
+
+    <div id="s1-trails-ctrl" class="controls" style="display:none;">
+      <button class="btn" id="r3shoot">📷 开始长曝光拍摄</button>
+      <button class="btn alt" id="r3clear">清除星轨</button>
+      <span class="readout" id="r3readout">提示:北极上空看,地球自转呈逆时针,星轨也呈逆时针</span>
+    </div>
+
+    <div class="info-grid" id="s1info"></div>
+    <div class="note" id="s1note"><b>动动脑:</b> 地球仪总是斜着放,因为地轴本身就有约23.5°的倾角,这个倾角在公转过程中保持方向不变,正是四季产生的关键原因。</div>
+  </div>
+</section>
+
+<!-- ============ SECTION 2 ============ -->
+<section class="scene" id="s2">
+  <div class="scene-head">
+    <div class="kicker">Moon's Motion</div>
+    <h2>14.2 月球如何运动?</h2>
+    <p>月球的自转周期与公转周期相同(都是27.3天),这个"同步自转"现象使我们永远只能看到月球的同一面。月球绕地球公转也造成了我们看到的月相变化与近地点、远地点的大小差异。</p>
+  </div>
+
+  <div class="card">
+    <div class="pillrow" id="s2pills">
+      <button class="pill active" data-mode="0">🌗 同步自转</button>
+      <button class="pill" data-mode="1">🌙 月相变化</button>
+      <button class="pill" data-mode="2">📏 近地与远地</button>
+    </div>
+
+    <div class="svg-stage-wrap">
+      <svg id="moon-svg" viewBox="0 0 400 400" class="svg-stage">
+        <defs>
+          <filter id="sun-glow-2" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <radialGradient id="earth-grad-2" cx="40%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#5db3ec" /><stop offset="60%" stop-color="#2f8fd6" /><stop offset="100%" stop-color="#143e6b" />
+          </radialGradient>
+          <radialGradient id="moon-lit-grad-2" cx="70%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#ffffff" /><stop offset="70%" stop-color="#e7ecfb" /><stop offset="100%" stop-color="#9a9bab" />
+          </radialGradient>
+          <radialGradient id="earth-glow-2" cx="50%" cy="50%" r="50%">
+            <stop offset="70%" stop-color="#2f8fd6" stop-opacity="0.35" /><stop offset="100%" stop-color="#143e6b" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        <g opacity="0.6">
+          <circle cx="45" cy="65" r="1" fill="#fff" /><circle cx="120" cy="40" r="1.5" fill="#fff" opacity="0.8" />
+          <circle cx="280" cy="70" r="0.8" fill="#fff" /><circle cx="340" cy="110" r="1.2" fill="#fff" />
+          <circle cx="90" cy="310" r="1" fill="#fff" /><circle cx="250" cy="350" r="1.5" fill="#fff" opacity="0.5" />
+          <circle cx="50" cy="220" r="0.7" fill="#fff" /><circle cx="360" cy="280" r="1" fill="#fff" />
+        </g>
+
+        <g opacity="0.22">
+          <line x1="390" y1="80" x2="350" y2="80" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="3 3" />
+          <line x1="390" y1="200" x2="330" y2="200" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="3 3" />
+          <line x1="390" y1="320" x2="350" y2="320" stroke="#ffd479" stroke-width="1.5" stroke-dasharray="3 3" />
+          <text x="385" y="65" fill="#ffd479" font-size="9" text-anchor="end">阳光由右侧照入</text>
+        </g>
+        <circle cx="410" cy="200" r="25" fill="#ffb84d" filter="url(#sun-glow-2)" opacity="0.9" />
+        <circle cx="410" cy="200" r="12" fill="#ffe9b0" />
+
+        <!-- TAB 0: 同步自转 -->
+        <g id="group-tab-0">
+          <circle cx="200" cy="200" r="120" fill="none" stroke="#27305a" stroke-width="1.5" stroke-dasharray="5 5" />
+          <line x1="200" y1="200" x2="320" y2="200" id="t0-radial-line" stroke="#1b2347" stroke-width="1" />
+          <circle cx="200" cy="200" r="34" fill="url(#earth-glow-2)" />
+          <circle cx="200" cy="200" r="26" fill="url(#earth-grad-2)" />
+          <path d="M 185,190 Q 192,185 200,192 T 215,188" fill="none" stroke="#3fd98a" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+          <path d="M 180,205 Q 195,210 205,200 T 222,212" fill="none" stroke="#3fd98a" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+          <text x="200" y="204" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">地球</text>
+
+          <g id="t0-moon" transform="translate(320, 200)">
+            <circle cx="0" cy="0" r="16" fill="url(#moon-lit-grad-2)" />
+            <g id="t0-moon-surface">
+              <line x1="-16" y1="0" x2="-28" y2="0" stroke="#ff6ea8" stroke-width="2.5" />
+              <polygon points="-28,0 -23,-5 -23,5" fill="#ff6ea8" />
+              <circle cx="-5" cy="5" r="3" fill="#64748b" opacity="0.5" />
+              <circle cx="5" cy="-5" r="2" fill="#64748b" opacity="0.5" />
+              <path d="M -10,0 A 5,3 0 0 1 -4,3" fill="none" stroke="#64748b" stroke-dasharray="1 1" opacity="0.5" />
+            </g>
+            <path d="M 0,-16 A 16,16 0 0,0 0,16 Z" fill="#05060c" opacity="0.85" />
+            <ellipse cx="0" cy="0" rx="4" ry="16" fill="#05060c" opacity="0.5" />
+          </g>
+          <text x="200" y="355" fill="#8f9bc4" font-size="11" text-anchor="middle">粉色旗帜恒指地球;白昼面(右侧)恒对太阳</text>
+        </g>
+
+        <!-- TAB 1: 月相变化 -->
+        <g id="group-tab-1" display="none">
+          <circle cx="200" cy="200" r="110" fill="none" stroke="#27305a" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8"/>
+          <circle cx="200" cy="200" r="24" fill="url(#earth-grad-2)" />
+          <path d="M 188,192 Q 195,188 200,194" fill="none" stroke="#3fd98a" stroke-width="2.5" opacity="0.6" />
+          <path d="M 185,202 Q 196,206 204,198" fill="none" stroke="#3fd98a" stroke-width="2.5" opacity="0.6" />
+
+          <g transform="translate(310, 200)" opacity="0.35">
+            <circle cx="0" cy="0" r="11" fill="url(#moon-lit-grad-2)" /><path d="M 0,-11 A 11,11 0 0,0 0,11 Z" fill="#05060c" opacity="0.9" />
+            <text x="0" y="24" fill="#8f9bc4" font-size="9" text-anchor="middle">新月(朔)</text>
+          </g>
+          <g transform="translate(200, 90)" opacity="0.35">
+            <circle cx="0" cy="0" r="11" fill="url(#moon-lit-grad-2)" /><path d="M 0,-11 A 11,11 0 0,0 0,11 Z" fill="#05060c" opacity="0.9" />
+            <text x="0" y="-18" fill="#8f9bc4" font-size="9" text-anchor="middle">上弦月</text>
+          </g>
+          <g transform="translate(90, 200)" opacity="0.35">
+            <circle cx="0" cy="0" r="11" fill="url(#moon-lit-grad-2)" /><path d="M 0,-11 A 11,11 0 0,0 0,11 Z" fill="#05060c" opacity="0.9" />
+            <text x="0" y="24" fill="#8f9bc4" font-size="9" text-anchor="middle">满月(望)</text>
+          </g>
+          <g transform="translate(200, 310)" opacity="0.35">
+            <circle cx="0" cy="0" r="11" fill="url(#moon-lit-grad-2)" /><path d="M 0,-11 A 11,11 0 0,0 0,11 Z" fill="#05060c" opacity="0.9" />
+            <text x="0" y="24" fill="#8f9bc4" font-size="9" text-anchor="middle">下弦月</text>
+          </g>
+
+          <line x1="200" y1="200" x2="310" y2="200" id="t1-vision-line" stroke="#3fe4d0" stroke-width="1" stroke-dasharray="2 2" />
+          <g id="t1-moon" transform="translate(310, 200)">
+            <circle cx="0" cy="0" r="12" fill="url(#moon-lit-grad-2)" />
+            <g id="t1-moon-surface">
+              <circle cx="-3" cy="3" r="2" fill="#64748b" opacity="0.5" /><circle cx="4" cy="-3" r="1.5" fill="#64748b" opacity="0.5" />
+            </g>
+            <path d="M 0,-12 A 12,12 0 0,0 0,12 Z" fill="#05060c" opacity="0.9" />
+            <ellipse cx="0" cy="0" rx="3" ry="12" fill="#05060c" opacity="0.5" />
+          </g>
+        </g>
+
+        <!-- TAB 2: 近地点与远地点 -->
+        <g id="group-tab-2" display="none">
+          <ellipse cx="160" cy="200" rx="140" ry="105" fill="none" stroke="#3a4470" stroke-width="1.5" />
+          <line x1="20" y1="200" x2="300" y2="200" stroke="#1b2347" stroke-width="1" stroke-dasharray="3 3" />
+          <circle cx="253" cy="200" r="24" fill="url(#earth-grad-2)" />
+          <path d="M 243,194 Q 248,190 253,195" fill="none" stroke="#3fd98a" stroke-width="2.5" opacity="0.6" />
+          <path d="M 240,203 Q 249,207 256,199" fill="none" stroke="#3fd98a" stroke-width="2.5" opacity="0.6" />
+          <text x="253" y="234" fill="#8f9bc4" font-size="9" text-anchor="middle">地球(焦点)</text>
+          <line x1="253" y1="200" x2="20" y2="200" id="t2-distance-line" stroke="#ff6ea8" stroke-width="1" stroke-opacity="0.5" />
+
+          <circle cx="20" cy="200" r="3" fill="#ff6ea8" />
+          <text x="35" y="185" fill="#ff6ea8" font-size="10" font-weight="bold">远地点(约40.6万km)</text>
+          <text x="35" y="198" fill="#8f9bc4" font-size="9">速度最慢(最小月亮)</text>
+          <circle cx="300" cy="200" r="3" fill="#3fe48a" />
+          <text x="295" y="185" fill="#3fe48a" font-size="10" font-weight="bold" text-anchor="end">近地点(约36.3万km)</text>
+          <text x="295" y="198" fill="#8f9bc4" font-size="9" text-anchor="end">速度最快(超级大月亮)</text>
+
+          <g id="t2-moon" transform="translate(20, 200)">
+            <g id="t2-moon-scale-group">
+              <circle cx="0" cy="0" r="12" fill="url(#moon-lit-grad-2)" />
+              <g id="t2-moon-surface">
+                <circle cx="-3" cy="3" r="2" fill="#64748b" opacity="0.5" /><circle cx="4" cy="-3" r="1.5" fill="#64748b" opacity="0.5" />
+              </g>
+              <path d="M 0,-12 A 12,12 0 0,0 0,12 Z" fill="#05060c" opacity="0.9" />
+              <ellipse cx="0" cy="0" rx="3" ry="12" fill="#05060c" opacity="0.5" />
+            </g>
+          </g>
+        </g>
+      </svg>
+
+      <div id="phase-detail-card" class="float-card">
+        <svg width="44" height="44" viewBox="0 0 50 50">
+          <circle cx="25" cy="25" r="22" fill="#05060c" stroke="#27305a" stroke-width="1" />
+          <path id="detail-moon-path" d="" fill="#f1f1f6" />
+        </svg>
+        <div>
+          <div class="lbl">地球视角月相</div>
+          <div class="val" id="detail-moon-name">新月</div>
+        </div>
+      </div>
+
+      <div id="distance-detail-card" class="float-card">
+        <div><div class="lbl">实时地月距离</div><div class="val" id="live-distance">-- km</div></div>
+        <div><div class="lbl">瞬时速度</div><div class="val spd" id="live-speed">-- km/s</div></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="s2playbtn">⏸ 暂停</button>
+      <div class="ctrl-group"><label>运行速度</label><input type="range" id="s2speed" min="0.1" max="3" step="0.1" value="1"></div>
+      <span class="readout" id="s2speedlabel">1.0x · 符合开普勒第二定律</span>
+    </div>
+
+    <p class="note" id="s2desc">加载中...</p>
+    <div class="info-grid" id="s2info"></div>
+  </div>
+</section>
+
+<!-- ============ SECTION 3 ============ -->
+<section class="scene" id="s3">
+  <div class="scene-head">
+    <div class="kicker">Eclipses</div>
+    <h2>14.3 日食和月食如何发生?</h2>
+    <p>日食发生于月球运行到太阳与地球之间;月食发生于月球进入地球的影子。由于月球公转轨道平面与地球公转轨道平面有约5°的夹角,大多数月份三者无法排成一直线,所以日食、月食并非每月都会发生。拖动滑块,看看怎样的"对齐程度"才会形成日食或月食。</p>
+  </div>
+
+  <div class="card">
+    <div class="pillrow" id="s3pills">
+      <button class="pill active" data-mode="solar">☀️ 日食</button>
+      <button class="pill" data-mode="lunar">🌑 月食</button>
+    </div>
+    <canvas class="stage" id="cv3" height="460"></canvas>
+
+    <div id="s3-solar-ctrl" class="controls">
+      <div class="ctrl-group"><label>轨道倾角偏移</label><input type="range" id="e1tilt" min="0" max="100" value="50"></div>
+      <div class="ctrl-group"><label>月地距离(近地点↔远地点)</label><input type="range" id="e1dist" min="0" max="100" value="50"></div>
+      <span class="readout" id="e1readout">—</span>
+    </div>
+
+    <div id="s3-lunar-ctrl" class="controls" style="display:none;">
+      <div class="ctrl-group"><label>轨道倾角偏移</label><input type="range" id="e2tilt" min="0" max="100" value="50"></div>
+      <span class="readout" id="e2readout">—</span>
+    </div>
+
+    <div class="legend" id="s3legend"></div>
+    <div class="info-grid" id="s3info"></div>
+  </div>
+</section>
+
+<!-- ============ SECTION 4 ============ -->
+<section class="scene" id="s4">
+  <div class="scene-head">
+    <div class="kicker">Tides</div>
+    <h2>14.4 什么是潮汐?</h2>
+    <p>月球(以及太阳)的引力使地球表面海水周期性涨落,形成潮汐。当日、月、地排成一直线时(新月或满月)形成<b>大潮</b>;当三者呈90°时(上弦或下弦)形成<b>小潮</b>。</p>
+  </div>
+
+  <div class="card">
+    <div class="pillrow" id="s4pills">
+      <button class="pill active" data-mode="cycle">🌊 潮起潮落</button>
+      <button class="pill" data-mode="spring">🌕 大潮与小潮</button>
+      <button class="pill" data-mode="zone">🦀 潮间带</button>
+    </div>
+    <div class="svg-stage-wrap">
+      <canvas class="stage" id="cv4" height="460"></canvas>
+      <svg id="zone-svg" viewBox="0 0 900 500" class="svg-stage" style="display:none;">
+        <defs>
+          <linearGradient id="zoneSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0b0f20"/>
+            <stop offset="55%" stop-color="#152049"/>
+            <stop offset="100%" stop-color="#1d2f5e"/>
+          </linearGradient>
+          <linearGradient id="zoneWaterGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4fb3e8"/>
+            <stop offset="100%" stop-color="#155f96"/>
+          </linearGradient>
+          <linearGradient id="zoneMudGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#c9b896"/>
+            <stop offset="100%" stop-color="#7c6647"/>
+          </linearGradient>
+        </defs>
+
+        <rect x="0" y="0" width="900" height="500" fill="url(#zoneSky)"/>
+        <g fill="#fff" opacity="0.55">
+          <circle cx="60" cy="40" r="1.2"/><circle cx="140" cy="55" r="1"/><circle cx="300" cy="30" r="1.4"/>
+          <circle cx="520" cy="45" r="1"/><circle cx="680" cy="35" r="1.3"/><circle cx="820" cy="55" r="1"/>
+          <circle cx="430" cy="60" r="0.9"/><circle cx="220" cy="80" r="1"/>
+        </g>
+        <g fill="#cdd6f0" opacity="0.3">
+          <ellipse cx="120" cy="70" rx="45" ry="22"/>
+          <ellipse cx="160" cy="65" rx="32" ry="16"/>
+          <ellipse cx="680" cy="90" rx="50" ry="24"/>
+          <ellipse cx="730" cy="86" rx="36" ry="18"/>
+        </g>
+
+        <path id="zoneMudFlat" d="M0 380 Q220 360 450 370 Q680 355 900 390 L900 500 L0 500 Z" fill="url(#zoneMudGrad)"/>
+
+        <path id="zoneWater" fill="url(#zoneWaterGrad)" opacity="0.92">
+          <animate id="zoneWaterAnim" attributeName="d" dur="6s" repeatCount="indefinite" values="
+            M -20 390 Q 100 370 200 390 T 400 390 T 600 390 T 800 390 T 920 390 L 920 500 L -20 500 Z;
+            M -20 395 Q 100 415 200 395 T 400 395 T 600 395 T 800 395 T 920 395 L 920 500 L -20 500 Z;
+            M -20 390 Q 100 370 200 390 T 400 390 T 600 390 T 800 390 T 920 390 L 920 500 L -20 500 Z;
+          "/>
+        </path>
+
+        <g fill="#5b6c84">
+          <path d="M180 360 L210 340 L240 365 L225 390 L175 385 Z"/>
+          <path d="M520 350 L555 332 L580 358 L562 382 L518 376 Z"/>
+          <path d="M760 370 L795 352 L820 378 L805 400 L758 392 Z"/>
+        </g>
+
+        <g id="zoneMangrove">
+          <path d="M80 330 V380" stroke="#6b4226" stroke-width="4"/>
+          <path fill="#2d7030" d="M50 320 Q80 270 110 320 Q80 340 50 320"/>
+          <path fill="#388c3c" d="M60 300 Q90 250 120 300 Q90 320 60 300"/>
+          <path d="M360 325 V375" stroke="#6b4226" stroke-width="4"/>
+          <path fill="#2d7030" d="M330 315 Q360 265 390 315 Q360 335 330 315"/>
+          <path d="M640 335 V385" stroke="#6b4226" stroke-width="4"/>
+          <path fill="#2d7030" d="M610 325 Q640 275 670 325 Q640 345 610 325"/>
+        </g>
+
+        <g id="zoneCreatures">
+          <g id="zoneCrab1" transform="translate(240,410)">
+            <ellipse cx="0" cy="0" rx="14" ry="9" fill="#d64020"/>
+            <line x1="-16" y1="-4" x2="-24" y2="-10" stroke="#d64020" stroke-width="3"/>
+            <line x1="-16" y1="4" x2="-24" y2="10" stroke="#d64020" stroke-width="3"/>
+            <line x1="16" y1="-4" x2="24" y2="-10" stroke="#d64020" stroke-width="3"/>
+            <line x1="16" y1="4" x2="24" y2="10" stroke="#d64020" stroke-width="3"/>
+          </g>
+          <g id="zoneCrab2" transform="translate(560,420)">
+            <ellipse cx="0" cy="0" rx="12" ry="8" fill="#c83518"/>
+            <line x1="-14" y1="-3" x2="-22" y2="-9" stroke="#c83518" stroke-width="3"/>
+            <line x1="14" y1="3" x2="22" y2="9" stroke="#c83518" stroke-width="3"/>
+          </g>
+          <path d="M320 430 Q330 418 340 430 Q330 442 320 430" fill="#f0d8c0" stroke="#b89878"/>
+          <path d="M690 425 Q700 413 710 425 Q700 437 690 425" fill="#e8ccb0" stroke="#a88868"/>
+          <g id="zoneFish" opacity="0">
+            <ellipse cx="420" cy="345" rx="18" ry="10" fill="#ffb340"/>
+            <polygon points="438 345 452 338 452 352" fill="#ff9900"/>
+            <circle cx="412" cy="342" r="2" fill="#222"/>
+          </g>
+          <g id="zoneBird">
+            <path d="M780 130 L795 122 L810 130 L795 138 Z" fill="#cdd6f0"/>
+            <path d="M770 130 Q782 118 795 122 Q808 118 820 130" stroke="#cdd6f0" fill="none" stroke-width="2"/>
+          </g>
+        </g>
+
+        <text x="16" y="34" fill="rgba(255,255,255,.55)" font-size="14">高潮线 high tide ────</text>
+        <line x1="0" y1="44" x2="900" y2="44" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 4"/>
+        <text x="16" y="468" fill="rgba(255,255,255,.55)" font-size="14">低潮线 low tide ────</text>
+        <line x1="0" y1="458" x2="900" y2="458" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 4"/>
+      </svg>
+    </div>
+
+    <div id="s4-cycle-ctrl" class="controls">
+      <div class="ctrl-group"><label>时间(小时)</label><input type="range" id="t1time" min="0" max="240" value="0"></div>
+      <button class="btn" id="t1play">▶ 自动播放</button>
+      <span class="readout" id="t1readout">—</span>
+    </div>
+
+    <div id="s4-spring-ctrl" class="controls" style="display:none;">
+      <button class="btn" id="t2new">新月 → 大潮</button>
+      <button class="btn" id="t2full">满月 → 大潮</button>
+      <button class="btn alt" id="t2first">上弦月 → 小潮</button>
+      <button class="btn alt" id="t2last">下弦月 → 小潮</button>
+    </div>
+
+    <div id="s4-zone-ctrl" class="controls" style="display:none;">
+      <span class="readout" id="zoneTip">拖动观察潮间带在涨潮、退潮时的变化</span>
+      <div class="ctrl-group"><label>潮位</label><input type="range" id="t3level" min="0" max="100" value="50"></div>
+    </div>
+
+    <div class="info-grid" id="s4info"></div>
+  </div>
+</section>
+
+<!-- ============ SECTION 5 ============ -->
+<section class="scene" id="s5">
+  <div class="scene-head">
+    <div class="kicker">Calendars</div>
+    <h2>14.5 历法与地月运动有什么关系?</h2>
+    <p>历法是人类依据天象变化的自然规律制定的计算时间的方法,基本上可分为<b>阳历、阴历、阴阳历</b>三种类型。</p>
+  </div>
+
+  <div class="card">
+    <div class="pillrow" id="s5pills">
+      <button class="pill active" data-mode="types">📅 三种历法</button>
+      <button class="pill" data-mode="leap">🔁 公历闰年规则</button>
+      <button class="pill" data-mode="drift">🕰️ 历法对比动画</button>
+    </div>
+
+    <div id="s5-types">
+      <div class="cardrow">
+        <div class="minicard"><span class="tag">阳历 SOLAR</span><h4>依据地球公转周期</h4><p>以地球绕太阳公转一圈(约365.242日)为一年。<b>公历(格里历)</b>是最广泛使用的阳历,四季在公历月份中固定不变,便于安排农业与生产活动。但公历的月份无法反映月相。</p></div>
+        <div class="minicard"><span class="tag">阴历 LUNAR</span><h4>依据月相变化周期</h4><p>以月相变化(朔望月,约29.5日)为周期。穆斯林使用的<b>回历(伊斯兰历)</b>属于阴历,每年12个月、354或355日,不考虑地球公转,因此月份无法反映季节,会逐年提前。</p></div>
+        <div class="minicard"><span class="tag">阴阳历 LUNI-SOLAR</span><h4>结合阳历与阴历特点</h4><p>华人使用的<b>农历</b>属于阴阳历,既考虑月相变化,也考虑地球绕太阳公转的规律,通过设置闰月与二十四节气,同时反映月相与季节。</p></div>
+      </div>
+      <div class="note">历法的时间单位:一年≈地球公转一圈的时间;一个月≈月相变化一周的时间;一日≈地球自转一圈的时间。</div>
+    </div>
+
+    <div id="s5-leap" style="display:none;">
+      <canvas class="stage" id="cv5" height="320"></canvas>
+      <div class="controls">
+        <div class="ctrl-group"><label>输入年份</label><input type="number" id="leapYear" value="2024" style="width:90px;background:var(--panel);border:1px solid var(--line);color:#fff;border-radius:8px;padding:6px 8px;"></div>
+        <button class="btn" id="leapCheck">判断是否为闰年</button>
+        <button class="btn alt" data-quick="1700">1700</button>
+        <button class="btn alt" data-quick="1800">1800</button>
+        <button class="btn alt" data-quick="1900">1900</button>
+        <button class="btn alt" data-quick="2000">2000</button>
+        <button class="btn alt" data-quick="2100">2100</button>
+      </div>
+      <div class="info-grid" id="s5leapinfo"></div>
+      <div class="note">规则:能被4整除 → 闰年;但若能被100整除 → 平年;除非能被400整除 → 仍是闰年。例如1900年能被100整除但不能被400整除,所以<b>不是</b>闰年;2000年能被400整除,所以<b>是</b>闰年。格里历每400年只有97个闰年,比儒略历(每4年一闰,无此例外)少3个,使历法更精确地贴近365.242日的回归年长度。</div>
+    </div>
+
+    <div id="s5-drift" style="display:none;">
+      <canvas class="stage" id="cv6" height="460"></canvas>
+      <div class="controls">
+        <button class="btn alt" id="driftPrev">◀ 上一年</button>
+        <button class="btn" id="driftNext">▶ 下一年</button>
+        <div class="ctrl-group"><label>年份</label><input type="range" id="driftSlider" min="0" max="39" value="0" step="1"></div>
+        <span class="readout" id="driftReadout">公历 2026 年</span>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#3fe48a;"></span>公历节日(固定,如圣诞节12月25日)</span>
+        <span><span class="dot" style="background:#ff6ea8;"></span>回历节日(开斋节,真实数据,每年提前约10~11天)</span>
+        <span><span class="dot" style="background:#ffd23f;"></span>农历节日(农历新年,真实数据,因设闰月维持在公历1~2月间)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 6 : QUIZ ============ -->
+<section class="scene" id="s6">
+  <div class="scene-head">
+    <div class="kicker">Checkpoint</div>
+    <h2>挑战检测</h2>
+    <p>结合本章反思问题与学习检测,检验你对地月运动的理解。</p>
+  </div>
+  <div class="scorebar">
+    <div>当前得分</div>
+    <div class="big"><span id="scoreNow">0</span> / <span id="scoreMax">0</span></div>
+    <button class="btn alt" id="quizReset">重新挑战</button>
+  </div>
+  <div id="quizList"></div>
+</section>
+
+<footer class="foot">
+  //峇株吧辖蔡逸众制作 · 第14章 地月运动 互动教学网页 · 仅供教学使用
+</footer>
+</div>
+
+<script>
+//华仁中学蔡逸众制作
+'use strict';
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+const tabBtns = document.querySelectorAll('.tab-btn');
+const scenes = document.querySelectorAll('.scene');
+tabBtns.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    tabBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    scenes.forEach(s=>s.classList.remove('active'));
+    document.getElementById(btn.dataset.scene).classList.add('active');
+    requestAnimationFrame(resizeAllCanvases);
+  });
+});
+
+/* ============================================================
+   CANVAS RESIZE HELPER (fraction-based coordinates for mobile)
+============================================================ */
+const canvases = {};
+function setupCanvas(id, drawFn){
+  const cv = document.getElementById(id);
+  const ctx = cv.getContext('2d');
+  // IMPORTANT: capture the original logical height ONCE, before any scaling.
+  // cv.height gets overwritten below with a DPR-scaled pixel value, so if we
+  // ever read cv.height again as the "logical" height, each resize call would
+  // re-scale an already-scaled number, compounding exponentially on repeated
+  // resizes (e.g. switching tabs) until the canvas exceeds the browser's max
+  // canvas size and fails to render (showing as a blank/broken box).
+  canvases[id] = {cv, ctx, draw:drawFn, cssH: cv.height};
+  return canvases[id];
+}
+function resizeCanvas(entry){
+  const {cv} = entry;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const cssW = cv.clientWidth || cv.parentElement.clientWidth;
+  const cssH = entry.cssH; // fixed logical height captured once at setup, never re-derived from cv.height
+  cv.width = Math.round(cssW*dpr);
+  cv.height = Math.round(cssH*dpr);
+  cv.style.height = cssH+'px';
+  entry.ctx.setTransform(dpr,0,0,dpr,0,0);
+  entry.w = cssW; entry.h = cssH;
+}
+function resizeAllCanvases(){
+  Object.values(canvases).forEach(e=>{ if(e.cv.offsetParent!==null) resizeCanvas(e); });
+}
+window.addEventListener('resize', resizeAllCanvases);
+const ro = new ResizeObserver(()=>resizeAllCanvases());
+ro.observe(document.body);
+
+/* ============================================================
+   DRAW HELPERS
+============================================================ */
+function circle(ctx,x,y,r,fill){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill(); }
+function ring(ctx,x,y,r,color,width){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.strokeStyle=color; ctx.lineWidth=width||1; ctx.stroke(); }
+function sunGradient(ctx,x,y,r){
+  const g = ctx.createRadialGradient(x,y,0,x,y,r*1.9);
+  g.addColorStop(0,'#fff7e0'); g.addColorStop(.35,'#ffd479'); g.addColorStop(.7,'#ffb84d'); g.addColorStop(1,'rgba(255,122,61,0)');
+  return g;
+}
+function drawSun(ctx,x,y,r){
+  ctx.save();
+  circle(ctx,x,y,r*1.9, sunGradient(ctx,x,y,r));
+  circle(ctx,x,y,r,'#ffe9b0');
+  ctx.restore();
+}
+function drawEarthBase(ctx,x,y,r){
+  const g = ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.1,x,y,r);
+  g.addColorStop(0,'#5db3ec'); g.addColorStop(.55,'#2f8fd6'); g.addColorStop(1,'#143e6b');
+  circle(ctx,x,y,r,g);
+  ctx.save(); ctx.clip(); ctx.fillStyle='rgba(70,170,100,.55)';
+  ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*0.15,r*0.32,r*0.2,0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+r*0.3,y+r*0.35,r*0.28,r*0.16,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+r*0.1,y-r*0.45,r*0.2,r*0.12,0.1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawMoonBase(ctx,x,y,r,colorShift){
+  const g = ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.05,x,y,r);
+  g.addColorStop(0, colorShift||'#f1f1f6'); g.addColorStop(1,'#9a9bab');
+  circle(ctx,x,y,r,g);
+  ctx.save(); ctx.clip(); ctx.fillStyle='rgba(120,120,135,.45)';
+  [[.3,-.2,.16],[-.25,.3,.12],[.05,.45,.08]].forEach(c=>{
+    ctx.beginPath(); ctx.arc(x+c[0]*r,y+c[1]*r,c[2]*r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+
+/* ---- 影子锥几何(本影/半影):基于光源圆与遮挡圆的公切线真实计算 ----
+   本影(umbra) = 同侧切线(顶-顶, 底-底),在遮挡物之后收敛于一点(锥尖)
+   半影(penumbra) = 交叉切线(顶-底, 底-顶),在遮挡物之后持续发散变宽
+   这与用户提供的月食原理图(本影收窄、半影展宽)结构一致。 */
+function lineYat(line, x){
+  const [p1,p2] = line;
+  return p1.y + (p2.y-p1.y)*(x-p1.x)/(p2.x-p1.x);
+}
+function intersectX(lineA, lineB){
+  const [a1,a2]=lineA, [b1,b2]=lineB;
+  const slopeA=(a2.y-a1.y)/(a2.x-a1.x), intA=a1.y-slopeA*a1.x;
+  const slopeB=(b2.y-b1.y)/(b2.x-b1.x), intB=b1.y-slopeB*b1.x;
+  if(Math.abs(slopeA-slopeB)<1e-9) return Infinity;
+  return (intB-intA)/(slopeA-slopeB);
+}
+function computeShadowCone(source, occluder){
+  const sTop={x:source.x,y:source.y-source.r}, sBot={x:source.x,y:source.y+source.r};
+  const oTop={x:occluder.x,y:occluder.y-occluder.r}, oBot={x:occluder.x,y:occluder.y+occluder.r};
+  const umb1=[sTop,oTop], umb2=[sBot,oBot];
+  return { umb1, umb2, pen1:[sTop,oBot], pen2:[sBot,oTop], apexX: intersectX(umb1,umb2) };
+}
+function shadowWidthAt(cone,x){
+  const a=lineYat(cone.umb1,x), b=lineYat(cone.umb2,x);
+  return {lo:Math.min(a,b), hi:Math.max(a,b), isAntumbra: x>cone.apexX};
+}
+function penumbraWidthAt(cone,x){
+  const a=lineYat(cone.pen1,x), b=lineYat(cone.pen2,x);
+  return {lo:Math.min(a,b), hi:Math.max(a,b)};
+}
+function drawShadowCone(ctx, cone, occluder, farX, opts){
+  const oTop=occluder.y-occluder.r, oBot=occluder.y+occluder.r;
+  // 半影:从遮挡物边缘持续发散展宽到farX
+  ctx.save(); ctx.globalAlpha=opts.penumbraAlpha??0.3; ctx.fillStyle=opts.penumbraColor??'#aab3d6';
+  ctx.beginPath();
+  ctx.moveTo(occluder.x, oTop);
+  ctx.lineTo(occluder.x, oBot);
+  ctx.lineTo(farX, lineYat(cone.pen1,farX));
+  ctx.lineTo(farX, lineYat(cone.pen2,farX));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // 本影:从遮挡物边缘收敛到锥尖(或farX,取较近者)
+  const segEndX = Math.min(cone.apexX, farX);
+  if(segEndX > occluder.x){
+    ctx.save(); ctx.globalAlpha=opts.umbraAlpha??0.65; ctx.fillStyle=opts.umbraColor??'#05060c';
+    ctx.beginPath();
+    ctx.moveTo(occluder.x, oTop);
+    ctx.lineTo(occluder.x, oBot);
+    ctx.lineTo(segEndX, lineYat(cone.umb2,segEndX));
+    ctx.lineTo(segEndX, lineYat(cone.umb1,segEndX));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // 伪本影/外切锥尖之后再次展宽的区域(环食时阳光会从周围漏出形成"金环"):锥尖之后到farX
+  if(cone.apexX < farX && cone.apexX > occluder.x){
+    ctx.save(); ctx.globalAlpha=opts.antumbraAlpha??0.4; ctx.fillStyle=opts.antumbraColor??'#ffd479';
+    ctx.beginPath();
+    const apexY = lineYat(cone.umb1, cone.apexX);
+    ctx.moveTo(cone.apexX, apexY);
+    ctx.lineTo(farX, lineYat(cone.umb1,farX));
+    ctx.lineTo(farX, lineYat(cone.umb2,farX));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   SCENE 1 : EARTH'S MOTION (SVG-driven rotation/revolution,
+   adapted & restyled from user-provided logic; canvas kept
+   only for star-trail photography sub-tab)
+============================================================ */
+//峇株吧辖华仁中学蔡逸众制作
+let s1mode='rotate';
+const s1pills = document.querySelectorAll('#s1pills .pill');
+s1pills.forEach(p=>p.addEventListener('click',()=>{
+  s1pills.forEach(x=>x.classList.remove('active')); p.classList.add('active');
+  s1mode = p.dataset.mode;
+  document.getElementById('s1-rotate-ctrl').style.display = s1mode==='rotate'?'flex':'none';
+  document.getElementById('s1-revolve-ctrl').style.display = s1mode==='revolve'?'flex':'none';
+  document.getElementById('s1-trails-ctrl').style.display = s1mode==='trails'?'flex':'none';
+  document.getElementById('e-dash-0').style.display = s1mode==='rotate'?'flex':'none';
+  document.getElementById('e-dash-1').style.display = s1mode==='revolve'?'flex':'none';
+  document.getElementById('group-e-tab-0').setAttribute('display', s1mode==='rotate'?'block':'none');
+  document.getElementById('group-e-tab-1').setAttribute('display', s1mode==='revolve'?'block':'none');
+  document.getElementById('earth-svg').style.display = s1mode==='trails'?'none':'block';
+  document.getElementById('cv1').style.display = s1mode==='trails'?'block':'none';
+  if(s1mode==='trails') requestAnimationFrame(resizeAllCanvases);
+  updateS1Info();
+}));
+
+/* ---- 自转(由西向东,大陆纹理由左向右滚动) ---- */
+let e0playing=true, e0speed=1.0;
+let earthRotX=0; // 大陆纹理水平偏移量,持续递增并按200循环,实现"由左向右"滚动
+document.getElementById('r1speed').addEventListener('input',e=>{ e0speed=parseFloat(e.target.value); });
+document.getElementById('e-playbtn-0').addEventListener('click',e=>{
+  e0playing=!e0playing; e.target.textContent = e0playing? '⏸ 暂停':'▶ 播放';
+});
+function updateEarthRotation(){
+  earthRotX += 0.6*e0speed;
+  if(earthRotX >= 200) earthRotX = 0;
+  const continents = document.getElementById('e-continents');
+  if(continents) continents.setAttribute('transform', `translate(${earthRotX-200}, 0)`);
+}
+
+/* ---- 公转(逆时针)与四季 ---- */
+let e1playing=true, e1speed=1.0;
+let e1OrbitAngle = Math.PI; // 起点在最左端(夏至)
+const e1BaseOrbitSpeed = 0.006;
+document.getElementById('r2speed').addEventListener('input',e=>{ e1speed=parseFloat(e.target.value); });
+document.getElementById('e-playbtn-1').addEventListener('click',e=>{
+  e1playing=!e1playing; e.target.textContent = e1playing? '⏸ 暂停':'▶ 播放';
+});
+function updateOrbitPosition(){
+  const t1Earth = document.getElementById('t1-earth');
+  if(!t1Earth) return;
+  const rx=165, ry=75;
+  const x = 200 + rx*Math.cos(e1OrbitAngle);
+  const y = 200 + ry*Math.sin(e1OrbitAngle);
+  t1Earth.setAttribute('transform', `translate(${x}, ${y})`);
+  const shadow = document.getElementById('t1-earth-shadow');
+  if(shadow){
+    const angleDeg = (e1OrbitAngle*180)/Math.PI;
+    shadow.setAttribute('transform', `rotate(${angleDeg})`);
+  }
+  updateSeasonCard(e1OrbitAngle);
+}
+function updateSeasonCard(angle){
+  const normAngle = (angle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  const deg = (normAngle*180)/Math.PI;
+  let title='', date='', desc='', badgeColor='', activeNodeId='';
+  if(deg>=45 && deg<135){
+    title='秋分 Autumnal Equinox'; date='9月23日前后'; desc='全球昼夜平分(各12小时)'; badgeColor='var(--sun)'; activeNodeId='node-autumn';
+  } else if(deg>=135 && deg<225){
+    title='夏至 Summer Solstice'; date='6月21日前后'; desc='北半球昼最长、夜最短'; badgeColor='var(--rose)'; activeNodeId='node-summer';
+  } else if(deg>=225 && deg<315){
+    title='春分 Vernal Equinox'; date='3月21日前后'; desc='全球昼夜平分(各12小时)'; badgeColor='var(--sun-2)'; activeNodeId='node-spring';
+  } else {
+    title='冬至 Winter Solstice'; date='12月22日前后'; desc='北半球昼最短、夜最长'; badgeColor='var(--cyan)'; activeNodeId='node-winter';
+  }
+  document.getElementById('e-season-title').textContent = title;
+  document.getElementById('e-season-date').textContent = date;
+  document.getElementById('e-season-desc').textContent = desc;
+  const badge = document.getElementById('e-season-badge');
+  if(badge) badge.style.background = badgeColor;
+  ['node-spring','node-summer','node-autumn','node-winter'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const c = el.querySelector('circle');
+    if(id===activeNodeId){ el.setAttribute('opacity','1'); if(c) c.setAttribute('r','6'); }
+    else { el.setAttribute('opacity','0.4'); if(c) c.setAttribute('r','4'); }
+  });
+}
+
+/* ---- 星轨摄影(画布版,保留并修正为逆时针) ---- */
+let r3shooting=false;
+let r3trailStartT=null;   // performance.now() timestamp when recording began
+let r3trailFrozenT=null;  // performance.now() timestamp when recording was stopped (freezes trail end)
+document.getElementById('r3shoot').addEventListener('click',e=>{
+  r3shooting=!r3shooting;
+  if(r3shooting){
+    if(r3trailStartT===null) r3trailStartT = performance.now();
+    r3trailFrozenT = null;
+    e.target.textContent = '⏹ 停止拍摄';
+  } else {
+    r3trailFrozenT = performance.now();
+    e.target.textContent = '📷 开始长曝光拍摄';
+  }
+});
+document.getElementById('r3clear').addEventListener('click',e=>{
+  r3shooting=false;
+  r3trailStartT=null;
+  r3trailFrozenT=null;
+  document.getElementById('r3shoot').textContent = '📷 开始长曝光拍摄';
+});
+
+const starsField = Array.from({length:90},()=>({
+  a:Math.random()*Math.PI*2, rf:0.1+Math.random()*0.42, br:Math.random()*0.6+0.35, sz:Math.random()*1.5+0.6
+}));
+
+// 星轨角速度常数:取负值,使得从北极上空(天极)看去时星星呈逆时针移动,
+// 与地球由西向东的真实自转方向一致。
+const STAR_SPIN_RATE = -0.00018;
+
+function drawS1(entry,t){
+  const {ctx,w,h} = entry;
+  ctx.clearRect(0,0,w,h);
+  if(s1mode!=='trails') return;
+
+  const cx=w*0.5, cy=h*0.5;
+  ctx.fillStyle='#03050f'; ctx.fillRect(0,0,w,h);
+  circle(ctx,cx,cy,3,'#9b7bff');
+  ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('天极(北极星附近)', cx, cy-14);
+
+  const spinNow = t*STAR_SPIN_RATE;
+  const hasTrail = r3trailStartT!==null;
+  const startSpin = hasTrail ? r3trailStartT*STAR_SPIN_RATE : 0;
+  const endSpin = hasTrail ? (r3shooting ? spinNow : (r3trailFrozenT!==null ? r3trailFrozenT*STAR_SPIN_RATE : spinNow)) : 0;
+
+  starsField.forEach(s=>{
+    const r = s.rf*Math.min(w,h);
+    const liveA = s.a + spinNow;
+    if(hasTrail){
+      const aStartRaw = s.a + startSpin, aEndRaw = s.a + endSpin;
+      // 无论自转方向的正负号如何,弧线绘制都应取"较小角度→较大角度"的短弧,
+      // 这样轨迹才会从无到有正确累积,而不是被canvas默认方向画成反而递减的长弧。
+      const aStart = Math.min(aStartRaw, aEndRaw), aEnd = Math.max(aStartRaw, aEndRaw);
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.95, s.br+0.2)})`;
+      ctx.lineWidth = Math.max(1, s.sz*0.9);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r, r*0.62, 0, aStart, aEnd, false);
+      ctx.stroke();
+      ctx.restore();
+    }
+    const headA = (!hasTrail || r3shooting) ? liveA : (s.a + endSpin);
+    const hx = cx+Math.cos(headA)*r, hy=cy+Math.sin(headA)*r*0.62;
+    ctx.fillStyle = `rgba(255,255,255,${s.br})`;
+    ctx.beginPath(); ctx.arc(hx,hy,s.sz,0,Math.PI*2); ctx.fill();
+  });
+}
+
+function updateS1Info(){
+  const box = document.getElementById('s1info');
+  if(s1mode==='rotate'){
+    box.innerHTML = `
+      <div class="info-box"><div class="h">恒星日</div><div class="b">约23小时56分(相对遥远恒星的真实自转周期)</div></div>
+      <div class="info-box"><div class="h">太阳日</div><div class="b">约24小时(我们日常使用的一天,比恒星日略长)</div></div>
+      <div class="info-box"><div class="h">自转方向</div><div class="b">由西向东 → 北极上空俯视为逆时针</div></div>
+      <div class="info-box"><div class="h">证据现象</div><div class="b">昼夜交替、天体东升西落、星轨</div></div>`;
+    document.getElementById('s1note').innerHTML = '<b>为什么地球仪斜着放?</b> 因为地轴与公转轨道平面并不垂直,而是倾斜约23.5°。可用量角器测量模型的倾斜角验证。';
+  } else if(s1mode==='revolve'){
+    box.innerHTML = `
+      <div class="info-box"><div class="h">公转周期</div><div class="b">约365.242天(一年)</div></div>
+      <div class="info-box"><div class="h">公转方向</div><div class="b">由西向东 → 北极上空俯视为逆时针,与自转方向一致</div></div>
+      <div class="info-box"><div class="h">轨道形状</div><div class="b">椭圆形(图中已夸大,实际接近正圆)</div></div>
+      <div class="info-box"><div class="h">四季成因</div><div class="b">地轴倾角(23.5°)在公转中方向不变 → 阳光直射点在南北回归线间移动</div></div>`;
+    document.getElementById('s1note').innerHTML = '注意地轴在图中始终指向同一方向(右上方),不会随公转打转 —— 正是这个"指向恒定"才造成了四季,而不是地球与太阳距离的远近。';
+  } else {
+    box.innerHTML = `
+      <div class="info-box"><div class="h">星轨原理</div><div class="b">长时间曝光拍摄星空,因地球自转,星星看起来绕天极转动并留下光迹</div></div>
+      <div class="info-box"><div class="h">旋转方向</div><div class="b">朝北极星方向拍摄时,星轨呈逆时针,与地球自转方向一致</div></div>
+      <div class="info-box"><div class="h">岁差(precession)</div><div class="b">地轴受日月引力影响缓慢摆动,数万年间"北极星"会改变,目前指向勾陈一星附近</div></div>`;
+    document.getElementById('s1note').innerHTML = '点击「开始长曝光拍摄」让星星随时间留下弧形轨迹,这些轨迹的圆心正是天极方向。';
+  }
+}
+setupCanvas('cv1', drawS1);
+updateS1Info();
+
+
+/* ============================================================
+   SCENE 2 : MOON'S MOTION (SVG-driven, adapted & restyled)
+============================================================ */
+let s2activeTab = 0;          // 0=同步自转 1=月相变化 2=近地与远地
+let s2playing = true;
+let s2speedMul = 1.0;
+const s2BaseStep = 0.008;
+let s2Angle = 0;               // 累积公转角(弧度)
+
+const s2_a = 140, s2_b = 105;
+const s2_e = Math.sqrt(1 - (s2_b*s2_b)/(s2_a*s2_a));
+
+const s2Descriptions = [
+  '同步自转:月球自转周期与公转周期完全相同(都是27.3天)。月球绕地球逆时针公转一圈时,自身也正好逆时针自转一圈。粉色旗子始终牢牢指向地球,亮面(右半球)始终朝向右侧太阳。',
+  '月相变化:月球公转时,阳光始终从右侧平行射入,亮面永远在右、暗面在左。但从地球视角望去,地月连线方向不断改变,于是我们看到的"被照亮部分"周期性变化。下方面板展示了从地球望向月球时看到的月相。',
+  '近地点与远地点:月球绕地球的轨道并非正圆,而是椭圆。依据开普勒第二定律,月球在近地点(右,约36.3万km)移动最快、视直径最大("超级月亮");在远地点(左,约40.6万km)移动最慢、看起来最小。'
+];
+
+function s2updatePositions(){
+  const ccw = -s2Angle;
+  const ccwDeg = ccw*180/Math.PI;
+
+  if(s2activeTab===0){
+    const mx = 200+120*Math.cos(ccw), my=200+120*Math.sin(ccw);
+    document.getElementById('t0-radial-line').setAttribute('x2',mx);
+    document.getElementById('t0-radial-line').setAttribute('y2',my);
+    document.getElementById('t0-moon').setAttribute('transform',`translate(${mx}, ${my})`);
+    document.getElementById('t0-moon-surface').setAttribute('transform',`rotate(${ccwDeg})`);
+  } else if(s2activeTab===1){
+    const r=110, mx=200+r*Math.cos(ccw), my=200+r*Math.sin(ccw);
+    document.getElementById('t1-vision-line').setAttribute('x2',mx);
+    document.getElementById('t1-vision-line').setAttribute('y2',my);
+    document.getElementById('t1-moon').setAttribute('transform',`translate(${mx}, ${my})`);
+    document.getElementById('t1-moon-surface').setAttribute('transform',`rotate(${ccwDeg})`);
+    s2updatePhasePanel(s2Angle);
+  } else if(s2activeTab===2){
+    const r = (s2_a*(1-s2_e*s2_e))/(1+s2_e*Math.cos(s2Angle));
+    const mx = 253+r*Math.cos(ccw), my=200+r*Math.sin(ccw);
+    document.getElementById('t2-distance-line').setAttribute('x2',mx);
+    document.getElementById('t2-distance-line').setAttribute('y2',my);
+    document.getElementById('t2-moon').setAttribute('transform',`translate(${mx}, ${my})`);
+
+    const rmin=s2_a*(1-s2_e), rmax=s2_a*(1+s2_e);
+    const scale = 1.35 - 0.65*((r-rmin)/(rmax-rmin));
+    document.getElementById('t2-moon-scale-group').setAttribute('transform',`scale(${scale})`);
+    document.getElementById('t2-moon-surface').setAttribute('transform',`rotate(${ccwDeg})`);
+
+    const realDist = Math.round(363300 + (405400-363300)*((r-rmin)/(rmax-rmin)));
+    const realSpeed = (1.02 + 0.08*((rmax-r)/(rmax-rmin))).toFixed(2);
+    document.getElementById('live-distance').textContent = realDist.toLocaleString()+' km';
+    document.getElementById('live-speed').textContent = realSpeed+' km/s';
+  }
+}
+
+function s2updatePhasePanel(theta){
+  let phi = (theta % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  const r=22; let d='';
+  if(phi < Math.PI){
+    let sweep = (phi < Math.PI/2) ? 0 : 1;
+    let rx = r*Math.abs(Math.cos(phi));
+    d = `M 25 ${25-r} A ${r} ${r} 0 0 1 25 ${25+r} A ${rx} ${r} 0 0 ${sweep} 25 ${25-r}`;
+  } else {
+    let sweep = (phi < 1.5*Math.PI) ? 1 : 0;
+    let rx = r*Math.abs(Math.cos(phi));
+    d = `M 25 ${25+r} A ${r} ${r} 0 0 1 25 ${25-r} A ${rx} ${r} 0 0 ${sweep} 25 ${25+r}`;
+  }
+  let deg = phi*180/Math.PI, name;
+  if(deg<5||deg>355) name='新月(朔 · 0%)';
+  else if(deg<85) name='蛾眉月(渐盈)';
+  else if(deg<=95) name='上弦月(50%)';
+  else if(deg<175) name='盈凸月';
+  else if(deg<=185) name='满月(望 · 100%)';
+  else if(deg<265) name='亏凸月';
+  else if(deg<=275) name='下弦月(50%)';
+  else name='残月(渐亏)';
+  document.getElementById('detail-moon-path').setAttribute('d', d);
+  document.getElementById('detail-moon-name').textContent = name;
+}
+
+function s2switchTab(index){
+  s2activeTab = index;
+  for(let i=0;i<3;i++){
+    document.getElementById(`group-tab-${i}`).setAttribute('display', i===index?'block':'none');
+  }
+  document.getElementById('phase-detail-card').classList.toggle('show', index===1);
+  document.getElementById('distance-detail-card').classList.toggle('show', index===2);
+  document.getElementById('s2desc').textContent = s2Descriptions[index];
+  updateS2Info();
+}
+
+const s2pills=document.querySelectorAll('#s2pills .pill');
+s2pills.forEach(p=>p.addEventListener('click',()=>{
+  s2pills.forEach(x=>x.classList.remove('active')); p.classList.add('active');
+  s2switchTab(+p.dataset.mode);
+}));
+
+document.getElementById('s2playbtn').addEventListener('click', e=>{
+  s2playing=!s2playing; e.target.textContent = s2playing? '⏸ 暂停':'▶ 播放';
+});
+document.getElementById('s2speed').addEventListener('input', e=>{
+  s2speedMul = parseFloat(e.target.value);
+  document.getElementById('s2speedlabel').textContent = s2speedMul.toFixed(1)+'x · 符合开普勒第二定律';
+});
+
+function updateS2Info(){
+  const box=document.getElementById('s2info');
+  if(s2activeTab===0){
+    box.innerHTML=`
+      <div class="info-box"><div class="h">自转周期</div><div class="b">约27.3天</div></div>
+      <div class="info-box"><div class="h">公转周期</div><div class="b">约27.3天(与自转相同)</div></div>
+      <div class="info-box"><div class="h">结果</div><div class="b">同步自转 → 永远只能看到月球同一面</div></div>
+      <div class="info-box"><div class="h">小知识</div><div class="b">1959年苏联月球3号探测器绕月飞行,人类才第一次见到月球背面</div></div>`;
+  } else if(s2activeTab===1){
+    box.innerHTML=`
+      <div class="info-box"><div class="h">朔望月周期</div><div class="b">约29.5天(比公转周期长约2天)</div></div>
+      <div class="info-box"><div class="h">原因</div><div class="b">地球同时也在公转,月球需多花约2天才能再次对齐日地连线</div></div>
+      <div class="info-box"><div class="h">成因</div><div class="b">日、月、地三者相对位置不断改变,被照亮的部分跟着变化</div></div>`;
+  } else {
+    box.innerHTML=`
+      <div class="info-box"><div class="h">近地点 perigee</div><div class="b">月球离地球最近,看起来较大,移动较快</div></div>
+      <div class="info-box"><div class="h">远地点 apogee</div><div class="b">月球离地球最远,看起来较小,移动较慢</div></div>
+      <div class="info-box"><div class="h">开普勒第二定律</div><div class="b">月地连线在相同时间内扫过的面积相等,所以越靠近地球移动越快</div></div>
+      <div class="info-box"><div class="h">额外现象</div><div class="b">月球每天升起的时间比前一天延迟约50分钟</div></div>`;
+  }
+}
+s2switchTab(0);
+
+/* ============================================================
+   SCENE 3 : ECLIPSES
+============================================================ */
+let s3mode='solar';
+const s3pills=document.querySelectorAll('#s3pills .pill');
+s3pills.forEach(p=>p.addEventListener('click',()=>{
+  s3pills.forEach(x=>x.classList.remove('active')); p.classList.add('active');
+  s3mode=p.dataset.mode;
+  document.getElementById('s3-solar-ctrl').style.display = s3mode==='solar'?'flex':'none';
+  document.getElementById('s3-lunar-ctrl').style.display = s3mode==='lunar'?'flex':'none';
+  updateS3();
+}));
+['e1tilt','e1dist'].forEach(id=>document.getElementById(id).addEventListener('input', updateS3));
+document.getElementById('e2tilt').addEventListener('input', updateS3);
+
+// 真实物理量(单位:公里),用于计算视角大小比例 —— 月球本身大小不变,
+// 视直径变化纯粹来自距离远近(近大远小的透视关系)。
+const MOON_R_KM=1737, SUN_R_KM=696000, SUN_EARTH_KM=149600000;
+const MOON_PERIGEE_KM=363300, MOON_APOGEE_KM=405400;
+
+function drawS3(entry,t){
+  const {ctx,w,h}=entry; ctx.clearRect(0,0,w,h);
+
+  if(s3mode==='solar'){
+    const tilt = (document.getElementById('e1tilt').value-50)/50;
+    const distFrac = document.getElementById('e1dist').value/100; // 0=近地点 1=远地点
+    const moonDistKm = MOON_PERIGEE_KM + (MOON_APOGEE_KM-MOON_PERIGEE_KM)*distFrac;
+    const cy=h*0.5;
+    const sunX=w*0.12, earthX=w*0.85;
+    const sunR=Math.min(w,h)*0.09, earthR=Math.min(w,h)*0.065;
+    const moonR=Math.min(w,h)*0.040; // 月球真实大小恒定,不随距离变化
+
+    // 滑块只移动月球在"日-地连线"上的实际位置(近地点离地球近,远地点离地球远且更靠近太阳一侧)
+    const gap0=(earthX-sunX)*0.20, gap1=(earthX-sunX)*0.46;
+    const gapPx = gap0+(gap1-gap0)*distFrac;
+    const moonX = earthX-gapPx;
+    const offsetY = tilt*h*0.16;
+    const moonY = cy+offsetY;
+
+    drawSun(ctx,sunX,cy,sunR);
+    drawEarthBase(ctx,earthX,cy,earthR);
+
+    const cone = computeShadowCone({x:sunX,y:cy,r:sunR},{x:moonX,y:moonY,r:moonR});
+    const farX = Math.min(w-8, earthX+earthR*1.7);
+    drawShadowCone(ctx, cone, {x:moonX,y:moonY,r:moonR}, farX, {
+      umbraColor:'#05060c', umbraAlpha:.62,
+      antumbraColor:'#ffd479', antumbraAlpha:.4,
+      penumbraColor:'#aab3d6', penumbraAlpha:.26
+    });
+
+    drawMoonBase(ctx, moonX, moonY, moonR);
+
+    const umb = shadowWidthAt(cone, earthX);
+    const pen = penumbraWidthAt(cone, earthX);
+    const inUmb = cy>=umb.lo && cy<=umb.hi;
+    const inPen = cy>=pen.lo && cy<=pen.hi;
+    let typeText;
+    if(inUmb) typeText = umb.isAntumbra ? '日环食 Annular' : '日全食 Total';
+    else if(inPen) typeText = '日偏食 Partial';
+    else typeText = '无日食(影子未落在地球上)';
+
+    ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('太阳', sunX, cy+sunR*2+18);
+    ctx.fillText('月球', moonX, moonY-moonR-12);
+    ctx.fillText('地球', earthX, cy+earthR+22);
+
+    // ---- 插图:从地球上看到的样子(真实视角大小比例,与月球距离成反比) ----
+    const moonAngular = MOON_R_KM/moonDistKm;
+    const sunAngular = SUN_R_KM/SUN_EARTH_KM;
+    const sizeRatio = moonAngular/sunAngular; // >1 月球视直径比太阳大(可能全食); <1 比太阳小(只能环食)
+    const insetCx=w*0.16, insetCy=h*0.155, insetSunR=Math.min(w,h)*0.072;
+    const insetMoonR = insetSunR*sizeRatio;
+    ctx.save();
+    ctx.fillStyle='rgba(16,22,44,.82)'; ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(insetCx-insetSunR-14, insetCy-insetSunR-14, insetSunR*2+28, insetSunR*2+34, 10);
+    else ctx.rect(insetCx-insetSunR-14, insetCy-insetSunR-14, insetSunR*2+28, insetSunR*2+34);
+    ctx.fill(); ctx.stroke();
+    circle(ctx, insetCx, insetCy, insetSunR, '#ffb84d');
+    const insetMoonOffset = Math.max(-1,Math.min(1,tilt)) * insetSunR*0.9;
+    circle(ctx, insetCx, insetCy+insetMoonOffset, insetMoonR, '#9a9bab');
+    ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('地球上看到的样子', insetCx, insetCy+insetSunR+24);
+    ctx.restore();
+
+    document.getElementById('e1readout').textContent =
+      (inPen? '✅ 三者接近一直线 → 发生 '+typeText : '❌ 月球轨道偏离 → 影子错过地球,不发生日食')
+      + ` ｜ 月地距离≈${Math.round(moonDistKm).toLocaleString()}km ｜ 月/日视直径比≈${sizeRatio.toFixed(3)}`;
+  }
+
+  else if(s3mode==='lunar'){
+    const tilt = (document.getElementById('e2tilt').value-50)/50;
+    const cy=h*0.5;
+    const sunX=w*0.08, earthX=w*0.42, moonOrbitX=w*0.86;
+    const sunR=Math.min(w,h)*0.075, earthR=Math.min(w,h)*0.07, moonR=Math.min(w,h)*0.04;
+    const offsetY = tilt*h*0.22;
+    const moonY = cy+offsetY;
+
+    drawSun(ctx,sunX,cy,sunR);
+    drawEarthBase(ctx,earthX,cy,earthR);
+
+    const cone = computeShadowCone({x:sunX,y:cy,r:sunR},{x:earthX,y:cy,r:earthR});
+    const farX = Math.min(w-8, moonOrbitX+earthR*1.4);
+    drawShadowCone(ctx, cone, {x:earthX,y:cy,r:earthR}, farX, {
+      umbraColor:'#05060c', umbraAlpha:.66,
+      antumbraColor:'#ffd479', antumbraAlpha:.3,
+      penumbraColor:'#aab3d6', penumbraAlpha:.30
+    });
+
+    const umb = shadowWidthAt(cone, moonOrbitX);
+    const pen = penumbraWidthAt(cone, moonOrbitX);
+    const inUmbra = moonY>=umb.lo && moonY<=umb.hi;
+    const inPenumbraOnly = !inUmbra && moonY>=pen.lo && moonY<=pen.hi;
+
+    drawMoonBase(ctx, moonOrbitX, moonY, moonR, inUmbra? '#ff8a5c':'#f1f1f6');
+    if(inUmbra){
+      ctx.save(); ctx.globalAlpha=.55; ctx.fillStyle='#ff7a3d';
+      ctx.beginPath(); ctx.arc(moonOrbitX,moonY,moonR,0,Math.PI*2); ctx.fill(); ctx.restore();
+    }
+
+    ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('太阳', sunX, cy+sunR*2+18);
+    ctx.fillText('地球', earthX, cy+earthR+22);
+    ctx.fillText('月球', moonOrbitX, moonY-moonR-12);
+
+    let txt;
+    if(inUmbra) txt = (Math.abs(moonY-cy) < (umb.hi-umb.lo)*0.2) ? '🔴 月全食 Total — 月球完全进入本影,呈橙红色' : '🌗 月偏食 Partial — 部分进入本影';
+    else if(inPenumbraOnly) txt = '🌕 仅进入半影,亮度略减,肉眼难以察觉';
+    else txt = '⚪ 无月食 — 月球未进入地球阴影';
+    document.getElementById('e2readout').textContent = txt;
+  }
+}
+function updateS3(){
+  const legend=document.getElementById('s3legend');
+  const box=document.getElementById('s3info');
+  if(s3mode==='solar'){
+    legend.innerHTML = `<span><span class="dot" style="background:#05060c;"></span>本影 umbra(全食)</span>
+      <span><span class="dot" style="background:#ffd479;"></span>伪本影区(环食,锥尖之后)</span>
+      <span><span class="dot" style="background:#aab3d6;"></span>半影区 penumbra(偏食)</span>`;
+    box.innerHTML = `
+      <div class="info-box"><div class="h">为什么不是每月都有日食</div><div class="b">月球轨道平面与地球轨道平面有约5°夹角,多数月份三者不在一直线上</div></div>
+      <div class="info-box"><div class="h">视直径为何变化</div><div class="b">月球本身大小不变;距离地球(及太阳)越近,看起来就越大,这是单纯的近大远小透视效应</div></div>
+      <div class="info-box"><div class="h">全食 vs 环食</div><div class="b">月球本影锥尖若落在地球之后→全食;若锥尖在到达地球前已收窄成一点→环食(露出"金边")</div></div>
+      <div class="info-box"><div class="h">发生频率</div><div class="b">每年约2~5次日食,日全食最长约7.5分钟,日环食最长约12.5分钟</div></div>`;
+  } else {
+    legend.innerHTML = `<span><span class="dot" style="background:#05060c;"></span>本影 umbra(全食/偏食)</span>
+      <span><span class="dot" style="background:#aab3d6;"></span>半影 penumbra(不易察觉)</span>`;
+    box.innerHTML = `
+      <div class="info-box"><div class="h">月全食为何呈橙红色</div><div class="b">大气层散射蓝光、折射红光至月面,所以月球仍被红光照亮</div></div>
+      <div class="info-box"><div class="h">本影与半影的形状</div><div class="b">本影随距离收窄(锥形),半影随距离展宽,与日本国立天文台月食示意图结构一致</div></div>
+      <div class="info-box"><div class="h">发生频率</div><div class="b">平均每年约2次,整个过程可长达6小时,本影内可达约100分钟</div></div>
+      <div class="info-box"><div class="h">地球是球形的证据</div><div class="b">月食时月球亏缺的轮廓总是弯曲的圆弧</div></div>`;
+  }
+}
+setupCanvas('cv3', drawS3);
+updateS3();
+
+/* ============================================================
+
+/* ============================================================
+   SCENE 4 : TIDES
+============================================================ */
+let s4mode='cycle';
+const s4pills=document.querySelectorAll('#s4pills .pill');
+s4pills.forEach(p=>p.addEventListener('click',()=>{
+  s4pills.forEach(x=>x.classList.remove('active')); p.classList.add('active');
+  s4mode=p.dataset.mode;
+  document.getElementById('s4-cycle-ctrl').style.display = s4mode==='cycle'?'flex':'none';
+  document.getElementById('s4-spring-ctrl').style.display = s4mode==='spring'?'flex':'none';
+  document.getElementById('s4-zone-ctrl').style.display = s4mode==='zone'?'flex':'none';
+  document.getElementById('cv4').style.display = s4mode==='zone'?'none':'block';
+  document.getElementById('zone-svg').style.display = s4mode==='zone'?'block':'none';
+  if(s4mode==='zone') updateZoneSVG();
+  updateS4Info();
+}));
+
+let t1timeVal=0, t1playing=false;
+document.getElementById('t1time').addEventListener('input',e=>{ t1timeVal=+e.target.value; });
+document.getElementById('t1play').addEventListener('click',e=>{ t1playing=!t1playing; e.target.textContent=t1playing?'⏸ 暂停':'▶ 自动播放'; });
+
+let springConfig='new';
+document.getElementById('t2new').addEventListener('click',()=>{springConfig='new'; updateS4Info();});
+document.getElementById('t2full').addEventListener('click',()=>{springConfig='full'; updateS4Info();});
+document.getElementById('t2first').addEventListener('click',()=>{springConfig='first'; updateS4Info();});
+document.getElementById('t2last').addEventListener('click',()=>{springConfig='last'; updateS4Info();});
+
+function drawS4(entry,t){
+  const {ctx,w,h}=entry; ctx.clearRect(0,0,w,h);
+
+  if(s4mode==='cycle'){
+    const hrs = t1playing ? (t1timeVal + (t/40))%240 : t1timeVal;
+    const margin=40;
+    const plotW=w-margin*2, plotH=h*0.55, plotY=h*0.15;
+    ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(margin,plotY); ctx.lineTo(margin,plotY+plotH); ctx.lineTo(margin+plotW,plotY+plotH); ctx.stroke();
+    ctx.beginPath();
+    for(let x=0;x<=plotW;x+=2){
+      const hh = x/plotW*48;
+      const level = Math.sin((hh)/12.42*Math.PI*2 - hrs/12.42*Math.PI*2);
+      const y = plotY+plotH/2 - level*plotH*0.42;
+      if(x===0) ctx.moveTo(margin+x,y); else ctx.lineTo(margin+x,y);
+    }
+    ctx.strokeStyle='#3fe4d0'; ctx.lineWidth=2.2; ctx.stroke();
+
+    const nowLevel = Math.sin(0 - hrs/12.42*Math.PI*2);
+    const nowY = plotY+plotH/2 - nowLevel*plotH*0.42;
+    circle(ctx, margin, nowY, 5, '#ffd23f');
+
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('高潮 high tide', margin+6, plotY+8);
+    ctx.fillText('低潮 low tide', margin+6, plotY+plotH-4);
+    ctx.textAlign='center';
+    ctx.fillText('时间 →（约每12.4小时一次涨落，每天2次高潮2次低潮）', margin+plotW/2, plotY+plotH+26);
+
+    document.getElementById('t1readout').textContent = '当前时间: 第 '+hrs.toFixed(1)+' 小时 ｜ 潮位: '+(nowLevel>0.5?'接近高潮(B点)':nowLevel<-0.5?'接近低潮(A点)':'涨落中(过渡C/中间)');
+  }
+
+  else if(s4mode==='spring'){
+    const cx=w*0.5, cy=h*0.52, earthR=Math.min(w,h)*0.11;
+    drawEarthBase(ctx,cx,cy,earthR);
+    let bulgeScaleAlong=1.55, bulgeScaleAcross=0.94, axisAngle=0, label='', moonAng=0, sunAng=Math.PI;
+    if(springConfig==='new'){ moonAng=Math.PI; axisAngle=Math.PI; bulgeScaleAlong=1.7; label='新月(朔):太阳-月球-地球一直线 → 大潮'; }
+    if(springConfig==='full'){ moonAng=0; axisAngle=0; bulgeScaleAlong=1.7; label='满月(望):太阳-地球-月球一直线 → 大潮'; }
+    if(springConfig==='first'){ moonAng=Math.PI/2; axisAngle=Math.PI/2; bulgeScaleAlong=1.32; label='上弦月:日地月成90° → 小潮(突起方向与月球一致,即与太阳垂直)'; }
+    if(springConfig==='last'){ moonAng=-Math.PI/2; axisAngle=-Math.PI/2; bulgeScaleAlong=1.32; label='下弦月:日地月成90° → 小潮(突起方向与月球一致,即与太阳垂直)'; }
+
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(axisAngle);
+    ctx.fillStyle='rgba(63,143,228,.22)';
+    ctx.beginPath(); ctx.ellipse(0,0, earthR*bulgeScaleAlong, earthR*bulgeScaleAcross, 0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(63,143,228,.55)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+
+    drawSun(ctx, cx+Math.cos(sunAng)*w*0.36, cy+Math.sin(sunAng)*h*0.02, Math.min(w,h)*0.055);
+    const moonOrbitR = Math.min(w,h)*0.27;
+    drawMoonBase(ctx, cx+Math.cos(moonAng)*moonOrbitR, cy+Math.sin(moonAng)*moonOrbitR, Math.min(w,h)*0.04);
+
+    ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(label, cx, h*0.92);
+  }
+}
+
+// ---- 潮间带 SVG 插画的水位更新 ----
+// 安全水位上限经过实际测算:三棵红树林树冠最低垂落点约在 y=325~335(SVG viewBox坐标),
+// 取 HIGH_TIDE_Y=348 留出安全余量,确保滑块拉到最高潮时,树冠(叶子)仍露在水面以上,
+// 只有树干基部会被淹没,符合真实红树林生态(树冠不会被淹没)。
+const ZONE_HIGH_TIDE_Y = 348;
+const ZONE_LOW_TIDE_Y = 430;
+function updateZoneSVG(){
+  const level = document.getElementById('t3level').value/100; // 0=低潮 1=高潮
+  const waterY = ZONE_LOW_TIDE_Y - level*(ZONE_LOW_TIDE_Y-ZONE_HIGH_TIDE_Y);
+  const wavePath = `M -20 ${waterY} Q 100 ${waterY-20} 200 ${waterY} T 400 ${waterY} T 600 ${waterY} T 800 ${waterY} T 920 ${waterY} L 920 500 L -20 500 Z`;
+  document.getElementById('zoneWater').setAttribute('d', wavePath);
+  const waveAnim = document.getElementById('zoneWaterAnim');
+  waveAnim.setAttribute('values', `
+    M -20 ${waterY} Q 100 ${waterY-20} 200 ${waterY} T 400 ${waterY} T 600 ${waterY} T 800 ${waterY} T 920 ${waterY} L 920 500 L -20 500 Z;
+    M -20 ${waterY+5} Q 100 ${waterY+25} 200 ${waterY+5} T 400 ${waterY+5} T 600 ${waterY+5} T 800 ${waterY+5} T 920 ${waterY+5} L 920 500 L -20 500 Z;
+    M -20 ${waterY} Q 100 ${waterY-20} 200 ${waterY} T 400 ${waterY} T 600 ${waterY} T 800 ${waterY} T 920 ${waterY} L 920 500 L -20 500 Z;
+  `);
+  const fish = document.getElementById('zoneFish');
+  let tip;
+  if(level>0.72){ tip='大潮涨潮 — 潮间带大部分被淹没(树冠仍露在水面上)'; fish.setAttribute('opacity','1'); }
+  else if(level>0.32){ tip='中位潮 — 潮间带部分被淹没'; fish.setAttribute('opacity','0.6'); }
+  else { tip='低潮退潮 — 大面积滩涂露出空气中'; fish.setAttribute('opacity','0'); }
+  document.getElementById('zoneTip').textContent = tip;
+}
+document.getElementById('t3level').addEventListener('input', updateZoneSVG);
+function updateS4Info(){
+  const box=document.getElementById('s4info');
+  if(s4mode==='cycle'){
+    box.innerHTML=`<div class="info-box"><div class="h">成因</div><div class="b">月球(及太阳)引力使海水周期性涨落</div></div>
+      <div class="info-box"><div class="h">周期</div><div class="b">约12.4小时一次涨落,每天约2次高潮、2次低潮</div></div>`;
+  } else if(s4mode==='spring'){
+    box.innerHTML=`<div class="info-box"><div class="h">大潮 spring tide</div><div class="b">新月或满月时,日月引力相加,涨潮高、落潮低</div></div>
+      <div class="info-box"><div class="h">小潮 neap tide</div><div class="b">上弦或下弦月时,太阳引力削弱月球引力,涨落差较小</div></div>
+      <div class="info-box"><div class="h">主因</div><div class="b">月球比太阳小很多,但离地球近得多,引力影响比太阳更强</div></div>`;
+  } else {
+    box.innerHTML=`<div class="info-box"><div class="h">潮间带 intertidal zone</div><div class="b">位于高潮线与低潮线之间,环境剧烈变化(干湿、温度)</div></div>
+      <div class="info-box"><div class="h">生态挑战</div><div class="b">生物须同时适应水中与空气中的生存条件,还要承受巨浪</div></div>
+      <div class="info-box"><div class="h">人类活动</div><div class="b">渔业出海撒网时间、船只进出码头、潮汐能发电站(可再生能源)</div></div>
+      <div class="info-box"><div class="h">保育提醒</div><div class="b">潮间带容易受垃圾、废水污染影响,危及生物与人类食物安全</div></div>`;
+  }
+}
+setupCanvas('cv4', drawS4);
+updateS4Info();
+updateZoneSVG();
+
+/* ============================================================
+   SCENE 5 : CALENDARS
+============================================================ */
+//峇株吧辖蔡逸众制作
+let s5mode='types';
+const s5pills=document.querySelectorAll('#s5pills .pill');
+s5pills.forEach(p=>p.addEventListener('click',()=>{
+  s5pills.forEach(x=>x.classList.remove('active')); p.classList.add('active');
+  s5mode=p.dataset.mode;
+  document.getElementById('s5-types').style.display = s5mode==='types'?'block':'none';
+  document.getElementById('s5-leap').style.display = s5mode==='leap'?'block':'none';
+  document.getElementById('s5-drift').style.display = s5mode==='drift'?'block':'none';
+  requestAnimationFrame(resizeAllCanvases);
+}));
+
+function isLeapGregorian(y){ return (y%4===0) && (y%100!==0 || y%400===0); }
+function explainLeap(y){
+  if(y%4!==0) return `${y} 不能被4整除 → 平年`;
+  if(y%100!==0) return `${y} 能被4整除,且不能被100整除 → 闰年`;
+  if(y%400!==0) return `${y} 能被100整除,但不能被400整除 → 平年(例外规则)`;
+  return `${y} 能被400整除 → 闰年`;
+}
+function drawS5Leap(entry){
+  const {ctx,w,h}=entry; ctx.clearRect(0,0,w,h);
+  const y = +document.getElementById('leapYear').value || 2024;
+  const leap = isLeapGregorian(y);
+  ctx.textAlign='center';
+  ctx.font='14px sans-serif'; ctx.fillStyle='rgba(255,255,255,.55)';
+  ctx.fillText('每年365日 + 累积0.242日的余数,需每约4年补回1日(2月29日)', w/2, h*0.22);
+
+  const barY=h*0.45, barW=w*0.7, barX=(w-barW)/2;
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.strokeRect(barX,barY,barW,28);
+  for(let i=1;i<4;i++){
+    ctx.beginPath(); ctx.moveTo(barX+barW/4*i,barY); ctx.lineTo(barX+barW/4*i,barY+28); ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.stroke();
+  }
+  ctx.fillStyle='rgba(255,210,63,.85)'; ctx.font='12px sans-serif';
+  for(let i=0;i<4;i++) ctx.fillText('+0.242', barX+barW/8+barW/4*i, barY+18);
+  ctx.fillStyle='#3fe4d0'; ctx.font='13px sans-serif';
+  ctx.fillText('≈ 0.968 ≈ 1整日 → 第4年的2月加1天', w/2, barY+50);
+
+  ctx.font='28px "Orbitron",sans-serif';
+  ctx.fillStyle = leap? '#3fe48a':'#ff6ea8';
+  ctx.fillText(y + (leap?' 是闰年 ✓':' 是平年 ✗'), w/2, h*0.78);
+}
+document.getElementById('leapCheck').addEventListener('click', updateLeap);
+document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{
+  document.getElementById('leapYear').value=b.dataset.quick; updateLeap();
+}));
+function updateLeap(){
+  const y=+document.getElementById('leapYear').value||2024;
+  document.getElementById('s5leapinfo').innerHTML = `
+    <div class="info-box"><div class="h">判断过程</div><div class="b">${explainLeap(y)}</div></div>
+    <div class="info-box"><div class="h">结果</div><div class="b">${y}年 ${isLeapGregorian(y)?'是闰年,有366日,二月29日':'是平年,有365日,二月28日'}</div></div>`;
+  const e=canvases['cv5']; if(e) e.draw(e, performance.now());
+}
+setupCanvas('cv5', drawS5Leap);
+
+// ---- 真实历法数据(2026-2065,共40年) ----
+// 农历新年(春节)日期:[月,日]
+const CNY_DATA = [
+  [2,17],[2,6],[1,26],[2,13],[2,3],[1,23],[2,11],[1,31],[2,19],[2,8],
+  [1,28],[2,15],[2,4],[1,24],[2,12],[2,1],[1,22],[2,10],[1,30],[2,17],
+  [2,6],[1,26],[2,14],[2,2],[1,23],[2,11],[2,1],[2,19],[2,8],[1,28],
+  [2,15],[2,4],[1,24],[2,12],[2,2],[1,21],[2,9],[1,29],[2,17],[2,5]
+]; // 索引0=2026年 … 索引39=2065年
+
+// 开斋节(Eid al-Fitr)日期:每个年份对应一个数组(多数1个日期,2033与2065年因历法漂移各有2个)
+// 数据来源:2026-2036为沙特官方Umm al-Qura历真实公布数据;2037年起为基于精确回历平均年长度
+// (354.367066日,即12个朔望月)从最后一个真实数据点(2036-11-19)推算的标准回历换算结果。
+const EID_DATA = [
+  [[3,20]],[[3,9]],[[2,26]],[[2,14]],[[2,4]],[[1,24]],[[1,14]],[[1,2],[12,23]],[[12,12]],[[12,1]],
+  [[11,19]],[[11,8]],[[10,29]],[[10,18]],[[10,6]],[[9,26]],[[9,15]],[[9,5]],[[8,24]],[[8,13]],
+  [[8,3]],[[7,23]],[[7,11]],[[7,1]],[[6,20]],[[6,10]],[[5,29]],[[5,18]],[[5,8]],[[4,27]],
+  [[4,15]],[[4,5]],[[3,25]],[[3,14]],[[3,3]],[[2,20]],[[2,10]],[[1,30]],[[1,19]],[[1,8],[12,28]]
+]; // 索引0=2026年 … 索引39=2065年(2033、2065年各出现两次开斋节)
+
+const DRIFT_BASE_YEAR = 2026;
+const DRIFT_YEARS = CNY_DATA.length; // 40
+let driftYear=0; // 0..39, 对应2026..2065
+
+function monthDayToWheelAngle(month, day){
+  const monthFloat = (month-1) + (day-1)/30; // 简化:月内按30天近似分布
+  return -Math.PI/2 + (monthFloat/12)*Math.PI*2;
+}
+
+function drawDrift(entry){
+  const {ctx,w,h}=entry; ctx.clearRect(0,0,w,h);
+  const cx=w*0.5, cy=h*0.5, R=Math.min(w,h)*0.34;
+  ring(ctx,cx,cy,R,'rgba(255,255,255,.18)',1.5);
+  for(let m=0;m<12;m++){
+    const a=-Math.PI/2 + m/12*Math.PI*2;
+    const x1=cx+Math.cos(a)*R, y1=cy+Math.sin(a)*R;
+    const x2=cx+Math.cos(a)*(R-10), y2=cy+Math.sin(a)*(R-10);
+    ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    const lx=cx+Math.cos(a)*(R+15), ly=cy+Math.sin(a)*(R+15);
+    ctx.fillText((m+1)+'月', lx, ly+3);
+  }
+  function placeOnWheel(month, day, dotColor, label, rr, dy){
+    const a = monthDayToWheelAngle(month,day);
+    const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr;
+    circle(ctx,x,y,7,dotColor);
+    ctx.fillStyle='#fff'; ctx.font='10.5px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(label, x, y+(dy||-12));
+  }
+
+  // 公历节日:圣诞节,固定12月25日
+  placeOnWheel(12,25,'#3fe48a','圣诞节 12/25', R*0.82, -12);
+
+  // 农历新年(真实数据)
+  const [cnyM,cnyD] = CNY_DATA[driftYear];
+  placeOnWheel(cnyM,cnyD,'#ffd23f','农历新年', R*0.34, -12);
+  ctx.fillStyle='#ffd23f'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`${cnyM}/${cnyD}`, cx+Math.cos(monthDayToWheelAngle(cnyM,cnyD))*R*0.34, cy+Math.sin(monthDayToWheelAngle(cnyM,cnyD))*R*0.34+22);
+
+  // 开斋节(真实数据,可能一年有0~2次)
+  const eidList = EID_DATA[driftYear];
+  eidList.forEach(([m,d],i)=>{
+    const rr = R*0.58;
+    placeOnWheel(m,d,'#ff6ea8', eidList.length>1? `开斋节${i+1}`:'开斋节', rr, -12);
+    const a=monthDayToWheelAngle(m,d);
+    ctx.fillStyle='#ff6ea8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(`${m}/${d}`, cx+Math.cos(a)*rr, cy+Math.sin(a)*rr+22);
+  });
+
+  ctx.fillStyle='rgba(255,255,255,.75)'; ctx.font='14px "Orbitron",sans-serif'; ctx.textAlign='center';
+  ctx.fillText('公历 '+(DRIFT_BASE_YEAR+driftYear)+' 年', cx, h*0.94);
+  if(eidList.length>1){
+    ctx.fillStyle='rgba(255,110,168,.85)'; ctx.font='11px sans-serif';
+    ctx.fillText('★ 这一年因历法漂移,开斋节出现了两次', cx, h*0.88);
+  }
+}
+function setDriftYear(idx){
+  driftYear = Math.max(0, Math.min(DRIFT_YEARS-1, idx));
+  document.getElementById('driftReadout').textContent = '公历 '+(DRIFT_BASE_YEAR+driftYear)+' 年';
+  document.getElementById('driftSlider').value = driftYear;
+}
+document.getElementById('driftNext').addEventListener('click',()=>setDriftYear(driftYear+1));
+document.getElementById('driftPrev').addEventListener('click',()=>setDriftYear(driftYear-1));
+document.getElementById('driftSlider').addEventListener('input',e=>setDriftYear(+e.target.value));
+setupCanvas('cv6', drawDrift);
+updateLeap();
+
+/* ============================================================
+   SCENE 6 : QUIZ
+============================================================ */
+const quizData = [
+  {q:'有哪些自然现象可以证明地球在自转?', opts:['昼夜交替、天体东升西落、星轨现象','四季的形成','潮汐的涨落','闰年的设置'], a:0,
+   exp:'地球自转使太阳、月亮、星星的位置在一天中改变,造成昼夜交替与天体东升西落;长时间曝光拍摄可见星轨。这些都是地球自转的证据(四季是公转的结果)。'},
+  {q:'从地球上观测,位于近地点和远地点的月球分别有什么不一样?', opts:['近地点的月球看起来较大,远地点较小','近地点的月球看起来较小,远地点较大','两者大小没有差别','近地点看不到月球'], a:0,
+   exp:'月球公转轨道为椭圆形,近地点(perigee)时月地距离最近,月球视觉上较大;远地点(apogee)时距离最远,看起来较小。'},
+  {q:'虽然新月时月、日、地大致在同一直线上,但日食并非每月发生,为什么?', opts:['月球公转轨道平面与地球公转轨道平面有约5°夹角,多数月份三者无法精准排成一线','月球太小,无法遮住太阳','地球自转速度太快','太阳的位置每个月都在变化'], a:0,
+   exp:'由于约5°的轨道夹角,大部分月份月球的影子不会正好落在地球表面上,所以日食不是每个月都会发生,平均每年只有2~5次。'},
+  {q:'形成潮汐的主要原因是什么?', opts:['月球(及太阳)对地球海水的引力作用','地球自转产生的离心力','地球公转轨道呈椭圆形','地轴倾斜23.5°'], a:0,
+   exp:'月球与太阳的引力是形成潮汐的原因。月球虽然比太阳小,但距离地球近得多,引力作用比太阳更强。'},
+  {q:'历法基本上可分成哪三种类型?', opts:['阳历、阴历、阴阳历','公历、农历、回历','平年历、闰年历、节气历','西历、东历、中历'], a:0,
+   exp:'历法分为依据地球公转周期制定的阳历、依据月相变化周期制定的阴历,以及结合两者特点的阴阳历(如华人使用的农历)。'},
+  {q:'为什么公历四季分明,而回历无法反映季节?', opts:['公历依据地球公转周期制定,季节与月份固定对应;回历是阴历,不考虑地球公转,月份会逐年漂移','回历的月份比公历短','公历有闰年而回历没有','回历只在沙漠地区使用'], a:0,
+   exp:'公历(阳历)以地球绕太阳公转周期为基础,季节在固定月份出现。回历是阴历,只依据月相变化周期,完全不考虑地球公转,因此回历的月份会与季节脱节,逐年向前漂移。'},
+  {q:'月球的自转周期与公转周期分别是多久?这导致了什么现象?', opts:['都约27.3天,导致同步自转,使我们只能看到月球同一面','自转27.3天、公转29.5天,导致月相变化','自转1天、公转27.3天,导致昼夜交替','两者都是365天,导致四季'], a:0,
+   exp:'月球自转与公转周期都约27.3天,这种"同步自转"现象使月球永远以同一面朝向地球,我们在地球上看不到月球背面。'},
+  {q:'下列哪一项会形成大潮(spring tide)?', opts:['新月或满月,日、月、地三者接近一直线','上弦月或下弦月,日、月、地呈90°','月球运行至远地点','地球运行至远日点'], a:0,
+   exp:'新月或满月时太阳、月球、地球接近一直线,日月引力相加,形成涨潮特高、落潮特低的大潮;上弦/下弦月时三者呈90°,太阳引力削弱月球引力,形成小潮。'},
+  {q:'格里历(现行公历)中,哪一个世纪年不是闰年?', opts:['1900年(能被100整除但不能被400整除)','2000年(能被400整除)','1600年(能被400整除)','2400年(能被400整除)'], a:0,
+   exp:'格里历规则:能被4整除为闰年,但若能被100整除则为平年,除非同时能被400整除才仍是闰年。1900能被100整除但不能被400整除,所以是平年;2000、1600、2400都能被400整除,所以都是闰年。'},
+  {q:'月全食时,月球呈现橙红色而不是完全黑暗,这是什么原因造成的?', opts:['地球大气层将红光折射到月球表面,而蓝光被散射','月球本身会发出红光','太阳光中只有红光','这是月球反射火山的光'], a:0,
+   exp:'当太阳光经过地球大气层时,短波长的蓝光被散射(这是天空呈蓝色的原因),长波长的红光则被大气层折射至月球表面,所以即使月球在地球阴影深处,仍能被红光照到,呈现橙红色。'},
+  {q:'月相变化的周期(朔望月,约29.5天)为什么比月球公转周期(约27.3天)长?', opts:['因为地球同时也在绕太阳公转,月球需多花约2天才能再次与日、地排成一线','因为月球的自转比公转慢','因为月球轨道是椭圆形','因为地球自转影响了月球的公转速度'], a:0,
+   exp:'当月球完成一次相对恒星的公转(27.3天,称恒星月)后,由于地球同时也在绕太阳公转,月球原来的位置还不能使日、月、地重新排成一线,需要再多花约2天,这才是朔望月(29.5天)。'},
+  {q:'潮间带(intertidal zone)对生物而言面临什么样的生存挑战?', opts:['必须同时适应水中与空气中的环境,且环境温度、湿度剧烈变化','只需要适应高温环境','只需要适应水中环境','完全没有挑战,是最稳定的生态环境'], a:0,
+   exp:'潮间带在高潮时被海水淹没,低潮时露出空气中,生物必须能在水里及空气阳光下生存,同时承受巨浪与剧烈变化的温度、湿度。'},
+];
+
+function renderQuiz(){
+  const list=document.getElementById('quizList');
+  list.innerHTML='';
+  document.getElementById('scoreMax').textContent = quizData.length;
+  document.getElementById('scoreNow').textContent = 0;
+  let score=0;
+  quizData.forEach((item,qi)=>{
+    const div=document.createElement('div'); div.className='quiz-q';
+    div.innerHTML = `<div class="qtext">${qi+1}. ${item.q}</div>` +
+      item.opts.map((o,oi)=>`<button class="qopt" data-qi="${qi}" data-oi="${oi}">${o}</button>`).join('') +
+      `<div class="qexplain" id="exp-${qi}">💡 ${item.exp}</div>`;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.qopt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const qi=+btn.dataset.qi, oi=+btn.dataset.oi;
+      const group = list.querySelectorAll(`.qopt[data-qi="${qi}"]`);
+      group.forEach(b=>b.classList.add('disabled'));
+      if(oi===quizData[qi].a){
+        btn.classList.add('correct'); score++; document.getElementById('scoreNow').textContent=score;
+      } else {
+        btn.classList.add('wrong');
+        group[quizData[qi].a].classList.add('correct');
+      }
+      document.getElementById('exp-'+qi).classList.add('show');
+    });
+  });
+}
+document.getElementById('quizReset').addEventListener('click', renderQuiz);
+renderQuiz();
+
+/* ============================================================
+   MAIN LOOP
+============================================================ */
+function tick(t){
+  Object.values(canvases).forEach(entry=>{
+    if(entry.cv.offsetParent===null) return;
+    if(!entry.w) resizeCanvas(entry);
+    if(entry.draw) entry.draw(entry, t);
+  });
+
+  // Scene 1 (earth's motion) SVG animation - only advance while visible
+  const s1el = document.getElementById('s1');
+  if(s1el && s1el.classList.contains('active')){
+    if(s1mode==='rotate' && e0playing) updateEarthRotation();
+    else if(s1mode==='revolve' && e1playing){
+      e1OrbitAngle -= e1BaseOrbitSpeed*e1speed;
+      e1OrbitAngle = (e1OrbitAngle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+      updateOrbitPosition();
+    }
+  }
+
+  // Scene 2 (moon's motion) SVG animation - only advance while visible
+  const s2el = document.getElementById('s2');
+  if(s2el && s2el.classList.contains('active') && s2playing){
+    if(s2activeTab===2){
+      const r = (s2_a*(1-s2_e*s2_e))/(1+s2_e*Math.cos(s2Angle));
+      const keplerFactor = (s2_a*(1-s2_e))/r;
+      s2Angle += s2BaseStep*s2speedMul*keplerFactor*keplerFactor*1.5;
+    } else {
+      s2Angle += s2BaseStep*s2speedMul;
+    }
+    s2Angle = s2Angle % (Math.PI*2);
+    s2updatePositions();
+  }
+
+  requestAnimationFrame(tick);
+}
+resizeAllCanvases();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
