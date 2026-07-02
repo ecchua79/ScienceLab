@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科学实验在线学习系统 | Science Lab</title>
+    <style>
+        :root {
+            --primary-bg: #0a0e17;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --accent-blue: #00d2ff;
+            --accent-green: #00ff88;
+            --accent-orange: #ff9d00;
+            --text-main: #e0e6ed;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 210, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 255, 136, 0.05) 0%, transparent 40%);
+        }
+
+        /* 科技感背景动画 */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(var(--glass-border) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+            opacity: 0.3;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        /* 防盗版封面下方标注 */
+        .watermark-sub-header {
+            font-size: 10px;
+            color: #1a1f2b; /* 极暗，接近背景色 */
+            text-align: center;
+            margin-top: 5px;
+            user-select: none;
+        }
+
+        .grade-section {
+            margin-bottom: 50px;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .grade-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            padding: 10px 20px;
+            border-left: 4px solid var(--accent-blue);
+            background: linear-gradient(90deg, rgba(0, 210, 255, 0.1), transparent);
+        }
+
+        .grade-title.jm2 { border-left-color: var(--accent-green); background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), transparent); }
+        .grade-title.jm3 { border-left-color: var(--accent-orange); background: linear-gradient(90deg, rgba(255, 157, 0, 0.1), transparent); }
+
+        .chapter {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .chapter:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .chapter h3 {
+            margin-bottom: 15px;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .chapter h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            margin-right: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .links-grid a {
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-dim);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: 1px solid var(--glass-border);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .links-grid a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            border-color: var(--accent-blue);
+            padding-left: 20px;
+        }
+
+        .links-grid a::after {
+            content: '→';
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .links-grid a:hover::after {
+            opacity: 1;
+        }
+
+        /* 隐藏的防盗版标注样式 */
+        .anti-piracy {
+            font-size: 0px;
+            color: transparent;
+            height: 0;
+            width: 0;
+            overflow: hidden;
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .links-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="container">
+        <header>
+            <h1>🔬 SCIENCE LAB</h1>
+            <div class="subtitle">科学实验在线学习系统</div>
+            <div class="watermark-sub-header">//峇株吧辖华仁中学蔡逸众制作</div>
+        </header>
+
+        <!-- 第一组防盗版标注 -->
+        <div class="anti-piracy">//峇株吧辖华仁中学蔡逸众制作</div>
+        <div class="anti-piracy">//峇株吧辖蔡逸众制作</div>
+        <div class="anti-piracy">//华仁中学蔡逸众制作</div>
+        <div class="anti-piracy">//Made by ecchua79</div>
+
+        <!-- 初一科学 -->
+        <section class="grade-section">
+            <div class="grade-title">📘 初一科学 (Junior Middle 1)</div>
+            
+            <div class="chapter">
+                <h3>第一章：科学基础认知</h3>
+                <div class="links-grid">
+                    <a href="jm1c1_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c1" target="_blank">逃离阿尔法实验室</a>
+                    <a href="jm1c1_1" target="_blank">科学特工 实验室危机</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第二章：物质的基础</h3>
+                <div class="links-grid">
+                    <a href="jm1c2_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c2_1" target="_blank">物质神殿：元素使者的试炼</a>
+                </div>
+            </div>
+
+            <!-- 填充空白行以满足防盗版距离要求 (模拟80行) -->
+            <div style="height: 100px;"></div>
+
+            <div class="chapter">
+                <h3>第三章：生命的基础</h3>
+                <div class="links-grid">
+                    <a href="jm1c3_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c3_1" target="_blank">植物细胞大冒险</a>
+                    <a href="jm1c3_2" target="_blank">生命阶层大冒险</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第四章：生殖</h3>
+                <div class="links-grid">
+                    <a href="jm1c4_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c4" target="_blank">⭐ 生命之旅</a>
+                    <a href="jm1c4_1" target="_blank">生命大冒险</a>
+                    <a href="jm1c4_2" target="_blank">生命大冒险v2</a>
+                    <a href="jm1c4_3" target="_blank">🌸 两性花解剖结构</a>
+                    <a href="jm1c4_4" target="_blank">两性花3D</a>
+                    <a href="jm1c4_5" target="_blank">植物生殖大冒险</a>
+                    <a href="jm1c4_6" target="_blank">生物解剖实验室</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第五章：生物的运动</h3>
+                <div class="links-grid">
+                    <a href="jm1c5_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c5" target="_blank">🏃 生物运动大冒险</a>
+                    <a href="jm1c5_1" target="_blank">🦴 骨骼侦探：关节 3D</a>
+                    <a href="jm1c5_3" target="_blank">🌱 植物生存大挑战</a>
+                    <a href="jm1c5_4" target="_blank">手臂肌肉拮抗 3D</a>
+                </div>
+            </div>
+
+            <!-- 第二组防盗版标注 -->
+            <div class="anti-piracy">//峇株吧辖华仁中学蔡逸众制作</div>
+            <div class="anti-piracy">//峇株吧辖蔡逸众制作</div>
+            <div class="anti-piracy">//华仁中学蔡逸众制作</div>
+            <div class="anti-piracy">//Made by ecchua79</div>
+
+            <div style="height: 100px;"></div>
+
+            <div class="chapter">
+                <h3>第六章：热</h3>
+                <div class="links-grid">
+                    <a href="jm1c6_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c6_1" target="_blank">🔥 热力大师</a>
+                    <a href="jm1c6_2" target="_blank">💧 水分子三态模拟</a>
+                    <a href="jm1c6_3" target="_blank">🔥 热能大冒险</a>
+                    <a href="jm1c6_4" target="_blank">热传递的三种方式</a>
+                    <a href="jm1c6_5" target="_blank">热传递 3D</a>
+                    <a href="jm1c6_6" target="_blank">热胀冷缩 粒子世界</a>
+                    <a href="jm1c6_7" target="_blank">热学大对决</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第七章：光的现象</h3>
+                <div class="links-grid">
+                    <a href="jm1c7_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c7_1" target="_blank">反射与折射大冒险</a>
+                    <a href="jm1c7_2" target="_blank">光的反射定律</a>
+                    <a href="jm1c7_3" target="_blank">星际光学工程师</a>
+                    <a href="jm1c7_4" target="_blank">3D光学交互模拟</a>
+                    <a href="jm1c7_5" target="_blank">光学实验室</a>
+                    <a href="jm1c7_6" target="_blank">对焦挑战</a>
+                    <a href="jm1c7_7" target="_blank">成像规律</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第八章：声音的现象</h3>
+                <div class="links-grid">
+                    <a href="jm1c8_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c8_1" target="_blank">声波特工</a>
+                    <a href="jm1c8_2" target="_blank">蝙蝠声呐挑战</a>
+                    <a href="jm1c8_3" target="_blank">声呐深度探险</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第九章：静电</h3>
+                <div class="links-grid">
+                    <a href="jm1c9_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c9_1" target="_blank">⚡ 静电怪兽大作战</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十章：感知</h3>
+                <div class="links-grid">
+                    <a href="jm1c10_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c10" target="_blank">感知实验</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十一章：力</h3>
+                <div class="links-grid">
+                    <a href="jm1c11_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c11" target="_blank">力的作用</a>
+                </div>
+            </div>
+
+            <div style="height: 100px;"></div>
+
+            <div class="chapter">
+                <h3>第十二章：物体的运动</h3>
+                <div class="links-grid">
+                    <a href="jm1c12_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c12" target="_blank">运动模拟</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十三章：太阳系</h3>
+                <div class="links-grid">
+                    <a href="jm1c13_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c13" target="_blank">太阳系模拟演示</a>
+                    <a href="jm1c13_4" target="_blank">流星雨形成模拟</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十四章：地月运动</h3>
+                <div class="links-grid">
+                    <a href="jm1c14_0" target="_blank">互动实验笔记</a>
+                    <a href="jm1c14" target="_blank">月相变化演示</a>
+                    <a href="jm1c14_1" target="_blank">日食月食 3D 模拟</a>
+                    <a href="jm1c14_2" target="_blank">日行迹模拟器</a>
+                    <a href="jm1c14_4" target="_blank">3D月相演示</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第三组防盗版标注 -->
+        <div class="anti-piracy">//峇株吧辖华仁中学蔡逸众制作</div>
+        <div class="anti-piracy">//峇株吧辖蔡逸众制作</div>
+        <div class="anti-piracy">//华仁中学蔡逸众制作</div>
+        <div class="anti-piracy">//Made by ecchua79</div>
+
+        <!-- 初二科学 -->
+        <section class="grade-section">
+            <div class="grade-title jm2">📗 初二科学 (Junior Middle 2)</div>
+            
+            <div class="chapter">
+                <h3>第一章：原子结构与元素基础</h3>
+                <div class="links-grid">
+                    <a href="jm2c1_1" target="_blank">科学与物质</a>
+                    <a href="jm2c1" target="_blank">全能原子构建师</a>
+                    <a href="jm2c1_2" target="_blank">原子结构实验室</a>
+                    <a href="jm2c1_3" target="_blank">微观宇宙探索</a>
+                    <a href="jm2c1_4" target="_blank">⭐化学元素连连看</a>
+                    <a href="jm2c1_5" target="_blank">离子实验室</a>
+                    <a href="jm2c1_6" target="_blank">⭐离子连连看</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第二章：物质变化与化学反应</h3>
+                <div class="links-grid">
+                    <a href="jm2c2_0" target="_blank">化学反应互动教学</a>
+                    <a href="jm2c2" target="_blank">🔮 炼金术士试炼</a>
+                    <a href="jm2c2_1" target="_blank">方程式配平实验室</a>
+                    <a href="jm2c2_2" target="_blank">🧪 酸碱虚拟实验室</a>
+                    <a href="jm2c2_3" target="_blank">⭐化学闯关大冒险</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第三章：协调与恒定</h3>
+                <div class="links-grid">
+                    <a href="jm2c3_0" target="_blank">互动教学</a>
+                    <a href="jm2c3" target="_blank">人体保卫战</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第四章：呼吸</h3>
+                <div class="links-grid">
+                    <a href="jm2c4_0" target="_blank">呼吸互动教学</a>
+                    <a href="jm2c4" target="_blank">氧气分子奇幻旅程</a>
+                    <a href="jm2c4_1" target="_blank">3D 呼吸树与肺泡</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第五章：水和溶液</h3>
+                <div class="links-grid">
+                    <a href="jm2c5_0" target="_blank">水和溶液互动教学</a>
+                    <a href="jm2c5" target="_blank">水之炼金术师</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第六章：酸和碱</h3>
+                <div class="links-grid">
+                    <a href="jm2c6_0" target="_blank">酸和碱互动演示</a>
+                    <a href="jm2c6" target="_blank">🧪 酸碱虚拟实验室</a>
+                    <a href="jm2c6_1" target="_blank">🧪 酸碱实验室大冒险</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第七章：气体</h3>
+                <div class="links-grid">
+                    <a href="jm2c7_0" target="_blank">气体互动学习</a>
+                    <a href="jm2c7" target="_blank">气体星球挑战赛</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第八章：气压和压强</h3>
+                <div class="links-grid">
+                    <a href="jm2c8_0" target="_blank">互动学习</a>
+                    <a href="jm2c8" target="_blank">气压大师</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第九章：简单机械</h3>
+                <div class="links-grid">
+                    <a href="jm2c9_0" target="_blank">简单机械互动学习</a>
+                    <a href="jm2c9" target="_blank">机械大师</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十章：能量、功和功率</h3>
+                <div class="links-grid">
+                    <a href="jm2c10_0" target="_blank">互动学习</a>
+                    <a href="jm2c10" target="_blank">能量转换模拟</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十一章：生态系统和生物多样性</h3>
+                <div class="links-grid">
+                    <a href="jm2c11_0" target="_blank">互动学习</a>
+                    <a href="jm2c11_1" target="_blank">生态网络守护者</a>
+                </div>
+            </div>
+
+            <div class="chapter">
+                <h3>第十二章：天体和宇宙</h3>
+                <div class="links-grid">
+                    <a href="jm2c12_0" target="_blank">互动学习</a>
+                    <a href="jm2c12" target="_blank">星际迷航：宇宙探索</a>
+                    <a href="jm2c12_3" target="_blank">真实星空数据可视化</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 初三科学 -->
+        <section class="grade-section">
+            <div class="grade-title jm3">📗 初三科学 (Junior Middle 3)</div>
+            <div class="links-grid">
+                <a href="jm3ohm" target="_blank">欧姆定律探险</a>
+            </div>
+        </section>
+
+        <!-- 其他 -->
+        <section class="grade-section">
+            <div class="grade-title" style="border-left-color: #a0aec0; background: linear-gradient(90deg, rgba(160, 174, 192, 0.1), transparent);">🐾 趣味互动</div>
+            <div class="links-grid">
+                <a href="lion_vs_tiger" target="_blank">狮虎对决赛</a>
+            </div>
+        </section>
+
+        <footer style="text-align: center; color: var(--text-dim); margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--glass-border);">
+            <p>&copy; 2026 Science Lab Online Learning System</p>
+        </footer>
+    </div>
+</body>
+</html>
