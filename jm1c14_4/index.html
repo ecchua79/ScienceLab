@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 月相演示系统</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(15, 20, 30, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            width: 300px;
+        }
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+        .info-row {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .label {
+            color: #aaa;
+            font-size: 14px;
+        }
+        .value {
+            font-weight: bold;
+            font-size: 16px;
+            color: #4da8da;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #4da8da;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4da8da;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #6bc0f0;
+        }
+        /* 副视窗边框，用于地球视角 */
+        #pip-window {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 250px;
+            height: 250px;
+            border: 2px solid #4da8da;
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(77, 168, 218, 0.3);
+            pointer-events: none; /* 让鼠标穿透这个边框以便操作背后的3D场景 */
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        #pip-label {
+            position: absolute;
+            bottom: 280px;
+            right: 20px;
+            width: 250px;
+            text-align: center;
+            z-index: 10;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4da8da;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            color: #888;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入 OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="ui-container">
+        <h1>🌕 3D 月相演示系统</h1>
+        
+        <div class="info-row">
+            <span class="label">当前时间 (天数):</span>
+            <span class="value" id="day-val">0.0 天</span>
+        </div>
+        <div class="info-row">
+            <span class="label">地球观测月相:</span>
+            <span class="value" id="phase-val" style="color: #ffd700;">新月</span>
+        </div>
+        
+        <div class="slider-container">
+            <span class="label" style="display:block; margin-bottom: 8px;">手动调节:</span>
+            <input type="range" id="time-slider" min="0" max="29.53" step="0.1" value="0">
+        </div>
+        
+        <button id="play-btn">⏸ 暂停演示</button>
+    </div>
+    <div id="pip-label">👁️ 模拟地球表面观测视角</div>
+    <div id="pip-window"></div>
+    <div class="instructions">
+        操作指南：按住左键拖动以旋转视角，滚轮缩放，右键平移。
+    </div>
+    <script>
+        // ----------------- 常量与配置 -----------------
+        const SYNODIC_MONTH = 29.53; // 朔望月周期(天)
+        const MOON_DISTANCE = 30;    // 月球到地球的距离
+        const EARTH_RADIUS = 3;      // 地球半径
+        const MOON_RADIUS = 1;       // 月球半径
+        
+        let currentDay = 0;
+        let isPlaying = true;
+        let animationSpeed = 2.0; // 每天/秒 的播放速度
+        // ----------------- 场景初始化 -----------------
+        const container = document.getElementById('canvas-container');
+        const pipWindow = document.getElementById('pip-window');
+        
+        const scene = new THREE.Scene();
+        // 添加星空背景
+        scene.background = createStarfield();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // 重要：关闭自动清除，为了能够在同一屏幕渲染两个相机的画面 (画中画)
+        renderer.autoClear = false; 
+        container.appendChild(renderer.domElement);
+        // ----------------- 相机设置 -----------------
+        // 1. 主相机（上帝视角）
+        const cameraMain = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+        cameraMain.position.set(0, 25, 55);
+        // 2. 地球视角相机（画中画视角）
+        // 放置在地球中心，FOV设置较小以模拟人眼或望远镜观测月球放大的效果
+        const cameraEarth = new THREE.PerspectiveCamera(12, 1, 0.1, 100);
+        cameraEarth.position.set(0, 0, 0);
+        const controls = new THREE.OrbitControls(cameraMain, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 150;
+        controls.minDistance = 10;
+        // ----------------- 生成程序化纹理 -----------------
+        // 为了避免跨域问题，我们使用 Canvas API 动态生成地球和月球的纹理
+        function createEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // 海洋
+            ctx.fillStyle = '#1e3f66';
+            ctx.fillRect(0, 0, 512, 256);
+            
+            // 随机生成大陆斑块
+            ctx.fillStyle = '#2e8b57';
+            for (let i = 0; i < 40; i++) {
+                ctx.beginPath();
+                const x = Math.random() * 512;
+                const y = Math.random() * 256;
+                const r = 10 + Math.random() * 30;
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+        function createMoonTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // 月球表面底色
+            ctx.fillStyle = '#cccccc';
+            ctx.fillRect(0, 0, 512, 256);
+            
+            // 陨石坑
+            for (let i = 0; i < 200; i++) {
+                ctx.beginPath();
+                const x = Math.random() * 512;
+                const y = Math.random() * 256;
+                const r = Math.random() * 6;
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(100, 100, 100, ' + (Math.random() * 0.5 + 0.1) + ')';
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+        // ----------------- 创建 3D 物体 -----------------
+        // 1. 地球
+        const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 32, 32);
+        const earthMaterial = new THREE.MeshStandardMaterial({ 
+            map: createEarthTexture(),
+            roughness: 0.6,
+            metalness: 0.1
+        });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        scene.add(earth);
+        // 2. 月球
+        const moonGeometry = new THREE.SphereGeometry(MOON_RADIUS, 32, 32);
+        const moonMaterial = new THREE.MeshStandardMaterial({ 
+            map: createMoonTexture(),
+            roughness: 0.9,
+            metalness: 0.0
+        });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        scene.add(moon);
+        // 3. 月球公转轨道 (辅助线)
+        const orbitGeometry = new THREE.RingGeometry(MOON_DISTANCE - 0.1, MOON_DISTANCE + 0.1, 64);
+        const orbitMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff, 
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 0.2 
+        });
+        const orbitMesh = new THREE.Mesh(orbitGeometry, orbitMaterial);
+        orbitMesh.rotation.x = Math.PI / 2;
+        scene.add(orbitMesh);
+        // ----------------- 光照系统 -----------------
+        // 太阳光 (平行光，模拟远处的太阳)
+        // 我们假设太阳永远位于 X轴 的正方向 (x > 0)
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(100, 0, 0); 
+        scene.add(sunLight);
+        // 环境光，极低亮度，使得暗面不至于完全纯黑（宇宙中有微弱星光及地球反照率）
+        const ambientLight = new THREE.AmbientLight(0x222222, 0.4);
+        scene.add(ambientLight);
+        // 添加一个代表太阳的视觉指示器，让用户知道光从哪来
+        const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffffee });
+        const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+        sunMesh.position.set(80, 0, 0); // 放置在光源方向的远处
+        scene.add(sunMesh);
+        // ----------------- 星空背景生成函数 -----------------
+        function createStarfield() {
+            // 使用立方体纹理或者直接用粒子系统，这里用CanvasTexture做为场景背景
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            // 绘制星星
+            for (let i = 0; i < 1500; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 1024, Math.random() * 1024, Math.random() * 1.5, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
+                ctx.fill();
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            // 让背景重复铺满
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+        // ----------------- UI 交互与逻辑 -----------------
+        const timeSlider = document.getElementById('time-slider');
+        const dayVal = document.getElementById('day-val');
+        const phaseVal = document.getElementById('phase-val');
+        const playBtn = document.getElementById('play-btn');
+        // 月相名称判断逻辑
+        function getPhaseName(day) {
+            // 周期是 29.53 天
+            if (day < 1 || day > 28.5) return '🌑 新月 (朔)';
+            if (day < 6.5) return '🌒 蛾眉月';
+            if (day < 8.5) return '🌓 上弦月';
+            if (day < 13.8) return '🌔 盈凸月';
+            if (day < 15.8) return '🌕 满月 (望)';
+            if (day < 21.2) return '🌖 亏凸月';
+            if (day < 23.2) return '🌗 下弦月';
+            return '🌘 残月';
+        }
+        // 手动滑动进度条
+        timeSlider.addEventListener('input', (e) => {
+            currentDay = parseFloat(e.target.value);
+            isPlaying = false;
+            playBtn.innerText = '▶️ 播放演示';
+            updateMoonPosition();
+        });
+        // 播放/暂停按钮
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playBtn.innerText = isPlaying ? '⏸ 暂停演示' : '▶️ 播放演示';
+        });
+        // ----------------- 核心更新函数 -----------------
+        function updateMoonPosition() {
+            // 太阳在 +X 轴。
+            // 当 currentDay = 0 时，月球位于地球和太阳之间，即 +X 轴，此时为新月。
+            // 角度计算：将 0~29.53 映射到 0~2PI 弧度
+            const angle = (currentDay / SYNODIC_MONTH) * Math.PI * 2;
+            
+            // 计算月球在XZ平面上的坐标
+            moon.position.x = MOON_DISTANCE * Math.cos(angle);
+            moon.position.z = MOON_DISTANCE * -Math.sin(angle); // 逆时针公转
+            
+            // ========== 修复潮汐锁定：月球永远同一面朝向地球 ==========
+            // 计算月球指向地球的向量，让月球正面严格对准地球
+            const dirToEarth = new THREE.Vector3().subVectors(earth.position, moon.position).normalize();
+            moon.lookAt(earth.position);
+
+            // 让地球视角的相机始终盯住月球
+            cameraEarth.lookAt(moon.position);
+            // 更新UI文本
+            dayVal.innerText = currentDay.toFixed(1) + ' 天';
+            phaseVal.innerText = getPhaseName(currentDay);
+            
+            // 同步进度条（如果是自动播放状态）
+            if (isPlaying) {
+                timeSlider.value = currentDay;
+            }
+        }
+        // ----------------- 窗口缩放自适应 -----------------
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            // 更新主相机
+            cameraMain.aspect = window.innerWidth / window.innerHeight;
+            cameraMain.updateProjectionMatrix();
+            // 更新渲染器
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        // ----------------- 渲染循环 -----------------
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            // 1. 逻辑更新
+            controls.update(); // OrbitControls
+            if (isPlaying) {
+                currentDay += animationSpeed * delta;
+                if (currentDay > SYNODIC_MONTH) {
+                    currentDay -= SYNODIC_MONTH; // 循环
+                }
+                updateMoonPosition();
+            }
+            // ========== 加快地球自转速度 0.2 → 0.8 ==========
+            earth.rotation.y += 0.8 * delta;
+            // 2. 渲染主视窗
+            renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+            renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+            renderer.setScissorTest(true);
+            // 隐藏太阳指示器，以防在地球视角里显得奇怪，或者只在主相机里看
+            sunMesh.visible = true; 
+            renderer.render(scene, cameraMain);
+            // 3. 渲染地球画中画视窗 (PiP)
+            // 获取 HTML 中 #pip-window 元素的位置和尺寸
+            const pipRect = pipWindow.getBoundingClientRect();
+            // 注意：WebGL的Viewport的Y坐标是以左下角为原点的，而DOM的Y是以左上角为原点
+            const webglY = window.innerHeight - pipRect.bottom;
+            
+            renderer.setViewport(pipRect.left, webglY, pipRect.width, pipRect.height);
+            renderer.setScissor(pipRect.left, webglY, pipRect.width, pipRect.height);
+            renderer.setScissorTest(true);
+            
+            // 渲染前清除深度缓存，使得小窗口画面能浮在主画面之上
+            renderer.clearDepth();
+            // 地球视角不需要看辅助轨道和太阳标记球
+            orbitMesh.visible = false;
+            sunMesh.visible = false;
+            
+            renderer.render(scene, cameraEarth);
+            
+            // 渲染完毕后恢复可见性，给主相机的下一帧用
+            orbitMesh.visible = true;
+        }
+        // 初始调用一次位置更新
+        updateMoonPosition();
+        // 启动动画循环
+        animate();
+    </script>
+</body>
+</html>
