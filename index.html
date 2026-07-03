@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<!--
+  峇株吧辖华仁中学蔡逸众制作
+  科学实验室 · 总控制台 SCIENCE LAB CONSOLE
+  设计概念：以「光谱 SPECTRUM」为签名视觉语言 —— 呼应第七章「光的现象」，
+  将初一 / 初二 / 初三 三个学习阶段视为光谱上三段不同波段，
+  每一章节依其学科本质（热/光/声/电/生命…）分配专属谱线色彩。
+  Made by ecchua79
+-->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>科学实验室 · 总控制台 | SCIENCE LAB CONSOLE</title>
+<style>
+/* 华仁中学蔡逸众制作 */
+:root{
+  --bg-0:#04050c;
+  --bg-1:#080a1a;
+  --panel:rgba(18,22,44,0.55);
+  --panel-border:rgba(140,160,255,0.14);
+  --ink:#e7ebff;
+  --ink-dim:#8891b8;
+  --ink-faint:#525b82;
+  --g1:#38bdf8;   /* 初一 · 冷光谱 */
+  --g2:#fb923c;   /* 初二 · 暖光谱 */
+  --g3:#e879f9;   /* 初三 · 等离子谱 */
+  --gx:#f43f5e;   /* 加时赛 · 极光谱 */
+  --mono:'Consolas','SFMono-Regular','Courier New',monospace;
+  --sans:'PingFang SC','Microsoft YaHei','Heiti SC','Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important;}
+}
+body{
+  margin:0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, #131a3d 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, #1a0f2e 0%, transparent 55%),
+    var(--bg-0);
+  color:var(--ink);
+  font-family:var(--sans);
+  line-height:1.6;
+  overflow-x:hidden;
+  min-height:100vh;
+}
+/* ---------- 固定背景层：网格 + 扫描线 + 星尘 ---------- */
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(120,150,255,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120,150,255,0.055) 1px, transparent 1px);
+  background-size:42px 42px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 20%, black 0%, transparent 75%);
+  animation:gridpan 60s linear infinite;
+}
+@keyframes gridpan{ from{background-position:0 0,0 0;} to{background-position:420px 420px,420px 420px;} }
+.bg-scan{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0.5;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);
+}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ---------- 顶部导航 / 光谱条 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:blur(14px) saturate(140%);
+  background:rgba(6,8,20,0.72);
+  border-bottom:1px solid var(--panel-border);
+}
+.topbar-inner{
+  max-width:1180px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);letter-spacing:0.5px;white-space:nowrap;}
+.brand-dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px 2px #4ade80;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.brand b{font-size:0.92rem;color:var(--ink);}
+.brand span{font-size:0.68rem;color:var(--ink-faint);}
+.spectrum-nav{display:flex;gap:6px;flex:1;min-width:220px;}
+.spectrum-nav a{
+  flex:1;text-align:center;text-decoration:none;font-family:var(--mono);font-size:0.72rem;
+  color:var(--ink-dim);padding:7px 4px;border-radius:6px;border:1px solid transparent;
+  transition:all .2s ease;white-space:nowrap;
+}
+.spectrum-nav a:hover,.spectrum-nav a:focus-visible{color:var(--ink);border-color:var(--panel-border);background:rgba(255,255,255,0.04);outline:none;}
+.search-wrap{position:relative;min-width:150px;}
+.search-wrap input{
+  width:100%;background:rgba(255,255,255,0.045);border:1px solid var(--panel-border);
+  color:var(--ink);font-family:var(--mono);font-size:0.78rem;padding:7px 10px 7px 26px;border-radius:6px;
+}
+.search-wrap input::placeholder{color:var(--ink-faint);}
+.search-wrap input:focus-visible{outline:2px solid var(--g1);outline-offset:1px;}
+.search-wrap::before{content:'>';position:absolute;left:9px;top:6px;color:var(--g1);font-family:var(--mono);}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:76px 24px 54px;text-align:center;}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:0.74rem;letter-spacing:3px;color:var(--g1);
+  text-transform:uppercase;margin-bottom:18px;opacity:0.9;
+}
+.hero h1{
+  font-size:clamp(2.1rem,6vw,3.6rem);margin:0 0 14px;font-weight:800;letter-spacing:1px;
+  background:linear-gradient(90deg,#7dd3fc,#e0e7ff 40%,#fbcfe8 70%,#fde68a);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 0 60px rgba(120,160,255,0.25);
+  animation:flicker 7s ease-in-out infinite;
+}
+@keyframes flicker{
+  0%,92%,100%{filter:brightness(1);}
+  93%{filter:brightness(1.35);}
+  94%{filter:brightness(0.85);}
+  95%{filter:brightness(1.15);}
+}
+.hero p{color:var(--ink-dim);font-size:1rem;max-width:560px;margin:0 auto 30px;}
+/* 签名元素：光谱波长刻度条 */
+.wavelength{
+  max-width:640px;margin:0 auto;padding:14px 18px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--panel-border);backdrop-filter:blur(10px);
+}
+.wl-bar{
+  height:10px;border-radius:5px;margin-bottom:10px;
+  background:linear-gradient(90deg,var(--g1) 0%, var(--g1) 24%, var(--g2) 26%, var(--g2) 62%, var(--g3) 64%, var(--g3) 90%, var(--gx) 92%, var(--gx) 100%);
+  box-shadow:0 0 24px rgba(120,160,255,0.35);position:relative;
+}
+.wl-bar::after{
+  content:'';position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;
+  box-shadow:0 0 10px 3px #fff;left:0;animation:sweep 5s ease-in-out infinite;
+}
+@keyframes sweep{0%,100%{left:0%;}50%{left:99%;}}
+.wl-ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;color:var(--ink-faint);}
+.wl-ticks span b{color:var(--ink);display:block;font-size:0.72rem;}
+.readout{margin-top:12px;font-family:var(--mono);font-size:0.7rem;color:var(--ink-faint);letter-spacing:0.5px;}
+.readout b{color:#4ade80;}
+
+/* ---------- 分区大标题 ---------- */
+.grade-section{max-width:1180px;margin:0 auto;padding:10px 20px 10px;position:relative;z-index:2;}
+.grade-band{
+  display:flex;align-items:center;gap:16px;margin:56px 0 26px;padding:16px 20px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--panel-border);position:relative;overflow:hidden;
+}
+.grade-band::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--band-c);box-shadow:0 0 20px var(--band-c);}
+.grade-band .gicon{font-size:1.7rem;filter:drop-shadow(0 0 8px var(--band-c));}
+.grade-band .gtext b{display:block;font-size:1.15rem;letter-spacing:1px;}
+.grade-band .gtext span{font-family:var(--mono);font-size:0.72rem;color:var(--ink-faint);letter-spacing:2px;}
+.grade-band .gcount{
+  margin-left:auto;font-family:var(--mono);font-size:0.72rem;color:var(--band-c);
+  border:1px solid var(--band-c);padding:4px 10px;border-radius:20px;white-space:nowrap;
+}
+
+/* ---------- 章节卡片 ---------- */
+.chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.chapter-card{
+  background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;
+  padding:16px 16px 14px;position:relative;overflow:hidden;
+  transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.chapter-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);}
+.chapter-card:hover{transform:translateY(-4px);border-color:var(--c);box-shadow:0 10px 32px -8px var(--c);}
+.chapter-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.chapter-no{
+  font-family:var(--mono);font-size:0.68rem;color:var(--c);border:1px solid var(--c);
+  padding:2px 7px;border-radius:5px;letter-spacing:1px;flex-shrink:0;
+}
+.chapter-icon{font-size:1.15rem;filter:drop-shadow(0 0 6px var(--c));flex-shrink:0;}
+.chapter-title{font-size:0.98rem;font-weight:700;color:var(--ink);}
+.link-list{display:flex;flex-wrap:wrap;gap:8px;}
+.link-list a{
+  text-decoration:none;color:var(--ink-dim);font-size:0.82rem;padding:6px 12px;border-radius:20px;
+  background:rgba(255,255,255,0.035);border:1px solid var(--panel-border);
+  transition:all .2s ease;line-height:1.3;
+}
+.link-list a:hover,.link-list a:focus-visible{
+  color:#04050c;background:var(--c);border-color:var(--c);
+  box-shadow:0 0 16px var(--c);transform:translateY(-1px);outline:none;
+}
+.link-list a.star{border-color:var(--c);box-shadow:0 0 10px -3px var(--c);}
+.chapter-card.hidden{display:none;}
+
+/* ---------- 页脚 ---------- */
+footer{
+  position:relative;z-index:2;max-width:1180px;margin:70px auto 0;padding:26px 24px 40px;
+  text-align:center;color:var(--ink-faint);font-family:var(--mono);font-size:0.72rem;
+  border-top:1px solid var(--panel-border);
+}
+footer .wm{opacity:0.28;color:#8891b8;letter-spacing:1px;margin-top:6px;}
+.empty-state{display:none;text-align:center;color:var(--ink-faint);font-family:var(--mono);padding:40px 0;}
+.empty-state.show{display:block;}
+
+@media (max-width:640px){
+  .topbar-inner{gap:10px;}
+  .spectrum-nav{order:3;width:100%;}
+  .search-wrap{flex:1;}
+  .hero{padding:52px 18px 40px;}
+  .wl-ticks span b{font-size:0.64rem;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="bg-grid"></div>
+<div class="bg-scan"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="brand-dot"></span><b>SCIENCE LAB</b><span>· 华仁中学科学实验室</span></div>
+    <nav class="spectrum-nav">
+      <a href="#jm1">初一 JM1</a>
+      <a href="#jm2">初二 JM2</a>
+      <a href="#jm3">初三 JM3</a>
+      <a href="#extra">加时赛</a>
+    </nav>
+    <div class="search-wrap">
+      <input id="searchInput" type="text" placeholder="搜索章节 / 游戏…" aria-label="搜索章节或游戏">
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-eyebrow">SPECTRUM · 峇株吧辖华仁中学 · CHINESE HIGH SCHOOL</div>
+  <h1>科学实验室 · 总控制台</h1>
+  <p>三段学习波段，一条完整光谱。选择你的年级频道，进入互动实验现场。</p>
+  <div class="wavelength">
+    <div class="wl-bar"></div>
+    <div class="wl-ticks">
+      <span><b>初一</b>400nm · 认知与生命</span>
+      <span><b>初二</b>580nm · 物质与能量</span>
+      <span><b>初三</b>650nm · 电学前沿</span>
+      <span><b>特别篇</b>750nm · 对决模式</span>
+    </div>
+    <div class="readout">SYSTEM STATUS: <b>ONLINE</b> · MODULES LOADED: <b id="modCount">--</b> · <span id="clock">--:--:--</span></div>
+  </div>
+</section>
+
+<div id="emptyState" class="empty-state">🔭 没有找到匹配的实验室内容，换个关键词试试？</div>
+
+<main id="content"></main>
+
+<footer>
+  <div>峇株吧辖华仁中学 · 科学实验室系统 · SCIENCE LAB CONSOLE</div>
+  <div class="wm">蔡逸众制作 · Made by ecchua79</div>
+</footer>
+
+<script>
+/* 华仁中学蔡逸众制作 */
+const DATA = {
+  jm1:{ label:'初一科学', sub:'JUNIOR MIDDLE 1', icon:'📘', color:'#38bdf8',
+    chapters:[
+      {no:'CH.01',title:'科学基础认知',icon:'🔍',c:'#38bdf8',links:[
+        ['jm1c1_0','初一科学 · 第1章 · 什么是科学 —— 互动实验笔记'],
+        ['jm1c1','逃离阿尔法实验室'],
+        ['jm1c1_1','科学特工 实验室危机']]},
+      {no:'CH.02',title:'物质的基础',icon:'⚛️',c:'#a78bfa',links:[
+        ['jm1c2_0','初一科学 · 第2章 · 物质的基础 —— 互动实验笔记'],
+        ['jm1c2','物质神殿：元素使者的试炼']]},
+      {no:'CH.03',title:'生命的基础',icon:'🧬',c:'#4ade80',links:[
+        ['jm1c3_0','初一科学 · 第3章 · 生命的基础 —— 互动实验笔记'],
+        ['jm1c3_1','植物细胞大冒险'],
+        ['jm1c3_2','生命阶层大冒险']]},
+      {no:'CH.04',title:'生殖',icon:'🌸',c:'#f472b6',links:[
+        ['jm1c4_0','初一科学 · 第4章 · 生殖 —— 互动实验笔记'],
+        ['jm1c4','⭐ 生命之旅'],
+        ['jm1c4_1','生命大冒险'],
+        ['jm1c4_2','生命大冒险v2'],
+        ['jm1c4_3','🌸 两性花（完全花）解剖结构'],
+        ['jm1c4_4','两性花3D'],
+        ['jm1c4_5','植物生殖大冒险'],
+        ['jm1c4_6','生物解剖实验室']]},
+      {no:'CH.05',title:'生物的运动',icon:'🦴',c:'#fb923c',links:[
+        ['jm1c5_0','初一科学 · 第5章 · 生物的运动 —— 互动实验笔记'],
+        ['jm1c5','🏃 生物运动大冒险 | 10种玩法挑战'],
+        ['jm1c5_1','🦴 骨骼侦探：关节大搜查 3D'],
+        ['jm1c5_2','🏃 生物运动大冒险 | 10种玩法挑战'],
+        ['jm1c5_3','🌱 植物生存大挑战'],
+        ['jm1c5_4','手臂肌肉拮抗作用 3D 演示']]},
+      {no:'CH.06',title:'热',icon:'🔥',c:'#f87171',links:[
+        ['jm1c6_0','初一科学 · 第6章 · 热 —— 互动实验笔记'],
+        ['jm1c6','🔥 热力大师：拯救冰河世纪'],
+        ['jm1c6_1','💧 水分子三态模拟 | Water Molecule Simulation'],
+        ['jm1c6_2','🔥 热能大冒险：拯救冰雪王国'],
+        ['jm1c6_3','热传递的三种方式'],
+        ['jm1c6_4','热传递的三种方式3D'],
+        ['jm1c6_5','热胀冷缩 粒子世界'],
+        ['jm1c6_6','热学大对决']]},
+      {no:'CH.07',title:'光的现象',icon:'🌈',c:'#facc15',links:[
+        ['jm1c7_0','初一科学 · 第7章 · 光的现象 —— 互动实验笔记'],
+        ['jm1c7','反射与折射的大冒险'],
+        ['jm1c7_1','光的反射定律'],
+        ['jm1c7_2','星际光学工程师（折射）'],
+        ['jm1c7_3','光的反射定律（游戏）'],
+        ['jm1c7_4','3D光学交互模拟器'],
+        ['jm1c7_5','光学实验室（三色光与光谱）'],
+        ['jm1c7_6','对焦挑战'],
+        ['jm1c7_8','OPTICA 成像规律'],
+        ['jm1c7_9','光的现象 互动游戏']]},
+      {no:'CH.08',title:'声音的现象',icon:'🔊',c:'#2dd4bf',links:[
+        ['jm1c8_0','初一科学 · 第8章 · 声音的现象 —— 互动实验笔记'],
+        ['jm1c8','声波特工'],
+        ['jm1c8_1','蝙蝠声呐：狩猎挑战'],
+        ['jm1c8_2','声呐深度探险']]},
+      {no:'CH.09',title:'静电',icon:'⚡',c:'#fde047',links:[
+        ['jm1c9_0','初一科学 · 第9章 · 静电 —— 互动实验笔记'],
+        ['jm1c9','⚡ 静电怪兽大作战 3.0']]},
+      {no:'CH.10',title:'感知',icon:'👁️',c:'#c084fc',links:[
+        ['jm1c10_0','初一科学 · 第10章 · 感知 —— 互动实验笔记'],
+        ['jm1c10','感知']]},
+      {no:'CH.11',title:'力',icon:'💪',c:'#94a3b8',links:[
+        ['jm1c11_0','初一科学 · 第11章 · 力 —— 互动实验笔记'],
+        ['jm1c11','第十一章：力']]},
+      {no:'CH.12',title:'物体的运动',icon:'🚀',c:'#60a5fa',links:[
+        ['jm1c12_0','初一科学 · 第12章 · 物体的运动 —— 互动实验笔记'],
+        ['jm1c12','物体的运动']]},
+      {no:'CH.13',title:'太阳系',icon:'🪐',c:'#818cf8',links:[
+        ['jm1c13_0','初一科学 · 第13章 · 太阳系 —— 互动实验笔记'],
+        ['jm1c13','太阳系模拟演示'],
+        ['jm1c13_4','流星雨透视与形成模拟']]},
+      {no:'CH.14',title:'地月运动',icon:'🌙',c:'#6366f1',links:[
+        ['jm1c14_0','初一科学 · 第14章 · 地月运动—— 互动实验笔记'],
+        ['jm1c14','月相变化演示'],
+        ['jm1c14_1','日食与月食全景 3D 科学模拟器'],
+        ['jm1c14_2','日行迹与天体运动模拟器'],
+        ['jm1c14_3','日食与月食仿真模拟'],
+        ['jm1c14_4','3D月相变化演示']]}
+    ]
+  },
+  jm2:{ label:'初二科学', sub:'JUNIOR MIDDLE 2', icon:'📗', color:'#fb923c',
+    chapters:[
+      {no:'CH.01',title:'原子结构与元素基础',icon:'⚛️',c:'#a78bfa',links:[
+        ['jm2c1_1','初二科学 · 第1章 科学与物质'],
+        ['jm2c1','全能原子构建师'],
+        ['jm2c1_2','原子结构交互实验室'],
+        ['jm2c1_3','微观宇宙：从原子到万物'],
+        ['jm2c1_4','⭐化学元素连连看（游戏）'],
+        ['jm2c1_5','离子实验室'],
+        ['jm2c1_6','⭐离子连连看（游戏）']]},
+      {no:'CH.02',title:'物质变化与化学反应',icon:'🧪',c:'#34d399',links:[
+        ['jm2c2_0','初二科学 · 第2章 化学反应 | 互动演示教学'],
+        ['jm2c2','🔮 炼金术士的试炼'],
+        ['jm2c2_1','化学方程式配平实验室'],
+        ['jm2c2_2','🧪 酸碱虚拟实验室'],
+        ['jm2c2_3','⭐化学闯关大冒险']]},
+      {no:'CH.03',title:'协调与恒定',icon:'🧠',c:'#f472b6',links:[
+        ['jm2c3_0','初二科学 · 第3章：协调与恒定 · 互动教学'],
+        ['jm2c3','人体保卫战：神经与激素的觉醒']]},
+      {no:'CH.04',title:'呼吸',icon:'🫁',c:'#22d3ee',links:[
+        ['jm2c4_0','初二科学 · 第4章：呼吸 · 互动教学'],
+        ['jm2c4','氧气分子的奇幻旅程'],
+        ['jm2c4_1','3D 呼吸树与肺泡演示']]},
+      {no:'CH.05',title:'水和溶液',icon:'💧',c:'#38bdf8',links:[
+        ['jm2c5_0','初二科学 · 第5章 水和溶液 · 互动教学'],
+        ['jm2c5','水之炼金术师']]},
+      {no:'CH.06',title:'酸和碱',icon:'🧫',c:'#a3e635',links:[
+        ['jm2c6_0','初二科学 · 第6章 · 酸和碱 — 互动演示'],
+        ['jm2c6','🧪 酸碱虚拟实验室'],
+        ['jm2c6_1','🧪 酸碱实验室大冒险'],
+        ['jm2c6_2','🧪 酸碱实验室大冒险']]},
+      {no:'CH.07',title:'气体',icon:'💨',c:'#7dd3fc',links:[
+        ['jm2c7_0','初二科学 · 第7章 气体 · 互动学习'],
+        ['jm2c7','气体星球挑战赛']]},
+      {no:'CH.08',title:'气压和压强',icon:'🌪️',c:'#94a3b8',links:[
+        ['jm2c8_0','初二科学 · 第8章：气压和压强 · 互动学习'],
+        ['jm2c8','气压大师']]},
+      {no:'CH.09',title:'简单机械',icon:'⚙️',c:'#d97706',links:[
+        ['jm2c9_0','初二科学 · 第9章：简单机械 互动学习'],
+        ['jm2c9','机械大师']]},
+      {no:'CH.10',title:'能量、功和功率',icon:'⚡',c:'#fbbf24',links:[
+        ['jm2c10_0','初二科学 · 第10章：能量、功和功率 互动学习'],
+        ['jm2c10','气压大师']]},
+      {no:'CH.11',title:'生态系统和生物多样性',icon:'🌿',c:'#4ade80',links:[
+        ['jm2c11_0','初二科学 · 第11章：生态系统和生物多样性 · 互动学习'],
+        ['jm2c11_1','生态网络守护者']]},
+      {no:'CH.12',title:'天体和宇宙',icon:'🌌',c:'#8b5cf6',links:[
+        ['jm2c12_0','初二科学 · 第12章：天体和宇宙 · 互动学习'],
+        ['jm2c12','星际迷航：宇宙大探索'],
+        ['jm2c12_1','天体与宇宙'],
+        ['jm2c12_2','星际探险家'],
+        ['jm2c12_3','真实星空数据可视化 - 完整星表细节版'],
+        ['jm2c12_4','星际迷航：宇宙大探索']]}
+    ]
+  },
+  /* 峇株吧辖蔡逸众制作 —— 数据表 */
+  jm3:{ label:'初三科学', sub:'JUNIOR MIDDLE 3', icon:'📕', color:'#e879f9',
+    chapters:[
+      {no:'CH.01',title:'电学：欧姆定律',icon:'🔌',c:'#e879f9',links:[
+        ['jm3ohm','欧姆定律探险']]}
+    ]
+  },
+  extra:{ label:'加时赛 · 对决模式', sub:'BONUS ARENA', icon:'⚔️', color:'#f43f5e',
+    chapters:[
+      {no:'VS.01',title:'狮虎对决赛',icon:'🐯',c:'#f43f5e',links:[
+        ['vs','狮虎对决']]}
+    ]
+  }
+};
+
+/* 峇株吧辖华仁中学蔡逸众制作 —— 数据渲染层 */
+const content = document.getElementById('content');
+let totalGames = 0;
+
+function renderGrade(key, sectionId){
+  const g = DATA[key];
+  const section = document.createElement('div');
+  section.className = 'grade-section';
+  section.id = sectionId;
+
+  const band = document.createElement('div');
+  band.className = 'grade-band';
+  band.style.setProperty('--band-c', g.color);
+  const gameCount = g.chapters.reduce((s,ch)=>s+ch.links.length,0);
+  totalGames += gameCount;
+  band.innerHTML = `<span class="gicon">${g.icon}</span>
+    <span class="gtext"><b>${g.label}</b><span>${g.sub}</span></span>
+    <span class="gcount">${g.chapters.length} 章节 · ${gameCount} 项内容</span>`;
+  section.appendChild(band);
+
+  const grid = document.createElement('div');
+  grid.className = 'chapter-grid';
+
+  g.chapters.forEach(ch=>{
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.style.setProperty('--c', ch.c);
+    card.dataset.search = (ch.title + ' ' + ch.links.map(l=>l[1]).join(' ')).toLowerCase();
+
+    const head = document.createElement('div');
+    head.className = 'chapter-head';
+    head.innerHTML = `<span class="chapter-no">${ch.no}</span><span class="chapter-icon">${ch.icon}</span><span class="chapter-title">${ch.title}</span>`;
+    card.appendChild(head);
+
+    const list = document.createElement('div');
+    list.className = 'link-list';
+    ch.links.forEach(([href,title])=>{
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = title;
+      if(title.includes('⭐')) a.classList.add('star');
+      list.appendChild(a);
+    });
+    card.appendChild(list);
+    grid.appendChild(card);
+  });
+
+  section.appendChild(grid);
+  content.appendChild(section);
+}
+
+renderGrade('jm1','jm1');
+renderGrade('jm2','jm2');
+renderGrade('jm3','jm3');
+renderGrade('extra','extra');
+document.getElementById('modCount').textContent = totalGames;
+
+/* ---------- 搜索过滤 ---------- */
+const searchInput = document.getElementById('searchInput');
+const emptyState = document.getElementById('emptyState');
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  let visibleTotal = 0;
+  document.querySelectorAll('.chapter-card').forEach(card=>{
+    const match = !q || card.dataset.search.includes(q);
+    card.classList.toggle('hidden', !match);
+    if(match) visibleTotal++;
+  });
+  document.querySelectorAll('.grade-section').forEach(sec=>{
+    const anyVisible = [...sec.querySelectorAll('.chapter-card')].some(c=>!c.classList.contains('hidden'));
+    sec.style.display = (q && !anyVisible) ? 'none' : '';
+  });
+  emptyState.classList.toggle('show', q && visibleTotal===0);
+});
+
+/* ---------- 实时时钟 ---------- */
+function tickClock(){
+  const el = document.getElementById('clock');
+  if(el) el.textContent = new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ---------- 星尘背景（轻量 canvas） ---------- */
+(function(){
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let w,h,stars;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const count = Math.min(120, Math.floor((w*h)/14000));
+    stars = Array.from({length:count},()=>({
+      x:Math.random()*w, y:Math.random()*h,
+      r:Math.random()*1.3+0.2,
+      s:Math.random()*0.5+0.15,
+      p:Math.random()*Math.PI*2
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#cfe0ff';
+    stars.forEach(st=>{
+      const tw = reduced ? 0.8 : (0.5 + 0.5*Math.sin(t*0.001*st.s + st.p));
+      ctx.globalAlpha = 0.15 + tw*0.55;
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.r, 0, Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if(!reduced) requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+/* 峇株吧辖华仁中学蔡逸众制作 */
+</script>
+
+<!--
+  峇株吧辖蔡逸众制作
+  ————————————————————————————————————————————————————————
+  文件说明：本页为纯前端离线单文件，无外部 CDN / 网络依赖，
+  所有字体使用系统内建字体族回退，可在校内离线环境正常运行。
+  华仁中学蔡逸众制作
+  ————————————————————————————————————————————————————————
+  Made by ecchua79
+-->
+</body>
+</html>
