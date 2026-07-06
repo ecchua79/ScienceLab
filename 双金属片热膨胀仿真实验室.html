@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双金属片热膨胀交互式物理实验室</title>
+    <!-- 引入 Tailwind CSS 提供精美科学学术布局 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Inter 字体提升学术高质感 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0b0f19; /* 更加沉浸式的深空蓝底色 */
+        }
+        
+        /* 拟真火焰动画 */
+        @keyframes flameFlicker {
+            0% { transform: scale(1, 1) rotate(-1deg); filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.6)); }
+            20% { transform: scale(0.93, 1.07) rotate(1deg) skewX(-1deg); }
+            40% { transform: scale(1.07, 0.93) rotate(-0.5deg) skewX(1deg); filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.7)); }
+            60% { transform: scale(0.97, 1.03) rotate(1.5deg); }
+            80% { transform: scale(1.03, 0.97) rotate(-1deg) skewX(-0.5deg); }
+            100% { transform: scale(1, 1) rotate(0deg); filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.6)); }
+        }
+        .animate-flame {
+            animation: flameFlicker 0.12s infinite alternate ease-in-out;
+            transform-origin: bottom center;
+        }
+
+        /* 蒸汽/冷气上升动画 */
+        @keyframes steamRise {
+            0% { transform: translateY(0) scale(0.6); opacity: 0.8; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-70px) scale(2.0); opacity: 0; }
+        }
+        .steam-particle {
+            animation: steamRise 1.2s forwards ease-out;
+        }
+
+        /* 网格背景，增强物理实验室质感 */
+        .science-grid {
+            background-size: 24px 24px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center font-bold text-white shadow-lg shadow-orange-500/20">
+                Cu
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
+                    双金属片热膨胀虚拟实验室 
+                    <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">标准物理对照版</span>
+                </h1>
+                <p class="text-xs text-slate-400">参考标准图 <code class="bg-slate-800 px-1 py-0.5 rounded text-indigo-300">2metal.png</code> 进行等比例曲率与多状态修正设计</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> 高精度算法运行中
+            </span>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 左侧及中部：实验渲染主视区 (占 2 栏) -->
+        <div class="lg:col-span-2 flex flex-col space-y-4">
+            
+            <!-- 仿真画布容器 -->
+            <div class="relative bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden science-grid flex-1 min-h-[480px] flex flex-col justify-between p-6">
+                
+                <!-- 顶部实时状态看板 -->
+                <div class="flex justify-between items-start z-10">
+                    <div class="bg-slate-900/95 border border-slate-800 px-4 py-2.5 rounded-xl shadow-lg">
+                        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">双金属片约束设定</div>
+                        <div class="flex items-center gap-4 text-xs font-medium">
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-2 bg-orange-500 rounded-sm"></span> 上层：铜片 (Copper, α 较大)</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-2 bg-slate-400 rounded-sm"></span> 下层：铁片 (Iron, α 较小)</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 物理高保真温度计 -->
+                    <div class="bg-slate-900/95 border border-slate-800 px-4 py-2.5 rounded-xl shadow-lg flex items-center space-x-3">
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">系统当前温度</span>
+                            <span id="tempReadout" class="text-2xl font-black font-mono text-amber-500">20.0<span class="text-sm font-normal">°C</span></span>
+                        </div>
+                        <div class="w-3 h-12 bg-slate-800 rounded-full relative overflow-hidden border border-slate-700">
+                            <!-- 动态温度进度条 -->
+                            <div id="thermometerBar" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 via-amber-500 to-red-600 transition-all duration-100" style="height: 24%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SVG 主画布 -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <svg id="labCanvas" viewBox="0 0 800 480" class="w-full h-full">
+                        <defs>
+                            <!-- 渐变：常温铜片 -->
+                            <linearGradient id="copperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#f97316" />
+                                <stop offset="100%" stop-color="#ea580c" />
+                            </linearGradient>
+                            <!-- 渐变：受热红炽铜片 -->
+                            <linearGradient id="copperHotGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#ef4444" />
+                                <stop offset="60%" stop-color="#f97316" />
+                                <stop offset="100%" stop-color="#ea580c" />
+                            </linearGradient>
+
+                            <!-- 渐变：铁片 -->
+                            <linearGradient id="ironGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#94a3b8" />
+                                <stop offset="100%" stop-color="#64748b" />
+                            </linearGradient>
+                            <!-- 渐变：受冷冷缩铁片 -->
+                            <linearGradient id="ironColdGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8" />
+                                <stop offset="100%" stop-color="#64748b" />
+                            </linearGradient>
+
+                            <!-- 火焰径向渐变 -->
+                            <radialGradient id="flameOuter" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.9" />
+                                <stop offset="70%" stop-color="#ef4444" stop-opacity="0.4" />
+                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+                            </radialGradient>
+                            <radialGradient id="flameInner" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.95" />
+                                <stop offset="60%" stop-color="#0284c7" stop-opacity="0.6" />
+                                <stop offset="100%" stop-color="#0369a1" stop-opacity="0" />
+                            </radialGradient>
+
+                            <!-- 原子高光渐变 -->
+                            <radialGradient id="cuAtomGrad" cx="30%" cy="30%" r="70%">
+                                <stop offset="0%" stop-color="#ffedd5" />
+                                <stop offset="40%" stop-color="#f97316" />
+                                <stop offset="100%" stop-color="#c2410c" />
+                            </radialGradient>
+                            <radialGradient id="feAtomGrad" cx="30%" cy="30%" r="70%">
+                                <stop offset="0%" stop-color="#f1f5f9" />
+                                <stop offset="50%" stop-color="#94a3b8" />
+                                <stop offset="100%" stop-color="#475569" />
+                            </radialGradient>
+
+                            <!-- 放大镜阴影 -->
+                            <filter id="glassShadow" x="-15%" y="-15%" width="130%" height="130%">
+                                <feDropShadow dx="3" dy="6" stdDeviation="5" flood-opacity="0.6" flood-color="#000"/>
+                            </filter>
+                        </defs>
+
+                        <!-- 背景刻度网格物理基准线 -->
+                        <line x1="120" y1="240" x2="520" y2="240" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="6,4" />
+                        <text x="530" y="243" fill="#475569" font-size="10" font-family="monospace">基准线 (0°C)</text>
+
+                        <!-- ================= 物理实体：双金属片层 ================= -->
+                        <g id="bimetallicGroup">
+                            <!-- 铜片 (上层) -->
+                            <path id="copperLayer" fill="url(#copperGrad)" filter="drop-shadow(0px 2px 3px rgba(0,0,0,0.4))" />
+                            <!-- 铁片 (下层) -->
+                            <path id="ironLayer" fill="url(#ironGrad)" filter="drop-shadow(0px 2px 3px rgba(0,0,0,0.4))" />
+                            
+                            <!-- 铆钉约束点 (固定衔接点，随动) -->
+                            <g id="rivetsGroup">
+                                <circle id="rivet0" r="3.5" fill="#1e293b" stroke="#e2e8f0" stroke-width="1" />
+                                <circle id="rivet1" r="3.5" fill="#1e293b" stroke="#e2e8f0" stroke-width="1" />
+                                <circle id="rivet2" r="3.5" fill="#1e293b" stroke="#e2e8f0" stroke-width="1" />
+                                <circle id="rivet3" r="3.5" fill="#1e293b" stroke="#e2e8f0" stroke-width="1" />
+                                <circle id="rivet4" r="3.5" fill="#1e293b" stroke="#e2e8f0" stroke-width="1" />
+                            </g>
+                        </g>
+
+                        <!-- 左端金属强固固定端 -->
+                        <g id="fixedClamp" transform="translate(60, 195)">
+                            <rect x="0" y="0" width="60" height="90" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2.5" />
+                            <rect x="50" y="32" width="15" height="26" rx="2" fill="#64748b" />
+                            <circle cx="30" cy="22" r="7" fill="#475569" stroke="#0f172a" />
+                            <circle cx="30" cy="68" r="7" fill="#475569" stroke="#0f172a" />
+                            <line x1="24" y1="22" x2="36" y2="22" stroke="#1e293b" stroke-width="2.5" />
+                            <line x1="24" y1="68" x2="36" y2="68" stroke="#1e293b" stroke-width="2.5" />
+                            <text x="30" y="83" fill="#94a3b8" font-size="9" text-anchor="middle" font-weight="900" letter-spacing="1">固定端</text>
+                        </g>
+
+                        <!-- ================= 本生灯模型 (加热源) ================= -->
+                        <g id="bunsenBurner" transform="translate(250, 305)">
+                            <!-- 交互圈 -->
+                            <circle cx="20" cy="60" r="50" fill="rgba(249, 115, 22, 0.03)" class="animate-pulse" />
+                            <!-- 底座 -->
+                            <path d="M 0 100 L 40 100 L 32 80 L 8 80 Z" fill="#334155" stroke="#475569" stroke-width="2" />
+                            <rect x="15" y="80" width="10" height="6" fill="#1e293b" />
+                            <!-- 金属管 -->
+                            <rect x="17" y="35" width="6" height="45" fill="#94a3b8" stroke="#475569" stroke-width="1" />
+                            <!-- 调节阀 -->
+                            <rect x="13" y="65" width="14" height="6" fill="#d97706" rx="1.5" />
+                            <ellipse cx="20" cy="35" rx="4" ry="2" fill="#475569" />
+                            <rect x="-10" y="10" width="60" height="100" fill="transparent" class="cursor-pointer" onclick="toggleBurner()" />
+                            
+                            <!-- 火焰粒子效果 -->
+                            <g id="burnerFlame" style="display: none;">
+                                <path class="animate-flame" d="M 20 35 C 2 15, 2 -15, 20 -40 C 38 -15, 38 15, 20 35 Z" fill="url(#flameOuter)" style="mix-blend-mode: screen;" />
+                                <path class="animate-flame" d="M 20 35 C 8 22, 8 3, 20 -20 C 32 3, 32 22, 20 35 Z" fill="url(#flameInner)" style="mix-blend-mode: screen; animation-delay: 0.04s;" />
+                                <ellipse cx="20" cy="30" rx="3.5" ry="9" fill="#ffffff" opacity="0.95" class="animate-pulse" />
+                            </g>
+                        </g>
+
+                        <!-- ================= 制冷源 (冷缩源，在上方呈现) ================= -->
+                        <g id="freezerCoil" transform="translate(250, 80)" style="display: none;">
+                            <!-- 冷气发生喷嘴 -->
+                            <rect x="16" y="0" width="8" height="40" fill="#cbd5e1" stroke="#64748b" />
+                            <path d="M 12 40 L 28 40 L 32 50 L 8 50 Z" fill="#475569" />
+                            <text x="20" y="-10" fill="#38bdf8" font-size="9" text-anchor="middle" font-weight="bold">冰气喷口</text>
+                        </g>
+
+                        <!-- 气体微粒释放容器 -->
+                        <g id="steamGroup"></g>
+
+                        <!-- ================= 放大镜微观机制世界 ================= -->
+                        <!-- 标框 -->
+                        <rect id="inspectBox" x="250" y="225" width="30" height="30" stroke="rgba(99,102,241,0.6)" stroke-width="2" stroke-dasharray="4,3" fill="none" />
+                        <line id="inspectLineTop" x1="280" y1="225" x2="570" y2="105" stroke="rgba(99,102,241,0.3)" stroke-width="1.2" stroke-dasharray="3,3" />
+                        <line id="inspectLineBot" x1="280" y1="255" x2="570" y2="255" stroke="rgba(99,102,241,0.3)" stroke-width="1.2" stroke-dasharray="3,3" />
+
+                        <!-- 放大镜视窗本体 -->
+                        <g id="magnifier" transform="translate(650, 180)" filter="url(#glassShadow)">
+                            <clipPath id="lensClip">
+                                <circle cx="0" cy="0" r="75" />
+                            </clipPath>
+                            
+                            <circle cx="0" cy="0" r="75" fill="#070a13" stroke="#334155" stroke-width="1.5" />
+                            
+                            <!-- 剪裁后的原子动画区 -->
+                            <g clip-path="url(#lensClip)">
+                                <g id="cuAtomsGroup"></g>
+                                <g id="feAtomsGroup"></g>
+                                <line x1="-80" y1="0" x2="80" y2="0" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-dasharray="5,5" />
+                                <text x="-70" y="-8" fill="#fdba74" font-size="8.5" font-weight="bold" opacity="0.8">铜晶格 (Cu)</text>
+                                <text x="-70" y="15" fill="#cbd5e1" font-size="8.5" font-weight="bold" opacity="0.8">铁晶格 (Fe)</text>
+                            </g>
+                            
+                            <!-- 金属边框与握柄 -->
+                            <circle cx="0" cy="0" r="75" fill="none" stroke="#64748b" stroke-width="6.5" />
+                            <circle cx="0" cy="0" r="75" fill="none" stroke="#f1f5f9" stroke-width="1.5" opacity="0.9" />
+                            <path d="M 53 53 L 98 98" stroke="#475569" stroke-width="13" stroke-linecap="round" />
+                            <path d="M 53 53 L 98 98" stroke="#0f172a" stroke-width="6" stroke-linecap="round" />
+                            <!-- 镜面高光反射 -->
+                            <path d="M -50 -50 A 70 70 0 0 1 -15 -68" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.4" />
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- 底部快捷操作条 -->
+                <div class="flex flex-wrap gap-2 justify-between items-center w-full z-10 bg-slate-900/60 backdrop-blur-md p-3.5 rounded-xl border border-slate-800/80 mt-auto">
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="toggleBurner()" id="btnFlame" class="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5">
+                            <span id="flameBtnIcon">🔥</span> <span id="flameBtnText">开启加热</span>
+                        </button>
+                        <button onclick="toggleFreezer()" id="btnFreezer" class="px-4 py-2 bg-gradient-to-r from-cyan-700 to-blue-500 hover:from-cyan-600 hover:to-blue-400 active:scale-95 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5">
+                            <span id="freezerBtnIcon">❄️</span> <span id="freezerBtnText">极限制冷</span>
+                        </button>
+                        <button onclick="sprayWater()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-all flex items-center space-x-1.5">
+                            <span>💧</span> <span>喷淋冷却</span>
+                        </button>
+                        <button onclick="resetExperiment()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-medium rounded-lg transition-all">
+                            重置
+                        </button>
+                    </div>
+                    <div class="text-[11px] text-slate-500 font-mono">
+                        点击本生灯底座可直接操控点火
+                    </div>
+                </div>
+            </div>
+
+            <!-- 物理参数细节板 -->
+            <div class="bg-slate-900 rounded-xl border border-slate-800 p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                    <span class="text-[11px] text-slate-500 uppercase font-semibold block">铜线胀系数 α_Cu</span>
+                    <span class="text-base font-bold text-orange-400 font-mono">16.5 × 10⁻⁶<span class="text-xs text-slate-500 ml-0.5">/K</span></span>
+                </div>
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                    <span class="text-[11px] text-slate-500 uppercase font-semibold block">铁线胀系数 α_Fe</span>
+                    <span class="text-base font-bold text-slate-300 font-mono">11.8 × 10⁻⁶<span class="text-xs text-slate-500 ml-0.5">/K</span></span>
+                </div>
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                    <span class="text-[11px] text-slate-500 uppercase font-semibold block">自由端垂直位移 Δy</span>
+                    <span id="dataDisplacement" class="text-base font-bold text-indigo-400 font-mono">0.00<span class="text-xs text-slate-500 ml-0.5"> mm</span></span>
+                </div>
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                    <span class="text-[11px] text-slate-500 uppercase font-semibold block">热致弯曲曲率 κ</span>
+                    <span id="dataCurvature" class="text-base font-bold text-emerald-400 font-mono">0.000<span class="text-xs text-slate-500 ml-0.5"> m⁻¹</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：教学对比与控制控制台 -->
+        <div class="space-y-6">
+            
+            <!-- 教学参考 2metal.png 快捷对比板 -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg space-y-4">
+                <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
+                    <span class="text-xs bg-amber-500/10 text-amber-400 px-2.5 py-0.5 rounded font-bold">对照组</span>
+                    <h3 class="text-sm font-bold tracking-wider text-slate-200 uppercase">2metal.png 状态快捷复现</h3>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    点击下方物理节点，可直接重现参考图中的三种经典物理形态，观察曲率变化及对应的原子分子晶格响应：
+                </p>
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <button onclick="setDirectState(20)" class="py-2.5 px-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition-all flex flex-col items-center gap-1">
+                        <span class="text-[10px] text-slate-500 block font-normal">① 状态</span>
+                        <span class="text-emerald-400">常温 (20°C)</span>
+                    </button>
+                    <button onclick="setDirectState(400)" class="py-2.5 px-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition-all flex flex-col items-center gap-1">
+                        <span class="text-[10px] text-slate-500 block font-normal">② 状态</span>
+                        <span class="text-orange-400">最大弯曲 (400°C)</span>
+                    </button>
+                    <button onclick="setDirectState(-100)" class="py-2.5 px-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition-all flex flex-col items-center gap-1">
+                        <span class="text-[10px] text-slate-500 block font-normal">③ 状态</span>
+                        <span class="text-cyan-400">冷却后 (-100°C)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 手动连续调节控制面板 -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg space-y-4">
+                <h3 class="text-sm font-bold tracking-wider text-slate-200 uppercase border-b border-slate-800 pb-2">连续物理参数控制</h3>
+                
+                <!-- 连续滑块控制温度 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400 font-medium">手动设定系统温度 (连续)</span>
+                        <span class="text-indigo-400 font-mono font-bold" id="sliderVal">20 °C</span>
+                    </div>
+                    <input type="range" id="tempSlider" min="-100" max="400" value="20" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500" oninput="handleSliderChange(this.value)">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                        <span>-100°C (深冻)</span>
+                        <span>20°C (室温)</span>
+                        <span>400°C (高温)</span>
+                    </div>
+                </div>
+
+                <!-- 物理传导速率控制 -->
+                <div class="space-y-2">
+                    <label class="text-xs text-slate-400 font-medium block">热传导响应效率 (时序速率)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setSpeed(0.5)" id="speed05" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs transition-colors">慢速 (0.5x)</button>
+                        <button onclick="setSpeed(1)" id="speed10" class="py-1.5 bg-indigo-600 rounded text-xs transition-colors font-semibold">正常 (1.0x)</button>
+                        <button onclick="setSpeed(2.5)" id="speed25" class="py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs transition-colors">高速 (2.5x)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实时曲率趋势曲线 -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold tracking-wider text-slate-200 uppercase">系统热致弯曲物理曲线</h3>
+                    <span class="text-[10px] text-indigo-400 font-mono">温度 - 曲率(κ)</span>
+                </div>
+                <div class="bg-slate-950 rounded-lg p-2 border border-slate-800 relative h-32 flex items-end">
+                    <!-- 动态高保真曲线图 -->
+                    <svg class="w-full h-full" viewBox="0 0 200 100" preserveAspectRatio="none">
+                        <!-- 基准中轴线 -->
+                        <line x1="0" y1="50" x2="200" y2="50" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" stroke-dasharray="3,3" />
+                        <text x="3" y="47" fill="#64748b" font-size="6">常温基准 κ=0</text>
+                        <!-- 网格刻度 -->
+                        <line x1="0" y1="15" x2="200" y2="15" stroke="rgba(255,255,255,0.03)" stroke-width="0.5" />
+                        <line x1="0" y1="85" x2="200" y2="85" stroke="rgba(255,255,255,0.03)" stroke-width="0.5" />
+                        
+                        <!-- 静态理论解线 (温度在 -100 到 400 之间与弯曲的关系) -->
+                        <path id="chartTheoryPath" d="M 10 75 L 50 50 L 190 10" fill="none" stroke="rgba(99,102,241,0.15)" stroke-width="1.5" stroke-dasharray="3,2" />
+                        
+                        <!-- 动态追踪物理连线 -->
+                        <path id="chartRealpath" fill="none" stroke="#6366f1" stroke-width="2.5" />
+                        
+                        <!-- 实时运行状态浮标 -->
+                        <circle id="chartCursor" cx="50" cy="50" r="4.5" fill="#f59e0b" filter="drop-shadow(0 0 3px #f59e0b)" />
+                    </svg>
+                    <div class="absolute bottom-1 right-2 text-[8px] text-slate-500 font-mono">横轴：温度 ｜ 纵轴：弯曲偏角/曲率</div>
+                </div>
+            </div>
+
+            <!-- 随堂物理探究习题 -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg space-y-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded font-bold">思考与探究</span>
+                    <h3 class="text-sm font-bold text-slate-200">科学原理小挑战</h3>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    在参考图 <code class="bg-slate-800 px-1 py-0.5 rounded text-indigo-300">2metal.png</code> 第三幅图所示的“<b>冷却后</b>”状态下，金属片反向（向上）发生了弯曲，这在物理本质上证明了什么？
+                </p>
+                <div class="space-y-2">
+                    <button onclick="checkAnswer(0)" class="w-full text-left p-2.5 text-xs rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800/80 transition-all flex justify-between items-center" id="option0">
+                        <span>A. 铜在极冷环境下的膨胀系数变成了负数</span>
+                        <span class="marker"></span>
+                    </button>
+                    <button onclick="checkAnswer(1)" class="w-full text-left p-2.5 text-xs rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800/80 transition-all flex justify-between items-center" id="option1">
+                        <span>B. 降温收缩时，铜片的收缩率（线收缩）同样大于铁片</span>
+                        <span class="marker"></span>
+                    </button>
+                    <button onclick="checkAnswer(2)" class="w-full text-left p-2.5 text-xs rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800/80 transition-all flex justify-between items-center" id="option2">
+                        <span>C. 因为重力的作用减弱，金属片向上飘起</span>
+                        <span class="marker"></span>
+                    </button>
+                </div>
+                <!-- 互动物理答题反馈 -->
+                <div id="quizFeedback" class="hidden p-3 rounded-lg text-xs leading-relaxed"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 物理理论基础说明 -->
+    <section class="max-w-7xl w-full mx-auto px-4 lg:px-6 pb-8">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-md">
+            <h3 class="text-base font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-4 bg-orange-500 rounded-sm"></span> 双金属片热胀冷缩定量物理规律
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-400 leading-relaxed">
+                <div>
+                    <h4 class="font-semibold text-slate-200 mb-1.5 text-sm flex items-center gap-1.5">
+                        <span class="w-1 h-1 rounded-full bg-orange-500"></span> 1. 热胀冷缩的各向同性
+                    </h4>
+                    <p>对于大部分固体材料，线胀系数 $\alpha$ 描述了温度变化 $1\text{ K}$ 时固体的相对伸缩比例。加热时由于晶格震动排斥，两金属均伸长，上层铜的 $\alpha_{Cu} > \alpha_{Fe}$，故铜伸得更长，双金属片整体朝铁（下）侧弯曲。降温（低于常温）时，铜片收缩得同样更多，长度变得比铁片更短，因此整体反向（朝上）弯曲。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-200 mb-1.5 text-sm flex items-center gap-1.5">
+                        <span class="w-1 h-1 rounded-full bg-orange-500"></span> 2. 微观晶格动力学
+                    </h4>
+                    <p>观察右侧的“微观放大镜”：温度升高时，原子的热震动能增加，<b>铜原子（橙色）</b>偏离其平衡位置的平均位移大于<b>铁原子（灰色）</b>，宏观上表现为强大的张应力；反之，极冷状态下，热振动骤减，强烈的分子引力使得铜原子紧密收缩，分子间距大幅度缩小，拉扯铁原子向上弯曲。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-slate-200 mb-1.5 text-sm flex items-center gap-1.5">
+                        <span class="w-1 h-1 rounded-full bg-orange-500"></span> 3. 标准物理对照与修正
+                    </h4>
+                    <p>本仿真实验室根据 <code class="bg-slate-800 px-1 py-0.5 rounded text-indigo-300">2metal.png</code> 进行了曲率与位移上限限定：最大加热状态不发生扭曲缠绕，而是呈现约 50 像素的优雅自由端偏斜；深度冷却状态提供反向温差弯曲，精准对应参考图的物理逻辑，确保学术直观和科学严谨。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="mt-auto border-t border-slate-800 bg-slate-950 py-4 text-center text-xs text-slate-500">
+        © 2026 物理科学交互式探究实验室 · 高保真 SVG 动态曲率系统
+    </footer>
+
+    <!-- ================= 物理控制与高保真动力学脚本 ================= -->
+    <script>
+        // 1. 核心物理常数及参数配置
+        const PHYSICS = {
+            L: 340,             // 裸片初始总长度 (像素)
+            d: 11,              // 单片厚度 (像素, 铜铁各11px)
+            x0: 120,            // 锚点X
+            y0: 240,            // 锚点Y (根据参考图中轴线进行常温零位设定)
+            alphaCu: 16.5e-6,   // 铜线膨胀系数 (1/K)
+            alphaFe: 11.8e-6,   // 铁线膨胀系数 (1/K)
+            T_room: 20.0,       // 室温 (度)
+            T_max: 400.0,       // 最大加热温度目标 (度)
+            T_cold: -100.0      // 极冷状态温度目标 (度)
+        };
+
+        // 2. 系统运行时状态变量
+        let state = {
+            currentTemp: 20.0,
+            targetTemp: 20.0,
+            isBurnerOn: false,
+            isFreezerOn: false,
+            speedMultiplier: 1.0,
+            isRapidCooling: false
+        };
+
+        // 3. 微观放大镜晶格初始化原子数组
+        const atoms = {
+            cu: [],
+            fe: []
+        };
+
+        // 4. 水雾/冷气粒子运动数组
+        let activeParticles = [];
+
+        // 初始化函数
+        window.onload = function() {
+            setupMicroscopeAtoms();
+            tick(); // 启动高保真物理主循环
+        }
+
+        // 初始化微观原子的初始相对位置
+        function setupMicroscopeAtoms() {
+            const rowsCu = 2; // 铜原子两行
+            const rowsFe = 2; // 铁原子两行
+            const cols = 7;   // 每行7个
+
+            // 铜原子行（上方）
+            for (let r = 0; r < rowsCu; r++) {
+                const yOffset = -15 - r * 22;
+                for (let c = 0; c < cols; c++) {
+                    atoms.cu.push({
+                        id: `cu_${r}_${c}`,
+                        gridX: c - 3, // 以中心原子为 0 坐标，左右分布
+                        gridY: yOffset,
+                        baseX: (c - 3) * 22,
+                        baseY: yOffset
+                    });
+                }
+            }
+
+            // 铁原子行（下方）
+            for (let r = 0; r < rowsFe; r++) {
+                const yOffset = 15 + r * 22;
+                for (let c = 0; c < cols; c++) {
+                    atoms.fe.push({
+                        id: `fe_${r}_${c}`,
+                        gridX: c - 3,
+                        gridY: yOffset,
+                        baseX: (c - 3) * 22,
+                        baseY: yOffset
+                    });
+                }
+            }
+
+            // 动态绘制微观原子的SVG节点
+            const cuG = document.getElementById("cuAtomsGroup");
+            const feG = document.getElementById("feAtomsGroup");
+
+            atoms.cu.forEach(atom => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", atom.id);
+                circle.setAttribute("r", "7.5");
+                circle.setAttribute("fill", "url(#cuAtomGrad)");
+                circle.setAttribute("stroke", "#ea580c");
+                circle.setAttribute("stroke-width", "0.5");
+                cuG.appendChild(circle);
+            });
+
+            atoms.fe.forEach(atom => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", atom.id);
+                circle.setAttribute("r", "7.5");
+                circle.setAttribute("fill", "url(#feAtomGrad)");
+                circle.setAttribute("stroke", "#475569");
+                circle.setAttribute("stroke-width", "0.5");
+                feG.appendChild(circle);
+            });
+        }
+
+        /**
+         * 物理积分几何算法：
+         * 给定曲率kappa，计算并生成精细的双金属片弯曲面，在非过度卷曲范围内保证视觉与几何解的完美契合
+         */
+        function calculateBimetallicPath(kappa) {
+            const N = 40; // 细分步数，提供极其圆滑的曲线
+            const L = PHYSICS.L;
+            const d = PHYSICS.d;
+            const x0 = PHYSICS.x0;
+            const y0 = PHYSICS.y0;
+
+            let topPoints = [];
+            let midPoints = [];
+            let botPoints = [];
+
+            for (let i = 0; i <= N; i++) {
+                const s = L * (i / N);
+                let x, y, dx, dy;
+
+                if (Math.abs(kappa) < 1e-7) {
+                    // 常温完全平直状态 (如 2metal.png 中的 ① 状态)
+                    x = s;
+                    y = 0;
+                    dx = 0;   // 法向量x
+                    dy = -1;  // 法向量y (向上)
+                } else {
+                    // 圆弧状态积分计算
+                    // kappa > 0 时向下弯曲，kappa < 0 时向上弯曲
+                    x = Math.sin(kappa * s) / kappa;
+                    y = (1 - Math.cos(kappa * s)) / kappa;
+                    
+                    // 计算当前弧长切线的法线方向
+                    dx = Math.sin(kappa * s);
+                    dy = -Math.cos(kappa * s);
+                }
+
+                // 铜片在上，沿法线延伸 d 像素
+                topPoints.push({ x: x0 + x + d * dx, y: y0 + y + d * dy });
+                // 交界面
+                midPoints.push({ x: x0 + x, y: y0 + y });
+                // 铁片在下，沿法线相反延伸 d 像素
+                botPoints.push({ x: x0 + x - d * dx, y: y0 + y - d * dy });
+            }
+
+            return { topPoints, midPoints, botPoints };
+        }
+
+        // 物理动力学主时钟循环
+        function tick() {
+            // 1. 连续热传导模拟
+            if (state.isRapidCooling) {
+                // 喷水快速向室温逼近
+                state.targetTemp = PHYSICS.T_room;
+                state.currentTemp += (state.targetTemp - state.currentTemp) * 0.12 * state.speedMultiplier;
+                if (Math.abs(state.currentTemp - state.targetTemp) < 0.2) {
+                    state.currentTemp = state.targetTemp;
+                    state.isRapidCooling = false;
+                }
+                // 喷水时产生白色水蒸气冷凝雾
+                if (state.currentTemp > 45) {
+                    generateSteamParticle(false);
+                }
+            } else if (state.isBurnerOn) {
+                // 本生灯加热
+                state.targetTemp = PHYSICS.T_max;
+                state.currentTemp += (state.targetTemp - state.currentTemp) * 0.016 * state.speedMultiplier;
+            } else if (state.isFreezerOn) {
+                // 冷却后/低温极寒制冷
+                state.targetTemp = PHYSICS.T_cold;
+                state.currentTemp += (state.targetTemp - state.currentTemp) * 0.02 * state.speedMultiplier;
+                // 制冷喷射冷气颗粒
+                generateSteamParticle(true);
+            } else {
+                // 环境自然回温至室温
+                state.targetTemp = PHYSICS.T_room;
+                state.currentTemp += (state.targetTemp - state.currentTemp) * 0.006 * state.speedMultiplier;
+            }
+
+            // 更新温度数值以及温度计等UI组件
+            updateUIComponents();
+
+            // 2. 根据温度计算高精准的物理弯曲
+            const dT = state.currentTemp - PHYSICS.T_room;
+            
+            // 物理公式： kappa ≈ 1.5 * (alpha_Cu - alpha_Fe) * dT / thickness
+            // 我们限制视觉曲率缩放因子为 13.0，使最大弯曲与 2metal.png 完美匹配！
+            const physicalKappa = (1.5 * (PHYSICS.alphaCu - PHYSICS.alphaFe) * dT) / (2 * PHYSICS.d);
+            const visualScaleFactor = 13.0; // 调整为13以实现精确、平滑、中等偏折
+            const kappa = physicalKappa * visualScaleFactor;
+
+            const { topPoints, midPoints, botPoints } = calculateBimetallicPath(kappa);
+
+            // 3. 实时渲染铜、铁两个 SVG 路径
+            const copperLayer = document.getElementById("copperLayer");
+            const ironLayer = document.getElementById("ironLayer");
+
+            // 上层铜片闭合路径
+            let dCu = `M ${topPoints[0].x} ${topPoints[0].y} `;
+            for (let i = 1; i < topPoints.length; i++) {
+                dCu += `L ${topPoints[i].x} ${topPoints[i].y} `;
+            }
+            for (let i = midPoints.length - 1; i >= 0; i--) {
+                dCu += `L ${midPoints[i].x} ${midPoints[i].y} `;
+            }
+            dCu += "Z";
+            copperLayer.setAttribute("d", dCu);
+
+            // 下层铁片闭合路径
+            let dFe = `M ${midPoints[0].x} ${midPoints[0].y} `;
+            for (let i = 1; i < midPoints.length; i++) {
+                dFe += `L ${midPoints[i].x} ${midPoints[i].y} `;
+            }
+            for (let i = botPoints.length - 1; i >= 0; i--) {
+                dFe += `L ${botPoints[i].x} ${botPoints[i].y} `;
+            }
+            dFe += "Z";
+            ironLayer.setAttribute("d", dFe);
+
+            // 4. 金属由于极热或极冷产生的微小物理质感变化
+            if (dT > 80) {
+                // 加热红炽渐变效果
+                copperLayer.setAttribute("fill", "url(#copperHotGrad)");
+                const heatRatio = Math.min((state.currentTemp - 100) / 300, 1.0);
+                ironLayer.setAttribute("style", `filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4)) drop-shadow(0px 0px ${heatRatio * 10}px rgba(239, 68, 68, ${heatRatio * 0.55}));`);
+            } else if (dT < -20) {
+                // 降温冰蓝冷缩质感
+                copperLayer.setAttribute("fill", "url(#copperGrad)");
+                ironLayer.setAttribute("fill", "url(#ironColdGrad)");
+                ironLayer.setAttribute("style", "filter: drop-shadow(0px 2px 3px rgba(3,105,161,0.4));");
+            } else {
+                // 正常常温质感
+                copperLayer.setAttribute("fill", "url(#copperGrad)");
+                ironLayer.setAttribute("fill", "url(#ironGrad)");
+                ironLayer.setAttribute("style", "filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4));");
+            }
+
+            // 5. 更新5个约束铆钉
+            const rivetIndexes = [4, 12, 20, 28, 36];
+            rivetIndexes.forEach((ptIdx, rivetIdx) => {
+                const rivet = document.getElementById(`rivet${rivetIdx}`);
+                const pt = midPoints[ptIdx];
+                rivet.setAttribute("cx", pt.x);
+                rivet.setAttribute("cy", pt.y);
+            });
+
+            // 6. 联动更新微观晶体原子的振荡幅度与间距膨胀
+            updateMicroscopicAtoms(dT);
+
+            // 7. 更新释放的气体颗粒并保持性能释放
+            updateSteamParticles();
+
+            // 8. 绘制同步物理趋势关系折线
+            updateLiveChart(state.currentTemp, kappa);
+
+            requestAnimationFrame(tick);
+        }
+
+        // 更新微观原子晶格的热运动与热胀冷缩缩放
+        function updateMicroscopicAtoms(dT) {
+            // 各自的热线膨胀率
+            const cuExpandScale = 0.00032;
+            const feExpandScale = 0.00014;
+            
+            // 随温度变化的振荡幅度
+            const jitterAmp = 0.5 + Math.max(dT, -100) * 0.008;
+
+            // 渲染铜原子 (上方橙色)
+            atoms.cu.forEach(atom => {
+                const expandX = atom.baseX * (1 + cuExpandScale * dT);
+                
+                // 热震动布朗运动
+                const jitX = (Math.random() - 0.5) * jitterAmp;
+                const jitY = (Math.random() - 0.5) * jitterAmp;
+
+                const circle = document.getElementById(atom.id);
+                circle.setAttribute("cx", expandX + jitX);
+                circle.setAttribute("cy", atom.baseY + jitY);
+            });
+
+            // 渲染铁原子 (下方灰色)
+            atoms.fe.forEach(atom => {
+                const expandX = atom.baseX * (1 + feExpandScale * dT);
+                
+                const jitX = (Math.random() - 0.5) * jitterAmp;
+                const jitY = (Math.random() - 0.5) * jitterAmp;
+
+                const circle = document.getElementById(atom.id);
+                circle.setAttribute("cx", expandX + jitX);
+                circle.setAttribute("cy", atom.baseY + jitY);
+            });
+        }
+
+        // 蒸汽/冷气微粒生成与更新
+        function generateSteamParticle(isColdGas) {
+            const steamGroup = document.getElementById("steamGroup");
+            
+            let px, py;
+            if (isColdGas) {
+                // 从制冷喷管向下释放
+                px = 240 + Math.random() * 50;
+                py = 130 + Math.random() * 20;
+            } else {
+                // 快速喷水冷却产生的水雾向上
+                px = 180 + Math.random() * 200;
+                py = 220 + Math.random() * 40;
+            }
+            
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", px);
+            circle.setAttribute("cy", py);
+            circle.setAttribute("r", 3 + Math.random() * 6);
+            circle.setAttribute("fill", isColdGas ? "#bae6fd" : "#f1f5f9");
+            
+            // 使用 CSS 动画
+            circle.setAttribute("class", "steam-particle");
+            circle.setAttribute("opacity", isColdGas ? "0.6" : "0.75");
+            if (isColdGas) {
+                // 冷空气向下沉
+                circle.style.animation = "steamRise 1.5s forwards ease-out reverse";
+            }
+            
+            steamGroup.appendChild(circle);
+            activeParticles.push({
+                element: circle,
+                spawnTime: Date.now()
+            });
+        }
+
+        function updateSteamParticles() {
+            const now = Date.now();
+            activeParticles = activeParticles.filter(p => {
+                if (now - p.spawnTime > 1200) {
+                    p.element.remove();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // 同步 UI 示数与温度计
+        function updateUIComponents() {
+            const tempVal = state.currentTemp;
+            
+            // 温度计及显示读数
+            document.getElementById("tempReadout").innerHTML = `${tempVal.toFixed(1)}<span class="text-xs font-normal"> °C</span>`;
+            
+            // 映射关系 (-100°C 到 400°C) -> 百分比 (0% 到 100%)
+            const percent = ((tempVal - PHYSICS.T_cold) / (PHYSICS.T_max - PHYSICS.T_cold)) * 100;
+            document.getElementById("thermometerBar").style.height = `${Math.max(percent, 4)}%`;
+
+            // 滑块
+            const slider = document.getElementById("tempSlider");
+            if (Math.abs(parseFloat(slider.value) - tempVal) > 1.5) {
+                slider.value = Math.round(tempVal);
+            }
+            document.getElementById("sliderVal").innerText = `${Math.round(tempVal)} °C`;
+
+            // 物理真实参数换算
+            const dT = tempVal - PHYSICS.T_room;
+            const macroDeflection = 0.12 * dT * (PHYSICS.alphaCu - PHYSICS.alphaFe) * 100; // 虚拟毫米计算值
+            const macroCurvature = dT * (PHYSICS.alphaCu - PHYSICS.alphaFe) * 35; // 物理曲率
+            
+            document.getElementById("dataDisplacement").innerHTML = `${macroDeflection.toFixed(2)}<span class="text-xs text-slate-500 ml-0.5"> mm</span>`;
+            document.getElementById("dataCurvature").innerHTML = `${macroCurvature.toFixed(3)}<span class="text-xs text-slate-500 ml-0.5"> m⁻¹</span>`;
+        }
+
+        // 绘制趋势走势折线
+        function updateLiveChart(currentTemp, kappa) {
+            // 图表宽 200, 高 100
+            // 温度 (-100 to 400) 对应 X 轴: 10 to 190
+            // 曲率 (-0.0006 to 0.0016) 对应 Y 轴: 85 to 15 (50 为 y=0 常温中轴线)
+            
+            const plotX = 10 + ((currentTemp - PHYSICS.T_cold) / (PHYSICS.T_max - PHYSICS.T_cold)) * 180;
+            
+            // 零位在中点 50 处
+            let plotY = 50;
+            if (kappa >= 0) {
+                // 加热弯曲 (向下弯曲，中轴以下)
+                plotY = 50 + (kappa / 0.0018) * 35;
+            } else {
+                // 冷缩弯曲 (向上弯曲，中轴以上)
+                plotY = 50 - (Math.abs(kappa) / 0.0006) * 35;
+            }
+
+            // 游标更新
+            const cursor = document.getElementById("chartCursor");
+            cursor.setAttribute("cx", plotX);
+            cursor.setAttribute("cy", plotY);
+
+            // 绘制轨迹线
+            const realPath = document.getElementById("chartRealpath");
+            let d = `M 10 57 `;
+            
+            const minT = PHYSICS.T_cold;
+            const step = Math.min(Math.round((currentTemp - minT) / 10), 50);
+            for (let i = 0; i <= step; i++) {
+                const tempX = minT + i * ((currentTemp - minT) / step);
+                const xVal = 10 + ((tempX - minT) / (PHYSICS.T_max - minT)) * 180;
+                
+                const valKappa = (1.5 * (PHYSICS.alphaCu - PHYSICS.alphaFe) * (tempX - PHYSICS.T_room)) / (2 * PHYSICS.d) * 13.0;
+                let yVal = 50;
+                if (valKappa >= 0) {
+                    yVal = 50 + (valKappa / 0.0018) * 35;
+                } else {
+                    yVal = 50 - (Math.abs(valKappa) / 0.0006) * 35;
+                }
+                d += `L ${xVal} ${yVal} `;
+            }
+            realPath.setAttribute("d", d);
+        }
+
+        // ================= 按钮与手动滑块事件 ================= //
+
+        // 1. 点燃本生灯
+        function toggleBurner() {
+            state.isBurnerOn = !state.isBurnerOn;
+            
+            const flame = document.getElementById("burnerFlame");
+            const btnText = document.getElementById("flameBtnText");
+            const btnIcon = document.getElementById("flameBtnIcon");
+            const btn = document.getElementById("btnFlame");
+
+            if (state.isBurnerOn) {
+                flame.style.display = "block";
+                btnText.innerText = "熄灭加热";
+                btnIcon.innerText = "💨";
+                btn.className = "px-4 py-2 bg-gradient-to-r from-red-600 to-rose-500 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5";
+                
+                // 互斥关闭制冷
+                if (state.isFreezerOn) {
+                    toggleFreezer();
+                }
+                state.isRapidCooling = false;
+            } else {
+                flame.style.display = "none";
+                btnText.innerText = "开启加热";
+                btnIcon.innerText = "🔥";
+                btn.className = "px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5";
+            }
+        }
+
+        // 2. 极限制冷
+        function toggleFreezer() {
+            state.isFreezerOn = !state.isFreezerOn;
+            
+            const coil = document.getElementById("freezerCoil");
+            const btnText = document.getElementById("flameBtnText");
+            const btn = document.getElementById("btnFreezer");
+
+            if (state.isFreezerOn) {
+                coil.style.display = "block";
+                document.getElementById("freezerBtnText").innerText = "停止制冷";
+                btn.className = "px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-600 text-slate-300 text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5";
+                
+                // 互斥关闭加热
+                if (state.isBurnerOn) {
+                    toggleBurner();
+                }
+                state.isRapidCooling = false;
+            } else {
+                coil.style.display = "none";
+                document.getElementById("freezerBtnText").innerText = "极限制冷";
+                btn.className = "px-4 py-2 bg-gradient-to-r from-cyan-700 to-blue-500 hover:from-cyan-600 hover:to-blue-400 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center space-x-1.5";
+            }
+        }
+
+        // 3. 喷水冷却
+        function sprayWater() {
+            state.isRapidCooling = true;
+            if (state.isBurnerOn) toggleBurner();
+            if (state.isFreezerOn) toggleFreezer();
+        }
+
+        // 4. 一键设置目标温控点 (实现 2metal.png 快捷切换)
+        function setDirectState(temp) {
+            if (state.isBurnerOn) toggleBurner();
+            if (state.isFreezerOn) toggleFreezer();
+            
+            state.currentTemp = temp;
+            state.targetTemp = temp;
+        }
+
+        // 5. 手动滑块调温响应
+        function handleSliderChange(val) {
+            if (state.isBurnerOn) toggleBurner();
+            if (state.isFreezerOn) toggleFreezer();
+            
+            state.currentTemp = parseFloat(val);
+            state.targetTemp = parseFloat(val);
+        }
+
+        // 6. 热响应速率设定
+        function setSpeed(val) {
+            state.speedMultiplier = val;
+
+            document.getElementById("speed05").className = "py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs transition-colors";
+            document.getElementById("speed10").className = "py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs transition-colors";
+            document.getElementById("speed25").className = "py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs transition-colors";
+
+            if (val === 0.5) {
+                document.getElementById("speed05").className = "py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold transition-colors";
+            } else if (val === 1) {
+                document.getElementById("speed10").className = "py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold transition-colors";
+            } else {
+                document.getElementById("speed25").className = "py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold transition-colors";
+            }
+        }
+
+        // 7. 重置
+        function resetExperiment() {
+            if (state.isBurnerOn) toggleBurner();
+            if (state.isFreezerOn) toggleFreezer();
+            
+            state.currentTemp = PHYSICS.T_room;
+            state.targetTemp = PHYSICS.T_room;
+            state.isRapidCooling = false;
+            setSpeed(1);
+            resetQuiz();
+        }
+
+        // 8. 习题互动正误判断
+        function checkAnswer(idx) {
+            const feedback = document.getElementById("quizFeedback");
+            
+            for (let i = 0; i < 3; i++) {
+                const opt = document.getElementById(`option${i}`);
+                opt.className = "w-full text-left p-2.5 text-xs rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800/80 transition-all flex justify-between items-center";
+                opt.querySelector(".marker").innerHTML = "";
+            }
+
+            const activeOpt = document.getElementById(`option${idx}`);
+            feedback.classList.remove("hidden");
+
+            if (idx === 1) {
+                // 正确答案：B
+                activeOpt.className = "w-full text-left p-2.5 text-xs rounded-lg border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 transition-all flex justify-between items-center";
+                activeOpt.querySelector(".marker").innerHTML = "✅";
+                
+                feedback.className = "p-3 rounded-lg text-xs leading-relaxed bg-emerald-500/10 border border-emerald-500/30 text-emerald-300";
+                feedback.innerHTML = "<b>正确答案：B！</b><br><b>【原理解析】：</b>热胀和冷缩是完全对称的物理过程。既然铜的膨胀系数（α_Cu）比铁大，这代表当环境温度降低时，铜的收缩比（或称冷缩收缩率）同样大于铁片。因此，上层铜收缩得比下层铁更短，拉动整个双金属片<b>向上弯曲</b>。这完美地阐明了参考图 <code class='bg-slate-900 px-1 text-emerald-400'>2metal.png</code> 右侧第三状态的产生原理。";
+            } else {
+                // 错误答案
+                activeOpt.className = "w-full text-left p-2.5 text-xs rounded-lg border border-rose-500/50 bg-rose-500/10 text-rose-300 transition-all flex justify-between items-center";
+                activeOpt.querySelector(".marker").innerHTML = "❌";
+                
+                feedback.className = "p-3 rounded-lg text-xs leading-relaxed bg-rose-500/10 border border-rose-500/30 text-rose-300";
+                feedback.innerHTML = "<b>回答有偏差，再琢磨一下吧！</b><br>提示：膨胀系数较大的材料，在温度降低时，其<b>收缩的比例</b>同样更大。结合这个收缩长度的变化，想想铜片和铁片谁会变得更短？";
+            }
+        }
+
+        // 复位习题状态
+        function resetQuiz() {
+            const feedback = document.getElementById("quizFeedback");
+            feedback.className = "hidden";
+            feedback.innerHTML = "";
+            for (let i = 0; i < 3; i++) {
+                const opt = document.getElementById(`option${i}`);
+                opt.className = "w-full text-left p-2.5 text-xs rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-800/80 transition-all flex justify-between items-center";
+                opt.querySelector(".marker").innerHTML = "";
+            }
+        }
+    </script>
+</body>
+</html>
