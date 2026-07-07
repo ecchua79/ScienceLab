@@ -1,0 +1,2913 @@
+<!DOCTYPE html>
+<!-- 蔡逸众 (ecchua79) · 华仁中学 · Chapter 06 热力研究站 Thermal Station -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热力研究站 · THERMAL STATION</title>
+<style>
+:root{
+  --bg:#060911;
+  --bg2:#0b111d;
+  --panel:#0e1626;
+  --panel2:#121b2e;
+  --line:#1e2c45;
+  --text:#dbe6f5;
+  --dim:#7b8bab;
+  --hot:#ff5a3c;
+  --hot2:#ffb03c;
+  --cold:#3ca7ff;
+  --cold2:#6ee3ff;
+  --accent:#00e5c7;
+  --accent2:#ffcf4a;
+  --good:#4ade80;
+  --bad:#f87171;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #10203a55, transparent),
+    radial-gradient(1000px 700px at 110% 10%, #2a0f2a55, transparent),
+    var(--bg);
+  color:var(--text);
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.stars-bg{
+  position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.55;
+}
+.mono{font-family:'Consolas','SFMono-Regular',Menlo,monospace;}
+.wrap{position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 16px 60px;}
+
+/* Header */
+header.top{
+  padding:22px 4px 14px;
+  text-align:center;
+  position:relative;
+}
+header.top .kicker{
+  font-size:12px; letter-spacing:6px; color:var(--accent); font-weight:700;
+  text-transform:uppercase;
+}
+header.top h1{
+  margin:6px 0 4px;
+  font-size:clamp(26px,5vw,42px);
+  letter-spacing:3px;
+  background:linear-gradient(90deg,var(--hot2),var(--accent2) 40%, var(--cold2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 40px #ff5a3c22;
+}
+header.top .sub{color:var(--dim); font-size:13px; letter-spacing:1px;}
+
+.progress-bar{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:14px; flex-wrap:wrap;
+}
+.progress-star{
+  width:26px;height:26px; border-radius:50%;
+  border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  font-size:14px; color:var(--dim); background:var(--panel);
+  transition:all .4s;
+}
+.progress-star.done{
+  color:#08111f; background:linear-gradient(135deg,var(--accent2),var(--hot2));
+  border-color:transparent; box-shadow:0 0 14px #ffcf4a77;
+  transform:scale(1.08);
+}
+.progress-label{font-size:12px;color:var(--dim); letter-spacing:1px; margin-left:4px;}
+
+/* Nav */
+nav.tabs{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  margin:22px 0 20px; padding:10px; background:var(--panel);
+  border:1px solid var(--line); border-radius:16px;
+  position:sticky; top:8px; z-index:20;
+  backdrop-filter:blur(8px);
+}
+nav.tabs button{
+  background:transparent; border:1px solid transparent; color:var(--dim);
+  padding:9px 14px; border-radius:10px; font-size:13px; cursor:pointer;
+  font-weight:600; letter-spacing:.5px; transition:all .25s; white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+}
+nav.tabs button:hover{color:var(--text); border-color:var(--line);}
+nav.tabs button.active{
+  color:#07101f; background:linear-gradient(135deg,var(--accent),var(--cold2));
+  box-shadow:0 4px 18px #00e5c744;
+}
+nav.tabs button .dot{
+  width:6px;height:6px;border-radius:50%; background:var(--dim);
+}
+nav.tabs button.active .dot{background:#07101f;}
+
+/* Panels */
+.panel{display:none; animation:fadein .5s ease;}
+.panel.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+.card{
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 22px; margin-bottom:18px;
+  position:relative; overflow:hidden;
+}
+.card::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg,var(--hot),var(--accent));
+}
+.card h2{
+  margin:0 0 10px; font-size:20px; letter-spacing:1px; color:#fff;
+  display:flex; align-items:center; gap:10px;
+}
+.card h2 .tag{
+  font-size:11px; padding:3px 8px; border-radius:6px; background:#00e5c722;
+  color:var(--accent); letter-spacing:1px; font-weight:700;
+}
+.card h3{font-size:15px; color:var(--accent2); margin:18px 0 8px;}
+.card p{line-height:1.85; color:var(--text); font-size:14.5px; margin:8px 0;}
+.card p.dim{color:var(--dim); font-size:13px;}
+
+.badge-hot{color:var(--hot2); font-weight:700;}
+.badge-cold{color:var(--cold2); font-weight:700;}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+.btn{
+  background:linear-gradient(135deg,var(--hot),var(--accent2));
+  color:#0a0e17; border:none; padding:10px 20px; border-radius:10px;
+  font-size:13.5px; font-weight:700; cursor:pointer; letter-spacing:.5px;
+  box-shadow:0 4px 16px #ff5a3c33; transition:transform .15s, box-shadow .15s;
+}
+.btn:hover{transform:translateY(-2px); box-shadow:0 8px 22px #ff5a3c4d;}
+.btn:active{transform:translateY(0);}
+.btn.secondary{
+  background:var(--panel2); color:var(--text); border:1px solid var(--line);
+  box-shadow:none;
+}
+.btn.secondary:hover{border-color:var(--accent); color:var(--accent);}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none;}
+.btn-row{display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;}
+
+.readout{
+  font-family:'Consolas',monospace; font-size:13px; color:var(--accent);
+  background:#00000055; border:1px solid var(--line); border-radius:8px;
+  padding:8px 12px; display:inline-block; margin:4px 6px 4px 0;
+}
+.readout .v{color:#fff; font-weight:700;}
+
+canvas{display:block; width:100%; touch-action:none;}
+.canvas-wrap{
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  background:#050810; position:relative;
+}
+
+/* reveal / think box */
+.think{
+  border:1px dashed #ffcf4a55; border-radius:10px; padding:12px 14px; margin:12px 0;
+  background:#ffcf4a0c;
+}
+.think .q{color:var(--accent2); font-weight:700; font-size:13.5px; margin-bottom:6px;}
+.think .a{display:none; margin-top:8px; padding-top:8px; border-top:1px solid #ffcf4a33; font-size:13.5px; color:var(--text); line-height:1.8;}
+.think .a.show{display:block;}
+.think button{
+  background:transparent; border:1px solid var(--accent2); color:var(--accent2);
+  padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer;
+}
+.think button:hover{background:#ffcf4a22;}
+
+/* table */
+table.data{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0;}
+table.data th{color:var(--accent); text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-size:12px; letter-spacing:1px;}
+table.data td{padding:7px 10px; border-bottom:1px solid #1e2c4555; color:var(--text);}
+table.data tr:hover td{background:#00e5c70a;}
+
+/* subtabs */
+.subtabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;}
+.subtabs button{
+  background:var(--panel2); border:1px solid var(--line); color:var(--dim);
+  padding:7px 14px; border-radius:20px; font-size:12.5px; cursor:pointer; font-weight:600;
+}
+.subtabs button.active{
+  background:linear-gradient(135deg,var(--hot),var(--accent2)); color:#0a0e17; border-color:transparent;
+}
+.subpanel{display:none;}
+.subpanel.active{display:block; animation:fadein .4s ease;}
+
+footer.watermark{
+  text-align:center; color:#2a3a58; font-size:11px; letter-spacing:2px; margin-top:40px; padding-top:16px; border-top:1px solid var(--line);
+}
+
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--dim); margin:8px 0;}
+.legend span{display:flex; align-items:center; gap:6px;}
+.legend i{width:12px;height:12px;border-radius:3px; display:inline-block;}
+
+.flask-exp-row{display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:nowrap; margin:14px 0;}
+.flask-exp-row .flask-col{text-align:center; flex:1; min-width:0; max-width:160px;}
+.flask-exp-row .bulb-col{font-size:52px; line-height:1; filter:grayscale(0.6) brightness(0.7); transition:filter .3s; flex-shrink:0;}
+.flask-exp-row .bulb-col.lit{filter:grayscale(0) brightness(1.3) drop-shadow(0 0 22px #ffcf4a); animation:bulbPulse 1.4s ease-in-out infinite;}
+@keyframes bulbPulse{0%,100%{filter:grayscale(0) brightness(1.3) drop-shadow(0 0 18px #ffcf4a);} 50%{filter:grayscale(0) brightness(1.5) drop-shadow(0 0 30px #ffcf4a);}}
+@media (orientation: portrait){
+  .flask-exp-row{flex-direction:column;}
+  .flask-exp-row .flask-col{max-width:180px;}
+}
+
+.heat-level-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0;}
+.heat-level-btn{padding:9px 4px; font-size:12.5px; font-weight:700; border-radius:9px; background:var(--panel2); border:1px solid var(--line); color:var(--dim); cursor:pointer; text-align:center; transition:all .2s;}
+.heat-level-btn:hover{border-color:var(--accent);}
+.heat-level-btn.active{background:linear-gradient(135deg,var(--hot),var(--accent2)); color:#0a0e17; border-color:transparent; box-shadow:0 3px 12px #ff5a3c44;}
+
+.slider-row{display:flex; align-items:center; gap:12px; margin:10px 0; flex-wrap:wrap;}
+.slider-row label{font-size:13px; color:var(--dim); min-width:90px;}
+input[type=range]{flex:1; min-width:140px; accent-color:var(--accent);}
+
+.quiz-q{margin-bottom:22px;}
+.quiz-q .qtext{font-size:15px; color:#fff; margin-bottom:10px; font-weight:600;}
+.opt{
+  display:block; width:100%; text-align:left; background:var(--panel2);
+  border:1px solid var(--line); color:var(--text); padding:10px 14px; margin:6px 0;
+  border-radius:10px; cursor:pointer; font-size:13.5px; transition:all .2s;
+}
+.opt:hover{border-color:var(--accent);}
+.opt.correct{background:#4ade8022; border-color:var(--good); color:#bcffd4;}
+.opt.wrong{background:#f8717122; border-color:var(--bad); color:#ffc9c9;}
+.opt.disabled{pointer-events:none;}
+
+.cert{
+  border:2px solid var(--accent2); border-radius:16px; padding:36px 24px; text-align:center;
+  background:radial-gradient(600px 300px at 50% 0%, #ffcf4a11, transparent), var(--panel);
+  display:none;
+}
+.cert.show{display:block; animation:fadein .6s ease;}
+.cert h2{color:var(--accent2); letter-spacing:4px; font-size:22px;}
+.cert .name{font-size:28px; color:#fff; margin:14px 0; letter-spacing:2px; border-bottom:1px solid var(--line); display:inline-block; padding-bottom:6px;}
+.cert .sig{margin-top:20px; font-size:12px; color:var(--dim); letter-spacing:1px;}
+
+input.nameinput{
+  background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  padding:9px 14px; border-radius:8px; font-size:14px; margin:8px 0;
+}
+
+.station-icon{font-size:22px; margin-right:4px;}
+
+.flask{filter:drop-shadow(0 0 8px #00000066);}
+
+@media(max-width:600px){
+  .card{padding:16px;}
+  nav.tabs{gap:5px; padding:8px;}
+  nav.tabs button{padding:7px 10px; font-size:12px;}
+}
+</style>
+</head>
+<body>
+<canvas class="stars-bg" id="starsBg"></canvas>
+
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">CHAPTER 06 · THERMODYNAMICS</div>
+    <h1>热力研究站</h1>
+    <div class="sub">热的本质 · 传递方式 · 热胀冷缩效应 —— 互动探索实验室</div>
+    <div class="progress-bar" id="progressBar">
+      <span class="progress-label">研究进度</span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabNav">
+    <button data-tab="intro" class="active"><span class="dot"></span>引言 · 熵与时间</button>
+    <button data-tab="transfer"><span class="dot"></span>6.1 热传递</button>
+    <button data-tab="quantity"><span class="dot"></span>6.1 热量</button>
+    <button data-tab="conduction"><span class="dot"></span>6.2 传导</button>
+    <button data-tab="convection"><span class="dot"></span>6.2 对流</button>
+    <button data-tab="radiation"><span class="dot"></span>6.2 辐射</button>
+    <button data-tab="expansion"><span class="dot"></span>6.3 热胀冷缩</button>
+    <button data-tab="quiz"><span class="dot"></span>总测验</button>
+  </nav>
+
+  <main id="panels"></main>
+
+  <footer class="watermark" id="footerMark"></footer>
+</div>
+
+<script>
+/* ============ 全局: 星空背景 ============ */
+(function(){
+  const c = document.getElementById('starsBg');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){
+    c.width = window.innerWidth;
+    c.height = document.documentElement.scrollHeight;
+    stars = [];
+    const n = Math.floor((c.width*c.height)/9000);
+    for(let i=0;i<n;i++){
+      stars.push({x:Math.random()*c.width, y:Math.random()*c.height, r:Math.random()*1.3+.2, tw:Math.random()*Math.PI*2});
+    }
+  }
+  function draw(t){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(const s of stars){
+      const a = .35 + .35*Math.sin(t/900 + s.tw);
+      ctx.fillStyle = `rgba(180,210,255,${a})`;
+      ctx.fillRect(s.x, s.y, s.r, s.r);
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('load', ()=>{ resize(); requestAnimationFrame(draw); });
+  setTimeout(resize, 300);
+})();
+
+/* ============ 全局: Tab 切换 ============ */
+const TAB_ORDER = ['intro','transfer','quantity','conduction','convection','radiation','expansion','quiz'];
+function showTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#tabNav button').forEach(b=>b.classList.remove('active'));
+  const p = document.getElementById('panel-'+id);
+  if(p) p.classList.add('active');
+  const b = document.querySelector('#tabNav button[data-tab="'+id+'"]');
+  if(b) b.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.getElementById('tabNav').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-tab]');
+  if(btn) showTab(btn.dataset.tab);
+});
+
+/* ============ 全局: 进度星系统 ============ */
+const PROGRESS_KEYS = ['intro','transfer','quantity','conduction','convection','radiation','expansion','quiz'];
+const PROGRESS_LABELS = ['引言','传递','热量','传导','对流','辐射','胀缩','测验'];
+let progress = {};
+function initProgressBar(){
+  const bar = document.getElementById('progressBar');
+  PROGRESS_KEYS.forEach((k,i)=>{
+    const s = document.createElement('div');
+    s.className='progress-star';
+    s.id='star-'+k;
+    s.title=PROGRESS_LABELS[i];
+    s.textContent = i+1;
+    bar.appendChild(s);
+  });
+}
+function markDone(key){
+  if(progress[key]) return;
+  progress[key]=true;
+  const el = document.getElementById('star-'+key);
+  if(el){ el.classList.add('done'); el.textContent='★'; }
+}
+initProgressBar();
+
+/* ============ 全局: 动动脑 / 学习检测 展开组件 ============ */
+function toggleThink(btn){
+  const box = btn.parentElement.querySelector('.a');
+  const showing = box.classList.toggle('show');
+  btn.textContent = showing ? '收起答案 ▲' : '查看提示 / 答案 ▼';
+}
+function thinkHTML(q,a){
+  return `<div class="think"><div class="q">🧠 动动脑：${q}</div>
+    <button onclick="toggleThink(this)">查看提示 / 答案 ▼</button>
+    <div class="a">${a}</div></div>`;
+}
+function checkHTML(q,a){
+  return `<div class="think" style="border-color:#3ca7ff55;background:#3ca7ff0c;">
+    <div class="q" style="color:var(--cold2)">✅ 学习检测：${q}</div>
+    <button style="border-color:var(--cold2);color:var(--cold2)" onclick="toggleThink(this)">查看提示 / 答案 ▼</button>
+    <div class="a">${a}</div></div>`;
+}
+</script>
+
+<section class="panel active" id="panel-intro">
+  <div class="card">
+    <h2><span class="station-icon">🌌</span>科学发现：熵、秩序与时间之箭 <span class="tag">STATION 0</span></h2>
+    <p>2020年电影《信条 TENET》让"熵"（entropy）这个词走红。电影借用了<b>熵增定律</b>的想法，把"熵不断增大"的方向，当成了时间前进的方向。</p>
+    <p>熵，简单来说就是系统"混乱程度"的量度。热量总是自动从<span class="badge-hot">高温物体</span>流向<span class="badge-cold">低温物体</span>——这个过程是<b>不可逆</b>的：温水不会自己分成一半更热、一半更冷。温度越高，粒子运动越剧烈、越无序，熵也就越大。</p>
+    <p class="dim">下面用一个"粒子实验室"来亲眼看看：秩序是如何一去不复返地走向混乱的。</p>
+
+    <div class="canvas-wrap" id="entropyWrap" style="height:300px;">
+      <canvas id="entropyCanvas"></canvas>
+    </div>
+    <div class="legend">
+      <span><i style="background:#ffcf4a"></i>低速粒子（有序、低熵）</span>
+      <span><i style="background:#ff5a3c"></i>高速粒子（无序、高熵）</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="entropyPlay">▶ 释放粒子（开始）</button>
+      <button class="btn secondary" id="entropyReverse">⏪ 尝试让时间倒流</button>
+      <button class="btn secondary" id="entropyReset">↺ 重置实验</button>
+    </div>
+    <div class="readout">系统熵值 S = <span class="v" id="entropyReadout">0</span></div>
+    <div class="readout">已用时间 t = <span class="v" id="entropyTime">0.0</span> s</div>
+    <div id="entropyMsg" style="min-height:22px; font-size:13px; color:var(--bad); font-weight:700;"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="station-icon">🫖</span>悬念实验：热水 + 冷水 = ？</h2>
+    <p>生活中，我们把一杯热水和一杯冷水倒在一起，搅拌后会变成一杯<b>温水</b>。无论等多久，这杯温水都不会自己重新分成"一半烫、一半冰"。</p>
+    <div class="grid3" style="align-items:end;">
+      <div style="text-align:center;">
+        <svg width="100%" viewBox="0 0 100 130" class="flask"><rect x="20" y="20" width="60" height="95" rx="6" fill="#0b111d" stroke="#1e2c45"/><rect x="24" y="30" width="52" height="82" rx="3" fill="#ff5a3c" opacity="0.85"/><text x="50" y="18" fill="#ff9d6b" font-size="11" text-anchor="middle">热水 90℃</text></svg>
+      </div>
+      <div style="text-align:center; font-size:34px; color:var(--accent);">＋</div>
+      <div style="text-align:center;">
+        <svg width="100%" viewBox="0 0 100 130" class="flask"><rect x="20" y="20" width="60" height="95" rx="6" fill="#0b111d" stroke="#1e2c45"/><rect x="24" y="30" width="52" height="82" rx="3" fill="#3ca7ff" opacity="0.85"/><text x="50" y="18" fill="#6ec8ff" font-size="11" text-anchor="middle">冷水 10℃</text></svg>
+      </div>
+    </div>
+    <div style="text-align:center; margin:14px 0;">
+      <button class="btn" id="mixBtn">🔀 倒在一起并搅拌</button>
+    </div>
+    <div style="text-align:center;" id="mixResultWrap"></div>
+    <p class="dim" id="mixCaption" style="text-align:center;"></p>
+    <p>这就是<b>热传递</b>的结果。它到底是怎样发生、又遵守什么规律？前往 <b>6.1 热传递</b> 站一探究竟 →</p>
+    <div class="btn-row"><button class="btn secondary" onclick="showTab('transfer')">进入 6.1 热传递 →</button></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="station-icon">🎯</span>本章任务</h2>
+    <div class="grid2">
+      <div>
+        <p>❓ 什么是热？</p>
+        <p>❓ 热有什么规律？</p>
+      </div>
+      <div>
+        <p>❓ 热可以如何传递？</p>
+        <p>❓ 热有哪些效应？</p>
+      </div>
+    </div>
+    <p class="dim">点击上方导航栏，逐站解锁知识、收集研究之星 ★ ，最后前往「总测验」领取结业证书！</p>
+  </div>
+</section>
+
+<script>
+/* ---------- 熵与时间 粒子模拟 ---------- */
+(function(){
+  const wrap = document.getElementById('entropyWrap');
+  const cv = document.getElementById('entropyCanvas');
+  const ctx = cv.getContext('2d');
+  let W=0,H=0, DPR=Math.min(window.devicePixelRatio||1,2);
+  let particles = [];
+  const N = 90;
+  let playing=false, t=0, entropy=0, rafId=null;
+
+  function resize(){
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    cv.width = W*DPR; cv.height = H*DPR;
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+
+  function reset(){
+    playing=false; t=0; entropy=0;
+    particles = [];
+    const cx=W/2, cy=H/2, cols=10, rows=9, gap=8;
+    let i=0;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        if(i>=N) break;
+        particles.push({
+          x: cx - (cols*gap)/2 + c*gap,
+          y: cy - (rows*gap)/2 + r*gap,
+          vx:0, vy:0, spd:0
+        });
+        i++;
+      }
+    }
+    document.getElementById('entropyReadout').textContent='0';
+    document.getElementById('entropyTime').textContent='0.0';
+    document.getElementById('entropyMsg').textContent='';
+    draw();
+  }
+
+  function step(){
+    t += 1/60;
+    for(const p of particles){
+      // gradually acquire random velocity (heat/disorder increasing)
+      p.vx += (Math.random()-0.5)*0.35;
+      p.vy += (Math.random()-0.5)*0.35;
+      p.vx *= 0.995; p.vy *= 0.995;
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<6){p.x=6; p.vx*=-0.8;} if(p.x>W-6){p.x=W-6; p.vx*=-0.8;}
+      if(p.y<6){p.y=6; p.vy*=-0.8;} if(p.y>H-6){p.y=H-6; p.vy*=-0.8;}
+      p.spd = Math.hypot(p.vx,p.vy);
+    }
+    // entropy proxy: average spread (variance of position) + average speed
+    let mx=0,my=0; for(const p of particles){mx+=p.x;my+=p.y;} mx/=particles.length; my/=particles.length;
+    let varr=0; for(const p of particles){varr += (p.x-mx)**2+(p.y-my)**2;} varr/=particles.length;
+    entropy = Math.min(100, Math.round(Math.sqrt(varr)/2));
+    document.getElementById('entropyReadout').textContent = entropy;
+    document.getElementById('entropyTime').textContent = t.toFixed(1);
+    if(entropy>=97 && playing){
+      playing=false;
+      document.getElementById('entropyMsg').style.color='var(--good)';
+      document.getElementById('entropyMsg').textContent='系统已达到最大混乱度（热平衡态），无法自发变回原来的整齐方阵。';
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(const p of particles){
+      const heat = Math.min(1, p.spd/3);
+      const r = 2.4 + heat*2.2;
+      const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3);
+      const col = heat<0.5 ? [255,207,74] : [255,90,60];
+      grd.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},0.9)`);
+      grd.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(p.x,p.y,r*3,0,7); ctx.fill();
+      ctx.fillStyle = heat<0.5 ? '#ffcf4a' : '#ff5a3c';
+      ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
+    }
+  }
+
+  function loop(){
+    if(playing){ step(); }
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  document.getElementById('entropyPlay').addEventListener('click', ()=>{
+    playing = !playing;
+    document.getElementById('entropyPlay').textContent = playing ? '⏸ 暂停' : '▶ 继续释放';
+    document.getElementById('entropyMsg').textContent='';
+    markDone('intro');
+  });
+  document.getElementById('entropyReverse').addEventListener('click', ()=>{
+    const msg = document.getElementById('entropyMsg');
+    msg.style.color='var(--bad)';
+    msg.textContent = '❌ 时间无法倒流：熵增是不可逆的过程！（这正是电影《信条》的科学灵感来源）';
+    cv.parentElement.animate([{filter:'brightness(1)'},{filter:'brightness(1.6)'},{filter:'brightness(1)'}],{duration:400});
+  });
+  document.getElementById('entropyReset').addEventListener('click', reset);
+
+  new ResizeObserver(()=>{resize(); reset();}).observe(wrap);
+  window.addEventListener('load', ()=>{ resize(); reset(); loop(); });
+})();
+
+/* ---------- 冷热水混合 演示 ---------- */
+(function(){
+  const btn = document.getElementById('mixBtn');
+  const resultWrap = document.getElementById('mixResultWrap');
+  const caption = document.getElementById('mixCaption');
+  btn.addEventListener('click', ()=>{
+    btn.disabled = true;
+    resultWrap.innerHTML = `<svg width="120" viewBox="0 0 100 130" class="flask"><rect x="20" y="20" width="60" height="95" rx="6" fill="#0b111d" stroke="#1e2c45"/><rect id="mixFill" x="24" y="30" width="52" height="82" rx="3" fill="#ff5a3c"/></svg>`;
+    const fill = document.getElementById('mixFill');
+    let step=0;
+    const iv = setInterval(()=>{
+      step++;
+      // interpolate color from hot to warm-purple to cool
+      const t = Math.min(1, step/24);
+      const r = Math.round(255 - t*90);
+      const g = Math.round(90 + t*60);
+      const b = Math.round(60 + t*140);
+      fill.setAttribute('fill', `rgb(${r},${g},${b})`);
+      if(step>=24){
+        clearInterval(iv);
+        caption.textContent = '两杯水的热能互相传递，最终温度趋于一致 —— 变成了一杯约 50℃ 的温水。这就是"热传递达到平衡"。';
+        btn.disabled=false;
+        btn.textContent='🔀 再试一次';
+        markDone('intro');
+      }
+    }, 45);
+  });
+})();
+</script>
+
+
+<section class="panel" id="panel-transfer">
+  <div class="card">
+    <h2><span class="station-icon">🔥</span>6.1 什么是热传递？ <span class="tag">STATION 1</span></h2>
+    <p>科学上说的"热"，通常指<b>热能（heat）</b>——它是构成物质的粒子运动时所具有的能量。</p>
+    <p>当两个物体之间，或同一物体的不同部位存在<b>温度差异</b>时，热能就会自动从<span class="badge-hot">温度较高</span>的一方，传向<span class="badge-cold">温度较低</span>的一方。这个过程称为<b>热传递（heat transfer）</b>。</p>
+    <p>热传递会持续到两者温度<b>相同</b>为止 —— 这时称为达到了<b>热平衡</b>。温度高的物体放出热能而降温；温度低的物体吸收热能而升温。</p>
+    <div class="grid2">
+      <div class="card" style="margin:0;">
+        <p style="margin-top:0;">🧊 摸一块冰时，热能从<span class="badge-hot">较热的手</span>流向<span class="badge-cold">较冷的冰块</span>，手因失去热能而感到冰冷。</p>
+      </div>
+      <div class="card" style="margin:0;">
+        <p style="margin-top:0;">☕ 摸一杯热水时，热能从<span class="badge-hot">较热的杯子</span>流向<span class="badge-cold">较冷的手</span>，手因得到热能而感到烫。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🧪 互动实验：热平衡模拟器（真实粒子碰撞版）</h3>
+    <p class="dim">大烧杯装冷水、小烧杯装热水。调整两者初温后按下"放入小烧杯"，观察热水与冷水的粒子如何隔着杯壁不断碰撞、把能量一点一点交换出去，直到两者温度趋于一致。</p>
+
+    <div class="slider-row">
+      <label style="color:var(--cold2)">大烧杯(冷水)</label>
+      <input type="range" id="slider-cold" min="5" max="45" step="1" value="20">
+      <span class="readout">T = <span class="v" id="temp-cold-val">20.0</span>℃</span>
+    </div>
+    <div class="slider-row">
+      <label style="color:var(--hot2)">小烧杯(热水)</label>
+      <input type="range" id="slider-hot" min="55" max="95" step="1" value="80">
+      <span class="readout">T = <span class="v" id="temp-hot-val">80.0</span>℃</span>
+    </div>
+
+    <div class="canvas-wrap" style="height:320px; padding:6px; position:relative;">
+      <svg id="simulation-svg" viewBox="0 0 800 570" style="width:100%; height:100%; display:block;">
+        <defs>
+          <linearGradient id="beaker-glass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.04"/>
+          </linearGradient>
+        </defs>
+        <g opacity="0.05">
+          <path d="M 0,-60 L 800,-60 M 0,0 L 800,0 M 0,80 L 800,80 M 0,160 L 800,160 M 0,240 L 800,240 M 0,320 L 800,320 M 0,400 L 800,400 M 0,480 L 800,480" stroke="#fff" stroke-width="1"/>
+          <path d="M 100,-90 L 100,480 M 200,-90 L 200,480 M 300,-90 L 300,480 M 400,-90 L 400,480 M 500,-90 L 500,480 M 600,-90 L 600,480 M 700,-90 L 700,480" stroke="#fff" stroke-width="1"/>
+        </g>
+        <rect id="outer-water-bg" x="220" y="280" width="360" height="140" rx="10" ry="10" fill="#3ca7ff" fill-opacity="0.1" stroke="#3ca7ff" stroke-opacity="0.25" stroke-dasharray="4,4" />
+        <rect id="outer-beaker" x="210" y="120" width="380" height="310" rx="15" ry="15" fill="url(#beaker-glass)" stroke="rgba(255,255,255,0.35)" stroke-width="4" />
+        <g stroke="rgba(255,255,255,0.25)" stroke-width="2">
+          <line x1="210" y1="180" x2="230" y2="180" />
+          <line x1="210" y1="240" x2="225" y2="240" />
+          <line x1="210" y1="300" x2="230" y2="300" />
+          <line x1="210" y1="360" x2="225" y2="360" />
+        </g>
+        <text x="240" y="185" fill="rgba(255,255,255,0.35)" font-size="12" font-family="monospace">1000ml</text>
+        <text x="240" y="305" fill="rgba(255,255,255,0.35)" font-size="12" font-family="monospace">500ml</text>
+        <g id="outer-particles-group"></g>
+        <g id="inner-beaker-group">
+          <rect x="15" y="45" width="150" height="150" rx="8" ry="8" fill="#ff5a3c" fill-opacity="0.1" stroke="#ff5a3c" stroke-opacity="0.25" stroke-dasharray="4,4"/>
+          <rect id="inner-beaker" x="10" y="10" width="160" height="190" rx="12" ry="12" fill="url(#beaker-glass)" stroke="rgba(255,255,255,0.5)" stroke-width="3" />
+          <g stroke="rgba(255,255,255,0.35)" stroke-width="1.5">
+            <line x1="170" y1="60" x2="160" y2="60" />
+            <line x1="170" y1="110" x2="162" y2="110" />
+            <line x1="170" y1="160" x2="160" y2="160" />
+          </g>
+          <text x="130" y="65" fill="rgba(255,255,255,0.35)" font-size="10" font-family="monospace">250ml</text>
+          <g id="inner-particles-group"></g>
+        </g>
+        <text id="status-label" x="400" y="-40" fill="#7b8bab" font-size="15" text-anchor="middle" font-weight="bold" letter-spacing="1">
+          系统未连接：调节好温度后，点击"放入"启动演示
+        </text>
+      </svg>
+      <div style="position:absolute; bottom:10px; right:10px; display:flex; align-items:center; gap:6px; background:#0a0e17cc; padding:5px 10px; border-radius:8px; border:1px solid var(--line); font-size:11px; color:var(--dim);">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--good); display:inline-block;"></span>
+        <span id="state-text">准备就绪</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="btn-action">▶ 放入小烧杯（开始传热）</button>
+      <button class="btn secondary" id="btn-reset">↺ 重置</button>
+    </div>
+    <div class="readout">耗时：<span class="v" id="clock-tick">0.0</span> s</div>
+
+    <div class="canvas-wrap" style="height:220px; margin-top:10px; padding:6px;">
+      <svg id="chart-svg" viewBox="0 0 400 260" style="width:100%; height:100%; display:block;">
+        <line x1="40" y1="20" x2="40" y2="230" stroke="#475569" stroke-width="2" />
+        <line x1="40" y1="230" x2="380" y2="230" stroke="#475569" stroke-width="2" />
+        <text x="32" y="25" fill="#7b8bab" font-size="10" text-anchor="end" font-family="monospace">100°C</text>
+        <text x="32" y="77.5" fill="#7b8bab" font-size="10" text-anchor="end" font-family="monospace">75°C</text>
+        <text x="32" y="130" fill="#7b8bab" font-size="10" text-anchor="end" font-family="monospace">50°C</text>
+        <text x="32" y="182.5" fill="#7b8bab" font-size="10" text-anchor="end" font-family="monospace">25°C</text>
+        <text x="32" y="234" fill="#7b8bab" font-size="10" text-anchor="end" font-family="monospace">0°C</text>
+        <text x="210" y="248" fill="#7b8bab" font-size="10" text-anchor="middle">时间推进 →</text>
+        <line x1="40" y1="72.5" x2="380" y2="72.5" stroke="#1e2c45" stroke-dasharray="2,4" />
+        <line x1="40" y1="125" x2="380" y2="125" stroke="#1e2c45" stroke-dasharray="2,4" />
+        <line x1="40" y1="177.5" x2="380" y2="177.5" stroke="#1e2c45" stroke-dasharray="2,4" />
+        <path id="path-cold" d="" fill="none" stroke="#3ca7ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path id="path-hot" d="" fill="none" stroke="#ff5a3c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        <line id="balance-line" x1="40" y1="125" x2="380" y2="125" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="4,4" opacity="0" />
+        <text id="balance-text" x="370" y="120" fill="#4ade80" font-size="10" text-anchor="end" opacity="0">理想平衡线</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:#3ca7ff"></i>大烧杯(冷水)平均温度</span>
+      <span><i style="background:#ff5a3c"></i>小烧杯(热水)平均温度</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:17px;">6.1.1 什么是热量？</h2>
+    <p>在热传递过程中，物体<b>吸收或放出的热能多少</b>，称为<b>热量（quantity of heat）</b>。国际标准单位是<b>焦耳（Joule，符号 J）</b>。例如完全燃烧 1g 汽油，大约放出 46000 J 的热量。</p>
+  </div>
+  <div id="thinkCalorie"></div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('quantity')">进入下一站：6.1 热量与温度的关系 →</button>
+  </div>
+</section>
+
+<script>
+document.getElementById('thinkCalorie').innerHTML = thinkHTML(
+  '平常我们在食品包装上看到的"卡路里"或"大卡"，和焦耳有什么关联？',
+  '卡路里（calorie）也是一种热量单位，和焦耳一样都是用来衡量热量多少的物理量，只是使用的换算标准不同：1 卡路里 ≈ 4.2 焦耳；食品包装上常用的"大卡"（千卡，kcal）= 1000 卡路里 ≈ 4200 焦耳。它们描述的是同一件事——食物能提供多少热能。'
+);
+
+/* ---------- 热平衡模拟器: 真实粒子弹性碰撞 + 跨壁能量交换物理引擎 ---------- */
+(function(){
+  const OUTER_BEAKER = { x: 210, y: 120, width: 380, height: 310, rx: 15, ry: 15 };
+  const INITIAL_WATER_Y = 280;
+  const FINAL_WATER_Y = 230;
+  let currentWaterY = INITIAL_WATER_Y;
+  const COLD_WATER = { x: 220, width: 360, height: 140 };
+  const INNER_INIT_X = 40;
+  const INNER_INIT_Y = 220;
+  const INNER_HOVER_Y = -80;
+  const INNER_TARGET_X = 320;
+  const INNER_TARGET_Y = 210;
+  const INNER_BEAKER_SZ = { x: 10, y: 10, width: 160, height: 190 };
+  const HOT_WATER = { x: 15, y: 45, width: 150, height: 150 };
+  const PARTICLE_RADIUS = 3.5;
+  const NUM_OUTER_PARTICLES = 100;
+  const NUM_INNER_PARTICLES = 50;
+  const TEMP_TO_SPEED_SQ_FACTOR = 0.20;
+
+  let state = "idle";
+  let timeElapsed = 0;
+  let outerParticles = [];
+  let innerParticles = [];
+  let tempHistory = [];
+  const MAX_HISTORY_LEN = 150;
+
+  const sliderCold = document.getElementById('slider-cold');
+  const sliderHot = document.getElementById('slider-hot');
+  const tempColdVal = document.getElementById('temp-cold-val');
+  const tempHotVal = document.getElementById('temp-hot-val');
+  const btnAction = document.getElementById('btn-action');
+  const btnReset = document.getElementById('btn-reset');
+  const statusLabel = document.getElementById('status-label');
+  const stateText = document.getElementById('state-text');
+  const clockTick = document.getElementById('clock-tick');
+  const innerBeakerGroup = document.getElementById('inner-beaker-group');
+  const outerGroup = document.getElementById('outer-particles-group');
+  const innerGroup = document.getElementById('inner-particles-group');
+  const pathCold = document.getElementById('path-cold');
+  const pathHot = document.getElementById('path-hot');
+  const balanceLine = document.getElementById('balance-line');
+  const balanceText = document.getElementById('balance-text');
+  const outerWaterBg = document.getElementById('outer-water-bg');
+
+  let innerBeakerCurrentX = INNER_INIT_X;
+  let innerBeakerCurrentY = INNER_INIT_Y;
+  updateInnerBeakerTransform();
+
+  sliderCold.addEventListener('input', () => {
+    tempColdVal.textContent = parseFloat(sliderCold.value).toFixed(1);
+    if (state === "idle") { initParticles(); drawParticles(); updateChartIdealLine(); }
+  });
+  sliderHot.addEventListener('input', () => {
+    tempHotVal.textContent = parseFloat(sliderHot.value).toFixed(1);
+    if (state === "idle") { initParticles(); drawParticles(); updateChartIdealLine(); }
+  });
+  btnAction.addEventListener('click', startSimulation);
+  btnReset.addEventListener('click', resetSimulation);
+
+  initParticles();
+  drawParticles();
+  updateChartIdealLine();
+  tick();
+
+  function updateInnerBeakerTransform(){
+    innerBeakerGroup.setAttribute('transform', `translate(${innerBeakerCurrentX}, ${innerBeakerCurrentY})`);
+  }
+
+  function getVelocityForTemp(temp){
+    const scale = Math.sqrt(temp * 0.10);
+    const u1 = Math.random() || 0.0001;
+    const u2 = Math.random() || 0.0001;
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    const z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+    return { vx: z0 * scale, vy: z1 * scale };
+  }
+
+  function initParticles(){
+    outerParticles = []; innerParticles = [];
+    const tempCold = parseFloat(sliderCold.value);
+    const tempHot = parseFloat(sliderHot.value);
+    currentWaterY = INITIAL_WATER_Y;
+    outerWaterBg.setAttribute('y', INITIAL_WATER_Y);
+    outerWaterBg.setAttribute('height', 420 - INITIAL_WATER_Y);
+    for (let i = 0; i < NUM_OUTER_PARTICLES; i++) {
+      let x = COLD_WATER.x + PARTICLE_RADIUS + Math.random() * (COLD_WATER.width - PARTICLE_RADIUS * 2);
+      let y = INITIAL_WATER_Y + PARTICLE_RADIUS + Math.random() * ((420 - INITIAL_WATER_Y) - PARTICLE_RADIUS * 2);
+      let v = getVelocityForTemp(tempCold);
+      outerParticles.push({ x, y, vx:v.vx, vy:v.vy, mass:1, radius:PARTICLE_RADIUS, isHot:false });
+    }
+    for (let i = 0; i < NUM_INNER_PARTICLES; i++) {
+      let x = HOT_WATER.x + PARTICLE_RADIUS + Math.random() * (HOT_WATER.width - PARTICLE_RADIUS * 2);
+      let y = HOT_WATER.y + PARTICLE_RADIUS + Math.random() * (HOT_WATER.height - PARTICLE_RADIUS * 2);
+      let v = getVelocityForTemp(tempHot);
+      innerParticles.push({ x, y, vx:v.vx, vy:v.vy, mass:1, radius:PARTICLE_RADIUS, isHot:true });
+    }
+    tempHistory = []; timeElapsed = 0;
+    clockTick.textContent = '0.0';
+    updateChart();
+  }
+
+  function drawParticles(){
+    outerGroup.innerHTML = '';
+    outerParticles.forEach(p => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", p.x); c.setAttribute("cy", p.y); c.setAttribute("r", p.radius);
+      c.setAttribute("fill", getParticleColor(p.vx*p.vx+p.vy*p.vy));
+      outerGroup.appendChild(c);
+    });
+    innerGroup.innerHTML = '';
+    innerParticles.forEach(p => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", p.x); c.setAttribute("cy", p.y); c.setAttribute("r", p.radius);
+      c.setAttribute("fill", getParticleColor(p.vx*p.vx+p.vy*p.vy));
+      innerGroup.appendChild(c);
+    });
+  }
+
+  function getParticleColor(speedSq){
+    const maxSpeedSq = 20.0;
+    const t = Math.min(Math.max(speedSq / maxSpeedSq, 0), 1);
+    const r = Math.round(59 + t * (239 - 59));
+    const g = Math.round(130 + t * (68 - 130));
+    const b = Math.round(246 + t * (68 - 246));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function calculateAverageTemp(particles){
+    let sumSq = 0;
+    particles.forEach(p => { sumSq += (p.vx*p.vx + p.vy*p.vy); });
+    const avgSq = sumSq / particles.length;
+    let temp = avgSq / TEMP_TO_SPEED_SQ_FACTOR;
+    return Math.max(0, Math.min(100, temp));
+  }
+
+  function updateChartIdealLine(){
+    const tempCold = parseFloat(sliderCold.value);
+    const tempHot = parseFloat(sliderHot.value);
+    const ideal = (tempCold * NUM_OUTER_PARTICLES + tempHot * NUM_INNER_PARTICLES) / (NUM_OUTER_PARTICLES + NUM_INNER_PARTICLES);
+    const y = 230 - (ideal / 100) * 210;
+    balanceLine.setAttribute('y1', y); balanceLine.setAttribute('y2', y); balanceLine.setAttribute('opacity', '0.6');
+    balanceText.setAttribute('y', y - 5);
+    balanceText.textContent = `理论平衡温度: ${ideal.toFixed(1)}°C`;
+    balanceText.setAttribute('opacity', '1');
+  }
+
+  function easeInOutQuad(t){ return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
+
+  function startSimulation(){
+    if (state !== "idle") return;
+    state = "moving";
+    stateText.textContent = "准备进入...";
+    statusLabel.textContent = "正在提升小烧杯，越过外壁障碍...";
+    statusLabel.setAttribute("fill", "#6ec8ff");
+    sliderCold.disabled = true; sliderHot.disabled = true; btnAction.disabled = true;
+    markDone('transfer');
+    const startTime = performance.now();
+    const totalDuration = 2700;
+    function animateMove(now){
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / totalDuration, 1);
+      if (progress < 1/3) {
+        const t = progress*3, ease = easeInOutQuad(t);
+        innerBeakerCurrentX = INNER_INIT_X;
+        innerBeakerCurrentY = INNER_INIT_Y + (INNER_HOVER_Y - INNER_INIT_Y) * ease;
+        statusLabel.textContent = "正在垂直提升小烧杯...";
+      } else if (progress >= 1/3 && progress < 2/3) {
+        const t = (progress-1/3)*3, ease = easeInOutQuad(t);
+        innerBeakerCurrentX = INNER_INIT_X + (INNER_TARGET_X - INNER_INIT_X) * ease;
+        innerBeakerCurrentY = INNER_HOVER_Y;
+        statusLabel.textContent = "已越过外壁，正在向中心平移...";
+      } else {
+        const t = (progress-2/3)*3, ease = easeInOutQuad(t);
+        innerBeakerCurrentX = INNER_TARGET_X;
+        innerBeakerCurrentY = INNER_HOVER_Y + (INNER_TARGET_Y - INNER_HOVER_Y) * ease;
+        currentWaterY = INITIAL_WATER_Y - (INITIAL_WATER_Y - FINAL_WATER_Y) * ease;
+        outerWaterBg.setAttribute('y', currentWaterY);
+        outerWaterBg.setAttribute('height', 420 - currentWaterY);
+        statusLabel.textContent = "正从正上方沉入冷水中，水位逐渐升高...";
+      }
+      updateInnerBeakerTransform();
+      if (progress < 1) {
+        requestAnimationFrame(animateMove);
+      } else {
+        currentWaterY = FINAL_WATER_Y;
+        outerWaterBg.setAttribute('y', FINAL_WATER_Y);
+        outerWaterBg.setAttribute('height', 420 - FINAL_WATER_Y);
+        state = "mixing";
+        stateText.textContent = "热传导中";
+        statusLabel.textContent = "热交换中：小烧杯壁两侧粒子发生弹性碰撞与热传导";
+        statusLabel.setAttribute("fill", "#4ade80");
+      }
+    }
+    requestAnimationFrame(animateMove);
+  }
+
+  function resetSimulation(){
+    state = "idle";
+    stateText.textContent = "准备就绪";
+    statusLabel.textContent = "系统未连接：调节好温度后，点击\"放入\"启动演示";
+    statusLabel.setAttribute("fill", "#7b8bab");
+    sliderCold.disabled = false; sliderHot.disabled = false; btnAction.disabled = false;
+    innerBeakerCurrentX = INNER_INIT_X; innerBeakerCurrentY = INNER_INIT_Y;
+    updateInnerBeakerTransform();
+    currentWaterY = INITIAL_WATER_Y;
+    outerWaterBg.setAttribute('y', INITIAL_WATER_Y);
+    outerWaterBg.setAttribute('height', 420 - INITIAL_WATER_Y);
+    initParticles(); drawParticles(); updateChartIdealLine();
+  }
+
+  function tick(){
+    if (state === "moving" || state === "mixing") {
+      updatePhysics();
+      drawParticles();
+      const tc = calculateAverageTemp(outerParticles);
+      const th = calculateAverageTemp(innerParticles);
+      tempColdVal.textContent = tc.toFixed(1);
+      tempHotVal.textContent = th.toFixed(1);
+      timeElapsed += 0.05;
+      clockTick.textContent = timeElapsed.toFixed(1);
+      if (Math.round(timeElapsed*100) % 5 === 0) {
+        tempHistory.push({ t: timeElapsed, cold: tc, hot: th });
+        if (tempHistory.length > MAX_HISTORY_LEN) tempHistory.shift();
+        updateChart();
+      }
+      if (Math.abs(tc - th) < 0.5 && state === "mixing") {
+        stateText.textContent = "热平衡已达成";
+        statusLabel.textContent = `系统已达到热平衡！最终温度：约 ${((tc+th)/2).toFixed(1)}°C`;
+        statusLabel.setAttribute("fill", "#34d399");
+      }
+    } else if (state === "idle") {
+      updatePhysicsIdle();
+      drawParticles();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function updatePhysicsIdle(){
+    outerParticles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x - p.radius < COLD_WATER.x) { p.x = COLD_WATER.x + p.radius; p.vx = -p.vx; }
+      if (p.x + p.radius > COLD_WATER.x + COLD_WATER.width) { p.x = COLD_WATER.x + COLD_WATER.width - p.radius; p.vx = -p.vx; }
+      if (p.y - p.radius < currentWaterY) { p.y = currentWaterY + p.radius; p.vy = -p.vy; }
+      if (p.y + p.radius > 420) { p.y = 420 - p.radius; p.vy = -p.vy; }
+    });
+    innerParticles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x - p.radius < HOT_WATER.x) { p.x = HOT_WATER.x + p.radius; p.vx = -p.vx; }
+      if (p.x + p.radius > HOT_WATER.x + HOT_WATER.width) { p.x = HOT_WATER.x + HOT_WATER.width - p.radius; p.vx = -p.vx; }
+      if (p.y - p.radius < HOT_WATER.y) { p.y = HOT_WATER.y + p.radius; p.vy = -p.vy; }
+      if (p.y + p.radius > HOT_WATER.y + HOT_WATER.height) { p.y = HOT_WATER.y + HOT_WATER.height - p.radius; p.vy = -p.vy; }
+    });
+  }
+
+  function updatePhysics(){
+    outerParticles.forEach(p => { p.x += p.vx; p.y += p.vy; });
+    innerParticles.forEach(p => { p.x += p.vx; p.y += p.vy; });
+
+    innerParticles.forEach(p => {
+      if (p.x - p.radius < HOT_WATER.x) { p.x = HOT_WATER.x + p.radius; p.vx = -p.vx; triggerWallHeatTransfer(p, "inner-left"); }
+      if (p.x + p.radius > HOT_WATER.x + HOT_WATER.width) { p.x = HOT_WATER.x + HOT_WATER.width - p.radius; p.vx = -p.vx; triggerWallHeatTransfer(p, "inner-right"); }
+      if (p.y - p.radius < HOT_WATER.y) { p.y = HOT_WATER.y + p.radius; p.vy = -p.vy; }
+      if (p.y + p.radius > HOT_WATER.y + HOT_WATER.height) { p.y = HOT_WATER.y + HOT_WATER.height - p.radius; p.vy = -p.vy; triggerWallHeatTransfer(p, "inner-bottom"); }
+    });
+
+    const ibAbsX1 = innerBeakerCurrentX + INNER_BEAKER_SZ.x;
+    const ibAbsX2 = innerBeakerCurrentX + INNER_BEAKER_SZ.x + INNER_BEAKER_SZ.width;
+    const ibAbsY1 = innerBeakerCurrentY + INNER_BEAKER_SZ.y;
+    const ibAbsY2 = innerBeakerCurrentY + INNER_BEAKER_SZ.y + INNER_BEAKER_SZ.height;
+
+    outerParticles.forEach(p => {
+      if (p.x - p.radius < COLD_WATER.x) { p.x = COLD_WATER.x + p.radius; p.vx = -p.vx; }
+      if (p.x + p.radius > COLD_WATER.x + COLD_WATER.width) { p.x = COLD_WATER.x + COLD_WATER.width - p.radius; p.vx = -p.vx; }
+      if (p.y - p.radius < currentWaterY) { p.y = currentWaterY + p.radius; p.vy = -p.vy; }
+      if (p.y + p.radius > 420) { p.y = 420 - p.radius; p.vy = -p.vy; }
+
+      if (state === "mixing") {
+        if (p.x + p.radius > ibAbsX1 && p.x - p.radius < ibAbsX2 && p.y + p.radius > ibAbsY1 && p.y - p.radius < ibAbsY2) {
+          const distLeft = Math.abs((p.x+p.radius)-ibAbsX1);
+          const distRight = Math.abs(ibAbsX2-(p.x-p.radius));
+          const distBottom = Math.abs(ibAbsY2-(p.y-p.radius));
+          const distTop = Math.abs((p.y+p.radius)-ibAbsY1);
+          const minDist = Math.min(distLeft, distRight, distBottom, distTop);
+          if (minDist === distLeft) { p.x = ibAbsX1 - p.radius; p.vx = -Math.abs(p.vx); triggerWallHeatTransfer(p, "outer-left"); }
+          else if (minDist === distRight) { p.x = ibAbsX2 + p.radius; p.vx = Math.abs(p.vx); triggerWallHeatTransfer(p, "outer-right"); }
+          else if (minDist === distBottom) { p.y = ibAbsY2 + p.radius; p.vy = Math.abs(p.vy); triggerWallHeatTransfer(p, "outer-bottom"); }
+          else if (minDist === distTop) { p.y = ibAbsY1 - p.radius; p.vy = -Math.abs(p.vy); }
+        }
+      }
+    });
+
+    resolveSelfCollisions(outerParticles);
+    resolveSelfCollisions(innerParticles);
+  }
+
+  function triggerWallHeatTransfer(particle, wallType){
+    if (state !== "mixing") return;
+    if (wallType.startsWith("inner-")) {
+      const absPx = innerBeakerCurrentX + particle.x;
+      const absPy = innerBeakerCurrentY + particle.y;
+      let partner = findNearestParticle(absPx, absPy, outerParticles);
+      if (partner) exchangeEnergy(particle, partner, 0.25);
+    } else if (wallType.startsWith("outer-")) {
+      const localPx = particle.x - innerBeakerCurrentX;
+      const localPy = particle.y - innerBeakerCurrentY;
+      let partner = findNearestParticle(localPx, localPy, innerParticles);
+      if (partner) exchangeEnergy(partner, particle, 0.25);
+    }
+  }
+
+  function findNearestParticle(refX, refY, targetList){
+    let nearest = null, minDist = 99999;
+    for (let i=0;i<targetList.length;i++){
+      const p = targetList[i];
+      const dx = p.x-refX, dy = p.y-refY;
+      const dist = dx*dx+dy*dy;
+      if (dist < minDist) { minDist = dist; nearest = p; }
+    }
+    return nearest;
+  }
+
+  function exchangeEnergy(p1, p2, rate){
+    rate = rate || 0.1;
+    const v1Sq = p1.vx*p1.vx+p1.vy*p1.vy;
+    const v2Sq = p2.vx*p2.vx+p2.vy*p2.vy;
+    const targetEnergy = (v1Sq+v2Sq)/2;
+    const newV1Sq = v1Sq + (targetEnergy-v1Sq)*rate;
+    const newV2Sq = v2Sq + (targetEnergy-v2Sq)*rate;
+    const ratio1 = Math.sqrt(newV1Sq/(v1Sq||0.001));
+    const ratio2 = Math.sqrt(newV2Sq/(v2Sq||0.001));
+    p1.vx *= ratio1; p1.vy *= ratio1;
+    p2.vx *= ratio2; p2.vy *= ratio2;
+  }
+
+  function resolveSelfCollisions(particles){
+    for (let i=0;i<particles.length;i++){
+      for (let j=i+1;j<particles.length;j++){
+        const p1=particles[i], p2=particles[j];
+        const dx=p2.x-p1.x, dy=p2.y-p1.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const minDist=p1.radius+p2.radius;
+        if (dist < minDist && dist > 0) {
+          const overlap = minDist-dist;
+          const nx=dx/dist, ny=dy/dist;
+          p1.x -= nx*overlap*0.5; p1.y -= ny*overlap*0.5;
+          p2.x += nx*overlap*0.5; p2.y += ny*overlap*0.5;
+          const kx=p1.vx-p2.vx, ky=p1.vy-p2.vy;
+          const pFactor = 2*(nx*kx+ny*ky)/(p1.mass+p2.mass);
+          p1.vx -= pFactor*p2.mass*nx; p1.vy -= pFactor*p2.mass*ny;
+          p2.vx += pFactor*p1.mass*nx; p2.vy += pFactor*p1.mass*ny;
+        }
+      }
+    }
+  }
+
+  function updateChart(){
+    if (tempHistory.length === 0) { pathCold.setAttribute('d',''); pathHot.setAttribute('d',''); return; }
+    const getX = (index) => 40 + (index/(MAX_HISTORY_LEN-1))*340;
+    const getY = (temp) => 230 - (temp/100)*210;
+    let dCold="", dHot="";
+    tempHistory.forEach((pt,i) => {
+      const x=getX(i), yCold=getY(pt.cold), yHot=getY(pt.hot);
+      if (i===0){ dCold+=`M ${x} ${yCold}`; dHot+=`M ${x} ${yHot}`; }
+      else { dCold+=` L ${x} ${yCold}`; dHot+=` L ${x} ${yHot}`; }
+    });
+    pathCold.setAttribute('d', dCold);
+    pathHot.setAttribute('d', dHot);
+  }
+})();
+</script>
+
+
+<section class="panel" id="panel-quantity">
+  <div class="card">
+    <h2><span class="station-icon">⚖️</span>6.1.2 温度一样，热量也一样吗？ <span class="tag">STATION 2</span></h2>
+    <p>物体吸收的热量越多，温度上升得也越多；放出的热量越多，温度降低得也越多。但是——<b>质量相同、温度变化相同的两个物体，所吸收或放出的热量一定一样吗？</b></p>
+    <p>实验表明：1000g 的<b>水</b>，温度每上升 1℃，需要吸收 <b>4200 J</b> 的热量；而 1000g 的<b>铜</b>，温度每上升 1℃，只需要吸收 <b>390 J</b> 的热量。也就是说，水比铜"更难升温"，需要吸收多得多的热量！</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🧪 互动实验：加热竞赛（水 vs 铜）</h3>
+    <p class="dim">两个物体质量相同（1000g），每点击一次"加热"按钮，都注入 <b>420 J</b> 的热量。看看谁的温度先冲到 100℃！</p>
+    <div class="grid2">
+      <div class="canvas-wrap" id="raceWrapWater" style="height:200px;"><canvas id="raceWater"></canvas></div>
+      <div class="canvas-wrap" id="raceWrapCopper" style="height:200px;"><canvas id="raceCopper"></canvas></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="heatBothBtn">🔥 注入 420 J 热量</button>
+      <button class="btn secondary" id="raceResetBtn">↺ 重置</button>
+    </div>
+    <div class="readout">已加热次数：<span class="v" id="heatCount">0</span></div>
+    <div class="readout">水温：<span class="v" id="waterTempReadout">20.0</span>℃</div>
+    <div class="readout">铜温：<span class="v" id="copperTempReadout">20.0</span>℃</div>
+    <p class="dim" id="raceMsg"></p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">💧 潜热现象：相态改变时的"隐藏"热量</h3>
+    <p>温度相同的物体，也不一定拥有相同的热量！例如：</p>
+    <div class="grid2">
+      <div class="card" style="margin:0;">
+        <p style="margin-top:0;">1g 的 100℃ 水，汽化成 100℃ 的水蒸气，需要额外吸收约 <b>2250 J</b> 的热量。</p>
+        <p class="dim">→ 同样是 100℃，水蒸气比水多了约 2250 J 的热量。</p>
+      </div>
+      <div class="card" style="margin:0;">
+        <p style="margin-top:0;">1g 的 0℃ 水，凝固成 0℃ 的冰，会放出约 <b>340 J</b> 的热量。</p>
+        <p class="dim">→ 同样是 0℃，冰比水少了约 340 J 的热量。</p>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="latentWrap" style="height:180px;"><canvas id="latentCanvas"></canvas></div>
+    <p class="dim" style="text-align:center;">条形图：每 1g 物质在相态改变时"隐藏"的热量（不改变温度，只改变状态）</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🖐️ 被烫模拟器：水蒸气 VS 热水</h3>
+    <p class="dim">同样是 100℃，被水蒸气烫到，为什么比被热水烫到更痛？点击体验一下两者传递给皮肤的热量差异。</p>
+    <div class="btn-row">
+      <button class="btn secondary" id="touchWater">🫱 触碰 100℃ 热水</button>
+      <button class="btn" id="touchSteam">🫱 触碰 100℃ 水蒸气</button>
+    </div>
+    <div id="handSim" style="text-align:center; min-height:90px; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+      <div id="handIcon" style="font-size:44px; transition:transform .15s;">🖐️</div>
+      <div id="handMsg" style="font-size:13px; color:var(--dim); margin-top:6px;"></div>
+    </div>
+  </div>
+  <div id="thinkSteamPain"></div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('conduction')">进入下一站：6.2.1 传导 →</button>
+  </div>
+</section>
+
+<script>
+document.getElementById('thinkSteamPain').innerHTML = thinkHTML(
+  '为什么被100℃的水蒸气烫到，比被同温度的水烫到更痛？',
+  '因为水蒸气在变回水（液化）的一瞬间，会把汽化时吸收的大量潜热（约2250 J/g）释放到皮肤上，再加上液化后的水还会继续以100℃传递热量，因此水蒸气传给皮肤的热量比同温度的热水多得多，所以烫伤更严重。'
+);
+
+/* ---------- 加热竞赛：水 vs 铜 ---------- */
+(function(){
+  const cW = document.getElementById('raceWater'), ctxW = cW.getContext('2d');
+  const cC = document.getElementById('raceCopper'), ctxC = cC.getContext('2d');
+  const wrapW = document.getElementById('raceWrapWater'), wrapC = document.getElementById('raceWrapCopper');
+  let DPR=Math.min(window.devicePixelRatio||1,2);
+  let waterT=20, copperT=20, heats=0;
+  const MASS=1000; // g
+  const CAP_WATER=4200, CAP_COPPER=390; // J per 1000g per 1C -> per g*C: 4.2 and 0.39
+  const ENERGY_PER_CLICK=420;
+
+  function resize(c,wrap){
+    c.width=wrap.clientWidth*DPR; c.height=wrap.clientHeight*DPR;
+    c.style.width=wrap.clientWidth+'px'; c.style.height=wrap.clientHeight+'px';
+    c.getContext('2d').setTransform(DPR,0,0,DPR,0,0);
+  }
+
+  function drawThermo(ctx, wrap, temp, color, label){
+    const W=wrap.clientWidth, H=wrap.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    const tubeX=W/2-16, tubeW=32, tubeTop=20, tubeBot=H-40;
+    ctx.strokeStyle='#1e2c45'; ctx.lineWidth=3;
+    ctx.strokeRect(tubeX,tubeTop,tubeW,tubeBot-tubeTop);
+    const frac=Math.max(0,Math.min(1,temp/100));
+    const fillH=(tubeBot-tubeTop)*frac;
+    const grd = ctx.createLinearGradient(0,tubeBot,0,tubeBot-fillH);
+    grd.addColorStop(0,color); grd.addColorStop(1,'#ffcf4a');
+    ctx.fillStyle=grd;
+    ctx.fillRect(tubeX+3,tubeBot-fillH,tubeW-6,fillH);
+    ctx.beginPath(); ctx.arc(tubeX+tubeW/2, tubeBot+14, 16, 0, 7);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.fillStyle='#dbe6f5'; ctx.font='bold 13px Consolas, monospace'; ctx.textAlign='center';
+    ctx.fillText(label, W/2, 14);
+    ctx.fillText(temp.toFixed(1)+'℃', W/2, H-6);
+    if(temp>=100){
+      ctx.fillStyle='#ffcf4a'; ctx.font='bold 12px sans-serif';
+      ctx.fillText('🔥 沸腾!', W/2, tubeTop-4);
+    }
+  }
+
+  function render(){
+    drawThermo(ctxW, wrapW, waterT, '#3ca7ff', '水 1000g');
+    drawThermo(ctxC, wrapC, copperT, '#ff9d6b', '铜 1000g');
+  }
+
+  function reset(){
+    waterT=20; copperT=20; heats=0;
+    document.getElementById('heatCount').textContent='0';
+    document.getElementById('waterTempReadout').textContent='20.0';
+    document.getElementById('copperTempReadout').textContent='20.0';
+    document.getElementById('raceMsg').textContent='';
+    document.getElementById('heatBothBtn').disabled=false;
+    render();
+  }
+
+  document.getElementById('heatBothBtn').addEventListener('click', ()=>{
+    if(waterT>=100 && copperT>=100) return;
+    heats++;
+    const dWater = ENERGY_PER_CLICK/(MASS*(CAP_WATER/1000));
+    const dCopper = ENERGY_PER_CLICK/(MASS*(CAP_COPPER/1000));
+    waterT = Math.min(100, waterT+dWater);
+    copperT = Math.min(100, copperT+dCopper);
+    document.getElementById('heatCount').textContent=heats;
+    document.getElementById('waterTempReadout').textContent=waterT.toFixed(1);
+    document.getElementById('copperTempReadout').textContent=copperT.toFixed(1);
+    render();
+    if(copperT>=100 && waterT<100 && !window.__copperWon){
+      window.__copperWon=true;
+      document.getElementById('raceMsg').textContent='🏆 铜先达到 100℃！同样吸收热量，铜升温快得多——因为铜"容纳"热量的能力比水小。';
+    }
+    if(waterT>=100){
+      document.getElementById('raceMsg').textContent='💧 水也终于沸腾了，但用了多得多的热量——水能"容纳"更多热量，升温慢。这就是为什么海洋能调节气候、暖水袋能保温更久！';
+      document.getElementById('heatBothBtn').disabled=true;
+      markDone('quantity');
+    }
+    markDone('quantity');
+  });
+  document.getElementById('raceResetBtn').addEventListener('click', ()=>{window.__copperWon=false; reset();});
+
+  new ResizeObserver(()=>{resize(cW,wrapW); render();}).observe(wrapW);
+  new ResizeObserver(()=>{resize(cC,wrapC); render();}).observe(wrapC);
+  window.addEventListener('load', ()=>{resize(cW,wrapW); resize(cC,wrapC); reset();});
+})();
+
+/* ---------- 潜热 条形图 ---------- */
+(function(){
+  const wrap = document.getElementById('latentWrap');
+  const cv = document.getElementById('latentCanvas'), ctx = cv.getContext('2d');
+  let DPR=Math.min(window.devicePixelRatio||1,2);
+  function resize(){
+    cv.width=wrap.clientWidth*DPR; cv.height=wrap.clientHeight*DPR;
+    cv.style.width=wrap.clientWidth+'px'; cv.style.height=wrap.clientHeight+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    draw();
+  }
+  function draw(){
+    const W=wrap.clientWidth, H=wrap.clientHeight;
+    ctx.clearRect(0,0,W,H);
+    const bars=[{label:'水→水蒸气 (汽化)',val:2250,color:'#ff5a3c'},{label:'水→冰 (凝固)',val:340,color:'#3ca7ff'}];
+    const max=2400, barW=W*0.28, gap=W*0.16, baseY=H-30, top=20;
+    bars.forEach((b,i)=>{
+      const x = W*0.18 + i*(barW+gap);
+      const h = (H-50)*(b.val/max);
+      ctx.fillStyle=b.color;
+      ctx.fillRect(x, baseY-h, barW, h);
+      ctx.fillStyle='#dbe6f5'; ctx.font='bold 12px Consolas, monospace'; ctx.textAlign='center';
+      ctx.fillText(b.val+' J', x+barW/2, baseY-h-8);
+      ctx.fillStyle='#7b8bab'; ctx.font='11px sans-serif';
+      ctx.fillText(b.label, x+barW/2, baseY+16);
+    });
+    ctx.strokeStyle='#1e2c45'; ctx.beginPath(); ctx.moveTo(0,baseY); ctx.lineTo(W,baseY); ctx.stroke();
+  }
+  new ResizeObserver(resize).observe(wrap);
+  window.addEventListener('load', resize);
+})();
+
+/* ---------- 被烫模拟器 ---------- */
+(function(){
+  const icon = document.getElementById('handIcon');
+  const msg = document.getElementById('handMsg');
+  function react(strength, text, extraJ){
+    icon.style.transform = 'scale('+(1+strength*0.25)+') rotate('+(strength*6)+'deg)';
+    icon.style.filter = 'drop-shadow(0 0 '+(strength*14)+'px #ff5a3c)';
+    msg.textContent = text+'（约传递 '+extraJ+' J/g 热量）';
+    setTimeout(()=>{ icon.style.transform='scale(1)'; icon.style.filter='none'; }, 400);
+  }
+  document.getElementById('touchWater').addEventListener('click', ()=>{
+    react(1, '😣 有点烫！', 20);
+    markDone('quantity');
+  });
+  document.getElementById('touchSteam').addEventListener('click', ()=>{
+    react(2.2, '🥵 非常烫！水蒸气液化时释放了大量潜热！', 2250);
+    markDone('quantity');
+  });
+})();
+</script>
+
+
+<section class="panel" id="panel-conduction">
+  <div class="card">
+    <h2><span class="station-icon">🥄</span>6.2.1 传导如何发生？ <span class="tag">STATION 3</span></h2>
+    <p>用铁汤匙喝热汤，汤匙会慢慢变烫——热能从热的一端传到冷的一端，而汤匙本身并没有明显移动。这种<b>依靠材料本身传递热能、介质不发生整体移动</b>的方式，称为<b>传导（conduction）</b>。</p>
+    <p>从粒子的角度看：金属一端受热，粒子获得热能后振动得更剧烈；剧烈振动的粒子把动能传给邻近振动较弱的粒子，使它们也振动加快。热能就这样从一个粒子传到下一个粒子，从高温区逐渐传播到低温区。</p>
+    <div class="canvas-wrap" id="rodWrap" style="height:150px;"><canvas id="rodCanvas"></canvas></div>
+    <div class="btn-row">
+      <button class="btn" id="rodHeatBtn">🔥 加热左端</button>
+      <button class="btn secondary" id="rodResetBtn">↺ 重置</button>
+    </div>
+    <p class="dim">观察：左端粒子先剧烈振动，热能像"接力"一样逐粒传递向右端，直到整根金属棒温度趋于一致。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🏁 导热能力大赛：木、铁、铜、玻璃 同时下水</h3>
+    <p class="dim">四根材质不同、粗细相同的棒子同时插入热水中，看看谁的顶端最快变热！（图 6-9 复现实验）</p>
+    <div class="canvas-wrap" id="raceRodWrap" style="height:260px;"><canvas id="raceRodCanvas"></canvas></div>
+    <div class="btn-row">
+      <button class="btn" id="raceRodStart">▶ 开始实验</button>
+      <button class="btn secondary" id="raceRodReset">↺ 重置</button>
+    </div>
+    <p id="raceRodMsg" style="font-size:13px; color:var(--accent2); min-height:20px;"></p>
+    <div id="thinkRodRace"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">📊 常见物质的导热系数</h3>
+    <p class="dim">导热系数越大，导热能力越强，单位为 瓦/米·度 (W/mK)。善于导热的物体称为<b>热的良导体</b>；不善于导热的称为<b>热的不良导体</b>。液体和气体大多是不良导体（水银除外）。</p>
+    <div class="grid2">
+      <table class="data">
+        <tr><th>金属</th><th>导热系数</th></tr>
+        <tr><td>银</td><td>429</td></tr>
+        <tr><td>铜</td><td>401</td></tr>
+        <tr><td>金</td><td>317</td></tr>
+        <tr><td>铝</td><td>237</td></tr>
+        <tr><td>铁</td><td>84</td></tr>
+        <tr><td>锡</td><td>67</td></tr>
+        <tr><td>铅</td><td>36</td></tr>
+      </table>
+      <table class="data">
+        <tr><th>非金属</th><th>导热系数</th></tr>
+        <tr><td>玻璃</td><td>1.05</td></tr>
+        <tr><td>水</td><td>0.61</td></tr>
+        <tr><td>牛奶</td><td>0.53</td></tr>
+        <tr><td>木</td><td>0.17</td></tr>
+        <tr><td>橡胶</td><td>0.13</td></tr>
+        <tr><td>空气</td><td>0.03</td></tr>
+        <tr><td>氮气</td><td>0.02</td></tr>
+      </table>
+    </div>
+    <p>生活应用：炒菜用<b>铁锅</b>，因为铁是热的良导体，能有效把热传给食材；御寒衣物中的羊毛、羽绒等多孔材质能锁住空气，而空气是热的不良导体，所以能有效抵御寒冷。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🎮 分类小游戏：良导体 or 不良导体？</h3>
+    <p class="dim">点击下面的物质卡片，把它拖拽（点击后选择）放入正确的分类框。</p>
+    <div id="sortGame">
+      <div id="sortChips" class="btn-row"></div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="card" id="binGood" style="margin:0; min-height:90px; border-color:#4ade8055;">
+          <h3 style="margin-top:0;color:var(--good);">✅ 热的良导体</h3>
+          <div class="binList" id="binGoodList" style="font-size:13px; color:var(--dim);"></div>
+        </div>
+        <div class="card" id="binBad" style="margin:0; min-height:90px; border-color:#f8717155;">
+          <h3 style="margin-top:0;color:var(--bad);">🚫 热的不良导体</h3>
+          <div class="binList" id="binBadList" style="font-size:13px; color:var(--dim);"></div>
+        </div>
+      </div>
+      <p id="sortScore" class="readout">得分：<span class="v" id="sortScoreVal">0</span> / <span id="sortTotal">0</span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🌡️ 温度差异也会影响传导速度</h3>
+    <p>触碰热水杯会比触碰温水杯感觉更烫——因为热水与人体的温度差异更大，热传导得更快；温水与人体温差较小，传导较慢。</p>
+    <div id="thinkJuice"></div>
+    <div id="thinkGasConduct"></div>
+    <div id="thinkSunWater"></div>
+  </div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('convection')">进入下一站：6.2.2 对流 →</button>
+  </div>
+</section>
+
+<script>
+document.getElementById('thinkRodRace').innerHTML = checkHTML(
+  '如图所示，将木棒、铁棒、铜棒及玻璃棒同时放入热水中，铜棒的温度上升得最快，这是为什么？哪一支棒的温度上升得最慢？',
+  '因为铜的导热系数（401）远大于铁（84）、玻璃（1.05）和木（0.17），导热能力最强，所以铜棒升温最快；木棒的导热系数最小，因此温度上升得最慢（玻璃与木都很慢，但木略慢于玻璃）。'
+);
+document.getElementById('thinkJuice').innerHTML = checkHTML(
+  '试解释为何一杯果汁能通过加入冰块来降低温度。',
+  '冰块的温度远低于果汁，两者接触后，热能会从温度较高的果汁传导至温度较低的冰块，果汁因放出热能而降温，冰块则吸收热能而融化，直到两者达到热平衡，果汁的温度就下降了。'
+);
+document.getElementById('thinkGasConduct').innerHTML = thinkHTML(
+  '气体、液体及固体都能传递热能，试说明三者间，为何气体传递热能的能力较弱？',
+  '因为气体粒子之间的距离比液体和固体大得多，粒子分布稀疏、碰撞机会少，振动能量难以有效地从一个粒子传给邻近粒子，所以气体的导热能力最弱。'
+);
+document.getElementById('thinkSunWater').innerHTML = checkHTML(
+  '在炎热的午后，一杯40℃的温水和一杯5℃的冷水放在太阳下晒，经过一段时间后，哪一杯水的温度变化比较快？为什么？',
+  '冷水（5℃）的温度变化比较快。因为冷水与太阳辐射/周围环境的温度差异比温水大，温度差越大，热传递（这里主要是吸收辐射热）越快，所以冷水升温的速度更快。'
+);
+
+/* ---------- 单根金属棒 传导动画 ---------- */
+(function(){
+  const wrap = document.getElementById('rodWrap');
+  const cv = document.getElementById('rodCanvas'), ctx = cv.getContext('2d');
+  let DPR=Math.min(window.devicePixelRatio||1,2), W=0,H=0;
+  const SEG=28;
+  let temps = new Array(SEG).fill(20);
+  let heating=false;
+
+  function resize(){
+    W=wrap.clientWidth; H=wrap.clientHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function tempColor(t){
+    const f=Math.max(0,Math.min(1,(t-20)/80));
+    const r=Math.round(120+f*135), g=Math.round(140-f*90), b=Math.round(160-f*150);
+    return `rgb(${r},${g},${b})`;
+  }
+  function step(){
+    if(heating) temps[0] = Math.min(100, temps[0]+3);
+    const SUBSTEPS=8;
+    for(let s=0; s<SUBSTEPS; s++){
+      const next = temps.slice();
+      for(let i=1;i<SEG-1;i++){
+        next[i] = temps[i] + 0.35*(temps[i-1]+temps[i+1]-2*temps[i]);
+      }
+      if(SEG>1) next[SEG-1] = temps[SEG-1] + 0.35*(temps[SEG-2]-temps[SEG-1]);
+      temps = next;
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const pad=14, rodY=H/2-14, rodH=28, segW=(W-pad*2)/SEG;
+    const t=performance.now()/150;
+    for(let i=0;i<SEG;i++){
+      const x=pad+i*segW;
+      ctx.fillStyle=tempColor(temps[i]);
+      ctx.fillRect(x, rodY, segW+1, rodH);
+    }
+    ctx.strokeStyle='#0a0e17'; ctx.strokeRect(pad,rodY,W-pad*2,rodH);
+    // particles jitter
+    for(let i=0;i<SEG;i++){
+      const x=pad+i*segW+segW/2;
+      const amp = 1+((temps[i]-20)/80)*7;
+      const jx = x + Math.sin(t+i)*amp;
+      const jy = rodY+rodH/2 + Math.cos(t*1.4+i)*amp*0.4;
+      ctx.fillStyle='#0a0e17';
+      ctx.beginPath(); ctx.arc(jx,jy,2.6,0,7); ctx.fill();
+    }
+    if(heating){
+      ctx.font='20px sans-serif'; ctx.fillText('🔥', pad-6, rodY+rodH+22);
+    }
+    ctx.fillStyle='#7b8bab'; ctx.font='11px sans-serif'; ctx.textAlign='right';
+    ctx.fillText('热端 →→→ 冷端', W-pad, rodY-8);
+  }
+  function loop(){ step(); draw(); requestAnimationFrame(loop); }
+  document.getElementById('rodHeatBtn').addEventListener('click', ()=>{ heating=true; markDone('conduction'); });
+  document.getElementById('rodResetBtn').addEventListener('click', ()=>{ heating=false; temps=new Array(SEG).fill(20); });
+  new ResizeObserver(resize).observe(wrap);
+  window.addEventListener('load', ()=>{resize(); loop();});
+})();
+
+/* ---------- 四棒导热赛跑 ---------- */
+(function(){
+  const wrap = document.getElementById('raceRodWrap');
+  const cv = document.getElementById('raceRodCanvas'), ctx = cv.getContext('2d');
+  let DPR=Math.min(window.devicePixelRatio||1,2), W=0,H=0;
+  const mats = [
+    {name:'木', k:0.17, color:'#b98b57'},
+    {name:'铁', k:84, color:'#9aa5b1'},
+    {name:'铜', k:401, color:'#e8935c'},
+    {name:'玻璃', k:1.05, color:'#8fd3e8'}
+  ];
+  let running=false, startT=0, RUN_DURATION=10000;
+  mats.forEach(m=>{ m.rate = Math.pow(m.k,0.3); });
+  const maxRate = Math.max(...mats.map(m=>m.rate));
+  mats.forEach(m=>{ m.norm = 0.15 + 0.85*(m.rate/maxRate); });
+
+  function resize(){
+    W=wrap.clientWidth; H=wrap.clientHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function frac(m, elapsed){
+    const speed = (W>0?1:1); // placeholder
+    const val = (elapsed/RUN_DURATION); // 0..1 for copper(norm=1) reaching top at RUN_DURATION
+    return Math.max(0, Math.min(1, val*m.norm/1.0));
+  }
+  function draw(elapsed){
+    ctx.clearRect(0,0,W,H);
+    const waterH=36, rodTop=20, rodBot=H-waterH-6, rodH=rodBot-rodTop;
+    const gap=W/mats.length;
+    mats.forEach((m,i)=>{
+      const cx = gap*i+gap/2;
+      const f = running ? frac(m, elapsed) : 0;
+      m._f = f;
+      const heatH = rodH*f;
+      // rod background (cold)
+      ctx.fillStyle='#1b2436';
+      ctx.fillRect(cx-9, rodTop, 18, rodH);
+      // heated portion from bottom
+      ctx.fillStyle = m.color;
+      ctx.fillRect(cx-9, rodBot-heatH, 18, heatH);
+      ctx.strokeStyle='#0a0e17'; ctx.strokeRect(cx-9, rodTop, 18, rodH);
+      ctx.fillStyle='#dbe6f5'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(m.name, cx, rodTop-6);
+      ctx.fillStyle='#7b8bab'; ctx.font='10px Consolas, monospace';
+      ctx.fillText(Math.round(f*100)+'%', cx, rodBot+16);
+    });
+    // water
+    ctx.fillStyle='#ff5a3c66';
+    ctx.fillRect(0, H-waterH, W, waterH);
+    ctx.fillStyle='#ffcf4a'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🔥 热水槽 100℃', W/2, H-waterH/2+4);
+  }
+  function loop(ts){
+    if(running){
+      const elapsed = ts-startT;
+      draw(elapsed);
+      if(elapsed>=RUN_DURATION){
+        running=false;
+        const order = mats.slice().sort((a,b)=>b.norm-a.norm).map(m=>m.name).join(' > ');
+        document.getElementById('raceRodMsg').textContent = '实验结束！升温速度顺序：'+order+' —— 与导热系数的大小顺序完全一致。';
+        markDone('conduction');
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  document.getElementById('raceRodStart').addEventListener('click', function(){
+    running=true; startT=performance.now();
+    this.disabled=true;
+    document.getElementById('raceRodMsg').textContent='实验进行中…观察哪根棒子最先变热！';
+    setTimeout(()=>{ document.getElementById('raceRodStart').disabled=false; }, RUN_DURATION+200);
+  });
+  document.getElementById('raceRodReset').addEventListener('click', ()=>{
+    running=false; draw(0);
+    document.getElementById('raceRodMsg').textContent='';
+    document.getElementById('raceRodStart').disabled=false;
+  });
+  new ResizeObserver(()=>{resize(); draw(running?performance.now()-startT:0);}).observe(wrap);
+  window.addEventListener('load', ()=>{resize(); draw(0); requestAnimationFrame(loop);});
+})();
+
+/* ---------- 分类小游戏 ---------- */
+(function(){
+  const items = [
+    {name:'铜', good:true}, {name:'铁', good:true}, {name:'银', good:true}, {name:'铝', good:true},
+    {name:'木头', good:false}, {name:'玻璃', good:false}, {name:'空气', good:false}, {name:'橡胶', good:false}, {name:'水', good:false}
+  ];
+  // 随机打乱顺序 (Fisher-Yates)
+  for(let i=items.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [items[i],items[j]]=[items[j],items[i]];
+  }
+  let score=0, answered=0;
+  document.getElementById('sortTotal').textContent = items.length;
+  const chipsWrap = document.getElementById('sortChips');
+  items.forEach((it)=>{
+    const holder=document.createElement('div');
+    holder.style.display='inline-flex'; holder.style.flexDirection='column'; holder.style.alignItems='center'; holder.style.gap='4px';
+    const b=document.createElement('div');
+    b.className='btn secondary'; b.style.cursor='default'; b.textContent=it.name;
+    holder.appendChild(b);
+    const choices=document.createElement('div');
+    choices.style.display='flex'; choices.style.gap='4px';
+    const bg=document.createElement('button'); bg.className='btn secondary'; bg.style.padding='4px 8px'; bg.style.fontSize='11px'; bg.textContent='良导体';
+    const bb=document.createElement('button'); bb.className='btn secondary'; bb.style.padding='4px 8px'; bb.style.fontSize='11px'; bb.textContent='不良导体';
+    choices.appendChild(bg); choices.appendChild(bb);
+    holder.appendChild(choices);
+    chipsWrap.appendChild(holder);
+    function answer(goToGood){
+      if(bg.disabled) return;
+      bg.disabled=true; bb.disabled=true;
+      const correct = goToGood===it.good;
+      if(correct) score++;
+      answered++;
+      document.getElementById('sortScoreVal').textContent=score;
+      b.style.opacity=0.5;
+      (goToGood?bg:bb).style.background = correct? '#4ade8044':'#f8717144';
+      choices.style.display='none';
+      const target = document.getElementById(goToGood?'binGoodList':'binBadList');
+      const tag=document.createElement('span');
+      tag.style.marginRight='8px';
+      tag.textContent = it.name+(correct?' ✅':' ❌('+(it.good?'其实是良导体':'其实是不良导体')+')');
+      tag.style.color = correct?'var(--good)':'var(--bad)';
+      target.appendChild(tag);
+      if(answered===items.length) markDone('conduction');
+    }
+    bg.addEventListener('click', ()=>answer(true));
+    bb.addEventListener('click', ()=>answer(false));
+  });
+})();
+</script>
+
+
+<section class="panel" id="panel-convection">
+  <div class="card">
+    <h2><span class="station-icon">🌀</span>6.2.2 对流如何发生？ <span class="tag">STATION 4</span></h2>
+    <p>固体中的热传递主要靠传导。但液体和气体的粒子间距很大，不容易靠传导来传热——那它们是怎么传热的呢？答案是：靠<b>流动</b>。</p>
+    <p>煮水时，靠近热源的水先吸收热能，粒子移动得更快、彼此分散得更远，水的<b>体积增加、密度变小</b>。较热、密度较小的水会<b>上升</b>；较冷、密度较大的水则<b>下沉</b>，从而形成循环流动。运动剧烈的粒子（高温区）与运动较缓的粒子（低温区）互相交换位置，热能就随着粒子的移动，从高温区传向低温区，直到温度平衡。像液体和气体这样<b>依靠介质本身循环流动</b>来传热的方式，称为<b>对流（convection）</b>。气体也具有同样的特性。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🧪 互动实验：加热一锅水（流体力学粒子引擎版）</h3>
+    <p class="dim">调节本生灯火力，观察粒子如何从底部中心受热上升，冲到顶端后向两侧散开降温，再沿杯壁两侧下沉、回到底部中心，形成持续循环的对流环。</p>
+    <div class="canvas-wrap" style="height:340px; padding:6px;">
+      <svg id="conv-lab-svg" viewBox="0 0 600 500" style="width:100%; height:100%; display:block;">
+        <defs>
+          <linearGradient id="conv-beaker-glass" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>
+            <stop offset="10%" stop-color="rgba(255,255,255,0.02)"/>
+            <stop offset="90%" stop-color="rgba(255,255,255,0.02)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.25)"/>
+          </linearGradient>
+          <radialGradient id="conv-fire-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fffbbf"/>
+            <stop offset="30%" stop-color="#ff9d00"/>
+            <stop offset="70%" stop-color="#ff3c00" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#ff3c00" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="conv-water-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(56, 189, 248, 0.1)"/>
+            <stop offset="100%" stop-color="rgba(56, 189, 248, 0.25)"/>
+          </linearGradient>
+        </defs>
+        <g stroke="#475569" stroke-width="8" stroke-linecap="round">
+          <line x1="120" y1="80" x2="120" y2="450" />
+          <line x1="80" y1="450" x2="280" y2="450" stroke-width="12" />
+          <line x1="120" y1="362" x2="160" y2="362" stroke-width="6" />
+        </g>
+        <g>
+          <rect x="150" y="358" width="300" height="6" fill="#64748b" rx="2" stroke="#334155" stroke-width="1"/>
+          <line x1="170" y1="364" x2="150" y2="465" stroke="#475569" stroke-width="6" />
+          <line x1="430" y1="364" x2="450" y2="465" stroke="#475569" stroke-width="6" />
+        </g>
+        <g transform="translate(300, 365)">
+          <path d="M-25 100 L25 100 L15 50 L-15 50 Z" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+          <rect x="-4" y="30" width="8" height="20" fill="#94a3b8"/>
+          <path id="conv-burner-flame" d="M-12 30 Q0 0 0 -25 Q0 0 12 30 Z" fill="url(#conv-fire-glow)" opacity="0"/>
+        </g>
+        <g>
+          <rect id="conv-water-bg" x="185" y="130" width="230" height="225" fill="url(#conv-water-grad)" rx="4"/>
+          <path id="conv-water-surface" d="M 185 130 Q 300 130 415 130" stroke="rgba(147,205,253,0.7)" stroke-width="3" fill="none" />
+          <rect x="180" y="110" width="240" height="248" fill="url(#conv-beaker-glass)" stroke="rgba(255,255,255,0.4)" stroke-width="4" rx="6" />
+          <path d="M 175 110 L 185 110" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 415 110 L 425 110" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round"/>
+          <g stroke="rgba(255,255,255,0.25)" stroke-width="1.5">
+            <line x1="390" y1="160" x2="405" y2="160" />
+            <line x1="395" y1="200" x2="405" y2="200" />
+            <line x1="390" y1="240" x2="405" y2="240" />
+            <line x1="395" y1="280" x2="405" y2="280" />
+            <line x1="390" y1="320" x2="405" y2="320" />
+          </g>
+          <g fill="rgba(255,255,255,0.3)" font-size="10" font-family="monospace">
+            <text x="385" y="163" text-anchor="end">400ml</text>
+            <text x="385" y="243" text-anchor="end">200ml</text>
+          </g>
+        </g>
+        <g id="conv-particles-container"></g>
+        <rect x="250" y="340" width="100" height="15" fill="rgba(239, 68, 68, 0.08)" stroke="rgba(239, 68, 68, 0.3)" stroke-dasharray="3 2" rx="2" />
+        <text x="300" y="351" fill="rgba(239, 68, 68, 0.6)" font-size="9" text-anchor="middle">加热中心区</text>
+      </svg>
+    </div>
+    <div class="readout" id="conv-system-status">状态: 恒温中</div>
+
+    <p class="dim" style="margin-bottom:4px;">调节本生灯火焰大小：</p>
+    <div class="heat-level-grid">
+      <button class="heat-level-btn conv-btn-heat" data-heat="0">熄灭</button>
+      <button class="heat-level-btn conv-btn-heat" data-heat="1">微火</button>
+      <button class="heat-level-btn conv-btn-heat active" data-heat="2">中火</button>
+      <button class="heat-level-btn conv-btn-heat" data-heat="3">猛火</button>
+    </div>
+
+    <div class="slider-row">
+      <label>粒子总数</label>
+      <input type="range" id="conv-slide-p-count" min="60" max="260" step="10" value="180">
+      <span class="readout">N = <span class="v" id="conv-val-p-count">180</span></span>
+    </div>
+    <div class="slider-row">
+      <label>对流速度系数</label>
+      <input type="range" id="conv-slide-flow" min="0.2" max="3.0" step="0.1" value="1.2">
+      <span class="readout"><span class="v" id="conv-val-flow">1.2</span>x</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="conv-btn-play-pause">⏸ 暂停模拟</button>
+      <button class="btn secondary" id="conv-btn-reset">↺ 一键重置</button>
+    </div>
+    <div class="legend">
+      <span><i style="background:#3b82f6"></i>低温（密度大，下沉）</span>
+      <span><i style="background:#ef4444"></i>高温（密度小，上升）</span>
+    </div>
+    <p class="dim" style="font-size:12.5px; line-height:1.8;">
+      <b style="color:var(--hot2)">热力-流速动态绑定</b>：熄灭火焰后水温逐渐下降，对流也会随之减慢直至完全停止；重新开火后水温回升，对流将重新苏醒并加速。<br>
+      <b style="color:var(--accent2)">微观热颤动（布朗运动）</b>：宏观对流停止后，粒子仍会原地进行与温度挂钩的微小抖动，模拟分子的不规则热运动。<br>
+      <b style="color:var(--cold2)">绝对均匀分布</b>：粒子间的静电斥力让水体始终饱满自然，不会扎堆或排成僵硬的线条。
+    </p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🏠 气体对流：房间为什么"脚冷头暖"？</h3>
+    <p>气体也跟水一样，靠循环流动传热。暖气/火炉旁的空气受热膨胀、密度变小而<b>上升</b>；远离热源、较冷的空气密度较大而<b>下沉</b>补充，形成气体对流。</p>
+    <div class="canvas-wrap" style="height:170px;">
+      <svg viewBox="0 0 300 170" width="100%" height="100%" style="display:block;">
+        <rect width="300" height="170" fill="#050810"/>
+        <rect x="30" y="120" width="34" height="34" fill="#ff5a3c" rx="3"/>
+        <text x="47" y="163" fill="#ffb03c" font-size="9" text-anchor="middle">火炉</text>
+        <path d="M47 118 C 40 90, 60 70, 47 40" stroke="#ff9d6b" stroke-width="2" fill="none" marker-end="url(#arrow1)"/>
+        <path d="M90 150 C 110 120, 90 90, 100 60" stroke="#ffcf4a55" stroke-width="2" fill="none" marker-end="url(#arrow1)"/>
+        <path d="M230 40 C 245 70, 225 100, 235 140" stroke="#6ec8ff" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+        <path d="M270 30 C 280 70, 260 110, 268 150" stroke="#3ca7ff55" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+        <defs>
+          <marker id="arrow1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ff9d6b"/></marker>
+          <marker id="arrow2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6ec8ff"/></marker>
+        </defs>
+        <text x="47" y="30" fill="#ff9d6b" font-size="10" text-anchor="middle">暖空气↑上升</text>
+        <text x="250" y="20" fill="#6ec8ff" font-size="10" text-anchor="middle">冷空气↓下沉</text>
+      </svg>
+    </div>
+    <p class="dim">这也是为什么冷气机通常安装在房间上方、暖气/火炉常放在房间下方——能更有效地利用对流使整个房间温度均匀。</p>
+  </div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('radiation')">进入下一站：6.2.3 辐射 →</button>
+  </div>
+</section>
+
+<script>
+/* ---------- 对流粒子模拟: 解析双涡旋流场 + 粒子静电斥力引擎 (移植自参考实验室) ---------- */
+(function(){
+  const BOUNDS = { LEFT:188, RIGHT:412, TOP:132, BOTTOM:348, WIDTH:224, HEIGHT:216 };
+  let cState = { isRunning:true, heatLevel:2, particleCount:180, flowSpeed:1.2, avgTemp:20 };
+  let particles = [];
+  const particlesContainer = document.getElementById('conv-particles-container');
+
+  class ConvectionParticle {
+    constructor(spawnGrid=false, gridX=0, gridY=0){
+      if(spawnGrid){ this.x=gridX; this.y=gridY; }
+      else {
+        this.x = BOUNDS.LEFT + 10 + Math.random()*(BOUNDS.WIDTH-20);
+        this.y = BOUNDS.TOP + 10 + Math.random()*(BOUNDS.HEIGHT-20);
+      }
+      this.vx=0; this.vy=0; this.radius=4.2;
+      this.temp = 20.0 + Math.random()*5;
+      this.dom = null;
+    }
+    createDom(){
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('r', this.radius);
+      this.dom = circle;
+      particlesContainer.appendChild(circle);
+    }
+    destroy(){ if(this.dom && this.dom.parentNode) this.dom.parentNode.removeChild(this.dom); }
+    updatePhysics(dt){
+      dt = Math.min(dt, 0.03);
+      const midX = (BOUNDS.LEFT+BOUNDS.RIGHT)/2;
+      const isNearBottom = this.y > (BOUNDS.BOTTOM-18);
+      const isOverHeater = Math.abs(this.x-midX) < 45;
+      if(isNearBottom && isOverHeater && cState.heatLevel>0){
+        const heatingRate = 22.0*cState.heatLevel;
+        this.temp += heatingRate*dt;
+      }
+      const isNearSurface = this.y < (BOUNDS.TOP+15);
+      if(isNearSurface) this.temp -= 25.0*dt;
+      this.temp -= 2.0*dt;
+      this.temp = Math.max(20.0, Math.min(100.0, this.temp));
+
+      const u = (this.x-BOUNDS.LEFT)/BOUNDS.WIDTH;
+      const v = (this.y-BOUNDS.TOP)/BOUNDS.HEIGHT;
+      const targetVx = -Math.sin(2*Math.PI*u)*Math.cos(Math.PI*v)*22;
+      const targetVy = 1.2*Math.cos(2*Math.PI*u)*Math.sin(Math.PI*v)*22;
+
+      // 关键修正: 对流流速取决于当前水温与室温的温差(温差驱动系数),
+      // 水温回落到室温附近时,宏观流动会自然趋于静止
+      const tempDrive = Math.max(0.0, (cState.avgTemp-20)/80);
+      const currentEffectiveSpeed = cState.flowSpeed * tempDrive;
+
+      const individualTempRatio = (this.temp-20)/80;
+      let buoyancyY = 0;
+      if(Math.abs(u-0.5) < 0.22){
+        buoyancyY = -individualTempRatio*20*currentEffectiveSpeed;
+      } else if(u<0.16 || u>0.84){
+        buoyancyY = (1-individualTempRatio)*16*currentEffectiveSpeed;
+      }
+      const finalFieldVx = targetVx*currentEffectiveSpeed;
+      const finalFieldVy = targetVy*currentEffectiveSpeed + buoyancyY;
+      const viscosity = 0.85;
+      this.vx += (finalFieldVx-this.vx)*viscosity*dt*8;
+      this.vy += (finalFieldVy-this.vy)*viscosity*dt*8;
+
+      // 微观分子热颤动(布朗运动): 温度越高,原地无规则抖动越剧烈
+      const jitterAmplitude = 0.12 + (this.temp/100)*0.45;
+      this.vx += (Math.random()-0.5)*jitterAmplitude*dt*10;
+      this.vy += (Math.random()-0.5)*jitterAmplitude*dt*10;
+
+      for(let i=0;i<particles.length;i++){
+        const other = particles[i];
+        if(other===this) continue;
+        const dx=this.x-other.x, dy=this.y-other.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const minAllowedDist=12.8;
+        if(dist<minAllowedDist && dist>0.1){
+          const overlap=minAllowedDist-dist;
+          const forceMagnitude=overlap*15.0;
+          this.vx += (dx/dist)*forceMagnitude*dt;
+          this.vy += (dy/dist)*forceMagnitude*dt;
+        }
+      }
+
+      this.x += this.vx*dt*45;
+      this.y += this.vy*dt*45;
+
+      const margin=this.radius+1.5;
+      if(this.x<BOUNDS.LEFT+margin){ this.x=BOUNDS.LEFT+margin; this.vx=Math.abs(this.vx)*0.2; }
+      if(this.x>BOUNDS.RIGHT-margin){ this.x=BOUNDS.RIGHT-margin; this.vx=-Math.abs(this.vx)*0.2; }
+      if(this.y<BOUNDS.TOP+margin){ this.y=BOUNDS.TOP+margin; this.vy=Math.abs(this.vy)*0.2; }
+      if(this.y>BOUNDS.BOTTOM-margin){ this.y=BOUNDS.BOTTOM-margin; this.vy=-Math.abs(this.vy)*0.2; }
+
+      if(isNaN(this.x) || isNaN(this.y)){
+        this.x = BOUNDS.LEFT+15+Math.random()*(BOUNDS.WIDTH-30);
+        this.y = BOUNDS.TOP+15+Math.random()*(BOUNDS.HEIGHT-30);
+        this.vx=0; this.vy=0;
+      }
+    }
+    render(){
+      if(!this.dom) return;
+      this.dom.setAttribute('cx', this.x.toFixed(1));
+      this.dom.setAttribute('cy', this.y.toFixed(1));
+      const tRatio = (this.temp-20)/80;
+      let r,g,b;
+      if(tRatio<0.5){
+        const ratio=tRatio/0.5;
+        r=Math.round(59+(168-59)*ratio); g=Math.round(130+(85-130)*ratio); b=Math.round(246+(247-246)*ratio);
+      } else {
+        const ratio=(tRatio-0.5)/0.5;
+        r=Math.round(168+(239-168)*ratio); g=Math.round(85+(68-85)*ratio); b=Math.round(247+(68-247)*ratio);
+      }
+      this.dom.setAttribute('fill', `rgb(${r}, ${g}, ${b})`);
+      if(this.temp>75){
+        this.dom.setAttribute('stroke','rgba(255,255,255,0.7)');
+        this.dom.setAttribute('stroke-width','1');
+        this.dom.setAttribute('r', this.radius*1.1);
+      } else {
+        this.dom.setAttribute('stroke','rgba(0,0,0,0.15)');
+        this.dom.setAttribute('stroke-width','0.5');
+        this.dom.setAttribute('r', this.radius);
+      }
+    }
+  }
+
+  function initParticlesUniformly(){
+    particles.forEach(p=>p.destroy());
+    particles=[];
+    const count=cState.particleCount;
+    const area=BOUNDS.WIDTH*BOUNDS.HEIGHT;
+    const spacing=Math.sqrt(area/count);
+    const cols=Math.floor(BOUNDS.WIDTH/spacing);
+    const rows=Math.ceil(count/cols);
+    let created=0;
+    for(let r=0;r<rows && created<count;r++){
+      for(let c=0;c<cols && created<count;c++){
+        const x=BOUNDS.LEFT+(c+0.5)*spacing+(Math.random()-0.5)*(spacing*0.4);
+        const y=BOUNDS.TOP+(r+0.5)*spacing+(Math.random()-0.5)*(spacing*0.4);
+        const safeX=Math.max(BOUNDS.LEFT+10, Math.min(BOUNDS.RIGHT-10, x));
+        const safeY=Math.max(BOUNDS.TOP+10, Math.min(BOUNDS.BOTTOM-10, y));
+        const p=new ConvectionParticle(true, safeX, safeY);
+        p.createDom(); particles.push(p); created++;
+      }
+    }
+    while(particles.length<count){
+      const p=new ConvectionParticle(false);
+      p.createDom(); particles.push(p);
+    }
+  }
+
+  function updateEnvironment(dt){
+    const flame=document.getElementById('conv-burner-flame');
+    if(cState.heatLevel===0){ flame.setAttribute('opacity','0'); }
+    else {
+      flame.setAttribute('opacity','1');
+      const baseHeight=cState.heatLevel*14;
+      const timeFactor=Date.now()*0.02;
+      const dynamicHeight=baseHeight+Math.sin(timeFactor)*4;
+      const wobbleWidth=10+Math.cos(timeFactor*0.8)*2;
+      const path = `M -${wobbleWidth} 30 Q -${wobbleWidth*0.5} ${25-dynamicHeight*0.4} 0 -${dynamicHeight} Q ${wobbleWidth*0.5} ${25-dynamicHeight*0.4} ${wobbleWidth} 30 Z`;
+      flame.setAttribute('d', path);
+    }
+    const waterSurface=document.getElementById('conv-water-surface');
+    const waveAmp = cState.heatLevel>0 ? (cState.heatLevel*1.5) : 0.3;
+    const phase=Date.now()*0.005;
+    let path=`M ${BOUNDS.LEFT} ${BOUNDS.TOP}`;
+    const segments=10, step=BOUNDS.WIDTH/segments;
+    for(let i=1;i<=segments;i++){
+      const px=BOUNDS.LEFT+i*step;
+      const py=BOUNDS.TOP+Math.sin(phase+i*1.5)*waveAmp;
+      path += ` L ${px} ${py}`;
+    }
+    waterSurface.setAttribute('d', path);
+
+    let sumTemp=0;
+    particles.forEach(p=>{
+      // 熄火后,水体粒子缓慢向室温20℃靠近,对流也随之自然停止
+      if(cState.heatLevel===0){
+        p.temp -= 2.5*dt;
+        p.temp = Math.max(20.0, p.temp);
+      }
+      sumTemp += p.temp;
+    });
+    cState.avgTemp = sumTemp/particles.length;
+    const statusLabel=document.getElementById('conv-system-status');
+    if(cState.heatLevel===0){
+      if(cState.avgTemp>20.5){
+        statusLabel.innerHTML = `状态：正在降温 (<span class="v" style="color:var(--cold2)">${cState.avgTemp.toFixed(1)}</span>℃)`;
+      } else {
+        statusLabel.innerHTML = `状态：室温恒温中 (<span class="v">${cState.avgTemp.toFixed(1)}</span>℃)`;
+      }
+    } else if(cState.avgTemp>85){
+      statusLabel.innerHTML = `状态：剧烈对流沸腾 (<span class="v" style="color:var(--bad)">${cState.avgTemp.toFixed(1)}</span>℃)`;
+    } else if(cState.avgTemp>45){
+      statusLabel.innerHTML = `状态：活跃对流循环中 (<span class="v" style="color:var(--accent2)">${cState.avgTemp.toFixed(1)}</span>℃)`;
+    } else {
+      statusLabel.innerHTML = `状态：温和加热中 (<span class="v">${cState.avgTemp.toFixed(1)}</span>℃)`;
+    }
+  }
+
+  function bindControls(){
+    const btns=document.querySelectorAll('.conv-btn-heat');
+    btns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        cState.heatLevel = parseInt(btn.getAttribute('data-heat'));
+        btns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        if(cState.heatLevel>0) markDone('convection');
+      });
+    });
+    const slidePCount=document.getElementById('conv-slide-p-count');
+    const valPCount=document.getElementById('conv-val-p-count');
+    slidePCount.addEventListener('input', e=>{
+      cState.particleCount=parseInt(e.target.value);
+      valPCount.textContent=cState.particleCount;
+      initParticlesUniformly();
+    });
+    const slideFlow=document.getElementById('conv-slide-flow');
+    const valFlow=document.getElementById('conv-val-flow');
+    slideFlow.addEventListener('input', e=>{
+      cState.flowSpeed=parseFloat(e.target.value);
+      valFlow.textContent=cState.flowSpeed.toFixed(1);
+    });
+    const btnPlayPause=document.getElementById('conv-btn-play-pause');
+    btnPlayPause.addEventListener('click', ()=>{
+      cState.isRunning = !cState.isRunning;
+      btnPlayPause.textContent = cState.isRunning? '⏸ 暂停模拟' : '▶ 继续模拟';
+    });
+    document.getElementById('conv-btn-reset').addEventListener('click', ()=>{
+      cState.heatLevel=2;
+      btns.forEach(b=>b.classList.toggle('active', b.getAttribute('data-heat')==='2'));
+      initParticlesUniformly();
+    });
+  }
+
+  let lastTime=null;
+  function loop(timestamp){
+    if(!lastTime) lastTime=timestamp;
+    let dt=(timestamp-lastTime)/1000;
+    lastTime=timestamp;
+    if(isNaN(dt) || dt<=0 || dt>0.1) dt=0.016;
+    if(cState.isRunning){
+      particles.forEach(p=>p.updatePhysics(dt));
+      particles.forEach(p=>p.render());
+      updateEnvironment(dt);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  initParticlesUniformly();
+  bindControls();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+
+<section class="panel" id="panel-radiation">
+  <div class="card">
+    <h2><span class="station-icon">☀️</span>6.2.3 辐射如何发生？ <span class="tag">STATION 5</span></h2>
+    <p>传导和对流都需要介质。但太阳与地球之间是真空，太阳的热是怎么传到地球的呢？</p>
+    <p>把一个通电的电熨斗放在桌上，手掌靠近时会感受到热——但这不是传导（空气是不良导体），也不是对流（热空气会往上升，不会横向传到手掌）。事实上，这股热是从电熨斗<b>沿直线直接发射</b>到手掌的。这种<b>无需任何介质、沿直线传播热能</b>的方式，称为<b>辐射（radiation）</b>。</p>
+    <div class="canvas-wrap" id="radWrap" style="height:190px;"><canvas id="radCanvas"></canvas></div>
+    <div class="btn-row">
+      <button class="btn" id="radToggleIron">🔌 打开熨斗</button>
+      <button class="btn secondary" id="radToggleBoard">🪵 放入木板阻挡</button>
+    </div>
+    <p class="dim" id="radMsg">打开熨斗后手掌会感受到热；放入木板后，手掌就感受不到热了——这证明热辐射是沿直线传播的。</p>
+  </div>
+
+  <div class="card">
+    <p>热辐射本身是一种电磁波辐射现象，主要以波长较长的<b>可见光和红外线</b>传播。电磁波的传播不需要任何介质、可以在真空中进行，所以辐射是<b>真空中唯一的传热方式</b>——太阳正是通过辐射把热传到地球的。一切温度高于<b>绝对零度（-273.15℃）</b>的物体都会产生热辐射，温度越高，辐射出的热能就越多。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🧪 互动实验一：黑瓶 vs 白瓶</h3>
+    <p class="dim">两个相同的锥形瓶，分别涂上黑漆和白漆，中间放一个灯泡。打开灯后，看看哪一瓶内的空气温度上升得更快。</p>
+    <div id="expColor"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">🧪 互动实验二：粗糙表面 vs 光滑表面</h3>
+    <p class="dim">两个相同的锥形瓶，一个包粗糙的砂纸，一个包相同颜色但光滑的纸，中间放一个灯泡。打开灯后，比较两瓶内空气的温度。</p>
+    <div id="expTexture"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">📋 影响辐射吸收与发射的因素</h3>
+    <table class="data">
+      <tr><th>物体特征</th><th>辐射吸收 / 发射能力良好</th><th>能力不良</th></tr>
+      <tr><td>表面外观</td><td>深色、无光泽</td><td>浅色、有光泽</td></tr>
+      <tr><td>表面类型</td><td>粗糙</td><td>光滑</td></tr>
+    </table>
+    <p>汽车遮阳板、油槽车外壳都漆成<b>浅色、光滑</b>，就是为了减少吸收辐射热；吸收能力强的物体，散热能力通常也较强——粗糙表面比光滑表面散热更快。</p>
+  </div>
+  <div id="thinkBodyHeat"></div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">✅ 学习检测</h3>
+    <div id="checkColdMetal"></div>
+    <div id="checkWoodHouse"></div>
+    <div id="checkClothColor"></div>
+  </div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('expansion')">进入下一站：6.3 热胀冷缩 →</button>
+  </div>
+</section>
+
+<script>
+document.getElementById('thinkBodyHeat').innerHTML = thinkHTML(
+  '若空气是热的不良导体，那么人体如何流失体温？',
+  '人体主要通过<b>辐射</b>（皮肤持续以红外线形式向外发射热能，无需介质）流失体温，同时也会通过对流（体表附近空气受热上升带走热量）和汗液蒸发等方式散热，传导所占比例很小。'
+);
+document.getElementById('checkColdMetal').innerHTML = checkHTML(
+  '天气冷时，为什么用手触摸金属器材会觉得比同温度的木质器材更冰冷？',
+  '因为金属是热的良导体，会很快把手上的热能传导走，热传递速度快，所以感觉特别冰冷；木质是不良导体，导热慢，热能流失得慢，所以感觉没那么冷（其实两者温度是一样的）。'
+);
+document.getElementById('checkWoodHouse').innerHTML = checkHTML(
+  '为什么木屋在炎热的天气时，屋内会比较凉爽；而天气寒冷时，却比较保暖？',
+  '木材是热的不良导体，热传导速度很慢。炎热时，外面的热不容易传入屋内，所以屋内较凉爽；寒冷时，屋内的热也不容易散失到外面，所以能保持温暖。'
+);
+document.getElementById('checkClothColor').innerHTML = checkHTML(
+  '天气炎热的时候，我们应该选择什么颜色的衣服比较好？为什么？',
+  '应选择浅色、有光泽的衣服。因为浅色、有光泽的表面吸收辐射热的能力较弱，能减少身体吸收的热量，穿起来比较凉爽；深色、无光泽的衣服则会吸收较多的辐射热，让人感觉更热。'
+);
+
+/* ---------- 熨斗辐射 + 木板阻挡 ---------- */
+(function(){
+  const wrap = document.getElementById('radWrap');
+  const cv = document.getElementById('radCanvas'), ctx = cv.getContext('2d');
+  let DPR=Math.min(window.devicePixelRatio||1,2), W=0,H=0;
+  let ironOn=false, boardIn=false;
+
+  function resize(){
+    W=wrap.clientWidth; H=wrap.clientHeight;
+    cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  function draw(t){
+    ctx.clearRect(0,0,W,H);
+    const ironX=W*0.22, handX=W*0.82, midY=H/2;
+    // iron
+    ctx.font='30px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🔥', ironX, midY+10);
+    ctx.fillStyle='#7b8bab'; ctx.font='11px sans-serif';
+    ctx.fillText(ironOn?'电熨斗 (开)':'电熨斗 (关)', ironX, midY+34);
+    // hand
+    ctx.font='30px sans-serif';
+    ctx.fillText('🖐️', handX, midY+10);
+    ctx.fillStyle='#7b8bab'; ctx.font='11px sans-serif';
+    ctx.fillText('手掌', handX, midY+34);
+    // rays
+    if(ironOn){
+      const boardX = W*0.52;
+      for(let i=0;i<5;i++){
+        const yy = midY-20+i*10;
+        const dashOffset = (t/40+i*10)%16;
+        ctx.strokeStyle = boardIn ? '#ff5a3c55' : '#ffcf4a';
+        ctx.setLineDash([6,4]); ctx.lineDashOffset=-dashOffset;
+        ctx.beginPath();
+        ctx.moveTo(ironX+18, yy);
+        ctx.lineTo(boardIn? boardX : handX-18, yy);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    if(boardIn){
+      const boardX=W*0.52;
+      ctx.fillStyle='#b98b57';
+      ctx.fillRect(boardX-6, midY-45, 12, 90);
+      ctx.fillStyle='#7b8bab'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('木板', boardX, midY-52);
+    }
+  }
+  function loop(ts){ draw(ts); requestAnimationFrame(loop); }
+  document.getElementById('radToggleIron').addEventListener('click', function(){
+    ironOn=!ironOn;
+    this.textContent = ironOn? '🔌 关闭熨斗':'🔌 打开熨斗';
+    document.getElementById('radMsg').textContent = ironOn
+      ? (boardIn? '木板挡住了辐射，手掌感受不到热——证明辐射沿直线传播，能被不透明物体阻挡。' : '手掌感受到熨斗发出的辐射热了！')
+      : '熨斗已关闭。';
+    markDone('radiation');
+  });
+  document.getElementById('radToggleBoard').addEventListener('click', function(){
+    boardIn=!boardIn;
+    this.textContent = boardIn? '🪵 移开木板':'🪵 放入木板阻挡';
+    if(ironOn){
+      document.getElementById('radMsg').textContent = boardIn
+        ? '木板挡住了辐射，手掌感受不到热——证明辐射沿直线传播，能被不透明物体阻挡。'
+        : '移开木板后，手掌重新感受到辐射热。';
+    }
+    markDone('radiation');
+  });
+  new ResizeObserver(resize).observe(wrap);
+  window.addEventListener('load', ()=>{resize(); requestAnimationFrame(loop);});
+})();
+
+/* ---------- 通用: 黑白瓶 / 粗糙光滑瓶 辐射吸收实验 ---------- */
+function buildRadiationFlaskExperiment(containerId, cfgA, cfgB, doneKey){
+  const container = document.getElementById(containerId);
+  const uid = containerId;
+  container.innerHTML = `
+    <div class="flask-exp-row">
+      <div class="flask-col">
+        <svg viewBox="0 0 100 130" style="width:100%; max-width:140px;" class="flask">
+          <path d="M40 15 L60 15 L60 45 L80 105 Q80 118 65 118 L35 118 Q20 118 20 105 L40 45 Z" fill="${cfgA.fill}" stroke="${cfgA.stroke}" stroke-width="${cfgA.strokeW}"/>
+          <rect x="38" y="8" width="24" height="10" fill="#1e2c45"/>
+        </svg>
+        <div style="font-size:12px;color:var(--dim);">${cfgA.label}</div>
+        <div class="readout">温度：<span class="v" id="${uid}TempA">25.0</span>℃</div>
+      </div>
+      <div class="bulb-col" id="${uid}Bulb">💡</div>
+      <div class="flask-col">
+        <svg viewBox="0 0 100 130" style="width:100%; max-width:140px;" class="flask">
+          <path d="M40 15 L60 15 L60 45 L80 105 Q80 118 65 118 L35 118 Q20 118 20 105 L40 45 Z" fill="${cfgB.fill}" stroke="${cfgB.stroke}" stroke-width="${cfgB.strokeW}"/>
+          <rect x="38" y="8" width="24" height="10" fill="#1e2c45"/>
+        </svg>
+        <div style="font-size:12px;color:var(--dim);">${cfgB.label}</div>
+        <div class="readout">温度：<span class="v" id="${uid}TempB">25.0</span>℃</div>
+      </div>
+    </div>
+    <div class="btn-row" style="justify-content:center;">
+      <button class="btn" id="${uid}Btn">💡 打开灯泡</button>
+      <button class="btn secondary" id="${uid}Reset">↺ 重置</button>
+    </div>
+    <p class="dim" id="${uid}Msg" style="text-align:center;"></p>
+  `;
+  let tA=25, tB=25, running=false, iv=null;
+  const elA=document.getElementById(uid+'TempA'), elB=document.getElementById(uid+'TempB');
+  const bulb=document.getElementById(uid+'Bulb');
+  const btn=document.getElementById(uid+'Btn'), rst=document.getElementById(uid+'Reset'), msg=document.getElementById(uid+'Msg');
+  function reset(){
+    tA=25; tB=25; running=false; clearInterval(iv);
+    elA.textContent='25.0'; elB.textContent='25.0'; msg.textContent=''; btn.disabled=false;
+    bulb.classList.remove('lit');
+  }
+  btn.addEventListener('click', ()=>{
+    if(running) return;
+    running=true; btn.disabled=true;
+    bulb.classList.add('lit');
+    iv=setInterval(()=>{
+      tA += cfgA.rate; tB += cfgB.rate;
+      elA.textContent=tA.toFixed(1); elB.textContent=tB.toFixed(1);
+      if(tA>=cfgA.max){
+        clearInterval(iv); running=false;
+        msg.textContent = cfgA.label+'内空气温度（'+tA.toFixed(1)+'℃）明显高于'+cfgB.label+'（'+tB.toFixed(1)+'℃）—— 说明'+cfgA.trait+'比'+cfgB.trait+'更能吸收辐射热。';
+        markDone(doneKey);
+      }
+    }, 90);
+  });
+  rst.addEventListener('click', reset);
+}
+buildRadiationFlaskExperiment('expColor',
+  {label:'黑漆瓶', fill:'#111318', stroke:'#333', strokeW:1, rate:0.9, max:55, trait:'深色、无光泽的表面'},
+  {label:'白漆瓶', fill:'#e8edf5', stroke:'#333', strokeW:1, rate:0.32, max:55, trait:'浅色、有光泽的表面'},
+  'radiation'
+);
+buildRadiationFlaskExperiment('expTexture',
+  {label:'砂纸包裹瓶（粗糙）', fill:'#8a7048', stroke:'#5c4a30', strokeW:1, rate:0.85, max:55, trait:'表面粗糙'},
+  {label:'光滑纸包裹瓶（光滑）', fill:'#c9b98a', stroke:'#5c4a30', strokeW:1, rate:0.38, max:55, trait:'表面光滑'},
+  'radiation'
+);
+</script>
+
+
+<section class="panel" id="panel-expansion">
+  <div class="card">
+    <h2><span class="station-icon">📏</span>6.3 热有哪些效应？ <span class="tag">STATION 6</span></h2>
+    <p>物体吸收热能时，体积通常会增加，这种现象称为<b>膨胀（expansion）</b>；物体冷却、失去热能时，体积通常会缩小，称为<b>收缩（contraction）</b>。利用粒子运动的观点：温度越高，粒子振动或运动越剧烈，粒子之间的平均距离随之增大，宏观上就表现为物体的长度、面积、体积增大。</p>
+  </div>
+
+  <div class="subtabs" id="expSubtabs">
+    <button data-sub="solid" class="active">🔩 固体</button>
+    <button data-sub="liquidgas">💧 液体与气体</button>
+    <button data-sub="apply">🏓 生活应用</button>
+    <button data-sub="hazard">⚠️ 危害与防治</button>
+  </div>
+
+  <!-- 固体 -->
+  <div class="subpanel active" id="sub-solid">
+    <div class="card">
+      <h3 style="margin-top:0;">6.3.1 球环实验：固体会热胀冷缩吗？</h3>
+      <p class="dim">室温下，金属球刚好能穿过金属环。加热金属球后会怎样？</p>
+      <div style="text-align:center;">
+        <svg id="ballRingSvg" viewBox="0 0 220 120" width="100%" style="max-width:320px;">
+          <ellipse cx="160" cy="60" rx="34" ry="34" fill="none" stroke="#7b8bab" stroke-width="8"/>
+          <circle id="metalBall" cx="60" cy="60" r="26" fill="#ff9d6b" stroke="#ffcf4a" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="ballHeat">🔥 加热金属球</button>
+        <button class="btn secondary" id="ballCool">❄️ 冷却金属球</button>
+        <button class="btn secondary" id="ballTry">➡️ 尝试穿过金属环</button>
+      </div>
+      <p id="ballMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">双金属片实验（精确曲率物理模型）</h3>
+      <p class="dim">把长度厚度相同的铜片与铁片铆合成"双金属片"。用本生灯加热后会怎样？铜片膨胀程度比铁片大。</p>
+      <div class="canvas-wrap" style="height:190px; padding:6px;">
+        <svg id="bimetalSvg" viewBox="0 0 400 190" style="width:100%; height:100%; display:block;">
+          <rect x="20" y="60" width="16" height="70" fill="#2a3550" stroke="#475569" stroke-width="1.5"/>
+          <path id="copperLayer" fill="#ff9d6b" stroke="#ea580c" stroke-width="1"/>
+          <path id="ironLayer" fill="#9aa5b1" stroke="#64748b" stroke-width="1"/>
+          <circle id="rivet0" r="3" fill="#333" stroke="#111"/>
+          <circle id="rivet1" r="3" fill="#333" stroke="#111"/>
+          <circle id="rivet2" r="3" fill="#333" stroke="#111"/>
+          <g id="bimetalFlame" style="display:none;" transform="translate(90,150)">
+            <text font-size="26" text-anchor="middle">🔥</text>
+          </g>
+          <g id="bimetalWater" style="display:none;" transform="translate(90,20)">
+            <text font-size="24" text-anchor="middle">💧</text>
+          </g>
+        </svg>
+      </div>
+      <div class="readout">当前温度：<span class="v" id="bimetalTempReadout">20.0</span>℃</div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="bimetalHeat">🔥 本生灯加热</button>
+        <button class="btn secondary" id="bimetalCool">💧 冷水冷却</button>
+      </div>
+      <p id="bimetalMsg" class="dim" style="text-align:center;min-height:20px;">铜片（橙色）膨胀比铁片（灰色）大，双金属片会向铁片一侧弯曲。</p>
+    </div>
+  </div>
+
+  <!-- 液体与气体 -->
+  <div class="subpanel" id="sub-liquidgas">
+    <div class="card">
+      <h3 style="margin-top:0;">6.3.2 液体的热胀冷缩：水 vs 酒精</h3>
+      <p class="dim">两个装满等体积水和酒精的锥形瓶，同时浸入比瓶内液体略高温的热水中，观察玻璃管内液面的变化。</p>
+      <div style="text-align:center;">
+        <svg id="liquidSvg" viewBox="0 0 220 160" width="100%" style="max-width:340px;">
+          <rect x="10" y="90" width="200" height="45" fill="#ff5a3c33" rx="4"/>
+          <text x="110" y="150" fill="#7b8bab" font-size="10" text-anchor="middle">热水浴</text>
+          <rect x="45" y="12" width="6" height="60" fill="none" stroke="#3a4a68" stroke-width="1.5"/>
+          <rect id="waterCol" x="45" y="66" width="6" height="6" fill="#3ca7ff"/>
+          <path d="M35 60 L65 60 L75 100 Q75 112 60 112 L40 112 Q25 112 25 100 Z" fill="#3ca7ff88" stroke="#3ca7ff"/>
+          <text x="50" y="128" fill="#6ec8ff" font-size="10" text-anchor="middle">水</text>
+          <rect x="164" y="12" width="6" height="60" fill="none" stroke="#3a4a68" stroke-width="1.5"/>
+          <rect id="alcoholCol" x="164" y="66" width="6" height="6" fill="#ffcf4a"/>
+          <path d="M154 60 L184 60 L194 100 Q194 112 179 112 L159 112 Q144 112 144 100 Z" fill="#ffcf4a88" stroke="#ffcf4a"/>
+          <text x="169" y="128" fill="#ffcf4a" font-size="10" text-anchor="middle">酒精</text>
+        </svg>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="liquidHeat">🔥 浸入热水</button>
+        <button class="btn secondary" id="liquidCool">❄️ 冷却回室温</button>
+      </div>
+      <p id="liquidMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+      <div id="thinkFlaskIndirect"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">气体的热胀冷缩：气球实验</h3>
+      <p class="dim">室温下，气球套在空瓶口上呈瘪状态。把瓶子浸入热水 / 冷水，观察气球的变化。</p>
+      <div style="text-align:center;">
+        <svg viewBox="0 0 160 170" width="100%" style="max-width:220px;">
+          <path d="M60 90 L60 150 Q60 160 70 160 L90 160 Q100 160 100 150 L100 90 Z" fill="#8fd3e888" stroke="#8fd3e8"/>
+          <ellipse cx="80" cy="88" rx="8" ry="4" fill="#333"/>
+          <circle id="gasBalloon" cx="80" cy="65" r="16" fill="#ff5a3c99" stroke="#ff5a3c"/>
+        </svg>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="gasHot">🔥 浸入热水</button>
+        <button class="btn secondary" id="gasCold">❄️ 浸入冷水</button>
+      </div>
+      <p id="gasMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+      <div id="thinkStateExpand"></div>
+    </div>
+  </div>
+
+  <!-- 生活应用 -->
+  <div class="subpanel" id="sub-apply">
+    <div class="card">
+      <h3 style="margin-top:0;">6.3.3 生活中的热胀冷缩应用</h3>
+      <div class="grid2">
+        <div>
+          <p style="text-align:center;">🏓 被压瘪的乒乓球</p>
+          <div style="text-align:center;">
+            <svg id="pingpongSvg" viewBox="0 0 100 100" width="100%" style="max-width:140px;">
+              <circle cx="50" cy="50" r="36" fill="#fdfdfd" stroke="#ccc" stroke-width="2"/>
+              <path id="dentPath" d="M35 40 Q50 55 65 40" stroke="#999" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn" id="pingpongFix">🔥 浸泡热水</button>
+            <button class="btn secondary" id="pingpongReset">↺ 重置</button>
+          </div>
+          <p class="dim" style="text-align:center;">球内气体受热膨胀，把凹处重新撑起，恢复原状。</p>
+        </div>
+        <div>
+          <p style="text-align:center;">🍾 拧不开的瓶盖</p>
+          <div style="text-align:center;">
+            <svg viewBox="0 0 100 130" width="100%" style="max-width:120px;">
+              <rect x="30" y="55" width="40" height="65" rx="6" fill="#8fd3e855" stroke="#8fd3e8"/>
+              <rect id="jarLid" x="26" y="35" width="48" height="22" rx="4" fill="#9aa5b1" stroke="#666"/>
+            </svg>
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn" id="lidFix">🔥 浇热水在瓶盖上</button>
+            <button class="btn secondary" id="lidReset">↺ 重置</button>
+          </div>
+          <p class="dim" id="lidMsg" style="text-align:center;">瓶盖（金属）受热膨胀程度比瓶身（玻璃）大，瓶盖变松，就容易旋开了。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 危害与防治 -->
+  <div class="subpanel" id="sub-hazard">
+    <div class="card">
+      <h3 style="margin-top:0;">6.3.4 热胀冷缩的危害与防治</h3>
+      <p>高架桥的桥面需要预留<b>伸缩缝</b>，防止桥面因热胀冷缩挤压而裂开或拱起；铺设火车铁轨时，每隔一段也要留有空隙，道理相同。</p>
+      <div style="text-align:center;">
+        <svg id="bridgeSvg" viewBox="0 0 260 90" width="100%" style="max-width:420px;">
+          <rect x="0" y="60" width="260" height="8" fill="#1e2c45"/>
+          <rect id="deckL" x="15" y="35" width="105" height="22" fill="#9aa5b1"/>
+          <rect id="deckR" x="140" y="35" width="105" height="22" fill="#9aa5b1"/>
+          <rect x="20" y="60" width="10" height="20" fill="#555"/>
+          <rect x="230" y="60" width="10" height="20" fill="#555"/>
+        </svg>
+      </div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn secondary" id="bridgeGapMode">✅ 模式：留有伸缩缝</button>
+        <button class="btn" id="bridgeHeat">☀️ 天气升温</button>
+        <button class="btn secondary" id="bridgeReset">↺ 重置</button>
+      </div>
+      <p id="bridgeMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+    </div>
+
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h3 style="margin-top:0;">冷冻装满液体的瓶子</h3>
+          <p class="dim">瓶内必须留有空间，否则瓶子会因液体结冰膨胀而变形甚至破裂。</p>
+          <div style="text-align:center;">
+            <svg id="bottleFreezeSvg" viewBox="0 0 90 130" width="100%" style="max-width:120px;">
+              <path id="bottleBody" d="M35 10 L55 10 L55 30 L70 40 L70 115 Q70 122 60 122 L30 122 Q20 122 20 115 L20 40 L35 30 Z" fill="none" stroke="#8fd3e8" stroke-width="2"/>
+              <path id="freezeLiquid" d="M22 108 L68 108 L68 115 Q68 120 60 120 L30 120 Q22 120 22 115 Z" fill="#3ca7ff88"/>
+              <g id="bottleCrackLines" opacity="0">
+                <path d="M30 50 L40 70 L33 95" stroke="#ff5a3c" stroke-width="1.2" fill="none"/>
+                <path d="M55 45 L48 75 L57 100" stroke="#ff5a3c" stroke-width="1.2" fill="none"/>
+                <path d="M40 40 L45 65 L38 90 L45 115" stroke="#ff5a3c" stroke-width="1" fill="none"/>
+              </g>
+              <g id="bottleShards" opacity="0">
+                <polygon points="20,40 45,40 40,65 22,60" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="45,40 70,40 57,60 40,65" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="22,60 40,65 33,95 22,90" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="40,65 57,60 57,100 33,95" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="22,90 33,95 30,122 20,115" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="33,95 57,100 60,122 30,122" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+              </g>
+            </svg>
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn secondary" id="freezeSpaceMode">✅ 模式：留有空隙</button>
+            <button class="btn" id="freezeGo">🧊 放入冷冻柜</button>
+            <button class="btn secondary" id="freezeReset">↺ 重置</button>
+          </div>
+          <p id="freezeMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+        </div>
+        <div>
+          <h3 style="margin-top:0;">冰箱取出的玻璃杯</h3>
+          <p class="dim">不能马上倒入热水——内层玻璃比外层膨胀得快，不均匀膨胀会使玻璃裂开。</p>
+          <div style="text-align:center;">
+            <svg id="glassCrackSvg" viewBox="0 0 90 110" width="100%" style="max-width:120px;">
+              <path id="glassBody" d="M20 15 L70 15 L64 100 Q64 106 57 106 L33 106 Q26 106 26 100 Z" fill="#8fd3e833" stroke="#8fd3e8" stroke-width="2"/>
+              <g id="crackLines" opacity="0">
+                <path d="M35 30 L45 55 L38 80" stroke="#ff5a3c" stroke-width="1.3" fill="none"/>
+                <path d="M55 25 L48 60 L58 90" stroke="#ff5a3c" stroke-width="1.3" fill="none"/>
+                <path d="M45 20 L42 45 L50 70 L44 98" stroke="#ff5a3c" stroke-width="1.1" fill="none"/>
+                <path d="M30 45 L52 50 L60 40" stroke="#ff5a3c" stroke-width="1" fill="none"/>
+                <path d="M32 70 L50 75 L60 65" stroke="#ff5a3c" stroke-width="1" fill="none"/>
+              </g>
+              <g id="glassShards" opacity="0">
+                <polygon points="20,15 45,15 40,45 26,40" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="45,15 70,15 58,40 42,45" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="26,40 40,45 38,80 30,75" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="42,45 58,40 60,65 44,70" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="30,75 38,80 33,106 26,100" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+                <polygon points="44,70 60,65 57,106 44,98" fill="#8fd3e855" stroke="#ff5a3c" stroke-width="0.6"/>
+              </g>
+            </svg>
+          </div>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn" id="glassDirect">🔥 直接倒热水</button>
+            <button class="btn secondary" id="glassSafe">🌤️ 先温杯再倒热水</button>
+            <button class="btn secondary" id="glassReset">↺ 重置</button>
+          </div>
+          <p id="glassMsg" class="dim" style="text-align:center;min-height:20px;"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">✅ 学习检测</h3>
+      <div id="checkWire"></div>
+      <div id="checkThermometer"></div>
+      <div id="checkWallCrack"></div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="justify-content:center;">
+    <button class="btn secondary" onclick="showTab('quiz')">进入总测验，领取结业证书 →</button>
+  </div>
+</section>
+
+<script>
+/* subtab switch */
+document.getElementById('expSubtabs').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-sub]'); if(!b) return;
+  document.querySelectorAll('#expSubtabs button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('#panel-expansion .subpanel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('sub-'+b.dataset.sub).classList.add('active');
+  markDone('expansion');
+});
+
+document.getElementById('thinkFlaskIndirect').innerHTML = thinkHTML(
+  '为何不直接加热装有水或酒精的锥形瓶？',
+  '若直接用火焰加热瓶子，瓶身各部位受热不均匀，玻璃本身也会热胀冷缩，容易导致瓶子受热不均而破裂，测量也不准确。把瓶子浸入水浴中加热，可以让瓶内液体均匀、缓慢地升温，实验结果更准确、更安全。'
+);
+document.getElementById('thinkStateExpand').innerHTML = thinkHTML(
+  '固体、液体与气体，哪一种物质的热胀冷缩现象最明显？为什么？',
+  '气体的热胀冷缩现象最明显。因为气体粒子间的距离远比固体和液体大、粒子间作用力也弱得多，温度改变时粒子间距离的变化比例更大，所以气体的体积变化最显著，其次是液体，固体的热胀冷缩最不明显。'
+);
+document.getElementById('checkWire').innerHTML = checkHTML(
+  '电线杆上的电线为何没有拉紧？',
+  '电线在天气寒冷时会收缩变短。如果安装时把电线拉得笔直、拉紧，当天气变冷、电线收缩时就可能被拉断；预留一些松弛，可以让电线在热胀冷缩时有伸缩的余地，避免因收缩而断裂。'
+);
+document.getElementById('checkThermometer').innerHTML = checkHTML(
+  '利用液体温度计来测量加热中的水，试述你可能看到的现象并解释其原因。',
+  '刚开始加热时，液柱可能会先略微下降，然后才持续上升。这是因为温度计的玻璃泡最先接触热水而受热膨胀，容器（玻璃泡）体积先增大，使液柱暂时下降；随后泡内的液体也升温膨胀，而且液体膨胀的程度比玻璃大，所以液柱之后会持续、明显地上升。'
+);
+document.getElementById('checkWallCrack').innerHTML = checkHTML(
+  '为了防止由于温差而引起墙体热胀冷缩所产生的裂缝，我们可以采取什么措施？',
+  '可以在墙体或建筑结构中预留伸缩缝（隔温缝），使用热胀冷缩程度相近的建筑材料，并在设计时预留适当的膨胀空间，让墙体在温度变化时有伸缩的余地，从而减少裂缝的产生。'
+);
+
+/* ---------- 球环实验 ---------- */
+(function(){
+  const ball=document.getElementById('metalBall');
+  let state='room'; // room, hot, cold
+  document.getElementById('ballHeat').addEventListener('click', ()=>{
+    state='hot';
+    ball.setAttribute('r',34); ball.style.transition='all .5s';
+    ball.setAttribute('fill','#ff5a3c');
+    document.getElementById('ballMsg').textContent='金属球受热膨胀，体积变大了！';
+    markDone('expansion');
+  });
+  document.getElementById('ballCool').addEventListener('click', ()=>{
+    state='room';
+    ball.setAttribute('r',26); ball.setAttribute('fill','#ff9d6b'); ball.style.transition='all .5s';
+    document.getElementById('ballMsg').textContent='金属球冷却收缩，恢复原本大小。';
+  });
+  document.getElementById('ballTry').addEventListener('click', ()=>{
+    const r=+ball.getAttribute('r');
+    ball.style.transition='transform .6s';
+    if(r>30){
+      ball.style.transform='translateX(70px)';
+      setTimeout(()=>{ document.getElementById('ballMsg').textContent='❌ 球太大了，卡住了！穿不过金属环。'; },600);
+    } else {
+      ball.style.transform='translateX(100px)';
+      setTimeout(()=>{ document.getElementById('ballMsg').textContent='✅ 顺利穿过金属环！'; ball.style.transform='translateX(0)'; },600);
+    }
+    markDone('expansion');
+  });
+})();
+
+/* ---------- 双金属片实验: 精确曲率积分物理模型 (移植自参考实验室) ---------- */
+(function(){
+  const PHYSICS = {
+    L: 260, d: 8, x0: 45, y0: 95,
+    alphaCu: 16.5e-6, alphaFe: 11.8e-6,
+    T_room: 20.0, T_max: 400.0
+  };
+  let mode = 'idle'; // 'heat' | 'cool' | 'idle'
+  let currentTemp = PHYSICS.T_room;
+
+  const copperLayer = document.getElementById('copperLayer');
+  const ironLayer = document.getElementById('ironLayer');
+  const flame = document.getElementById('bimetalFlame');
+  const water = document.getElementById('bimetalWater');
+  const readout = document.getElementById('bimetalTempReadout');
+  const msg = document.getElementById('bimetalMsg');
+  const rivetIdx = [6, 20, 34];
+
+  function calculateBimetallicPath(kappa){
+    const N = 40, L = PHYSICS.L, d = PHYSICS.d, x0 = PHYSICS.x0, y0 = PHYSICS.y0;
+    let topPoints=[], midPoints=[], botPoints=[];
+    for(let i=0;i<=N;i++){
+      const s = L*(i/N);
+      let x,y,dx,dy;
+      if(Math.abs(kappa) < 1e-7){
+        x=s; y=0; dx=0; dy=-1;
+      } else {
+        x = Math.sin(kappa*s)/kappa;
+        y = (1-Math.cos(kappa*s))/kappa;
+        dx = Math.sin(kappa*s);
+        dy = -Math.cos(kappa*s);
+      }
+      topPoints.push({x:x0+x+d*dx, y:y0+y+d*dy});
+      midPoints.push({x:x0+x, y:y0+y});
+      botPoints.push({x:x0+x-d*dx, y:y0+y-d*dy});
+    }
+    return {topPoints, midPoints, botPoints};
+  }
+
+  function render(){
+    const dT = currentTemp - PHYSICS.T_room;
+    const physicalKappa = (1.5*(PHYSICS.alphaCu-PHYSICS.alphaFe)*dT)/(2*PHYSICS.d);
+    const kappa = physicalKappa * 13.0;
+    const {topPoints, midPoints, botPoints} = calculateBimetallicPath(kappa);
+
+    let dCu = `M ${topPoints[0].x} ${topPoints[0].y} `;
+    for(let i=1;i<topPoints.length;i++) dCu += `L ${topPoints[i].x} ${topPoints[i].y} `;
+    for(let i=midPoints.length-1;i>=0;i--) dCu += `L ${midPoints[i].x} ${midPoints[i].y} `;
+    dCu += 'Z';
+    copperLayer.setAttribute('d', dCu);
+
+    let dFe = `M ${midPoints[0].x} ${midPoints[0].y} `;
+    for(let i=1;i<midPoints.length;i++) dFe += `L ${midPoints[i].x} ${midPoints[i].y} `;
+    for(let i=botPoints.length-1;i>=0;i--) dFe += `L ${botPoints[i].x} ${botPoints[i].y} `;
+    dFe += 'Z';
+    ironLayer.setAttribute('d', dFe);
+
+    copperLayer.setAttribute('fill', dT>80? '#ff5a3c' : '#ff9d6b');
+    ironLayer.setAttribute('fill', '#9aa5b1');
+
+    rivetIdx.forEach((ptIdx, i)=>{
+      const pt = midPoints[ptIdx];
+      const rv = document.getElementById('rivet'+i);
+      rv.setAttribute('cx', pt.x); rv.setAttribute('cy', pt.y);
+    });
+
+    readout.textContent = currentTemp.toFixed(1);
+  }
+
+  function tick(){
+    if(mode==='heat'){
+      currentTemp += (PHYSICS.T_max - currentTemp)*0.016;
+    } else if(mode==='cool'){
+      currentTemp += (PHYSICS.T_room - currentTemp)*0.12;
+      if(Math.abs(currentTemp-PHYSICS.T_room)<0.3){ currentTemp=PHYSICS.T_room; mode='idle'; }
+    } else {
+      currentTemp += (PHYSICS.T_room - currentTemp)*0.006;
+    }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  document.getElementById('bimetalHeat').addEventListener('click', ()=>{
+    mode='heat';
+    flame.style.display='block'; water.style.display='none';
+    msg.textContent='铜片（橙色）膨胀比铁片（灰色）多，双金属片持续向铁片一侧弯曲。';
+    markDone('expansion');
+  });
+  document.getElementById('bimetalCool').addEventListener('click', ()=>{
+    mode='cool';
+    flame.style.display='none'; water.style.display='block';
+    msg.textContent='用冷水冷却后，双金属片收缩，逐渐恢复原本笔直的形状。';
+    setTimeout(()=>{ water.style.display='none'; }, 2500);
+  });
+
+  render();
+  requestAnimationFrame(tick);
+})();
+
+/* ---------- 液体膨胀实验 ---------- */
+(function(){
+  const wCol=document.getElementById('waterCol'), aCol=document.getElementById('alcoholCol');
+  wCol.style.transition='y .8s, height .8s'; aCol.style.transition='y .8s, height .8s';
+  document.getElementById('liquidHeat').addEventListener('click', ()=>{
+    wCol.setAttribute('y',35); wCol.setAttribute('height',37);
+    aCol.setAttribute('y',18); aCol.setAttribute('height',54);
+    document.getElementById('liquidMsg').textContent='两根玻璃管内液面都上升了，但酒精上升的高度比水更高——说明酒精膨胀的程度比水大。';
+    markDone('expansion');
+  });
+  document.getElementById('liquidCool').addEventListener('click', ()=>{
+    wCol.setAttribute('y',66); wCol.setAttribute('height',6);
+    aCol.setAttribute('y',66); aCol.setAttribute('height',6);
+    document.getElementById('liquidMsg').textContent='冷却回室温后，水和酒精收缩，液面下降回原来的位置。';
+  });
+})();
+
+/* ---------- 气体膨胀实验 ---------- */
+(function(){
+  const balloon=document.getElementById('gasBalloon');
+  balloon.style.transition='all .6s';
+  document.getElementById('gasHot').addEventListener('click', ()=>{
+    balloon.setAttribute('r',28); balloon.setAttribute('cy',55);
+    document.getElementById('gasMsg').textContent='瓶内气体受热膨胀，气球鼓胀起来了！';
+    markDone('expansion');
+  });
+  document.getElementById('gasCold').addEventListener('click', ()=>{
+    balloon.setAttribute('r',10); balloon.setAttribute('cy',80);
+    document.getElementById('gasMsg').textContent='瓶内气体遇冷收缩，气球被吸得瘪下去、缩进瓶口内。';
+  });
+})();
+
+/* ---------- 乒乓球修复 ---------- */
+(function(){
+  const dent=document.getElementById('dentPath');
+  dent.style.transition='d .5s, opacity .4s';
+  let shrinkTimer=null;
+  function shrinkLine(){
+    let t=0;
+    clearInterval(shrinkTimer);
+    shrinkTimer = setInterval(()=>{
+      t += 0.06;
+      if(t>=1){
+        t=1;
+        dent.setAttribute('opacity',0);
+        clearInterval(shrinkTimer);
+      }
+      const x1 = 35 + t*15, x2 = 65 - t*15;
+      dent.setAttribute('d', `M${x1} 47 L${x2} 47`);
+    }, 40);
+  }
+  document.getElementById('pingpongFix').addEventListener('click', ()=>{
+    dent.setAttribute('opacity',1);
+    dent.setAttribute('d','M35 47 Q50 47 65 47');
+    setTimeout(shrinkLine, 550);
+    markDone('expansion');
+  });
+  document.getElementById('pingpongReset').addEventListener('click', ()=>{
+    clearInterval(shrinkTimer);
+    dent.setAttribute('opacity',1);
+    dent.setAttribute('d','M35 40 Q50 55 65 40');
+  });
+})();
+
+/* ---------- 瓶盖 ---------- */
+(function(){
+  const lid=document.getElementById('jarLid');
+  lid.style.transition='all .5s';
+  document.getElementById('lidFix').addEventListener('click', ()=>{
+    lid.setAttribute('y',30); lid.style.transform='rotate(8deg)'; lid.style.transformOrigin='50px 46px';
+    document.getElementById('lidMsg').textContent='瓶盖受热膨胀变松，现在可以轻松旋开了！';
+    markDone('expansion');
+  });
+  document.getElementById('lidReset').addEventListener('click', ()=>{
+    lid.setAttribute('y',35); lid.style.transform='rotate(0)';
+    document.getElementById('lidMsg').textContent='瓶盖（金属）受热膨胀程度比瓶身（玻璃）大，瓶盖变松，就容易旋开了。';
+  });
+})();
+
+/* ---------- 桥梁伸缩缝 ---------- */
+(function(){
+  let hasGap=true;
+  const deckL=document.getElementById('deckL'), deckR=document.getElementById('deckR');
+  deckL.style.transition='all .6s'; deckR.style.transition='all .6s';
+  deckL.style.transformBox='fill-box'; deckR.style.transformBox='fill-box';
+  document.getElementById('bridgeGapMode').addEventListener('click', function(){
+    hasGap = !hasGap;
+    this.textContent = hasGap? '✅ 模式：留有伸缩缝' : '❌ 模式：没有伸缩缝';
+    document.getElementById('bridgeReset').click();
+  });
+  document.getElementById('bridgeHeat').addEventListener('click', ()=>{
+    if(hasGap){
+      deckL.setAttribute('width',112); deckR.setAttribute('x',133); deckR.setAttribute('width',112);
+      document.getElementById('bridgeMsg').style.color='var(--good)';
+      document.getElementById('bridgeMsg').textContent='桥面膨胀，缝隙刚好被填补，桥面保持平整——伸缩缝有效防止了破坏。';
+      markDone('expansion');
+    } else {
+      // 阶段一: 两端膨胀,内侧边缘刚好接触(缝隙闭合,不重叠)
+      deckL.setAttribute('width',115); deckR.setAttribute('x',130); deckR.setAttribute('width',115);
+      document.getElementById('bridgeMsg').style.color='var(--accent2)';
+      document.getElementById('bridgeMsg').textContent='桥面膨胀，两端已经互相顶住……';
+      setTimeout(()=>{
+        // 阶段二: 无处伸展,只能向上拱起(绕外侧支点旋转)
+        deckL.style.transformOrigin='15px 57px';
+        deckR.style.transformOrigin='245px 57px';
+        deckL.style.transform='rotate(-9deg)';
+        deckR.style.transform='rotate(9deg)';
+        document.getElementById('bridgeMsg').style.color='var(--bad)';
+        document.getElementById('bridgeMsg').textContent='桥面无处可伸展，互相挤压，向上拱起、开裂！';
+        markDone('expansion');
+      }, 650);
+    }
+  });
+  document.getElementById('bridgeReset').addEventListener('click', ()=>{
+    deckL.style.transform='none'; deckR.style.transform='none';
+    deckL.setAttribute('width',105); deckL.setAttribute('x',15); deckL.setAttribute('y',35);
+    deckR.setAttribute('width',105); deckR.setAttribute('x',140); deckR.setAttribute('y',35);
+    document.getElementById('bridgeMsg').textContent='';
+  });
+})();
+
+/* ---------- 冷冻瓶子 ---------- */
+(function(){
+  let hasSpace=true;
+  const liquid=document.getElementById('freezeLiquid');
+  const bottleBody=document.getElementById('bottleBody');
+  const crack=document.getElementById('bottleCrackLines');
+  const shards=document.getElementById('bottleShards');
+  const shardPolys = shards.querySelectorAll('polygon');
+  bottleBody.style.transition='opacity .3s';
+  liquid.style.transition='opacity .3s';
+  crack.style.transition='opacity .25s';
+  shards.style.transition='opacity .2s';
+  const shardMoves = [
+    {dx:-12,dy:-8,rot:-20}, {dx:12,dy:-10,rot:18},
+    {dx:-14,dy:6,rot:-15}, {dx:14,dy:4,rot:16},
+    {dx:-10,dy:16,rot:-25}, {dx:10,dy:18,rot:22}
+  ];
+  shardPolys.forEach(p=>{ p.style.transition='transform .7s cubic-bezier(.3,.6,.4,1), opacity .7s'; p.style.transformBox='fill-box'; p.style.transformOrigin='center'; });
+
+  function resetVisual(){
+    bottleBody.style.opacity=1; liquid.style.opacity=1;
+    crack.style.opacity=0; shards.style.opacity=0;
+    shardPolys.forEach(p=>{ p.style.transform='translate(0,0) rotate(0)'; p.style.opacity=1; });
+  }
+  function shatterBottle(){
+    crack.style.opacity=1;
+    setTimeout(()=>{
+      bottleBody.style.opacity=0; liquid.style.opacity=0;
+      shards.style.opacity=1;
+      shardPolys.forEach((p,i)=>{
+        const m=shardMoves[i%shardMoves.length];
+        p.style.transform=`translate(${m.dx}px,${m.dy}px) rotate(${m.rot}deg)`;
+      });
+      setTimeout(()=>{
+        shardPolys.forEach(p=>{ p.style.opacity=0; });
+        crack.style.opacity=0;
+      }, 550);
+    }, 350);
+  }
+
+  document.getElementById('freezeSpaceMode').addEventListener('click', function(){
+    hasSpace=!hasSpace;
+    this.textContent = hasSpace? '✅ 模式：留有空隙' : '❌ 模式：装满液体';
+    liquid.setAttribute('d', hasSpace? 'M22 108 L68 108 L68 115 Q68 120 60 120 L30 120 Q22 120 22 115 Z' : 'M21 44 L69 44 L70 115 Q70 122 60 122 L30 122 Q20 122 20 115 Z');
+    document.getElementById('freezeReset').click();
+  });
+  document.getElementById('freezeGo').addEventListener('click', ()=>{
+    const msg=document.getElementById('freezeMsg');
+    if(hasSpace){
+      liquid.setAttribute('fill', '#c9e8ff');
+      msg.style.color='var(--good)';
+      msg.textContent='液体结冰膨胀，刚好填满预留的空间，瓶子安然无恙。';
+    } else {
+      liquid.setAttribute('fill', '#c9e8ff');
+      shatterBottle();
+      msg.style.color='var(--bad)';
+      msg.textContent='瓶内没有空间让结冰后的体积膨胀，瓶子被活活撑裂、碎成了几块！';
+    }
+    markDone('expansion');
+  });
+  document.getElementById('freezeReset').addEventListener('click', ()=>{
+    document.getElementById('freezeMsg').textContent='';
+    resetVisual();
+    liquid.setAttribute('fill', '#3ca7ff88');
+  });
+  resetVisual();
+})();
+
+/* ---------- 玻璃杯裂开 ---------- */
+(function(){
+  const crack=document.getElementById('crackLines');
+  const body=document.getElementById('glassBody');
+  const shards=document.getElementById('glassShards');
+  const shardPolys = shards.querySelectorAll('polygon');
+  crack.style.transition='opacity .25s';
+  body.style.transition='opacity .3s';
+  shards.style.transition='opacity .2s';
+  const shardMoves = [
+    {dx:-14,dy:-10,rot:-25}, {dx:12,dy:-12,rot:20},
+    {dx:-16,dy:4,rot:-15}, {dx:16,dy:2,rot:18},
+    {dx:-10,dy:18,rot:-30}, {dx:10,dy:20,rot:28}
+  ];
+  shardPolys.forEach(p=>{ p.style.transition='transform .7s cubic-bezier(.3,.6,.4,1), opacity .7s'; p.style.transformBox='fill-box'; p.style.transformOrigin='center'; });
+
+  function shatter(){
+    crack.style.opacity=1;
+    setTimeout(()=>{
+      body.style.opacity=0;
+      shards.style.opacity=1;
+      shardPolys.forEach((p,i)=>{
+        const m=shardMoves[i%shardMoves.length];
+        p.style.transform=`translate(${m.dx}px,${m.dy}px) rotate(${m.rot}deg)`;
+      });
+      setTimeout(()=>{
+        shardPolys.forEach(p=>{ p.style.opacity=0; });
+        crack.style.opacity=0;
+      }, 550);
+    }, 350);
+  }
+  function resetGlass(){
+    crack.style.opacity=0;
+    body.style.opacity=1;
+    shards.style.opacity=0;
+    shardPolys.forEach(p=>{ p.style.transform='translate(0,0) rotate(0)'; p.style.opacity=1; });
+  }
+  document.getElementById('glassDirect').addEventListener('click', ()=>{
+    resetGlass();
+    shatter();
+    document.getElementById('glassMsg').style.color='var(--bad)';
+    document.getElementById('glassMsg').textContent='内层玻璃受热膨胀比外层快，不均匀膨胀使玻璃杯整个裂成碎片！';
+    markDone('expansion');
+  });
+  document.getElementById('glassSafe').addEventListener('click', ()=>{
+    resetGlass();
+    document.getElementById('glassMsg').style.color='var(--good)';
+    document.getElementById('glassMsg').textContent='先用温水预热杯子，使玻璃均匀、缓慢地受热，再倒热水就安全了。';
+    markDone('expansion');
+  });
+  document.getElementById('glassReset').addEventListener('click', ()=>{
+    resetGlass();
+    document.getElementById('glassMsg').textContent='';
+  });
+  resetGlass();
+})();
+</script>
+
+
+<section class="panel" id="panel-quiz">
+  <div class="card">
+    <h2><span class="station-icon">🏆</span>总测验 · 热力研究站结业考核 <span class="tag">FINAL</span></h2>
+    <p class="dim">共 10 题，全部作答后即可查看成绩。</p>
+    <div id="quizArea"></div>
+    <div class="btn-row" style="justify-content:center;">
+      <button class="btn" id="quizSubmit">✅ 提交并查看成绩</button>
+      <button class="btn secondary" id="quizRetry" style="display:none;">↺ 重新作答</button>
+    </div>
+    <div class="readout" id="quizScoreBox" style="display:none;">得分：<span class="v" id="quizScore">0</span> / <span id="quizTotal">10</span></div>
+  </div>
+</section>
+
+<script>
+const QUIZ = [
+  {q:'物体温度降低时，通常会：', opts:['体积膨胀','体积收缩','质量增加','颜色改变'], a:1},
+  {q:'热量的国际标准单位是：', opts:['卡路里','摄氏度','焦耳(J)','瓦特'], a:2},
+  {q:'1000g水温度上升1℃需要吸收约4200J热量，而1000g铜只需390J，这说明：', opts:['铜比水更难导热','水比铜更"难"升温，需要吸收更多热量','水和铜吸收的热量一样多','铜的密度比水大'], a:1},
+  {q:'金属汤匙放入热汤中很快变烫，这主要是哪一种热传递方式？', opts:['传导','对流','辐射','蒸发'], a:0},
+  {q:'热水中较热的水会上升、较冷的水会下沉，形成循环流动，这是：', opts:['传导','对流','辐射','汽化'], a:1},
+  {q:'太阳的热能穿过真空传到地球，依靠的是：', opts:['传导','对流','辐射','对流和传导'], a:2},
+  {q:'下列哪一种物质是热的良导体？', opts:['木头','玻璃','铜','空气'], a:2},
+  {q:'深色、无光泽、表面粗糙的物体，对辐射热的吸收能力：', opts:['较弱','较强','没有影响','只吸收不发射'], a:1},
+  {q:'高架桥面预留伸缩缝，主要是为了防止：', opts:['桥面生锈','桥面因热胀冷缩而拱起或裂开','车辆打滑','桥面太重'], a:1},
+  {q:'瓶盖太紧拧不开时，可以用热水浇在瓶盖上，是因为：', opts:['瓶盖遇热收缩变小','瓶盖遇热膨胀变松','热水有润滑作用','瓶身会变软'], a:1},
+];
+const quizArea = document.getElementById('quizArea');
+let userAnswers = new Array(QUIZ.length).fill(-1);
+function renderQuiz(){
+  quizArea.innerHTML='';
+  QUIZ.forEach((item,qi)=>{
+    const div=document.createElement('div'); div.className='quiz-q';
+    div.innerHTML = `<div class="qtext">${qi+1}. ${item.q}</div>`;
+    item.opts.forEach((opt,oi)=>{
+      const b=document.createElement('button');
+      b.className='opt'; b.textContent=opt;
+      b.addEventListener('click', ()=>{
+        if(div.dataset.locked) return;
+        div.querySelectorAll('.opt').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        userAnswers[qi]=oi;
+        div.querySelectorAll('.opt').forEach(x=>x.style.borderColor = (x===b? 'var(--accent)':'var(--line)'));
+      });
+      div.appendChild(b);
+    });
+    quizArea.appendChild(div);
+  });
+}
+renderQuiz();
+
+document.getElementById('quizSubmit').addEventListener('click', ()=>{
+  if(userAnswers.includes(-1)){
+    alert('还有题目尚未作答，请完成所有题目后再提交。');
+    return;
+  }
+  let score=0;
+  document.querySelectorAll('.quiz-q').forEach((div,qi)=>{
+    div.dataset.locked='1';
+    const opts=div.querySelectorAll('.opt');
+    opts.forEach((o,oi)=>{
+      o.classList.add('disabled');
+      if(oi===QUIZ[qi].a) o.classList.add('correct');
+      else if(oi===userAnswers[qi]) o.classList.add('wrong');
+    });
+    if(userAnswers[qi]===QUIZ[qi].a) score++;
+  });
+  document.getElementById('quizScore').textContent=score;
+  document.getElementById('quizTotal').textContent=QUIZ.length;
+  document.getElementById('quizScoreBox').style.display='inline-block';
+  document.getElementById('quizSubmit').style.display='none';
+  document.getElementById('quizRetry').style.display='inline-block';
+  markDone('quiz');
+});
+document.getElementById('quizRetry').addEventListener('click', ()=>{
+  userAnswers = new Array(QUIZ.length).fill(-1);
+  document.getElementById('quizScoreBox').style.display='none';
+  document.getElementById('quizSubmit').style.display='inline-block';
+  document.getElementById('quizRetry').style.display='none';
+  renderQuiz();
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('footerMark').textContent = '蔡逸众 (ecchua79) · 华仁中学 · Chapter 06 Thermodynamics Lab';
+});
+console.log('热力研究站 by 蔡逸众 (ecchua79) · 华仁中学');
+</script>
+</body>
+</html>
