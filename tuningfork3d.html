@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D音叉与声波(纵波)物理模拟</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            /* 阻止移动端双击缩放 */
+            touch-action: none; 
+        }
+        /* //华仁中学蔡逸众制作 */
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .panel {
+            pointer-events: auto;
+            background: rgba(15, 20, 30, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .header-panel {
+            align-self: flex-start;
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+            color: #4da8da;
+        }
+        p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #ccc;
+        }
+        
+        /* 顶部悬浮控制按钮 */
+        .top-right-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: auto;
+            z-index: 20;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .toggle-btn {
+            background: rgba(40, 50, 70, 0.9);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(60, 75, 100, 1); }
+
+        /* //Made by ecchua79 */
+        .controls-panel {
+            align-self: center;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            pointer-events: auto;
+        }
+        .strike-btn {
+            background: linear-gradient(135deg, #1e90ff, #00bfff);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
+            pointer-events: auto;
+        }
+        .strike-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 191, 255, 0.6);
+        }
+        .strike-btn:active { transform: scale(0.95); }
+
+        .oscilloscope-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px;
+            margin: 0;
+        }
+        .oscilloscope-title {
+            font-size: 0.8rem;
+            color: #ffd700;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #oscilloscope {
+            width: 300px;
+            height: 100px;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .legend {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .color-box { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* 移动端响应式调整 */
+        @media (max-width: 768px) {
+            .header-panel { max-width: calc(100% - 40px); margin: 10px; padding: 15px; }
+            h1 { font-size: 1.2rem; }
+            p { font-size: 0.8rem; }
+            .oscilloscope-panel { bottom: 90px; left: 10px; padding: 10px; }
+            #oscilloscope { width: 200px; height: 60px; }
+            .controls-panel { margin-bottom: 20px; }
+            .strike-btn { padding: 10px 24px; font-size: 1.1rem; }
+            .top-right-controls { top: 10px; right: 10px; }
+        }
+    </style>
+    <!-- 使用 Import Map 引入 Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- 3D 渲染容器 -->
+    <div id="canvas-container"></div>
+
+    <!-- UI 层 -->
+    <div id="ui-layer">
+        
+        <div class="top-right-controls">
+            <button id="pauseBtn" class="toggle-btn">⏸️ 暂停</button>
+            <button id="toggleUiBtn" class="toggle-btn">👁️ 收起面板</button>
+        </div>
+
+        <div class="panel header-panel collapsible">
+            <h1>声波传播演示 (纵波)</h1>
+            <div style="font-size: 0.55rem; color: rgba(56,189,248,0.18); margin: -6px 0 8px 0; user-select: none;">峇株吧辖华仁中学蔡逸众制作</div>
+            <p>
+                观察音叉被敲击后的振动。波前会以固定声速向外扩散。<b>红色为密部</b>（压强升高），<b>蓝色为疏部</b>（压强降低）。<br>
+                您可以连续点击敲击，观察奇妙的<b>波纹叠加干涉</b>现象。
+            </p>
+            <div class="legend">
+                <div class="legend-item"><div class="color-box" style="background: #ff3333;"></div> 空气压缩区 (密部)</div>
+                <div class="legend-item"><div class="color-box" style="background: #3388ff;"></div> 空气稀疏区 (疏部)</div>
+                <div class="legend-item"><div class="color-box" style="background: #ffd700; border-radius: 50%;"></div> 追踪粒子 (波传递，粒子仅原位振动)</div>
+            </div>
+            <p style="margin-top: 10px; color: #888; font-size: 0.8rem;">操作：支持手指/鼠标拖拽旋转视角，滚轮缩放。</p>
+        </div>
+
+        <div class="panel oscilloscope-panel collapsible">
+            <div class="oscilloscope-title">追踪粒子位移示波器</div>
+            <canvas id="oscilloscope" width="300" height="100"></canvas>
+        </div>
+
+        <!-- 敲击按钮始终保持可见 -->
+        <div class="controls-panel">
+            <button id="strikeBtn" class="strike-btn">🔨 敲击音叉</button>
+        </div>
+    </div>
+
+    <!-- 主逻辑脚本 -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        //峇株吧辖蔡逸众制作
+        let scene, camera, renderer, controls;
+        let particlesMesh; 
+        const PARTICLE_COUNT = 15000;
+        
+        let forkGroup, prongLeft, prongRight;
+        
+        // 物理模拟参数
+        //Made by ecchua79
+        const waveParams = {
+            maxAmplitude: 2.0,   
+            damping: 1.2,        // 阻尼衰减率 (自然指数衰减)
+            frequency: 15.0,     // 振动角频率
+            waveNumber: 0.8,     // 波数 k 
+            baseDistance: 4,     // 中心安全半径
+            radius: 60,          // 粒子云总半径
+            height: 12           // 粒子云厚度
+        };
+        const v_sound = waveParams.frequency / waveParams.waveNumber; // 波速 v = w / k
+        
+        // 记录每一次敲击的时间戳，实现多波叠加干涉
+        const strikeTimes = []; 
+        const MAX_STRIKES = 3; // 内存保留最近3次敲击形成的波
+
+        const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
+        const dummy = new THREE.Object3D();
+        const tempColor = new THREE.Color();
+        const posVec = new THREE.Vector3();
+        const dirVec = new THREE.Vector3();
+
+        const trackedIndex = 42; 
+        let trackedRestPosition = new THREE.Vector3();
+        let trackedMesh, restMarkerMesh;
+        let scopeContext, scopeData = new Array(300).fill(0);
+
+        let time = 0;
+        let isUiVisible = true;
+        let isPaused = false;
+
+        // --- 音效系统：模拟真实音叉的纯音音色 ---
+        //峇株吧辖华仁中学蔡逸众制作
+        let audioCtx = null;
+        let masterGain = null;
+        const TUNING_FREQ = 512; // 512Hz 为物理课堂常用标准音叉频率 (C512)
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.5;
+            const lowpass = audioCtx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 4000;
+            masterGain.connect(lowpass);
+            lowpass.connect(audioCtx.destination);
+        }
+
+        function playStrikeSound() {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+
+            // 主音：纯正弦波，对应音叉振动后期的纯音特性，长时间衰减
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(TUNING_FREQ, now);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.4, now + 0.006);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 3.3);
+
+            // 敲击瞬间的高频非谐泛音，模拟金属"叮"的敲击瞬态，快速衰减后只剩纯音
+            const osc2 = audioCtx.createOscillator();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(TUNING_FREQ * 2.76, now);
+            const gain2 = audioCtx.createGain();
+            gain2.gain.setValueAtTime(0.0001, now);
+            gain2.gain.exponentialRampToValueAtTime(0.18, now + 0.004);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+            osc2.connect(gain2);
+            gain2.connect(masterGain);
+            osc2.start(now);
+            osc2.stop(now + 0.4);
+        }
+        
+        //峇株吧辖蔡逸众制作
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050510, 0.008); 
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 35, 65);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.1;
+            controls.minDistance = 10;
+            controls.maxDistance = 150;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 50, 30);
+            scene.add(dirLight);
+
+            const blueLight = new THREE.PointLight(0x0088ff, 2, 60);
+            blueLight.position.set(-20, -10, -20);
+            scene.add(blueLight);
+
+            createTuningFork();
+            createParticles();
+            setupTrackedParticle();
+            setupOscilloscope();
+
+            window.addEventListener('resize', onWindowResize);
+            
+            // 绑定敲击事件
+            document.getElementById('strikeBtn').addEventListener('click', (e) => {
+                initAudio(); // 首次点击时初始化音频上下文(浏览器自动播放策略要求用户手势触发)
+                playStrikeSound();
+
+                strikeTimes.push(time);
+                if(strikeTimes.length > MAX_STRIKES) {
+                    strikeTimes.shift(); // 移除最旧的波
+                }
+                
+                // 按钮动画反馈
+                e.target.style.transform = 'scale(0.9)';
+                setTimeout(() => e.target.style.transform = '', 100);
+            });
+
+            // 绑定暂停按钮事件：暂停后波形与粒子位置冻结，便于观察粒子间距离
+            document.getElementById('pauseBtn').addEventListener('click', (e) => {
+                isPaused = !isPaused;
+                e.target.innerText = isPaused ? '▶️ 继续' : '⏸️ 暂停';
+            });
+
+            // 绑定面板折叠事件
+            document.getElementById('toggleUiBtn').addEventListener('click', (e) => {
+                isUiVisible = !isUiVisible;
+                const panels = document.querySelectorAll('.collapsible');
+                panels.forEach(p => {
+                    p.style.opacity = isUiVisible ? '1' : '0';
+                    p.style.pointerEvents = isUiVisible ? 'auto' : 'none';
+                });
+                e.target.innerText = isUiVisible ? '👁️ 收起面板' : '👁️ 显示面板';
+            });
+
+            animate();
+        }
+
+        //华仁中学蔡逸众制作
+        function createTuningFork() {
+            forkGroup = new THREE.Group();
+            const metalMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 });
+
+            const handleGeo = new THREE.CylinderGeometry(0.6, 0.6, 6, 16);
+            const handle = new THREE.Mesh(handleGeo, metalMaterial);
+            handle.position.y = -3;
+            forkGroup.add(handle);
+
+            const baseGeo = new THREE.BoxGeometry(3, 1, 1.2);
+            const base = new THREE.Mesh(baseGeo, metalMaterial);
+            base.position.y = 0;
+            forkGroup.add(base);
+
+            prongLeft = new THREE.Group();
+            const prongGeo = new THREE.BoxGeometry(0.8, 12, 1);
+            const pL = new THREE.Mesh(prongGeo, metalMaterial);
+            pL.position.y = 6; 
+            prongLeft.add(pL);
+            prongLeft.position.set(-1.1, 0.5, 0); 
+            forkGroup.add(prongLeft);
+
+            prongRight = new THREE.Group();
+            const pR = new THREE.Mesh(prongGeo, metalMaterial);
+            pR.position.y = 6;
+            prongRight.add(pR);
+            prongRight.position.set(1.1, 0.5, 0); 
+            forkGroup.add(prongRight);
+
+            scene.add(forkGroup);
+        }
+
+        //峇株吧辖华仁中学蔡逸众制作
+        function createParticles() {
+            const geometry = new THREE.SphereGeometry(0.12, 8, 8);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+            particlesMesh = new THREE.InstancedMesh(geometry, material, PARTICLE_COUNT);
+            
+            let i = 0;
+            while (i < PARTICLE_COUNT) {
+                const r = waveParams.baseDistance + Math.sqrt(Math.random()) * (waveParams.radius - waveParams.baseDistance);
+                const theta = Math.random() * Math.PI * 2;
+                const ySpread = waveParams.height * (1 - r/waveParams.radius) + 2; 
+                const y = (Math.random() - 0.5) * ySpread;
+                const x = r * Math.cos(theta);
+                const z = r * Math.sin(theta);
+
+                particlePositions[i * 3] = x;
+                particlePositions[i * 3 + 1] = y;
+                particlePositions[i * 3 + 2] = z;
+
+                dummy.position.set(x, y, z);
+                dummy.updateMatrix();
+                particlesMesh.setMatrixAt(i, dummy.matrix);
+                particlesMesh.setColorAt(i, new THREE.Color(0x8888aa));
+                i++;
+            }
+            
+            const trackR = 15; 
+            particlePositions[trackedIndex * 3] = trackR;
+            particlePositions[trackedIndex * 3 + 1] = 0;
+            particlePositions[trackedIndex * 3 + 2] = 0;
+            trackedRestPosition.set(trackR, 0, 0);
+
+            scene.add(particlesMesh);
+        }
+
+        function setupTrackedParticle() {
+            const boxGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+            const boxMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.3 });
+            restMarkerMesh = new THREE.Mesh(boxGeo, boxMat);
+            restMarkerMesh.position.copy(trackedRestPosition);
+            scene.add(restMarkerMesh);
+
+            const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffd700 }); 
+            trackedMesh = new THREE.Mesh(sphereGeo, sphereMat);
+            scene.add(trackedMesh);
+            
+            const lineMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1, opacity: 0.5, transparent: true });
+            const points = [new THREE.Vector3(trackedRestPosition.x - 3, 0, 0), new THREE.Vector3(trackedRestPosition.x + 3, 0, 0)];
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(lineGeo, lineMat);
+            line.computeLineDistances();
+            scene.add(line);
+        }
+
+        //华仁中学蔡逸众制作
+        function setupOscilloscope() {
+            const canvas = document.getElementById('oscilloscope');
+            scopeContext = canvas.getContext('2d');
+        }
+
+        function drawOscilloscope(currentDisplacement) {
+            const width = scopeContext.canvas.width;
+            const height = scopeContext.canvas.height;
+            const midY = height / 2;
+
+            scopeData.push(currentDisplacement);
+            scopeData.shift();
+
+            scopeContext.fillStyle = '#0a0a0a';
+            scopeContext.fillRect(0, 0, width, height);
+
+            scopeContext.strokeStyle = '#333';
+            scopeContext.lineWidth = 1;
+            scopeContext.beginPath();
+            scopeContext.moveTo(0, midY);
+            scopeContext.lineTo(width, midY);
+            scopeContext.stroke();
+
+            scopeContext.strokeStyle = '#ffd700';
+            scopeContext.lineWidth = 2;
+            scopeContext.beginPath();
+            
+            const scaleY = 30; 
+            for (let i = 0; i < scopeData.length; i++) {
+                const x = (i / scopeData.length) * width;
+                const y = midY - (scopeData[i] * scaleY);
+                if (i === 0) scopeContext.moveTo(x, y);
+                else scopeContext.lineTo(x, y);
+            }
+            scopeContext.stroke();
+        }
+
+        //峇株吧辖华仁中学蔡逸众制作
+        function onWindowResize() {
+            if (!camera || !renderer) return; // 增加防护，防止未初始化时报错
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 响应式示波器调整
+            const canvas = document.getElementById('oscilloscope');
+            if (window.innerWidth <= 768) {
+                canvas.width = 200; canvas.height = 60;
+            } else {
+                canvas.width = 300; canvas.height = 100;
+            }
+        }
+
+        // --- 核心物理引擎 ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 暂停时跳过物理计算，粒子与波形冻结在当前位置，便于观察粒子间距离
+            //峇株吧辖蔡逸众制作
+            if (isPaused) {
+                controls.update();
+                renderer.render(scene, camera);
+                return;
+            }
+
+            const dt = 0.016; 
+            time += dt;
+
+            // 1. 累加计算音叉本体的振动（波的叠加）
+            let forkAngle = 0;
+            for (let i = 0; i < strikeTimes.length; i++) {
+                const t_fork = time - strikeTimes[i];
+                if (t_fork > 0) {
+                    // 指数衰减驱动振动
+                    forkAngle += waveParams.maxAmplitude * Math.exp(-waveParams.damping * t_fork) * Math.sin(waveParams.frequency * t_fork) * 0.08;
+                }
+            }
+            prongLeft.rotation.z = -forkAngle; 
+            prongRight.rotation.z = forkAngle;
+
+            let trackedDisplacement = 0;
+            
+            // 2. 更新空气粒子的波前传播
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const ox = particlePositions[i * 3];
+                const oy = particlePositions[i * 3 + 1];
+                const oz = particlePositions[i * 3 + 2];
+                
+                posVec.set(ox, oy, oz);
+                const dist = posVec.length(); 
+                const distAttenuation = 1.0 / (1.0 + dist * 0.12); // 距离衰减
+
+                let displacementMag = 0;
+                let density = 0; 
+                
+                // 遍历计算所有仍然存在的波列，进行叠加干涉
+                for(let j = 0; j < strikeTimes.length; j++) {
+                    // 计算推迟时间 t_retarded：波从中心传播到该粒子处需要时间 (dist / v_sound)
+                    const t_ret = time - (dist / v_sound) - strikeTimes[j];
+                    
+                    if (t_ret > 0) { // 波已经抵达该处
+                        const envelope = waveParams.maxAmplitude * Math.exp(-waveParams.damping * t_ret);
+                        const phase = waveParams.frequency * t_ret;
+                        
+                        displacementMag += envelope * distAttenuation * Math.sin(phase);
+                        // 密度(压强)为位移的空间导数，向外传播波正比于 -cos(phase)
+                        density += envelope * distAttenuation * -Math.cos(phase);
+                    }
+                }
+
+                // 纵波振动方向平行于波的传播方向
+                dirVec.copy(posVec).normalize();
+                posVec.addScaledVector(dirVec, displacementMag);
+
+                dummy.position.copy(posVec);
+                dummy.updateMatrix();
+                particlesMesh.setMatrixAt(i, dummy.matrix);
+
+                // 3. 根据叠加后的空气密度染色
+                if (i !== trackedIndex) {
+                    if (Math.abs(density) < 0.01) {
+                        tempColor.setRGB(0.5, 0.53, 0.6); // 无波时的静默色
+                    } else {
+                        const mappedD = Math.max(-1, Math.min(1, density * 3.5)); // 限制范围
+                        let r, g, b;
+                        if (mappedD > 0) { // 密部：红色
+                            r = 0.5 + 0.5 * mappedD;
+                            g = 0.53 - 0.4 * mappedD;
+                            b = 0.6 - 0.5 * mappedD;
+                        } else {           // 疏部：蓝色
+                            r = 0.5 + 0.4 * mappedD; 
+                            g = 0.53 + 0.2 * mappedD;
+                            b = 0.6 - 0.5 * mappedD; 
+                        }
+                        tempColor.setRGB(r, g, b);
+                    }
+                    particlesMesh.setColorAt(i, tempColor);
+                }
+                
+                if (i === trackedIndex) {
+                    trackedMesh.position.copy(posVec);
+                    trackedDisplacement = posVec.x - trackedRestPosition.x; 
+                }
+            }
+            
+            particlesMesh.instanceMatrix.needsUpdate = true;
+            particlesMesh.instanceColor.needsUpdate = true;
+
+            //Made by ecchua79
+            drawOscilloscope(trackedDisplacement);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 先执行 init() 以初始化 camera 和 renderer，然后再调用 onWindowResize()
+        init();
+        onWindowResize();
+    </script>
+</body>
+</html>
