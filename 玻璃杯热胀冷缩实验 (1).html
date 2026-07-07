@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物理科普：玻璃杯的热胀冷缩</title>
+    <!-- 引入 Tailwind CSS 用于快速构建美观的响应式 UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        /* 玻璃质感玻璃流 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* 水流动画效果 */
+        @keyframes flow {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .water-stream-anim {
+            stroke-dasharray: 8, 4;
+            animation: flow 1s linear infinite;
+        }
+        /* 蒸气飘动 */
+        @keyframes steam {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+        }
+        .steam-particle {
+            animation: steam 2s ease-out infinite;
+        }
+        /* 水花溅起波纹 */
+        @keyframes splashPulse {
+            0% { transform: scale(0.2); opacity: 0.9; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .splash-ring {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: splashPulse 0.7s ease-out infinite;
+        }
+        /* 水花飞溅小水珠 */
+        @keyframes dropletPop {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-14px) scale(0.3); opacity: 0; }
+        }
+        .splash-droplet {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: dropletPop 0.5s ease-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 md:p-8">
+
+    <!-- 顶部标题区 -->
+    <header class="text-center max-w-2xl mx-auto my-4">
+        <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-amber-400 mb-2">
+            热胀冷缩：玻璃杯的"温差生死劫"
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base">
+            一个从冰箱（约-5℃）刚拿出来的玻璃杯，如果直接倒入热水，会发生什么？让我们通过科学实验来观察。
+        </p>
+    </header>
+
+    <!-- 主交互区域 -->
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch my-auto">
+        
+        <!-- 左侧控制台与解说面板 (占4列) -->
+        <div class="lg:col-span-4 flex flex-col justify-between gap-4">
+            <!-- 步骤与状态面板 -->
+            <div class="glass-panel p-6 rounded-2xl flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span id="step-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300">
+                            步骤 1
+                        </span>
+                        <h2 class="text-lg font-bold">当前实验阶段</h2>
+                    </div>
+                    
+                    <p id="status-desc" class="text-slate-300 text-sm leading-relaxed mb-6">
+                        玻璃杯正放在冰箱冷冻室中，温度约为 <span class="text-cyan-400 font-bold">-5°C</span>。玻璃材料已经整体冷缩变紧。请将玻璃杯从冰箱中取出。
+                    </p>
+                </div>
+
+                <!-- 核心互动按钮区 -->
+                <div class="space-y-3">
+                    <button id="btn-action" onclick="nextStep()" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold rounded-xl transition duration-300 shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2">
+                        <span>打开冰箱拿出杯子</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+
+                    <!-- 分支选择按钮 (初始隐藏) -->
+                    <div id="branch-buttons" class="hidden space-y-3">
+                        <button onclick="choosePath('safe')" class="w-full py-3 px-4 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium rounded-xl transition duration-300 flex flex-col items-center">
+                            <span class="font-bold text-sm">【正确做法】</span>
+                            <span class="text-xs opacity-90">先注入室温水缓慢回温</span>
+                        </button>
+                        <button onclick="choosePath('danger')" class="w-full py-3 px-4 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 font-medium rounded-xl transition duration-300 flex flex-col items-center">
+                            <span class="font-bold text-sm">【危险做法】</span>
+                            <span class="text-xs opacity-90">直接注入 85°C 滚烫热水</span>
+                        </button>
+                    </div>
+
+                    <!-- 重置按钮 -->
+                    <button id="btn-reset" onclick="resetExperiment()" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-sm font-medium rounded-xl transition duration-300 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17" />
+                        </svg>
+                        <span>重新开始实验</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 科学原理小课堂 -->
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="text-amber-400 font-bold text-sm mb-2 flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    原理解析
+                </h3>
+                <p id="theory-text" class="text-xs text-slate-400 leading-relaxed">
+                    普通玻璃是热的不良导体。当极冷玻璃杯接触热水时，杯内壁受热瞬间膨胀，而外壁还来不及受热膨胀。这种内外壁的极度受热不均（热应力）会瞬间将玻璃胀碎！
+                </p>
+            </div>
+        </div>
+
+        <!-- 右侧 SVG 动画展示区 (占8列) -->
+        <div class="lg:col-span-8 glass-panel rounded-2xl overflow-hidden flex flex-col justify-between relative min-h-[450px] md:min-h-[500px]">
+            <!-- 温度显示条 -->
+            <div class="absolute top-4 right-4 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700/50 flex items-center gap-2 z-10">
+                <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" id="temp-dot"></div>
+                <span class="text-xs font-mono text-slate-300" id="temp-display">杯体温度: -5°C</span>
+            </div>
+
+            <!-- 主 SVG 容器 -->
+            <div class="flex-1 w-full flex items-center justify-center p-4">
+                <svg id="svg-stage" viewBox="0 0 800 500" class="w-full h-full max-h-[450px]" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- 渐变阴影与渐变色彩 -->
+                        <linearGradient id="fridgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#1e293b" />
+                            <stop offset="100%" stop-color="#0f172a" />
+                        </linearGradient>
+                        <linearGradient id="fridgeInsideGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#e2e8f0" />
+                            <stop offset="50%" stop-color="#f8fafc" />
+                            <stop offset="100%" stop-color="#cbd5e1" />
+                        </linearGradient>
+                        <!-- 玻璃杯材质 -->
+                        <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="rgba(255, 255, 255, 0.6)" />
+                            <stop offset="25%" stop-color="rgba(255, 255, 255, 0.2)" />
+                            <stop offset="75%" stop-color="rgba(255, 255, 255, 0.1)" />
+                            <stop offset="100%" stop-color="rgba(255, 255, 255, 0.5)" />
+                        </linearGradient>
+                        <!-- 冷水渐变 -->
+                        <linearGradient id="coldWaterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(56, 189, 248, 0.8)" />
+                            <stop offset="100%" stop-color="rgba(14, 165, 233, 0.8)" />
+                        </linearGradient>
+                        <!-- 热水渐变 -->
+                        <linearGradient id="hotWaterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(244, 63, 94, 0.8)" />
+                            <stop offset="100%" stop-color="rgba(225, 29, 72, 0.8)" />
+                        </linearGradient>
+                        <!-- 温水渐变 -->
+                        <linearGradient id="warmWaterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(52, 211, 153, 0.8)" />
+                            <stop offset="100%" stop-color="rgba(16, 185, 129, 0.8)" />
+                        </linearGradient>
+                        <!-- 玻璃反光滤镜 -->
+                        <filter id="glassGlow" x="-10%" y="-10%" width="120%" height="120%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+
+                    <!-- 背景平台 -->
+                    <rect x="50" y="420" width="700" height="20" rx="5" fill="#334155" />
+                    <rect x="80" y="440" width="640" height="40" rx="2" fill="#1e293b" opacity="0.8" />
+
+                    <!-- ========================================== -->
+                    <!-- 1. 冰箱组件 (左侧) -->
+                    <!-- ========================================== -->
+                    <g id="fridge-group" transform="translate(0, 0)" class="transition-all duration-700">
+                        <!-- 冰箱外壳 -->
+                        <rect x="80" y="80" width="220" height="340" rx="10" fill="url(#fridgeGrad)" stroke="#475569" stroke-width="4" />
+                        <!-- 冰箱内胆 -->
+                        <rect x="95" y="95" width="190" height="310" rx="6" fill="url(#fridgeInsideGrad)" />
+                        <!-- 冷藏隔板 -->
+                        <line x1="95" y1="240" x2="285" y2="240" stroke="#cbd5e1" stroke-width="4" />
+                        <!-- 内部冷气效果 -->
+                        <g opacity="0.6">
+                            <path d="M120,150 Q140,160 160,150 T200,150" fill="none" stroke="#93c5fd" stroke-width="2" class="steam-particle" style="animation-delay: 0s;" />
+                            <path d="M140,180 Q160,190 180,180 T220,180" fill="none" stroke="#93c5fd" stroke-width="2" class="steam-particle" style="animation-delay: 0.5s;" />
+                            <path d="M110,210 Q130,220 150,210 T190,210" fill="none" stroke="#93c5fd" stroke-width="2" class="steam-particle" style="animation-delay: 1s;" />
+                        </g>
+                    </g>
+
+                    <!-- ========================================== -->
+                    <!-- 2. 水源组件 (上方，包括水龙头和下落水流) -->
+                    <!-- ========================================== -->
+                    <g id="water-source" transform="translate(500, -100)" class="transition-all duration-700 opacity-0">
+                        <!-- 水龙头/水壶嘴 -->
+                        <path d="M-40,180 L20,180 A20,20 0 0,1 40,200 L40,220" fill="none" stroke="#64748b" stroke-width="16" stroke-linecap="round" />
+                        <rect x="30" y="215" width="20" height="10" fill="#475569" />
+                        <!-- 水流主体 (初始零长度，倒水时由JS动态"生长"到杯口，制造真实的水流下落感) -->
+                        <line id="water-stream" x1="40" y1="225" x2="40" y2="225" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" class="water-stream-anim opacity-0" />
+                    </g>
+
+                    <!-- 水花溅起效果 (固定在杯口位置，倒水时显现) -->
+                    <g id="splash-group" transform="translate(540, 308)" class="hidden">
+                        <circle r="6" fill="none" stroke="#7dd3fc" stroke-width="2" class="splash-ring" style="animation-delay:0s;" />
+                        <circle r="6" fill="none" stroke="#7dd3fc" stroke-width="2" class="splash-ring" style="animation-delay:0.25s;" />
+                        <circle cx="-10" cy="-2" r="2.5" fill="#bae6fd" class="splash-droplet" style="animation-delay:0.1s;" />
+                        <circle cx="12" cy="-3" r="2" fill="#bae6fd" class="splash-droplet" style="animation-delay:0.35s;" />
+                    </g>
+
+                    <!-- ========================================== -->
+                    <!-- 3. 蒸汽粒子效果 (用于热水) -->
+                    <!-- ========================================== -->
+                    <g id="steam-group" class="hidden">
+                        <path d="M515,310 Q525,290 515,270 T515,230" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" class="steam-particle" style="animation-duration: 1.5s;" />
+                        <path d="M535,310 Q545,285 535,260 T535,220" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" class="steam-particle" style="animation-duration: 1.8s; animation-delay: 0.3s;" />
+                        <path d="M555,315 Q565,295 555,275 T555,235" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" class="steam-particle" style="animation-duration: 2.1s; animation-delay: 0.6s;" />
+                    </g>
+
+                    <!-- ========================================== -->
+                    <!-- 4. 玻璃杯组件 (核心) -->
+                    <!-- ========================================== -->
+                    <g id="cup-container" transform="translate(190, 290)" class="transition-all duration-1000 ease-out">
+                        
+                        <!-- A. 杯中水体 (通过高宽动画实现水位上涨) -->
+                        <rect id="water-body" x="-36" y="100" width="72" height="0" rx="3" fill="url(#coldWaterGrad)" class="transition-all duration-500 origin-bottom" style="transform: scaleY(-1);" />
+
+                        <!-- B. 玻璃杯本体 (未碎状态) -->
+                        <g id="cup-intact">
+                            <!-- 杯子投影 -->
+                            <ellipse cx="0" cy="112" rx="42" ry="8" fill="#000" opacity="0.3" />
+                            <!-- 外壁高光与轮廓 -->
+                            <rect x="-40" y="0" width="80" height="110" rx="8" fill="url(#glassGrad)" stroke="rgba(255, 255, 255, 0.4)" stroke-width="2.5" />
+                            <!-- 杯底加厚层 -->
+                            <path d="M-40,100 L40,100 L40,108 A8,8 0 0,1 32,110 L-32,110 A8,8 0 0,1 -40,108 Z" fill="rgba(255, 255, 255, 0.3)" />
+                            <!-- 内壁高光线条 -->
+                            <line x1="-32" y1="10" x2="-32" y2="95" stroke="rgba(255, 255, 255, 0.4)" stroke-width="1.5" />
+                            <line x1="32" y1="10" x2="32" y2="95" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
+                            <!-- 冰霜效果 (初始可见) -->
+                            <rect id="frost-overlay" x="-40" y="0" width="80" height="110" rx="8" fill="#e0f2fe" opacity="0.65" class="transition-opacity duration-1000 pointer-events-none" />
+                        </g>
+
+                        <!-- C. 玻璃杯碎裂状态 (裂纹叠加及物理碎裂块) -->
+                        <g id="cup-fractured" class="hidden">
+                            <!-- 裂纹线 (在原位置显现) -->
+                            <path d="M-40,40 L-20,45 L-10,35 L10,50 L25,40 L40,48" fill="none" stroke="#e2e8f0" stroke-width="2.5" />
+                            <path d="M-20,45 L-25,70 L-5,80 L-10,110" fill="none" stroke="#e2e8f0" stroke-width="2.5" />
+                            <path d="M10,50 L15,75 L5,90 L12,110" fill="none" stroke="#e2e8f0" stroke-width="2.5" />
+                        </g>
+
+                        <!-- D. 剧烈碎裂飞溅的玻璃碎片 (运动由JS控制) -->
+                        <g id="shards-group" class="hidden">
+                            <!-- 碎片1 -->
+                            <polygon id="shard-1" points="-40,20 -25,10 -30,40" fill="rgba(255,255,255,0.7)" stroke="#fff" stroke-width="1" />
+                            <!-- 碎片2 -->
+                            <polygon id="shard-2" points="40,30 25,15 35,50" fill="rgba(255,255,255,0.7)" stroke="#fff" stroke-width="1" />
+                            <!-- 碎片3 -->
+                            <polygon id="shard-3" points="-20,45 -35,60 -10,70" fill="rgba(255,255,255,0.5)" stroke="#fff" stroke-width="1" />
+                            <!-- 碎片4 -->
+                            <polygon id="shard-4" points="20,45 35,65 15,75" fill="rgba(255,255,255,0.5)" stroke="#fff" stroke-width="1" />
+                            <!-- 碎片5 (杯底大块) -->
+                            <path id="shard-base-left" d="M-40,80 L-15,75 L-20,110 L-32,110 A8,8 0 0,1 -40,102 Z" fill="rgba(255,255,255,0.6)" stroke="#fff" stroke-width="1" />
+                            <path id="shard-base-right" d="M40,80 L15,75 L20,110 L32,110 A8,8 0 0,1 40,102 Z" fill="rgba(255,255,255,0.6)" stroke="#fff" stroke-width="1" />
+                        </g>
+
+                        <!-- E. 漏水效果 (破裂后水流下滴) -->
+                        <g id="leak-water" class="hidden">
+                            <path d="M-25,70 Q-30,100 -28,140" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" class="water-stream-anim" />
+                            <path d="M15,75 Q10,110 12,145" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" class="water-stream-anim" />
+                            <ellipse cx="-5" cy="120" rx="30" ry="6" fill="#38bdf8" opacity="0.8" />
+                        </g>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- 底部图例区 -->
+            <div class="p-4 bg-slate-900/50 border-t border-slate-800 flex justify-around text-xs text-slate-400">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-cyan-400"></span>
+                    <span>冷缩状态 (安全)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+                    <span>室温过渡 (均匀)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                    <span>热应力 (危险)</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="text-center text-xs text-slate-500 my-4">
+        物理演示 · 基于 SVG 及 浏览器原生 Web Audio 音效合成 · 无需任何外部资源
+    </footer>
+
+    <!-- ========================================== -->
+    <!-- 交互与动画控制 JavaScript -->
+    <!-- ========================================== -->
+    <script>
+        // --- 状态追踪 ---
+        let currentStep = 1; 
+        // 1: 冰箱中 (冷缩中)
+        // 2: 拿出冰箱在桌上 (等待决策)
+        // 3: 倒入水中 (执行动画)
+        // 4: 实验结束 (显示结论)
+
+        let selectedPath = ''; // 'safe' (室温水缓冲) 或 'danger' (直接热水)
+        let cupTemp = -5; // 初始温度
+
+        // --- 竞态保护：每次 reset 时递增，异步回调执行前核对是否仍是当前场次 ---
+        let sessionId = 0;
+        let pendingTimeouts = [];   // 记录所有 setTimeout id，reset 时统一清除
+        let pendingRAF = null;      // 记录当前 requestAnimationFrame id
+
+        function scheduleTimeout(fn, delay) {
+            const mySession = sessionId;
+            const id = setTimeout(() => {
+                // 若 reset 已发生（sessionId 变化），则丢弃这次回调
+                if (mySession !== sessionId) return;
+                fn();
+            }, delay);
+            pendingTimeouts.push(id);
+            return id;
+        }
+
+        function clearAllPending() {
+            pendingTimeouts.forEach(id => clearTimeout(id));
+            pendingTimeouts = [];
+            if (pendingRAF !== null) {
+                cancelAnimationFrame(pendingRAF);
+                pendingRAF = null;
+            }
+        }
+
+        // --- DOM 元素引用 ---
+        const btnAction = document.getElementById('btn-action');
+        const branchButtons = document.getElementById('branch-buttons');
+        const btnReset = document.getElementById('btn-reset');
+        const statusDesc = document.getElementById('status-desc');
+        const stepBadge = document.getElementById('step-badge');
+        const theoryText = document.getElementById('theory-text');
+        
+        const cupContainer = document.getElementById('cup-container');
+        const frostOverlay = document.getElementById('frost-overlay');
+        const waterSource = document.getElementById('water-source');
+        const waterStream = document.getElementById('water-stream');
+        const splashGroup = document.getElementById('splash-group');
+        const waterBody = document.getElementById('water-body');
+        const cupIntact = document.getElementById('cup-intact');
+        const cupFractured = document.getElementById('cup-fractured');
+        const shardsGroup = document.getElementById('shards-group');
+        const leakWater = document.getElementById('leak-water');
+        const steamGroup = document.getElementById('steam-group');
+        const tempDisplay = document.getElementById('temp-display');
+        const tempDot = document.getElementById('temp-dot');
+
+        // --- Web Audio 音效合成器 (提供真实的物理声音反馈) ---
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                if (type === 'click') {
+                    // 按钮点击声
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } 
+                else if (type === 'pour') {
+                    // 倒水声 (白噪音滤波模拟水流)
+                    let bufferSize = audioCtx.sampleRate * 1.5; // 1.5秒水流
+                    let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    let data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    let noise = audioCtx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    let filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    filter.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 1.5);
+                    filter.Q.value = 2.0;
+
+                    let gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    noise.start();
+                } 
+                else if (type === 'shatter') {
+                    // 玻璃碎裂声 (高频金属感冲击 + 衰减)
+                    for (let i = 0; i < 5; i++) {
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(2000 + Math.random() * 3000, audioCtx.currentTime + i * 0.02);
+                        osc.frequency.exponentialRampToValueAtTime(100 + Math.random() * 200, audioCtx.currentTime + 0.3 + i * 0.05);
+                        
+                        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4 + i * 0.05);
+                        
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime + i * 0.02);
+                        osc.stop(audioCtx.currentTime + 0.5 + i * 0.05);
+                    }
+                }
+            } catch (e) {
+                console.log("Audio not supported or blocked: ", e);
+            }
+        }
+
+        // --- 核心步骤控制 ---
+        function nextStep() {
+            playSound('click');
+            if (currentStep === 1) {
+                // 从冰箱中取出杯子，移动到右侧实验台上
+                scheduleTimeout(() => {
+                    cupContainer.style.transform = "translate(540px, 310px)";
+                    waterSource.style.transform = "translate(500px, 0)";
+                    waterSource.classList.remove('opacity-0');
+                    
+                    currentStep = 2;
+                    updateUI();
+                }, 800);
+            }
+        }
+
+        // --- 路径选择分支 ---
+        function choosePath(path) {
+            playSound('click');
+            selectedPath = path;
+            currentStep = 3;
+            updateUI();
+            
+            // 开始注水动画
+            startPouringAnimation();
+        }
+
+        // --- 注水与核心物理响应动画 ---
+        function startPouringAnimation() {
+            // 1. 水流颜色随路径变化
+            const streamColor = selectedPath === 'safe' ? 'url(#warmWaterGrad)' : 'url(#hotWaterGrad)';
+            const splashColor = selectedPath === 'safe' ? '#34d399' : '#fb7185';
+            waterStream.setAttribute('stroke', streamColor);
+            waterStream.classList.remove('opacity-0');
+            playSound('pour');
+            if (selectedPath === 'danger') {
+                // 热水蒸汽飘升
+                steamGroup.classList.remove('hidden');
+            }
+
+            // 2. 水流从喷嘴口动态"生长"到杯口，制造真实的水柱下落感
+            growWaterStream();
+
+            // 3. 水流落到杯口后，激起水花波纹
+            splashGroup.querySelectorAll('.splash-ring, .splash-droplet').forEach(el => {
+                el.setAttribute('stroke', splashColor);
+                if (el.tagName === 'circle' && el.classList.contains('splash-droplet')) {
+                    el.setAttribute('fill', splashColor);
+                }
+            });
+            splashGroup.classList.remove('hidden');
+
+            // 4. 1秒后，水流接触杯底，杯中水位开始上涨，温度开始发生改变
+            scheduleTimeout(() => {
+                // 水位开始爬升
+                waterBody.setAttribute('fill', selectedPath === 'safe' ? 'url(#warmWaterGrad)' : 'url(#hotWaterGrad)');
+                waterBody.style.height = "85px"; // 填满杯子
+
+                // 随着水流注入，冰霜消退
+                frostOverlay.style.opacity = "0";
+
+                if (selectedPath === 'safe') {
+                    // 正确路径：缓慢回温
+                    animateTemperature(cupTemp, 25, 2000, () => {
+                        // 回温完成，水流停止
+                        stopWaterStream();
+                        currentStep = 4;
+                        updateUI();
+                    });
+                } else {
+                    // 错误路径：温差剧烈，导致极速受热不均碎裂
+                    animateTemperature(cupTemp, 85, 800, () => {
+                        // 在大约极速受热 800ms（杯底刚受热，而杯顶依然冰冷时），触发碎裂！
+                        triggerShatterEffect();
+                    });
+                }
+            }, 800);
+        }
+
+        // 让水流从喷嘴口(y=225，零长度)动态生长到杯口(y=310)，模拟真实倒水时水柱逐渐形成的过程
+        function growWaterStream() {
+            const mySession = sessionId;
+            const startY = 225;
+            const endY = 310;
+            const duration = 220;
+            let startTime = null;
+            waterStream.setAttribute('y2', startY);
+            function step(timestamp) {
+                if (mySession !== sessionId) { pendingRAF = null; return; }
+                if (!startTime) startTime = timestamp;
+                let progress = Math.min((timestamp - startTime) / duration, 1);
+                waterStream.setAttribute('y2', startY + progress * (endY - startY));
+                if (progress < 1) {
+                    pendingRAF = requestAnimationFrame(step);
+                } else {
+                    pendingRAF = null;
+                }
+            }
+            pendingRAF = requestAnimationFrame(step);
+        }
+
+        // 停止注水
+        function stopWaterStream() {
+            waterStream.classList.add('opacity-0');
+            waterStream.setAttribute('y2', 225);
+            steamGroup.classList.add('hidden');
+            splashGroup.classList.add('hidden');
+        }
+
+        // 模拟温度数字平滑变化（带 session 校验，防止 reset 后残留旧动画帧）
+        function animateTemperature(start, end, duration, callback) {
+            const mySession = sessionId;
+            let startTime = null;
+            function step(timestamp) {
+                // 若期间发生了 reset，立即终止该动画链
+                if (mySession !== sessionId) {
+                    pendingRAF = null;
+                    return;
+                }
+                if (!startTime) startTime = timestamp;
+                let progress = Math.min((timestamp - startTime) / duration, 1);
+                cupTemp = Math.round(start + progress * (end - start));
+                
+                // 更新温度UI
+                tempDisplay.textContent = `杯体温度: ${cupTemp}°C`;
+                if (cupTemp < 10) {
+                    tempDot.className = "w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse";
+                } else if (cupTemp < 40) {
+                    tempDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                } else {
+                    tempDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse";
+                }
+
+                if (progress < 1) {
+                    pendingRAF = requestAnimationFrame(step);
+                } else {
+                    pendingRAF = null;
+                    if (callback) callback();
+                }
+            }
+            pendingRAF = requestAnimationFrame(step);
+        }
+
+        // --- 核心物理现象：碎裂粒子动画 ---
+        function triggerShatterEffect() {
+            playSound('shatter');
+            stopWaterStream();
+
+            // 1. 隐藏完好杯子外观，短暂显示裂纹（制造"先裂后碎"的瞬间感）
+            cupIntact.classList.add('hidden');
+            cupFractured.classList.remove('hidden');
+
+            // 2. 激发玻璃爆破飞溅 (利用 CSS Transform 平滑驱动 SVG 碎片)
+            shardsGroup.classList.remove('hidden');
+
+            // 阶段一：爆裂瞬间，碎片受冲击力快速向外弹开（短促、幅度小）
+            const burstTransforms = {
+                'shard-1': 'translate(-36px, -10px) rotate(-30deg)',
+                'shard-2': 'translate(40px, -8px) rotate(40deg)',
+                'shard-3': 'translate(-26px, 6px) rotate(-15deg)',
+                'shard-4': 'translate(28px, 8px) rotate(28deg)',
+                'shard-base-left': 'translate(-10px, 3px) rotate(-6deg)',
+                'shard-base-right': 'translate(10px, 3px) rotate(6deg)'
+            };
+            Object.keys(burstTransforms).forEach(id => {
+                const el = document.getElementById(id);
+                el.style.transition = 'transform 0.15s cubic-bezier(0.2, 0.8, 0.3, 1)';
+                el.style.transform = burstTransforms[id];
+            });
+
+            // 阶段二：受重力牵引自然坠落，最终散落在桌面上（不再悬浮空中）
+            const landTransforms = {
+                'shard-1': { t: 'translate(-60px, 95px) rotate(-100deg)', dur: '0.55s' },
+                'shard-2': { t: 'translate(66px, 92px) rotate(115deg)', dur: '0.55s' },
+                'shard-3': { t: 'translate(-50px, 62px) rotate(-60deg)', dur: '0.5s' },
+                'shard-4': { t: 'translate(54px, 60px) rotate(75deg)', dur: '0.5s' },
+                'shard-base-left': { t: 'translate(-18px, 24px) rotate(-18deg)', dur: '0.45s' },
+                'shard-base-right': { t: 'translate(18px, 24px) rotate(18deg)', dur: '0.45s' }
+            };
+            scheduleTimeout(() => {
+                // 裂纹叠加层只在爆裂瞬间短暂闪现，随碎片开始飞溅坠落后立即隐藏，
+                // 避免"静止的裂纹轮廓"与"飞散的碎片"同时存在造成的画面重影
+                cupFractured.classList.add('hidden');
+                Object.keys(landTransforms).forEach(id => {
+                    const el = document.getElementById(id);
+                    el.style.transition = `transform ${landTransforms[id].dur} cubic-bezier(0.55, 0.06, 0.68, 0.19)`;
+                    el.style.transform = landTransforms[id].t;
+                });
+            }, 150);
+
+            // 3. 杯中水体瞬间塌落外漏
+            waterBody.style.transform = "scaleY(0.2)";
+            waterBody.style.transition = "transform 0.3s ease-out";
+            
+            scheduleTimeout(() => {
+                leakWater.classList.remove('hidden');
+                currentStep = 4;
+                updateUI();
+            }, 700);
+        }
+
+        // --- UI与文案渲染更新引擎 ---
+        function updateUI() {
+            if (currentStep === 1) {
+                stepBadge.textContent = "步骤 1";
+                stepBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300";
+                statusDesc.innerHTML = `玻璃杯正放在冰箱冷冻室中，温度约为 <span class="text-cyan-400 font-bold">-5°C</span>。玻璃分子在低温下紧密收缩。请将玻璃杯从冰箱中取出。`;
+                btnAction.classList.remove('hidden');
+                branchButtons.classList.add('hidden');
+                btnReset.classList.add('hidden');
+            } 
+            else if (currentStep === 2) {
+                stepBadge.textContent = "步骤 2";
+                stepBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-300";
+                statusDesc.innerHTML = `极冷的玻璃杯已被取出放置。由于玻璃是热的不良导体，任何瞬间的剧烈温差都会造成危险。现在请选择你的下一步操作：`;
+                btnAction.classList.add('hidden');
+                branchButtons.classList.remove('hidden');
+                btnReset.classList.remove('hidden');
+            } 
+            else if (currentStep === 3) {
+                stepBadge.textContent = "步骤 3";
+                stepBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300";
+                statusDesc.textContent = `实验进行中... 正在向极冷玻璃杯中注入水源。请密切观察杯体变化和温度指示器！`;
+                branchButtons.classList.add('hidden');
+            } 
+            else if (currentStep === 4) {
+                stepBadge.textContent = "实验完成";
+                btnReset.classList.remove('hidden');
+                
+                if (selectedPath === 'safe') {
+                    stepBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300";
+                    statusDesc.innerHTML = `<span class="text-emerald-400 font-bold">✔ 实验成功：杯子安然无恙！</span><br><br>先注入室温水缓慢缓冲回温，使玻璃体内壁与外壁的膨胀速度保持一致，消除了危险的热应力。随后再接触冷水或热水，它都能轻松应对。`;
+                    theoryText.textContent = "【科学启示】当我们面对不耐骤冷骤热的器皿时，通过“预热”或“室温水缓慢回温”的方式消除温度骤变，是防止器皿爆裂的最佳物理防范手段。";
+                } else {
+                    stepBadge.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-300";
+                    statusDesc.innerHTML = `<span class="text-rose-400 font-bold">✘ 实验失败：玻璃杯瞬间炸裂！</span><br><br>当 85°C 的热水瞬间接触 -5°C 的玻璃杯内壁时，内壁剧烈受热急剧膨胀，而外壁依然处于冷缩状态。瞬间产生的巨大【内外应力差】直接把杯体撕裂！`;
+                    theoryText.textContent = "【科学启示】普通钠钙玻璃的热传导系数极低且膨胀系数较高。千万不要将刚在冰箱冰镇过的玻璃杯、盘子等直接放入微波炉或倒入沸水，极易导致破碎割伤。";
+                }
+            }
+        }
+
+        // --- 重置实验状态 ---
+        function resetExperiment() {
+            playSound('click');
+
+            // 关键修复：先递增 sessionId 并清除所有排队中的异步回调，
+            // 防止旧一轮实验的 setTimeout / requestAnimationFrame 在重置后继续执行
+            // （例如：动画中途点击重置，之前的温度上升或碎裂逻辑仍在跑，
+            // 会导致刚重置好的杯子莫名其妙又碎掉，或温度乱跳）
+            sessionId++;
+            clearAllPending();
+
+            currentStep = 1;
+            cupTemp = -5;
+            selectedPath = '';
+            
+            // 复原温度显示
+            tempDisplay.textContent = `杯体温度: -5°C`;
+            tempDot.className = "w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse";
+
+            // 复原水源位置
+            waterSource.style.transform = "translate(500px, -100px)";
+            waterSource.classList.add('opacity-0');
+            stopWaterStream();
+
+            // 复原水体状态
+            waterBody.style.transition = "none";
+            waterBody.style.height = "0px";
+            waterBody.style.transform = "scaleY(-1)";
+            scheduleTimeout(() => {
+                waterBody.style.transition = "all 0.5s ease-out";
+            }, 50);
+
+            // 复原杯子和霜冻状态
+            frostOverlay.style.opacity = "0.65";
+            cupIntact.classList.remove('hidden');
+            cupFractured.classList.add('hidden');
+            shardsGroup.classList.add('hidden');
+            leakWater.classList.add('hidden');
+            cupContainer.style.transform = "translate(190px, 290px)";
+
+            // 重设碎片过渡状态
+            const shards = ['shard-1', 'shard-2', 'shard-3', 'shard-4', 'shard-base-left', 'shard-base-right'];
+            shards.forEach(id => {
+                document.getElementById(id).style.transform = 'none';
+                document.getElementById(id).style.transition = 'none';
+            });
+
+            updateUI();
+        }
+
+        // 初始化
+        window.onload = () => {
+            updateUI();
+            console.log("Made by ecchua79 · 华仁中学蔡逸众制作");
+        };
+
+        // ecchua79 · 蔡逸众制作
+        // //峇株吧辖华仁中学蔡逸众制作
+    </script>
+
+    <!-- //峇株吧辖蔡逸众制作 -->
+    <!-- 华仁中学蔡逸众制作 -->
+</body>
+</html>
