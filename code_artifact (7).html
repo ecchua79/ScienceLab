@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实验室热对流物理模拟器</title>
+    <!-- Tailwind CSS for modern layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col items-center justify-between p-4 md:p-6 overflow-x-hidden">
+
+    <header class="w-full max-w-5xl text-center mb-4 shrink-0">
+        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-amber-300 to-red-400 bg-clip-text text-transparent">
+            经典物理实验：水的热对流模拟
+        </h1>
+        <p class="text-xs md:text-sm text-slate-400 mt-1">
+            物理引擎重构版：火焰火力与对流速度实时物理耦合。粒子内置“静电排斥算法”，实现均匀分布。
+        </p>
+    </header>
+
+    <main class="w-full max-w-5xl flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        
+        <!-- 左侧/中间：烧杯物理仪器渲染区 -->
+        <section class="lg:col-span-7 flex flex-col items-center justify-center relative w-full h-[450px] md:h-[500px]">
+            <!-- 物理实验桌面底盘 -->
+            <div class="absolute bottom-0 w-full h-8 bg-slate-800/80 rounded-t-xl border-t border-slate-700 shadow-inner"></div>
+
+            <svg id="lab-svg" viewBox="0 0 600 500" class="w-full h-full drop-shadow-2xl select-none">
+                <defs>
+                    <!-- 玻璃反光渐变 -->
+                    <linearGradient id="beaker-glass" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>
+                        <stop offset="10%" stop-color="rgba(255,255,255,0.02)"/>
+                        <stop offset="90%" stop-color="rgba(255,255,255,0.02)"/>
+                        <stop offset="100%" stop-color="rgba(255,255,255,0.25)"/>
+                    </linearGradient>
+
+                    <!-- 火焰径向渐变 -->
+                    <radialGradient id="fire-glow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#fffbbf"/>
+                        <stop offset="30%" stop-color="#ff9d00"/>
+                        <stop offset="70%" stop-color="#ff3c00" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#ff3c00" stop-opacity="0"/>
+                    </radialGradient>
+
+                    <!-- 水波微光阴影 -->
+                    <linearGradient id="water-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="rgba(56, 189, 248, 0.1)"/>
+                        <stop offset="100%" stop-color="rgba(56, 189, 248, 0.25)"/>
+                    </linearGradient>
+                </defs>
+
+                <!-- 铁架台背景支架 -->
+                <g id="stand-pole" stroke="#475569" stroke-width="8" stroke-linecap="round">
+                    <line x1="120" y1="80" x2="120" y2="450" />
+                    <!-- 底座 -->
+                    <line x1="80" y1="450" x2="280" y2="450" stroke-width="12" />
+                    <!-- 扣环夹子 -->
+                    <line x1="120" y1="362" x2="160" y2="362" stroke-width="6" />
+                </g>
+
+                <!-- 石棉铁丝网与三角架 -->
+                <g id="gauze-support">
+                    <!-- 铁丝网 -->
+                    <rect x="150" y="358" width="300" height="6" fill="#64748b" rx="2" stroke="#334155" stroke-width="1"/>
+                    <!-- 三脚支架侧腿 -->
+                    <line x1="170" y1="364" x2="150" y2="465" stroke="#475569" stroke-width="6" />
+                    <line x1="430" y1="364" x2="450" y2="465" stroke="#475569" stroke-width="6" />
+                </g>
+
+                <!-- 本生灯/酒精灯 -->
+                <g id="burner" transform="translate(300, 365)">
+                    <!-- 灯体 -->
+                    <path d="M-25 100 L25 100 L15 50 L-15 50 Z" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+                    <rect x="-4" y="30" width="8" height="20" fill="#94a3b8"/>
+                    <!-- 动态火焰 -->
+                    <path id="burner-flame" d="M-12 30 Q0 0 0 -25 Q0 0 12 30 Z" fill="url(#fire-glow)" opacity="0"/>
+                </g>
+
+                <!-- 烧杯主体与盛水区域 -->
+                <g id="beaker-group">
+                    <!-- 水体背景 -->
+                    <rect id="water-bg" x="185" y="130" width="230" height="225" fill="url(#water-grad)" rx="4"/>
+
+                    <!-- 动态水面波动线 -->
+                    <path id="water-surface" d="M 185 130 Q 300 130 415 130" stroke="rgba(147,205,253,0.7)" stroke-width="3" fill="none" />
+
+                    <!-- 烧杯玻璃外壁（带刻度线） -->
+                    <rect x="180" y="110" width="240" height="248" fill="url(#beaker-glass)" stroke="rgba(255,255,255,0.4)" stroke-width="4" rx="6" />
+                    <!-- 烧杯嘴口唇部 -->
+                    <path d="M 175 110 L 185 110" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M 415 110 L 425 110" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round"/>
+
+                    <!-- 烧杯刻度 -->
+                    <g stroke="rgba(255,255,255,0.25)" stroke-width="1.5">
+                        <line x1="390" y1="160" x2="405" y2="160" />
+                        <line x1="395" y1="200" x2="405" y2="200" />
+                        <line x1="390" y1="240" x2="405" y2="240" />
+                        <line x1="395" y1="280" x2="405" y2="280" />
+                        <line x1="390" y1="320" x2="405" y2="320" />
+                    </g>
+                    <g fill="rgba(255,255,255,0.3)" font-size="10" font-family="monospace">
+                        <text x="385" y="163" text-anchor="end">400ml</text>
+                        <text x="385" y="243" text-anchor="end">200ml</text>
+                    </g>
+                </g>
+
+                <!-- 粒子渲染容器 -->
+                <g id="particles-container"></g>
+
+                <!-- 受热中心区域虚线框提示（可切换显示） -->
+                <rect x="250" y="340" width="100" height="15" fill="rgba(239, 68, 68, 0.08)" stroke="rgba(239, 68, 68, 0.3)" stroke-dasharray="3 2" rx="2" />
+                <text x="300" y="351" fill="rgba(239, 68, 68, 0.6)" font-size="9" text-anchor="middle">加热中心区</text>
+            </svg>
+        </section>
+
+        <!-- 右侧：精简控制台与科学原理说明 -->
+        <section class="lg:col-span-5 flex flex-col gap-4 w-full">
+            
+            <!-- 核心快捷控制器 -->
+            <div class="glass-panel rounded-2xl p-5 flex flex-col gap-4 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold tracking-wider text-sky-400 uppercase flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                        加热控制台
+                    </h2>
+                    <span id="system-status" class="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-mono">状态: 恒温中</span>
+                </div>
+
+                <!-- 火力调节（档位切换） -->
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs text-slate-400">调节本生灯火焰大小（直接影响对流快慢）:</span>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button data-heat="0" class="btn-heat py-2 text-xs font-semibold rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700/50 transition">熄灭</button>
+                        <button data-heat="1" class="btn-heat py-2 text-xs font-semibold rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700/50 transition">微火</button>
+                        <button data-heat="2" class="btn-heat py-2 text-xs font-semibold rounded-lg bg-amber-600/30 text-amber-300 border border-amber-500/40 transition">中火</button>
+                        <button data-heat="3" class="btn-heat py-2 text-xs font-semibold rounded-lg bg-red-600/20 text-red-400 border border-red-500/30 transition">猛火</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-800 pt-3 flex flex-col gap-3">
+                    <!-- 粒子数量 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">均匀粒子总数</span>
+                            <span id="val-p-count" class="font-mono text-sky-400 font-bold">180</span>
+                        </div>
+                        <input type="range" id="slide-p-count" min="50" max="300" step="10" value="180" class="w-full accent-sky-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 循环流速强度 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">热对流速度系数 (上限控制)</span>
+                            <span id="val-flow" class="font-mono text-sky-400 font-bold">1.2x</span>
+                        </div>
+                        <input type="range" id="slide-flow" min="0.2" max="3.0" step="0.1" value="1.2" class="w-full accent-sky-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- 功能按钮 -->
+                <div class="grid grid-cols-2 gap-3 border-t border-slate-800 pt-3">
+                    <button id="btn-play-pause" class="py-2.5 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-500 active:bg-sky-700 transition flex items-center justify-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        暂停模拟
+                    </button>
+                    <button id="btn-reset" class="py-2.5 text-xs font-bold rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition flex items-center justify-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        一键重置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 对流实验科普说明 -->
+            <div class="glass-panel rounded-2xl p-5 flex flex-col gap-2 shadow-lg">
+                <h3 class="text-sm font-bold text-slate-300">对流循环物理路径：</h3>
+                <ul class="text-xs text-slate-400 space-y-2 list-disc pl-4 leading-relaxed">
+                    <li><strong class="text-red-400">热力-流速动态绑定</strong>：火焰熄灭时，水温逐渐下降，流速也会**随之减慢直至完全停止**。再次开火时，水温上升，对流会重新苏醒并加速。</li>
+                    <li><strong class="text-amber-400">微观热颤动（布朗运动）</strong>：宏观对流停止后，粒子仍会在原地进行与温度挂钩的**微小抖动**，真实模拟分子的不规则热运动。</li>
+                    <li><strong class="text-blue-400">绝对均匀分布</strong>：通过粒子间的“静电力学斥力”避免了粗暴的扎堆或线条化，使水体始终显得饱满、自然。</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部版权说明 -->
+    <footer class="w-full text-center py-4 text-xs text-slate-500 shrink-0">
+        科学仿真实验室 · 均势粒子静电力学引擎 (Electrostatic Repulsion Fluid Engine)
+    </footer>
+
+    <script>
+        // 烧杯水的物理活动区域范围 (SVG 容器内部坐标)
+        const BOUNDS = {
+            LEFT: 188,
+            RIGHT: 412,
+            TOP: 132,
+            BOTTOM: 348,
+            WIDTH: 224,
+            HEIGHT: 216
+        };
+
+        // 基础运行状态
+        let state = {
+            isRunning: true,
+            heatLevel: 2,        // 默认中火 (0: 熄灭, 1: 微火, 2: 中火, 3: 猛火)
+            particleCount: 180,  // 粒子数量
+            flowSpeed: 1.2,      // 流场整体基础速度上限
+            avgTemp: 20          // 系统平均水温 (°C)
+        };
+
+        let particles = [];
+        const particlesContainer = document.getElementById('particles-container');
+
+        // 粒子实体类
+        class ConvectionParticle {
+            constructor(spawnGrid = false, gridX = 0, gridY = 0) {
+                // 初始化均匀分布
+                if (spawnGrid) {
+                    this.x = gridX;
+                    this.y = gridY;
+                } else {
+                    this.x = BOUNDS.LEFT + 10 + Math.random() * (BOUNDS.WIDTH - 20);
+                    this.y = BOUNDS.TOP + 10 + Math.random() * (BOUNDS.HEIGHT - 20);
+                }
+
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = 4.2; // 粒子半径
+
+                // 20°C (纯蓝) 至 100°C (亮红/白)
+                this.temp = 20.0 + Math.random() * 5; 
+                this.dom = null;
+            }
+
+            // 创建粒子 DOM
+            createDom() {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', this.radius);
+                this.dom = circle;
+                particlesContainer.appendChild(circle);
+            }
+
+            // 销毁 DOM
+            destroy() {
+                if (this.dom && this.dom.parentNode) {
+                    this.dom.parentNode.removeChild(this.dom);
+                }
+            }
+
+            // 核心物理运算：结合解析热流场、温差耦合、布朗抖动与粒子排斥力
+            updatePhysics(dt) {
+                dt = Math.min(dt, 0.03); // 限制单步时间防止穿透
+
+                const midX = (BOUNDS.LEFT + BOUNDS.RIGHT) / 2;
+                
+                // 1. 本生灯吸热计算（位于底部中央）
+                const isNearBottom = this.y > (BOUNDS.BOTTOM - 18);
+                const isOverHeater = Math.abs(this.x - midX) < 45; // 中心加热带宽
+
+                if (isNearBottom && isOverHeater && state.heatLevel > 0) {
+                    // 受热效率：随着火力档位线性增温
+                    const heatingRate = 22.0 * state.heatLevel;
+                    this.temp += heatingRate * dt;
+                }
+
+                // 2. 表层散热与自然散热计算
+                const isNearSurface = this.y < (BOUNDS.TOP + 15);
+                if (isNearSurface) {
+                    this.temp -= 25.0 * dt; // 表层空气接触快速降温
+                }
+                this.temp -= 2.0 * dt; // 常规容器外壁散热
+
+                // 限制绝对水温：[20°C, 100°C]
+                this.temp = Math.max(20.0, Math.min(100.0, this.temp));
+
+                // 3. 计算对流温差耦合系数 (关键修正：对流流速取决于当前水温与室温的温差)
+                // 当平均水温接近 20°C 时，该系数逼近 0，宏观流动自然静止
+                const tempDrive = Math.max(0.0, (state.avgTemp - 20) / 80); // 范围 0 到 1
+                const currentEffectiveSpeed = state.flowSpeed * tempDrive;
+
+                // 4. 计算双对称理想循环流场（左右对称的 counter-rotating 对流旋涡）
+                const u = (this.x - BOUNDS.LEFT) / BOUNDS.WIDTH;
+                const v = (this.y - BOUNDS.TOP) / BOUNDS.HEIGHT;
+
+                const targetVx = -Math.sin(2 * Math.PI * u) * Math.cos(Math.PI * v) * 22;
+                const targetVy = 1.2 * Math.cos(2 * Math.PI * u) * Math.sin(Math.PI * v) * 22;
+
+                // 5. 热浮力与下沉重力修正
+                const individualTempRatio = (this.temp - 20) / 80; // 个体热度
+                let buoyancyY = 0;
+                
+                if (Math.abs(u - 0.5) < 0.22) {
+                    // 中心上升轴的红热粒子，获得强烈的上升力
+                    buoyancyY = -individualTempRatio * 20 * currentEffectiveSpeed;
+                } else if (u < 0.16 || u > 0.84) {
+                    // 两侧遇冷粒子，受到重力辅助下沉
+                    buoyancyY = (1 - individualTempRatio) * 16 * currentEffectiveSpeed;
+                }
+
+                // 叠加解析流场与温差耦合驱动力
+                const finalFieldVx = targetVx * currentEffectiveSpeed;
+                const finalFieldVy = targetVy * currentEffectiveSpeed + buoyancyY;
+
+                // 流体惯性追随
+                const viscosity = 0.85; 
+                this.vx += (finalFieldVx - this.vx) * viscosity * dt * 8;
+                this.vy += (finalFieldVy - this.vy) * viscosity * dt * 8;
+
+                // 6. 微观分子热颤动 (布朗运动 Jitter)：温度越高，原地无规则抖动越剧烈
+                const jitterAmplitude = 0.12 + (this.temp / 100) * 0.45;
+                this.vx += (Math.random() - 0.5) * jitterAmplitude * dt * 10;
+                this.vy += (Math.random() - 0.5) * jitterAmplitude * dt * 10;
+
+                // 7. 粒子间“静电互斥”力：实现完美均匀分布，不留大片空隙
+                for (let i = 0; i < particles.length; i++) {
+                    const other = particles[i];
+                    if (other === this) continue;
+
+                    const dx = this.x - other.x;
+                    const dy = this.y - other.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minAllowedDist = 12.8; // 安全距离
+
+                    if (dist < minAllowedDist && dist > 0.1) {
+                        const overlap = minAllowedDist - dist;
+                        const forceMagnitude = overlap * 15.0; // 排斥系数
+                        this.vx += (dx / dist) * forceMagnitude * dt;
+                        this.vy += (dy / dist) * forceMagnitude * dt;
+                    }
+                }
+
+                // 8. 坐标更新
+                this.x += this.vx * dt * 45;
+                this.y += this.vy * dt * 45;
+
+                // 9. 烧杯壁刚性边界约束
+                const margin = this.radius + 1.5;
+                if (this.x < BOUNDS.LEFT + margin) {
+                    this.x = BOUNDS.LEFT + margin;
+                    this.vx = Math.abs(this.vx) * 0.2;
+                }
+                if (this.x > BOUNDS.RIGHT - margin) {
+                    this.x = BOUNDS.RIGHT - margin;
+                    this.vx = -Math.abs(this.vx) * 0.2;
+                }
+                if (this.y < BOUNDS.TOP + margin) {
+                    this.y = BOUNDS.TOP + margin;
+                    this.vy = Math.abs(this.vy) * 0.2;
+                }
+                if (this.y > BOUNDS.BOTTOM - margin) {
+                    this.y = BOUNDS.BOTTOM - margin;
+                    this.vy = -Math.abs(this.vy) * 0.2;
+                }
+
+                // 容错与自愈
+                if (isNaN(this.x) || isNaN(this.y)) {
+                    this.x = BOUNDS.LEFT + 15 + Math.random() * (BOUNDS.WIDTH - 30);
+                    this.y = BOUNDS.TOP + 15 + Math.random() * (BOUNDS.HEIGHT - 30);
+                    this.vx = 0;
+                    this.vy = 0;
+                }
+            }
+
+            // 精准映射其渲染色彩与圆心位置
+            render() {
+                if (!this.dom) return;
+
+                this.dom.setAttribute('cx', this.x.toFixed(1));
+                this.dom.setAttribute('cy', this.y.toFixed(1));
+
+                // 热敏色系映射：蓝 (冷) -> 紫 (过渡) -> 红 (热)
+                const tRatio = (this.temp - 20) / 80; // 0.0 至 1.0
+                
+                let r, g, b;
+                if (tRatio < 0.5) {
+                    // 20°C - 60°C 蓝到紫
+                    const ratio = tRatio / 0.5;
+                    r = Math.round(59 + (168 - 59) * ratio);
+                    g = Math.round(130 + (85 - 130) * ratio);
+                    b = Math.round(246 + (247 - 246) * ratio);
+                } else {
+                    // 60°C - 100°C 紫到大红
+                    const ratio = (tRatio - 0.5) / 0.5;
+                    r = Math.round(168 + (239 - 168) * ratio);
+                    g = Math.round(85 + (68 - 85) * ratio);
+                    b = Math.round(247 + (68 - 247) * ratio);
+                }
+
+                this.dom.setAttribute('fill', `rgb(${r}, ${g}, ${b})`);
+                
+                // 极高温下亮起，产生能量荧光效果
+                if (this.temp > 75) {
+                    this.dom.setAttribute('stroke', 'rgba(255,255,255,0.7)');
+                    this.dom.setAttribute('stroke-width', '1');
+                    this.dom.setAttribute('r', this.radius * 1.1); // 热胀效果
+                } else {
+                    this.dom.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+                    this.dom.setAttribute('stroke-width', '0.5');
+                    this.dom.setAttribute('r', this.radius);
+                }
+            }
+        }
+
+        // 网格平铺初始化：实现初始状态绝对均匀分布，防止重叠
+        function initParticlesUniformly() {
+            particles.forEach(p => p.destroy());
+            particles = [];
+
+            const count = state.particleCount;
+            const area = BOUNDS.WIDTH * BOUNDS.HEIGHT;
+            const spacing = Math.sqrt(area / count);
+
+            const cols = Math.floor(BOUNDS.WIDTH / spacing);
+            const rows = Math.ceil(count / cols);
+
+            let created = 0;
+            for (let r = 0; r < rows && created < count; r++) {
+                for (let c = 0; c < cols && created < count; c++) {
+                    const x = BOUNDS.LEFT + (c + 0.5) * spacing + (Math.random() - 0.5) * (spacing * 0.3);
+                    const y = BOUNDS.TOP + (r + 0.5) * spacing + (Math.random() - 0.5) * (spacing * 0.3);
+
+                    const safeX = Math.max(BOUNDS.LEFT + 10, Math.min(BOUNDS.RIGHT - 10, x));
+                    const safeY = Math.max(BOUNDS.TOP + 10, Math.min(BOUNDS.BOTTOM - 10, y));
+
+                    const p = new ConvectionParticle(true, safeX, safeY);
+                    p.createDom();
+                    particles.push(p);
+                    created++;
+                }
+            }
+
+            // 安全补齐
+            while (particles.length < count) {
+                const p = new ConvectionParticle(false);
+                p.createDom();
+                particles.push(p);
+            }
+        }
+
+        // 环境更新（水温、火焰动画、状态栏等）
+        function updateEnvironment(dt) {
+            const flame = document.getElementById('burner-flame');
+            
+            // 1. 火焰动画
+            if (state.heatLevel === 0) {
+                flame.setAttribute('opacity', '0');
+            } else {
+                flame.setAttribute('opacity', '1');
+                const baseHeight = state.heatLevel * 14;
+                const timeFactor = Date.now() * 0.02;
+                const dynamicHeight = baseHeight + Math.sin(timeFactor) * 4;
+                const wobbleWidth = 10 + Math.cos(timeFactor * 0.8) * 2;
+
+                const path = `M -${wobbleWidth} 30 
+                             Q -${wobbleWidth * 0.5} ${25 - dynamicHeight * 0.4} 0 -${dynamicHeight} 
+                             Q ${wobbleWidth * 0.5} ${25 - dynamicHeight * 0.4} ${wobbleWidth} 30 Z`;
+                flame.setAttribute('d', path);
+            }
+
+            // 2. 模拟水面波动
+            const waterSurface = document.getElementById('water-surface');
+            const waveAmp = state.heatLevel > 0 ? (state.heatLevel * 1.5) : 0.3;
+            const waveFreq = state.heatLevel > 0 ? (12 + state.heatLevel * 6) : 3;
+            const phase = Date.now() * 0.005;
+
+            let path = `M ${BOUNDS.LEFT} ${BOUNDS.TOP}`;
+            const segments = 10;
+            const step = BOUNDS.WIDTH / segments;
+            for (let i = 1; i <= segments; i++) {
+                const px = BOUNDS.LEFT + i * step;
+                const py = BOUNDS.TOP + Math.sin(phase + i * 1.5) * waveAmp;
+                path += ` L ${px} ${py}`;
+            }
+            waterSurface.setAttribute('d', path);
+
+            // 3. 计算系统实时平均水温并缓慢降温
+            let sumTemp = 0;
+            particles.forEach(p => {
+                // 如果火熄灭了，水体粒子缓慢向室温 20°C 靠近
+                if (state.heatLevel === 0) {
+                    p.temp -= 2.5 * dt; // 熄火后加快降温，便于观察
+                    p.temp = Math.max(20.0, p.temp);
+                }
+                sumTemp += p.temp;
+            });
+            state.avgTemp = sumTemp / particles.length;
+
+            // 4. 实时状态标签更新
+            const statusLabel = document.getElementById('system-status');
+            if (state.heatLevel === 0) {
+                if (state.avgTemp > 20.5) {
+                    statusLabel.innerText = `状态: 正在降温 (${state.avgTemp.toFixed(1)}°C)`;
+                    statusLabel.className = "text-xs bg-slate-800 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded font-mono animate-pulse";
+                } else {
+                    statusLabel.innerText = `状态: 室温恒温中 (${state.avgTemp.toFixed(1)}°C)`;
+                    statusLabel.className = "text-xs bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded font-mono";
+                }
+            } else if (state.avgTemp > 85) {
+                statusLabel.innerText = `状态: 剧烈对流沸腾 (${state.avgTemp.toFixed(1)}°C)`;
+                statusLabel.className = "text-xs bg-red-950 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-mono animate-pulse";
+            } else if (state.avgTemp > 45) {
+                statusLabel.innerText = `状态: 活跃对流环中 (${state.avgTemp.toFixed(1)}°C)`;
+                statusLabel.className = "text-xs bg-amber-950 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono";
+            } else {
+                statusLabel.innerText = `状态: 传热温和加热 (${state.avgTemp.toFixed(1)}°C)`;
+                statusLabel.className = "text-xs bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-mono";
+            }
+        }
+
+        // 交互控制器绑定
+        function bindControls() {
+            const btns = document.querySelectorAll('.btn-heat');
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const level = parseInt(btn.getAttribute('data-heat'));
+                    state.heatLevel = level;
+                    updateBtnHighlight();
+                });
+            });
+
+            function updateBtnHighlight() {
+                btns.forEach(btn => {
+                    const level = parseInt(btn.getAttribute('data-heat'));
+                    if (level === state.heatLevel) {
+                        if (level === 0) btn.className = "btn-heat py-2 text-xs font-semibold rounded-lg bg-slate-700 text-slate-200 border border-slate-600 shadow-md";
+                        if (level === 1) btn.className = "btn-heat py-2 text-xs font-semibold rounded-lg bg-yellow-600/30 text-yellow-300 border border-yellow-500/60 shadow-md shadow-yellow-500/10";
+                        if (level === 2) btn.className = "btn-heat py-2 text-xs font-semibold rounded-lg bg-amber-600/40 text-amber-300 border border-amber-500/70 shadow-md shadow-amber-500/15";
+                        if (level === 3) btn.className = "btn-heat py-2 text-xs font-semibold rounded-lg bg-red-600/40 text-red-300 border border-red-500/70 shadow-md shadow-red-500/15";
+                    } else {
+                        btn.className = "btn-heat py-2 text-xs font-semibold rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700/50 transition text-slate-400";
+                    }
+                });
+            }
+            updateBtnHighlight();
+
+            // 粒子总数滑块
+            const slidePCount = document.getElementById('slide-p-count');
+            const valPCount = document.getElementById('val-p-count');
+            slidePCount.addEventListener('input', (e) => {
+                state.particleCount = parseInt(e.target.value);
+                valPCount.innerText = state.particleCount;
+                initParticlesUniformly(); 
+            });
+
+            // 循环流速滑块
+            const slideFlow = document.getElementById('slide-flow');
+            const valFlow = document.getElementById('val-flow');
+            slideFlow.addEventListener('input', (e) => {
+                state.flowSpeed = parseFloat(e.target.value);
+                valFlow.innerText = `${state.flowSpeed.toFixed(1)}x`;
+            });
+
+            // 播放/暂停
+            const btnPlayPause = document.getElementById('btn-play-pause');
+            btnPlayPause.addEventListener('click', () => {
+                state.isRunning = !state.isRunning;
+                if (state.isRunning) {
+                    btnPlayPause.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg> 暂停模拟`;
+                    btnPlayPause.className = "py-2.5 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-500 transition flex items-center justify-center gap-1";
+                } else {
+                    btnPlayPause.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg> 继续模拟`;
+                    btnPlayPause.className = "py-2.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 transition flex items-center justify-center gap-1";
+                }
+            });
+
+            // 一键重置
+            const btnReset = document.getElementById('btn-reset');
+            btnReset.addEventListener('click', () => {
+                state.heatLevel = 2; // 回归中火
+                updateBtnHighlight();
+                initParticlesUniformly();
+            });
+        }
+
+        let lastTime = null;
+
+        function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            let dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // 极限容错过滤 dt
+            if (isNaN(dt) || dt <= 0 || dt > 0.1) {
+                dt = 0.016;
+            }
+
+            if (state.isRunning) {
+                // 1. 物理计算
+                particles.forEach(p => p.updatePhysics(dt));
+
+                // 2. 界面和环境更新
+                particles.forEach(p => p.render());
+                updateEnvironment(dt);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // 初始化运行
+        window.onload = function() {
+            initParticlesUniformly();
+            bindControls();
+            
+            // 激发动画
+            requestAnimationFrame(loop);
+        };
+    </script>
+</body>
+</html>
