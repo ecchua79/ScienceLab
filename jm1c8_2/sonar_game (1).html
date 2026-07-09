@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>声呐深度探险 | SONAR Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Nunito:wght@400;600;700;800&display=swap');
+/*峇株吧辖华仁中学蔡逸众制作*/
+
+:root {
+/*峇株吧辖蔡逸众制作*/
+  --ocean-deep: #020b18;
+  --ocean-mid: #041e3a;
+  --ocean-surface: #063b6e;
+  --ocean-light: #0a5f9e;
+  --sonar-green: #00ff88;
+  --sonar-glow: #00ffaa;
+  --accent-yellow: #ffd700;
+  --accent-orange: #ff8c00;
+  --accent-red: #ff4444;
+  --text-bright: #e8f4ff;
+  --text-dim: #7ab3d4;
+  --hull-color: #c8a84b;
+  --hull-dark: #8b6914;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--ocean-deep);
+  color: var(--text-bright);
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ========== SCREENS ========== */
+.screen { display: none; width: 100%; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ========== START SCREEN ========== */
+#startScreen {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 0%, #0a3060 0%, #020b18 70%);
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.ocean-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(0,200,255,0.3), rgba(0,100,200,0.05));
+  border: 1px solid rgba(0,200,255,0.2);
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(100vh) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+}
+
+.start-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+}
+
+.game-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 900;
+  color: var(--sonar-green);
+  text-shadow: 0 0 30px var(--sonar-green), 0 0 60px rgba(0,255,136,0.3);
+  letter-spacing: 2px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+  animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  0%, 100% { text-shadow: 0 0 30px var(--sonar-green), 0 0 60px rgba(0,255,136,0.3); }
+  50% { text-shadow: 0 0 50px var(--sonar-green), 0 0 100px rgba(0,255,136,0.5), 0 0 140px rgba(0,255,136,0.2); }
+}
+
+.game-subtitle {
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  color: var(--text-dim);
+  margin-bottom: 24px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Ship preview canvas on start screen */
+#previewCanvas {
+  width: 100%;
+  max-width: 480px;
+  height: 200px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,255,136,0.2);
+  margin-bottom: 20px;
+  background: linear-gradient(180deg, #041226 0%, #062040 50%, #031428 100%);
+}
+
+.formula-box {
+  background: rgba(0,255,136,0.05);
+  border: 1px solid rgba(0,255,136,0.3);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.formula-box .formula-title {
+  color: var(--sonar-green);
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.formula-text {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  color: var(--accent-yellow);
+  font-weight: 700;
+}
+
+.formula-note {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.btn-start {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #00cc66, #00aa55);
+  color: #000;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: 0 0 30px rgba(0,255,136,0.4), 0 4px 20px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.btn-start:hover, .btn-start:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 50px rgba(0,255,136,0.7), 0 4px 30px rgba(0,0,0,0.6);
+}
+
+.difficulty-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.diff-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-dim);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.diff-btn.selected {
+  background: rgba(0,255,136,0.15);
+  border-color: var(--sonar-green);
+  color: var(--sonar-green);
+}
+
+.credit-start {
+  font-size: 0.65rem;
+  color: rgba(6,59,110,0.9);
+  margin-top: 12px;
+  letter-spacing: 1px;
+}
+
+/* ========== GAME SCREEN ========== */
+#gameScreen {
+  flex-direction: column;
+  background: var(--ocean-deep);
+  position: relative;
+}
+
+/* HUD */
+.hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(2,11,24,0.95);
+  border-bottom: 1px solid rgba(0,255,136,0.2);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.hud-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--sonar-green);
+}
+
+.lives-display { display: flex; gap: 3px; }
+.life-icon { font-size: 1rem; }
+.life-icon.lost { opacity: 0.2; }
+
+.combo-badge {
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow));
+  color: #000;
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: none;
+  animation: comboPop 0.3s ease;
+}
+
+@keyframes comboPop {
+  0% { transform: scale(0.5); }
+  100% { transform: scale(1); }
+}
+
+/* Main game canvas area */
+#gameCanvas {
+  display: block;
+  width: 100%;
+  margin-top: 56px;
+  touch-action: none;
+}
+
+/* Question panel */
+.question-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(2,11,24,0.97);
+  border-top: 2px solid rgba(0,255,136,0.3);
+  padding: 12px 16px 16px;
+}
+
+.question-text {
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  color: var(--text-bright);
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.question-text .echo-time {
+  font-family: 'Orbitron', monospace;
+  color: var(--accent-yellow);
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.opt-btn {
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0,200,255,0.25);
+  background: rgba(4,30,58,0.8);
+  color: var(--text-bright);
+  font-family: 'Nunito', sans-serif;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.opt-btn:hover, .opt-btn:active {
+  background: rgba(0,100,180,0.5);
+  border-color: rgba(0,200,255,0.6);
+  transform: scale(1.02);
+}
+
+.opt-btn.correct {
+  background: rgba(0,200,100,0.3);
+  border-color: var(--sonar-green);
+  color: var(--sonar-green);
+}
+
+.opt-btn.wrong {
+  background: rgba(255,50,50,0.2);
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}
+
+.opt-btn.disabled { pointer-events: none; }
+
+/* Timer bar */
+.timer-bar-wrap {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sonar-green), var(--accent-yellow));
+  border-radius: 2px;
+  transition: width 0.1s linear;
+  width: 100%;
+}
+
+/* Feedback toast */
+.feedback-toast {
+  position: fixed;
+  top: 70px; left: 50%; transform: translateX(-50%);
+  z-index: 200;
+  background: rgba(2,11,24,0.95);
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 90vw;
+  border: 1px solid rgba(0,255,136,0.3);
+  display: none;
+  animation: toastIn 0.3s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Level transition overlay */
+.level-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,11,24,0.9);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  display: none;
+}
+
+.level-overlay h2 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  color: var(--sonar-green);
+  text-shadow: 0 0 30px var(--sonar-green);
+}
+
+.level-overlay p {
+  font-size: 1rem;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.btn-continue {
+  font-family: 'Orbitron', monospace;
+  padding: 12px 32px;
+  background: var(--sonar-green);
+  color: #000;
+  border: none;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  margin-top: 8px;
+}
+
+/* ========== END SCREEN ========== */
+#endScreen {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 16px 40px;
+  background: radial-gradient(ellipse at 50% 0%, #0a3060 0%, #020b18 70%);
+  min-height: 100vh;
+}
+
+.end-content {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+  padding-top: 20px;
+}
+
+.end-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  color: var(--accent-yellow);
+  text-shadow: 0 0 20px rgba(255,215,0,0.5);
+  margin-bottom: 8px;
+}
+
+//峇株吧辖华仁中学蔡逸众制作
+.end-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+.score-card {
+  background: rgba(4,30,58,0.8);
+  border: 1px solid rgba(0,255,136,0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.score-big {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  color: var(--sonar-green);
+  text-shadow: 0 0 30px var(--sonar-green);
+  line-height: 1;
+}
+
+.score-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.score-detail-item {
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.score-detail-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.score-detail-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  color: var(--accent-yellow);
+  font-weight: 700;
+}
+
+.achievements {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.badge {
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--accent-yellow);
+}
+
+.name-section {
+  margin-bottom: 16px;
+}
+
+.name-section label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.name-section input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(4,30,58,0.8);
+  border: 1.5px solid rgba(0,255,136,0.3);
+  border-radius: 10px;
+  color: var(--text-bright);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  outline: none;
+}
+
+.name-section input:focus {
+  border-color: var(--sonar-green);
+}
+
+.btn-cert {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #0066cc, #0044aa);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.btn-cert:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+.btn-download {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--sonar-green), #00aa55);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+  display: none;
+}
+
+.btn-download:hover { transform: scale(1.02); }
+
+.btn-restart {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  color: var(--text-dim);
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+/* Certificate canvas */
+#certCanvas { display: none; width: 100%; border-radius: 12px; margin-bottom: 12px; }
+
+/* Sonar ping animation overlay on canvas */
+.sonar-ring {
+  position: absolute;
+/*Made by ecchua79*/
+  border-radius: 50%;
+  border: 2px solid var(--sonar-green);
+  animation: sonarExpand 1.5s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes sonarExpand {
+  from { opacity: 0.8; width: 10px; height: 10px; }
+  to { opacity: 0; width: 300px; height: 300px; }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 400px) {
+  .options-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .opt-btn { padding: 8px 4px; font-size: 0.8rem; }
+  .hud { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== START SCREEN ===== -->
+<div id="startScreen" class="screen active">
+  <div class="ocean-bg" id="oceanBg"></div>
+  <div class="start-content">
+    <div class="game-logo">🚢 SONAR<br>EXPLORER</div>
+    <div class="game-subtitle">声呐深度探险</div>
+
+    <canvas id="previewCanvas"></canvas>
+
+    <div class="formula-box">
+      <div class="formula-title">🔬 核心公式</div>
+      <div class="formula-text">深度 = (声速 × 时间) ÷ 2</div>
+      <div class="formula-note">声音在海水中速度 = 1500 m/s &nbsp;|&nbsp; ÷2 因为声波要来回！</div>
+    </div>
+
+    <div style="font-size:0.9rem; color:var(--text-dim); margin-bottom:12px;">选择难度 / Select Difficulty</div>
+    <div class="difficulty-row">
+      <button class="diff-btn selected" data-diff="easy" onclick="selectDiff(this,'easy')">🟢 简单</button>
+      <button class="diff-btn" data-diff="normal" onclick="selectDiff(this,'normal')">🟡 标准</button>
+      <button class="diff-btn" data-diff="hard" onclick="selectDiff(this,'hard')">🔴 挑战</button>
+    </div>
+
+    <button class="btn-start" onclick="startGame()">▶ 开始探险</button>
+    <div class="credit-start">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</div>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="gameScreen" class="screen">
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">关卡</span>
+      <span class="hud-value" id="hudLevel">1</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">分数</span>
+      <span class="hud-value" id="hudScore">0</span>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">生命</div>
+      <div class="lives-display" id="livesDisplay">
+        <span class="life-icon">❤️</span>
+        <span class="life-icon">❤️</span>
+        <span class="life-icon">❤️</span>
+      </div>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">连击</span>
+      <span class="combo-badge" id="comboBadge">x1</span>
+      <span class="hud-value" id="hudCombo" style="font-size:0.85rem; color:var(--accent-orange);">-</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">题目</span>
+      <span class="hud-value" id="hudQ">1/5</span>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="question-panel">
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
+    <div class="question-text" id="questionText">Loading...</div>
+    <div class="options-grid" id="optionsGrid"></div>
+  </div>
+
+  <div class="feedback-toast" id="feedbackToast"></div>
+
+  <div class="level-overlay" id="levelOverlay">
+    <h2 id="overlayTitle">关卡完成！</h2>
+    <p id="overlayMsg"></p>
+    <button class="btn-continue" onclick="continueGame()">继续探险 ▶</button>
+  </div>
+</div>
+
+<!-- ===== END SCREEN ===== -->
+<div id="endScreen" class="screen">
+  <div class="end-content">
+    <div class="end-title" id="endTitle">🏆 探险结束！</div>
+    <div class="end-subtitle" id="endSubtitle">你完成了声呐深度探险！</div>
+
+    <div class="score-card">
+      <div style="font-size:0.75rem; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">最终得分</div>
+      <div class="score-big" id="finalScore">0</div>
+      <div class="score-details">
+        <div class="score-detail-item">
+          <div class="score-detail-label">正确率</div>
+          <div class="score-detail-value" id="endAccuracy">-</div>
+        </div>
+        <div class="score-detail-item">
+          <div class="score-detail-label">用时</div>
+          <div class="score-detail-value" id="endTime">-</div>
+        </div>
+        <div class="score-detail-item">
+          <div class="score-detail-label">最高连击</div>
+          <div class="score-detail-value" id="endCombo">-</div>
+        </div>
+        <div class="score-detail-item">
+          <div class="score-detail-label">关卡完成</div>
+          <div class="score-detail-value" id="endLevels">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="achievements" id="achievementsList"></div>
+
+    <div class="name-section" id="nameSection">
+      <label>输入你的名字以生成证书 ✍️</label>
+      <input type="text" id="playerName" placeholder="例：张小明" maxlength="20">
+    </div>
+
+    <button class="btn-cert" onclick="generateCert()">🏅 生成探险证书</button>
+    <canvas id="certCanvas"></canvas>
+    <button class="btn-download" id="downloadBtn" onclick="downloadCert()">⬇️ 下载证书 (PNG)</button>
+    <button class="btn-restart" onclick="restartGame()">🔄 再玩一次</button>
+  </div>
+</div>
+
+<script>
+
+// ============================================================
+// GAME DATA & STATE
+// ============================================================
+
+const SOUND_SPEED = 1500; // m/s in seawater
+
+// All questions: each has echoTime (s), correct depth (m), options, zone name, hint
+function generateQuestions(difficulty) {
+  const raw = [
+    // Level 1: Easy numbers
+    { level:1, time:0.2, zone:"珊瑚礁浅海", creature:"🐠", color:"#1a6b8a",
+      hint:"声波传播 0.2秒，来回各一半，所以单程 0.1秒，深度 = 1500 × 0.1 = 150m" },
+    { level:1, time:0.4, zone:"海草草原", creature:"🐢", color:"#1a7a5a",
+      hint:"单程时间 = 0.4÷2 = 0.2秒，深度 = 1500 × 0.2 = 300m" },
+    { level:1, time:0.6, zone:"沉船遗迹", creature:"🦑", color:"#2a4a7a",
+      hint:"单程 0.3秒，深度 = 1500 × 0.3 = 450m" },
+    { level:1, time:0.8, zone:"深海峡谷", creature:"🦈", color:"#1a3a6a",
+      hint:"单程 0.4秒，深度 = 1500 × 0.4 = 600m" },
+    { level:1, time:1.0, zone:"深渊边缘", creature:"🐙", color:"#0f2a55",
+      hint:"单程 0.5秒，深度 = 1500 × 0.5 = 750m" },
+
+    // Level 2
+    { level:2, time:1.2, zone:"海底火山", creature:"🌋", color:"#4a1a1a",
+      hint:"单程 0.6秒，1500 × 0.6 = 900m" },
+    { level:2, time:1.6, zone:"热液喷口", creature:"🦐", color:"#5a2a0a",
+      hint:"单程 0.8秒，1500 × 0.8 = 1200m" },
+    { level:2, time:2.0, zone:"幽深海沟", creature:"🐟", color:"#0a1a3a",
+      hint:"单程 1.0秒，1500 × 1.0 = 1500m" },
+    { level:2, time:2.4, zone:"远洋深渊", creature:"🦭", color:"#0a0a2a",
+      hint:"单程 1.2秒，1500 × 1.2 = 1800m" },
+    { level:2, time:3.0, zone:"极深海域", creature:"🐋", color:"#050512",
+      hint:"单程 1.5秒，1500 × 1.5 = 2250m" },
+
+    // Level 3: Trickier
+    { level:3, time:0.3, zone:"浅礁区", creature:"🐡", color:"#1a8a7a",
+      hint:"单程 0.15秒，1500 × 0.15 = 225m" },
+    { level:3, time:0.5, zone:"珊瑚墙", creature:"🦀", color:"#2a6a4a",
+      hint:"单程 0.25秒，1500 × 0.25 = 375m" },
+    { level:3, time:1.4, zone:"深蓝区", creature:"🐬", color:"#0a2a5a",
+      hint:"单程 0.7秒，1500 × 0.7 = 1050m" },
+    { level:3, time:1.8, zone:"午夜区", creature:"🦑", color:"#060620",
+      hint:"单程 0.9秒，1500 × 0.9 = 1350m" },
+    { level:3, time:2.6, zone:"深海平原", creature:"🐙", color:"#040418",
+      hint:"单程 1.3秒，1500 × 1.3 = 1950m" },
+
+    // Level 4: Harder decimals
+    { level:4, time:0.34, zone:"礁石区", creature:"🐠", color:"#1a7a6a",
+      hint:"单程 0.17秒，1500 × 0.17 = 255m" },
+    { level:4, time:0.66, zone:"峭壁边", creature:"🦈", color:"#1a3a7a",
+      hint:"单程 0.33秒，1500 × 0.33 = 495m" },
+    { level:4, time:1.34, zone:"暗礁区", creature:"🐋", color:"#0a2040",
+      hint:"单程 0.67秒，1500 × 0.67 = 1005m" },
+    { level:4, time:2.2, zone:"深洋盆", creature:"🦭", color:"#05051a",
+      hint:"单程 1.1秒，1500 × 1.1 = 1650m" },
+    { level:4, time:3.4, zone:"超深渊", creature:"🐟", color:"#030310",
+      hint:"单程 1.7秒，1500 × 1.7 = 2550m" },
+
+    // Level 5: Expert
+    { level:5, time:0.24, zone:"礁湖", creature:"🐠", color:"#20904a",
+      hint:"单程 0.12秒，1500 × 0.12 = 180m" },
+    { level:5, time:0.56, zone:"海底丘陵", creature:"🦀", color:"#1a5060",
+      hint:"单程 0.28秒，1500 × 0.28 = 420m" },
+    { level:5, time:1.12, zone:"深海山脉", creature:"🦑", color:"#0a1835",
+      hint:"单程 0.56秒，1500 × 0.56 = 840m" },
+    { level:5, time:2.08, zone:"马里亚纳海沟", creature:"🐙", color:"#040415",
+      hint:"单程 1.04秒，1500 × 1.04 = 1560m" },
+    { level:5, time:4.0, zone:"地球最深处", creature:"🌑", color:"#020208",
+      hint:"单程 2.0秒，1500 × 2.0 = 3000m" },
+  ];
+
+  return raw.map(q => {
+    const correct = Math.round(SOUND_SPEED * (q.time / 2));
+    // Generate 3 wrong options
+    const wrongs = generateWrongOptions(correct, difficulty);
+    const opts = shuffle([correct, ...wrongs]);
+    return { ...q, correct, opts };
+  });
+}
+
+function generateWrongOptions(correct, difficulty) {
+  const offsets = difficulty === 'easy'
+    ? [300, -300, 600]
+    : difficulty === 'normal'
+    ? [150, -150, 300]
+    : [75, -75, 150];
+
+  const used = new Set([correct]);
+  const result = [];
+  for (let off of offsets) {
+    let v = correct + off;
+    if (v <= 0) v = correct + Math.abs(off);
+    while (used.has(v)) v += 50;
+    used.add(v);
+    result.push(v);
+  }
+  return result;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let state = {
+  difficulty: 'normal',
+  score: 0,
+  lives: 3,
+  combo: 0,
+  maxCombo: 0,
+  level: 1,
+  questionIndex: 0,
+  totalCorrect: 0,
+  totalAnswered: 0,
+  startTime: 0,
+  elapsedTime: 0,
+  questions: [],
+  levelQuestions: [],
+  currentQ: null,
+  timerMax: 15,
+  timerLeft: 15,
+  timerInterval: null,
+  answered: false,
+  gameActive: false,
+  levelsComplete: 0,
+  shipX: 0,
+  sonarAnimating: false,
+  sonarProgress: 0,
+  sonarDepth: 0,
+  sonarPings: [],
+  bgScroll: 0,
+  seabedPoints: [],
+  fishData: [],
+};
+
+const QUESTIONS_PER_LEVEL = 5;
+const TOTAL_LEVELS = 5;
+const TIMER_BY_DIFF = { easy: 20, normal: 15, hard: 10 };
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+let canvas, ctx, animFrame;
+let canvasH = 0;
+
+function initCanvas() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+function resizeCanvas() {
+  const qPanelH = 180;
+  const hudH = 56;
+  const available = window.innerHeight - hudH - qPanelH;
+  canvasH = Math.max(160, available);
+  canvas.width = window.innerWidth;
+  canvas.height = canvasH;
+}
+
+// ============================================================
+// START SCREEN PREVIEW
+// ============================================================
+function initPreview() {
+  const pc = document.getElementById('previewCanvas');
+  pc.width = pc.offsetWidth * 2;
+  pc.height = 400;
+  const pctx = pc.getContext('2d');
+  let t = 0;
+
+  // Bubbles on start screen
+  const bg = document.getElementById('oceanBg');
+  for (let i = 0; i < 15; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const sz = 10 + Math.random() * 40;
+    b.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;animation-duration:${5+Math.random()*10}s;animation-delay:${-Math.random()*10}s;`;
+    bg.appendChild(b);
+  }
+
+  function drawPreview() {
+    const w = pc.width, h = pc.height;
+    pctx.clearRect(0, 0, w, h);
+
+    // Ocean gradient
+    const grad = pctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#062040');
+    grad.addColorStop(0.4, '#041830');
+    grad.addColorStop(1, '#020b18');
+    pctx.fillStyle = grad;
+    pctx.fillRect(0, 0, w, h);
+
+    // Surface shimmer
+    pctx.fillStyle = 'rgba(100,200,255,0.06)';
+    for (let i = 0; i < 8; i++) {
+      const y = 12 + Math.sin(t * 0.04 + i) * 4;
+      pctx.beginPath();
+      pctx.ellipse(w * 0.1 + i * w * 0.1, y, 30 + i * 5, 3, 0, 0, Math.PI * 2);
+      pctx.fill();
+    }
+
+    // Seabed
+    pctx.fillStyle = '#0a1830';
+    pctx.beginPath();
+//峇株吧辖蔡逸众制作
+    pctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += 20) {
+      const y = h - 30 - Math.sin(x * 0.015 + t * 0.02) * 15;
+      pctx.lineTo(x, y);
+    }
+    pctx.lineTo(w, h);
+    pctx.fill();
+
+    // Sonar ping from ship
+    const shipPX = w * 0.25;
+    const shipPY = 30;
+    const pingProgress = (t % 80) / 80;
+    const maxR = h * 0.8;
+    if (pingProgress < 0.7) {
+      const r = pingProgress * maxR;
+      pctx.strokeStyle = `rgba(0,255,136,${(1-pingProgress)*0.7})`;
+      pctx.lineWidth = 2;
+      pctx.beginPath();
+      pctx.arc(shipPX, shipPY + 20, r, 0, Math.PI);
+      pctx.stroke();
+    }
+
+    // Draw ship
+    drawShipAt(pctx, shipPX, shipPY, 1.8);
+
+    // Depth label - show ? not the answer
+    pctx.fillStyle = 'rgba(0,255,136,0.8)';
+    pctx.font = `bold ${20}px Orbitron, monospace`;
+    pctx.textAlign = 'center';
+    pctx.fillText(`深度 = ?`, w * 0.25, h - 60);
+
+    t++;
+    requestAnimationFrame(drawPreview);
+  }
+  drawPreview();
+}
+
+// ============================================================
+// DRAW SHIP
+// ============================================================
+function drawShipAt(ctx, cx, cy, scale) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+
+  // Hull
+  ctx.fillStyle = '#c8a84b';
+  ctx.beginPath();
+  ctx.moveTo(-50, 0);
+  ctx.lineTo(-45, 12);
+  ctx.lineTo(45, 12);
+  ctx.lineTo(55, 0);
+  ctx.lineTo(45, -4);
+  ctx.lineTo(-40, -4);
+  ctx.closePath();
+  ctx.fill();
+
+  // Hull shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(-45, 12);
+  ctx.lineTo(45, 12);
+  ctx.lineTo(45, 14);
+  ctx.lineTo(-45, 14);
+  ctx.fill();
+
+  // Superstructure
+  ctx.fillStyle = '#e8d080';
+  ctx.beginPath();
+  ctx.rect(-20, -20, 36, 20);
+  ctx.fill();
+
+  ctx.fillStyle = '#f0e090';
+  ctx.beginPath();
+  ctx.rect(-14, -34, 24, 16);
+  ctx.fill();
+
+  // Windows
+  ctx.fillStyle = 'rgba(100,200,255,0.8)';
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.rect(-10 + i * 9, -30, 6, 5);
+    ctx.fill();
+  }
+
+  // Sonar antenna / mast
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-2, -34);
+  ctx.lineTo(-2, -52);
+  ctx.stroke();
+
+  // Sonar dish
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(-2, -52, 8, 0.3, Math.PI - 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-2, -52);
+  ctx.lineTo(-2, -44);
+  ctx.stroke();
+
+  // Flag
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath();
+  ctx.moveTo(-2, -52);
+  ctx.lineTo(10, -48);
+  ctx.lineTo(-2, -44);
+  ctx.fill();
+
+  // Water line ripple
+  ctx.strokeStyle = 'rgba(100,200,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-60, 12);
+  ctx.lineTo(65, 12);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ============================================================
+// SEABED GENERATION
+// ============================================================
+function generateSeabed(depth) {
+  // More rugged at greater depth
+  const roughness = Math.min(depth / 500, 4);
+  const points = [];
+  const w = canvas.width;
+  for (let x = -20; x <= w + 20; x += 15) {
+    const noise = (Math.sin(x * 0.02) * 20 + Math.sin(x * 0.05) * 10 + Math.sin(x * 0.1) * 5) * roughness;
+    points.push({ x, y: canvasH - 40 + noise });
+  }
+  return points;
+}
+
+function generateFish(depth) {
+  const fish = [];
+  const types = depth < 500 ? ['🐠','🐡','🦀','🦞'] : depth < 1500 ? ['🦑','🦈','🐬','🦭'] : ['🐙','🐟','🦑'];
+  for (let i = 0; i < 4; i++) {
+    fish.push({
+      x: Math.random() * canvas.width,
+      y: 30 + Math.random() * (canvasH - 80),
+      speed: 0.3 + Math.random() * 0.5,
+      type: types[Math.floor(Math.random() * types.length)],
+      size: 14 + Math.random() * 10,
+      dir: Math.random() > 0.5 ? 1 : -1,
+//Made by ecchua79
+    });
+  }
+  return fish;
+}
+
+// ============================================================
+// MAIN DRAW LOOP
+// ============================================================
+function gameLoop() {
+  if (!state.gameActive) return;
+  drawScene();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function drawScene() {
+  const q = state.currentQ;
+  if (!q) return;
+  const w = canvas.width, h = canvasH;
+  ctx.clearRect(0, 0, w, h);
+
+  // --- Ocean background ---
+  const depth = q.correct;
+  const depthFactor = Math.min(depth / 3000, 1);
+  const topR = Math.round(6 - 4 * depthFactor);
+  const topG = Math.round(32 + 8 * (1 - depthFactor));
+  const topB = Math.round(64 + 32 * (1 - depthFactor));
+  const botR = Math.round(2);
+  const botG = Math.round(8 * (1 - depthFactor));
+  const botB = Math.round(20 + 12 * (1 - depthFactor));
+
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, `rgb(${topR},${topG},${topB})`);
+  grad.addColorStop(1, `rgb(${botR},${botG},${botB})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // --- Particle / plankton effect ---
+  const now = Date.now() * 0.001;
+  ctx.fillStyle = 'rgba(100,200,255,0.15)';
+  for (let i = 0; i < 20; i++) {
+    const px = ((i * 137 + now * 20) % w);
+    const py = ((i * 97 + now * 10) % h);
+    ctx.beginPath();
+    ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- Fish ---
+  for (const f of state.fishData) {
+    f.x += f.speed * f.dir;
+    if (f.x > w + 40) f.x = -40;
+    if (f.x < -40) f.x = w + 40;
+    ctx.font = `${f.size}px serif`;
+    ctx.save();
+    if (f.dir < 0) {
+      ctx.scale(-1, 1);
+      ctx.fillText(f.type, -f.x, f.y);
+    } else {
+      ctx.fillText(f.type, f.x, f.y);
+    }
+    ctx.restore();
+  }
+
+  // --- Seabed ---
+  const pts = state.seabedPoints;
+  if (pts.length) {
+    ctx.fillStyle = '#0a1828';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (const p of pts) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(w + 20, h);
+    ctx.lineTo(-20, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Seabed details
+    ctx.strokeStyle = 'rgba(30,80,120,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (const p of pts) ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+
+  // --- Zone label on seabed ---
+  ctx.fillStyle = 'rgba(100,160,200,0.5)';
+  ctx.font = '11px Nunito, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`📍 ${q.zone}`, w / 2, h - 8);
+
+  // --- Depth marker line ---
+  ctx.strokeStyle = 'rgba(0,255,136,0.15)';
+  ctx.setLineDash([6, 6]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.25, 40);
+  ctx.lineTo(w * 0.25, h - 45);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Depth tick marks only (no numbers - those are the answer!)
+  for (let i = 0; i < 4; i++) {
+    const y = 20 + i * ((h - 70) / 3);
+    ctx.strokeStyle = 'rgba(0,255,136,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.25 - 6, y);
+    ctx.lineTo(w * 0.25 + 6, y);
+    ctx.stroke();
+  }
+
+  // --- Sonar ping animation ---
+  state.sonarPings = state.sonarPings.filter(p => p.progress < 1);
+  state.sonarPings.forEach(ping => {
+    ping.progress += 0.012;
+    const shipY = 28;
+    const shipX = w * 0.25;
+    const maxR = (h - 60) * ping.progress;
+    const alpha = (1 - ping.progress) * 0.7;
+
+    // Going down
+    ctx.strokeStyle = `rgba(0,255,136,${alpha})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(shipX, shipY, maxR, 0, Math.PI);
+    ctx.stroke();
+
+    // Reflection point at seabed
+    if (ping.progress > 0.5) {
+      const retProgress = (ping.progress - 0.5) * 2;
+      const retR = retProgress * maxR * 0.5;
+      const seabedY = h - 50;
+      ctx.strokeStyle = `rgba(255,200,0,${(1 - retProgress) * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(shipX, seabedY, retR, Math.PI, 0);
+      ctx.stroke();
+
+      // Return beam
+      ctx.strokeStyle = `rgba(255,255,100,${(1 - retProgress) * 0.4})`;
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(shipX, seabedY - retR);
+      ctx.lineTo(shipX, shipY + maxR * 0.5 * (1 - retProgress));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  });
+
+  // --- Trigger new ping periodically ---
+  if (Math.floor(now * 2) % 3 === 0 && state.sonarPings.length < 2) {
+    if (!state.sonarPings.some(p => p.progress < 0.1)) {
+      state.sonarPings.push({ progress: 0 });
+    }
+  }
+
+  // --- Ship ---
+  drawShipAt(ctx, w * 0.25, 16, 1.2);
+
+  // --- Water surface ---
+  ctx.strokeStyle = 'rgba(100,200,255,0.2)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const wavey = 8 + Math.sin(now * 1.5 + i * 0.8) * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, wavey + i * 2);
+    for (let x = 0; x <= w; x += 20) {
+      ctx.lineTo(x, wavey + Math.sin(now + x * 0.03 + i) * 2 + i * 2);
+    }
+    ctx.stroke();
+  }
+
+  // --- Creature emoji at seabed ---
+  ctx.font = '24px serif';
+  ctx.textAlign = 'center';
+  const creatureX = w * 0.5 + Math.sin(now * 0.5) * 20;
+  const seabedY = state.seabedPoints.length ? state.seabedPoints[Math.floor(state.seabedPoints.length / 2)].y : h - 50;
+  ctx.fillText(q.creature, creatureX, seabedY - 10);
+
+  // --- Depth depth indicator ---
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 13px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(0,255,136,0.9)';
+  ctx.fillText(`深度 = ?`, w * 0.25, h - 52);
+}
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+
+function selectDiff(btn, diff) {
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.difficulty = diff;
+}
+
+function startGame() {
+  // Generate & organize questions
+  const allQ = generateQuestions(state.difficulty);
+  // Group by level, shuffle within each level
+  state.questions = [];
+  for (let lvl = 1; lvl <= TOTAL_LEVELS; lvl++) {
+    const lvlQ = shuffle(allQ.filter(q => q.level === lvl)).slice(0, QUESTIONS_PER_LEVEL);
+    state.questions.push(...lvlQ);
+  }
+
+  state.score = 0;
+  state.lives = 3;
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.level = 1;
+  state.questionIndex = 0;
+  state.totalCorrect = 0;
+  state.totalAnswered = 0;
+  state.levelsComplete = 0;
+  state.startTime = Date.now();
+  state.gameActive = true;
+
+  showScreen('gameScreen');
+  initCanvas();
+
+  setTimeout(() => {
+    loadQuestion();
+    gameLoop();
+  }, 100);
+}
+
+function getLevelQuestions() {
+  const start = (state.level - 1) * QUESTIONS_PER_LEVEL;
+  return state.questions.slice(start, start + QUESTIONS_PER_LEVEL);
+}
+
+function loadQuestion() {
+  const levelQs = getLevelQuestions();
+  const qIdx = state.questionIndex % QUESTIONS_PER_LEVEL;
+
+  if (qIdx >= levelQs.length) {
+    levelComplete();
+    return;
+  }
+
+  const q = levelQs[qIdx];
+  state.currentQ = q;
+  state.answered = false;
+  state.sonarPings = [];
+
+  // Update seabed & fish for this depth
+  state.seabedPoints = generateSeabed(q.correct);
+  state.fishData = generateFish(q.correct);
+
+  // HUD
+  document.getElementById('hudLevel').textContent = state.level;
+  document.getElementById('hudScore').textContent = state.score;
+  document.getElementById('hudQ').textContent = `${qIdx + 1}/${QUESTIONS_PER_LEVEL}`;
+  updateLives();
+
+  // Question text
+  const timeText = q.time % 1 === 0 ? q.time.toFixed(1) : q.time.toString();
+  document.getElementById('questionText').innerHTML =
+    `🚢 在 <b>${q.zone}</b>，声呐发出声波后，<br>
+     经过 <span class="echo-time">${timeText} 秒</span> 才收到回声。<br>
+     🌊 海底深度是多少？`;
+
+  // Options
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = `${opt} m`;
+    btn.addEventListener('click', () => answer(opt, btn));
+    grid.appendChild(btn);
+  });
+
+  // Timer
+  const timerMax = TIMER_BY_DIFF[state.difficulty];
+  state.timerMax = timerMax;
+  state.timerLeft = timerMax;
+  clearInterval(state.timerInterval);
+  updateTimerBar();
+  state.timerInterval = setInterval(tickTimer, 100);
+}
+
+function tickTimer() {
+  if (state.answered) return;
+  state.timerLeft -= 0.1;
+  updateTimerBar();
+  if (state.timerLeft <= 0) {
+    clearInterval(state.timerInterval);
+    timeOut();
+  }
+}
+
+function updateTimerBar() {
+  const pct = Math.max(0, (state.timerLeft / state.timerMax) * 100);
+  const bar = document.getElementById('timerBar');
+  bar.style.width = pct + '%';
+  if (pct < 30) bar.style.background = 'linear-gradient(90deg, #ff4444, #ff8800)';
+  else if (pct < 60) bar.style.background = 'linear-gradient(90deg, #ffd700, #ffaa00)';
+  else bar.style.background = 'linear-gradient(90deg, var(--sonar-green), var(--accent-yellow))';
+}
+
+function timeOut() {
+  if (state.answered) return;
+  state.answered = true;
+  state.combo = 0;
+  updateComboDisplay();
+  loseLife();
+  const q = state.currentQ;
+  showFeedback(`⏰ 时间到！答案是 ${q.correct} m。${q.hint}`, '#ff8c00');
+  highlightCorrect();
+  setTimeout(nextQuestion, 2800);
+}
+
+function answer(val, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  clearInterval(state.timerInterval);
+
+  const q = state.currentQ;
+  const correct = val === q.correct;
+
+  document.querySelectorAll('.opt-btn').forEach(b => b.classList.add('disabled'));
+
+  if (correct) {
+    btn.classList.add('correct');
+    state.totalCorrect++;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+    // Score: base + speed bonus + combo
+    const speedBonus = Math.floor(state.timerLeft / state.timerMax * 50);
+    const comboBonus = Math.min(state.combo - 1, 5) * 20;
+    const points = 100 + speedBonus + comboBonus;
+    state.score += points;
+
+    updateComboDisplay();
+    const msg = state.combo >= 3
+      ? `🔥 ${state.combo}连击！+${points}分！深度计算正确！`
+      : `✅ 正确！+${points}分 (速度奖励+${speedBonus})`;
+    showFeedback(msg, '#00ff88');
+    state.sonarPings = [{ progress: 0 }];
+  } else {
+    btn.classList.add('wrong');
+    state.combo = 0;
+    updateComboDisplay();
+    loseLife();
+    showFeedback(`❌ 答错了！💡 ${q.hint}`, '#ff6666');
+    highlightCorrect();
+  }
+
+  state.totalAnswered++;
+  document.getElementById('hudScore').textContent = state.score;
+
+  setTimeout(nextQuestion, correct ? 2000 : 2800);
+}
+
+function highlightCorrect() {
+  const q = state.currentQ;
+  document.querySelectorAll('.opt-btn').forEach(btn => {
+    const val = parseInt(btn.textContent);
+    if (val === q.correct) btn.classList.add('correct');
+  });
+}
+
+function loseLife() {
+  state.lives = Math.max(0, state.lives - 1);
+  updateLives();
+  if (state.lives <= 0) {
+    setTimeout(endGame, 2000);
+  }
+}
+
+function updateLives() {
+  const el = document.getElementById('livesDisplay');
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const span = document.createElement('span');
+    span.className = 'life-icon' + (i >= state.lives ? ' lost' : '');
+    span.textContent = '❤️';
+    el.appendChild(span);
+  }
+}
+
+function updateComboDisplay() {
+  const el = document.getElementById('hudCombo');
+  const badge = document.getElementById('comboBadge');
+  if (state.combo >= 2) {
+    el.textContent = `${state.combo}x`;
+    badge.style.display = 'inline-block';
+    badge.textContent = `${state.combo}x COMBO`;
+    badge.style.animation = 'none';
+    void badge.offsetWidth;
+    badge.style.animation = 'comboPop 0.3s ease';
+  } else {
+    el.textContent = '-';
+    badge.style.display = 'none';
+  }
+}
+
+function showFeedback(msg, color) {
+  const el = document.getElementById('feedbackToast');
+  el.innerHTML = msg;
+  el.style.color = color;
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'toastIn 0.3s ease';
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+function nextQuestion() {
+  if (state.lives <= 0) return;
+  state.questionIndex++;
+  const qInLevel = state.questionIndex % QUESTIONS_PER_LEVEL;
+
+  if (qInLevel === 0) {
+    levelComplete();
+  } else {
+    loadQuestion();
+  }
+}
+
+function levelComplete() {
+  state.levelsComplete++;
+  cancelAnimationFrame(animFrame);
+  clearInterval(state.timerInterval);
+
+  if (state.level >= TOTAL_LEVELS) {
+    endGame();
+    return;
+  }
+
+  const overlay = document.getElementById('levelOverlay');
+  const title = document.getElementById('overlayTitle');
+  const msg = document.getElementById('overlayMsg');
+
+  title.textContent = `🎉 第 ${state.level} 关完成！`;
+  const depthRange = [['0–750m 浅海','珊瑚礁和海草区'],['750–2000m 深海','黑暗且寒冷'],['2000–3000m 超深海','极端环境'],['3000m+ 深渊','地球最深处']][Math.min(state.level - 1, 3)];
+  msg.innerHTML = `你成功探索了 <b>${depthRange[0]}</b>！<br>${depthRange[1]}<br><br>当前得分：<b style="color:var(--sonar-green)">${state.score}</b>`;
+
+  overlay.style.display = 'flex';
+}
+
+function continueGame() {
+  state.level++;
+  document.getElementById('levelOverlay').style.display = 'none';
+  state.sonarPings = [];
+  loadQuestion();
+  gameLoop();
+}
+
+function endGame() {
+  state.gameActive = false;
+  cancelAnimationFrame(animFrame);
+  clearInterval(state.timerInterval);
+  state.elapsedTime = Math.floor((Date.now() - state.startTime) / 1000);
+
+  showScreen('endScreen');
+
+  // Results
+  const accuracy = state.totalAnswered > 0
+    ? Math.round((state.totalCorrect / state.totalAnswered) * 100) : 0;
+
+  document.getElementById('finalScore').textContent = state.score;
+  document.getElementById('endAccuracy').textContent = `${accuracy}%`;
+  const mins = Math.floor(state.elapsedTime / 60);
+  const secs = state.elapsedTime % 60;
+  document.getElementById('endTime').textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+  document.getElementById('endCombo').textContent = `x${state.maxCombo}`;
+  document.getElementById('endLevels').textContent = `${state.levelsComplete}/${TOTAL_LEVELS}`;
+
+  // Title
+  let title = '🏆 声呐探险完成！', subtitle = '';
+  if (accuracy >= 90) { title = '🌟 声呐大师！'; subtitle = '你对声呐原理掌握得非常好！'; }
+  else if (accuracy >= 70) { title = '🎉 优秀探险家！'; subtitle = '继续保持，你很棒！'; }
+  else if (state.lives <= 0) { title = '💥 船沉了！'; subtitle = '别灰心！再试一次，记住公式！'; }
+  else { title = '✅ 探险结束！'; subtitle = '多练习，你会越来越好的！'; }
+  document.getElementById('endTitle').textContent = title;
+  document.getElementById('endSubtitle').textContent = subtitle;
+
+  // Achievements
+  const achs = [];
+  if (accuracy === 100) achs.push('🎯 满分达人');
+  if (accuracy >= 80) achs.push('🧠 物理学霸');
+  if (state.maxCombo >= 5) achs.push('🔥 极速连击x5');
+  if (state.elapsedTime < 120) achs.push('⚡ 闪电探险家');
+  if (state.levelsComplete === TOTAL_LEVELS) achs.push('🌊 全关探索者');
+  if (state.score > 2000) achs.push('💎 高分大师');
+
+  const achEl = document.getElementById('achievementsList');
+//峇株吧辖华仁中学蔡逸众制作
+  achEl.innerHTML = achs.length
+    ? achs.map(a => `<div class="badge">${a}</div>`).join('')
+    : '<div class="badge">🚢 已完成探险</div>';
+
+  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('certCanvas').style.display = 'none';
+  document.getElementById('nameSection').style.display = 'block';
+}
+
+// ============================================================
+// CERTIFICATE
+// ============================================================
+function generateCert() {
+  const name = document.getElementById('playerName').value.trim();
+  if (!name) {
+    alert('请先输入你的名字！');
+    return;
+  }
+
+  document.getElementById('nameSection').style.display = 'none';
+
+  const certCanvas = document.getElementById('certCanvas');
+  const W = 800, H = 1100;
+  certCanvas.width = W;
+  certCanvas.height = H;
+  certCanvas.style.display = 'block';
+  const cc = certCanvas.getContext('2d');
+
+  // Background
+  const bg = cc.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#020b18');
+  bg.addColorStop(0.3, '#041e3a');
+  bg.addColorStop(1, '#020b18');
+  cc.fillStyle = bg;
+  cc.fillRect(0, 0, W, H);
+
+  // Ocean layers
+  for (let i = 0; i < 5; i++) {
+    cc.fillStyle = `rgba(0,${40+i*10},${80+i*15},0.15)`;
+    cc.fillRect(0, H * 0.15 * i, W, H * 0.2);
+  }
+
+  // Decorative circles
+  cc.strokeStyle = 'rgba(0,255,136,0.08)';
+  for (let r = 100; r < 600; r += 80) {
+    cc.lineWidth = 1;
+    cc.beginPath();
+    cc.arc(W/2, H*0.35, r, 0, Math.PI*2);
+    cc.stroke();
+  }
+
+  // Border
+  cc.strokeStyle = 'rgba(0,255,136,0.4)';
+  cc.lineWidth = 3;
+  cc.strokeRect(24, 24, W - 48, H - 48);
+  cc.strokeStyle = 'rgba(0,255,136,0.15)';
+  cc.lineWidth = 1;
+  cc.strokeRect(32, 32, W - 64, H - 64);
+
+  // Corner ornaments
+  const corners = [[40,40],[W-40,40],[40,H-40],[W-40,H-40]];
+  corners.forEach(([cx,cy]) => {
+    cc.strokeStyle = 'rgba(0,255,136,0.5)';
+    cc.lineWidth = 2;
+    cc.beginPath(); cc.arc(cx, cy, 12, 0, Math.PI*2); cc.stroke();
+    cc.fillStyle = 'rgba(0,255,136,0.3)';
+    cc.beginPath(); cc.arc(cx, cy, 6, 0, Math.PI*2); cc.fill();
+  });
+
+  // Ship drawing on cert
+  cc.save();
+  cc.translate(W/2, 120);
+  cc.scale(2.5, 2.5);
+  drawShipAt(cc, 0, 0, 1);
+  cc.restore();
+
+  // Sonar ring around ship
+  cc.strokeStyle = 'rgba(0,255,136,0.2)';
+  for (let r = 40; r < 160; r += 35) {
+    cc.lineWidth = 1;
+    cc.beginPath();
+    cc.arc(W/2, 120, r, 0, Math.PI);
+    cc.stroke();
+  }
+
+  // Title
+  cc.font = 'bold 42px Orbitron, monospace';
+  cc.fillStyle = '#00ff88';
+  cc.textAlign = 'center';
+  cc.shadowBlur = 20;
+  cc.shadowColor = '#00ff88';
+  cc.fillText('SONAR EXPLORER', W/2, 240);
+  cc.shadowBlur = 0;
+
+  cc.font = '22px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(160,220,255,0.8)';
+  cc.fillText('声呐深度探险 — 完成证书', W/2, 270);
+
+  // Divider
+  cc.strokeStyle = 'rgba(0,255,136,0.3)';
+//峇株吧辖蔡逸众制作
+  cc.lineWidth = 1;
+  cc.beginPath(); cc.moveTo(80, 290); cc.lineTo(W-80, 290); cc.stroke();
+
+  // "This certifies that"
+  cc.font = '18px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(160,200,240,0.6)';
+  cc.fillText('兹证明 / This Certifies That', W/2, 330);
+
+  // Name
+  cc.font = 'bold 52px Nunito, sans-serif';
+  cc.fillStyle = '#ffd700';
+  cc.shadowBlur = 15;
+  cc.shadowColor = 'rgba(255,215,0,0.5)';
+  cc.fillText(name, W/2, 395);
+  cc.shadowBlur = 0;
+
+  cc.strokeStyle = 'rgba(255,215,0,0.4)';
+  cc.lineWidth = 1;
+  cc.beginPath(); cc.moveTo(W*0.2, 410); cc.lineTo(W*0.8, 410); cc.stroke();
+
+  // Achievement text
+  cc.font = '18px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(160,220,255,0.8)';
+  cc.fillText('已成功完成声呐深度探险任务', W/2, 450);
+  cc.fillText('掌握了声呐测深的核心物理知识', W/2, 475);
+
+  // Stats box
+  const bx = 80, by = 510, bw = W-160, bh = 200;
+  cc.fillStyle = 'rgba(4,30,58,0.7)';
+  cc.beginPath();
+  cc.roundRect(bx, by, bw, bh, 16);
+  cc.fill();
+  cc.strokeStyle = 'rgba(0,255,136,0.25)';
+  cc.lineWidth = 1;
+  cc.beginPath();
+  cc.roundRect(bx, by, bw, bh, 16);
+  cc.stroke();
+
+  const stats = [
+    ['🏆 最终得分', state.score],
+    ['🎯 正确率', `${Math.round(state.totalCorrect/Math.max(state.totalAnswered,1)*100)}%`],
+    ['🌊 关卡完成', `${state.levelsComplete}/${TOTAL_LEVELS}`],
+    ['🔥 最高连击', `x${state.maxCombo}`],
+  ];
+  const cols = 2, rows = 2;
+  const cw = bw / cols;
+  stats.forEach((s, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const sx = bx + col * cw + cw/2;
+//Made by ecchua79
+    const sy = by + 50 + row * 80;
+    cc.font = '14px Nunito, sans-serif';
+    cc.fillStyle = 'rgba(160,200,240,0.6)';
+    cc.fillText(s[0], sx, sy);
+    cc.font = 'bold 28px Orbitron, monospace';
+    cc.fillStyle = '#00ff88';
+    cc.fillText(s[1], sx, sy + 32);
+  });
+
+  // Formula reminder
+  cc.fillStyle = 'rgba(0,255,136,0.08)';
+  cc.beginPath(); cc.roundRect(100, 740, W-200, 60, 12); cc.fill();
+  cc.strokeStyle = 'rgba(0,255,136,0.2)'; cc.lineWidth=1;
+  cc.beginPath(); cc.roundRect(100, 740, W-200, 60, 12); cc.stroke();
+  cc.font = 'bold 18px Orbitron, monospace';
+  cc.fillStyle = '#ffd700';
+  cc.fillText('深度 = (声速 × 时间) ÷ 2', W/2, 768);
+  cc.font = '13px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(160,200,240,0.5)';
+  cc.fillText('声速 = 1500 m/s  |  ÷2 因为声波来回', W/2, 788);
+
+  // Date
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('zh-CN', {year:'numeric',month:'long',day:'numeric'});
+  const timeStr = now.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+  cc.font = '15px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(160,200,240,0.5)';
+  cc.fillText(`颁发日期：${dateStr} ${timeStr}`, W/2, 840);
+
+  // School
+  cc.font = 'bold 16px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(0,255,136,0.7)';
+  cc.fillText('峇株吧辖华仁中学 · 科学教育游戏', W/2, 880);
+
+  cc.font = '13px Nunito, sans-serif';
+  cc.fillStyle = 'rgba(100,150,200,0.4)';
+
+  // Difficulty stamp
+  const diffColors = { easy:'#44ff88', normal:'#ffd700', hard:'#ff6644' };
+  const diffLabels = { easy:'简单', normal:'标准', hard:'挑战' };
+  cc.save();
+  cc.translate(W - 110, H - 180);
+  cc.rotate(0.3);
+  cc.strokeStyle = diffColors[state.difficulty] || '#ffd700';
+  cc.lineWidth = 3;
+  cc.beginPath(); cc.arc(0, 0, 55, 0, Math.PI*2); cc.stroke();
+  cc.font = 'bold 16px Orbitron, monospace';
+  cc.fillStyle = diffColors[state.difficulty] || '#ffd700';
+  cc.textAlign = 'center';
+  cc.fillText(diffLabels[state.difficulty], 0, -8);
+  cc.font = '12px Orbitron';
+  cc.fillText('难度', 0, 12);
+  cc.restore();
+
+  // Bottom decoration
+  cc.strokeStyle = 'rgba(0,100,180,0.3)';
+  for (let x = 0; x < W; x += 30) {
+    cc.strokeStyle = `rgba(0,${60+Math.floor(x/W*80)},${120+Math.floor(x/W*60)},0.2)`;
+    cc.lineWidth = 1;
+    cc.beginPath();
+    cc.moveTo(x, H - 60);
+    for (let xx = x; xx <= x + 30; xx++) {
+      cc.lineTo(xx, H - 60 + Math.sin(xx * 0.15) * 8);
+    }
+    cc.stroke();
+  }
+
+  document.getElementById('downloadBtn').style.display = 'block';
+  certCanvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function downloadCert() {
+  const certCanvas = document.getElementById('certCanvas');
+  const name = document.getElementById('playerName').value.trim() || '探险家';
+  const link = document.createElement('a');
+  link.download = `声呐探险证书_${name}.png`;
+  link.href = certCanvas.toDataURL('image/png');
+  link.click();
+}
+
+// ============================================================
+// SCREEN MANAGEMENT
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function restartGame() {
+  cancelAnimationFrame(animFrame);
+  clearInterval(state.timerInterval);
+  document.getElementById('certCanvas').style.display = 'none';
+  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('nameSection').style.display = 'block';
+  document.getElementById('playerName').value = '';
+  showScreen('startScreen');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  initPreview();
+});
+
+</script>
+</body>
+</html>
