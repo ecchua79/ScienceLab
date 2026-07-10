@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恒星演化互动模拟器 - 太阳的生命史诗</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for beautiful space icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #020205;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .tech-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* 自定义面板滚动条 */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(234, 179, 8, 0.3);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(234, 179, 8, 0.6);
+        }
+        /* 霓虹发光科技感边框 */
+        .neon-border-amber {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.15), inset 0 0 15px rgba(245, 158, 11, 0.05);
+        }
+        /* 呼啸发光呼吸灯效果，用于提示折叠按钮 */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(234, 179, 8, 0.2); }
+            50% { box-shadow: 0 0 15px rgba(234, 179, 8, 0.7); }
+        }
+        .toggle-pulse {
+            animation: pulseGlow 2s infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-slate-100 flex flex-col select-none">
+
+    <!-- Header HUD (头部仪表导航) -->
+    <header class="h-16 border-b border-yellow-500/20 bg-black/60 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full border border-yellow-500/50 flex items-center justify-center animate-spin" style="animation-duration: 8s;">
+                <i class="fa-solid fa-atom text-yellow-400 text-sm"></i>
+            </div>
+            <div>
+                <h1 class="tech-font font-bold text-lg tracking-wider text-yellow-400">STELLAR LAB</h1>
+                <p class="text-xs text-slate-400 tracking-widest uppercase">1 $M_\odot$ 恒星主线演化数据库</p>
+            </div>
+        </div>
+        
+        <!-- 核心时间轴进度指示器 -->
+        <div class="hidden md:flex items-center space-x-2 text-xs tech-font text-slate-400">
+            <span class="text-yellow-500/70">星云起源</span>
+            <div class="w-24 h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div id="timeline-bar" class="h-full bg-yellow-500 transition-all duration-500" style="width: 16.6%;"></div>
+            </div>
+            <span>最终黑矮星</span>
+        </div>
+
+        <!-- 宇宙计时器 -->
+        <div class="flex items-center space-x-4">
+            <div class="text-right">
+                <span class="text-xs text-slate-500 block">COSMIC TIME</span>
+                <span id="cosmic-age-timer" class="tech-font text-sm font-semibold text-yellow-400">0.00 亿年</span>
+            </div>
+            <i class="fa-solid fa-satellite text-slate-400 animate-pulse"></i>
+        </div>
+    </header>
+
+    <!-- 主视窗容器 -->
+    <div class="flex-1 w-full relative overflow-hidden">
+        
+        <!-- 底层全屏 3D 渲染器 -->
+        <div class="absolute inset-0 z-0">
+            <canvas id="canvas3d" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- 左侧面板: 阶段切换 & 科学阐述 (带折叠) -->
+        <div id="panel-left" class="absolute left-0 top-0 bottom-0 z-20 w-[350px] max-w-[85vw] bg-black/75 backdrop-blur-lg border-r border-yellow-500/10 flex flex-col transition-transform duration-300 ease-in-out">
+            <!-- 伸缩折叠手柄 -->
+            <button onclick="toggleLeftPanel()" class="absolute top-1/2 -translate-y-1/2 -right-8 w-8 h-16 bg-black/90 border-y border-r border-yellow-500/20 rounded-r-xl flex flex-col items-center justify-center cursor-pointer text-yellow-400 hover:text-yellow-300 hover:bg-black transition-all shadow-[5px_0_15px_rgba(0,0,0,0.5)] z-30 toggle-pulse" title="展开/收起左面板">
+                <i id="arrow-left" class="fa-solid fa-chevron-left text-xs"></i>
+                <span class="text-[8px] font-bold tracking-widest uppercase mt-1" style="writing-mode: vertical-lr;">MENU</span>
+            </button>
+
+            <!-- 面板真实滚动内容 -->
+            <div class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
+                <!-- 历程列表 -->
+                <div class="p-4 border-b border-yellow-500/10 bg-black/20 shrink-0">
+                    <span class="text-xs text-yellow-500/70 font-semibold uppercase tracking-wider block mb-3"><i class="fa-solid fa-route mr-2"></i>演化历程选择器</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Stage 1 -->
+                        <button onclick="changeStage(1)" id="btn-stage-1" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-purple-400 font-bold tech-font">STAGE I</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">1. 弥漫星云</span>
+                        </button>
+                        <!-- Stage 2 -->
+                        <button onclick="changeStage(2)" id="btn-stage-2" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-amber-400 font-bold tech-font">STAGE II</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">2. 原恒星 🌟</span>
+                        </button>
+                        <!-- Stage 3 -->
+                        <button onclick="changeStage(3)" id="btn-stage-3" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-yellow-400 font-bold tech-font">STAGE III</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">3. 主序星阶段</span>
+                        </button>
+                        <!-- Stage 4 -->
+                        <button onclick="changeStage(4)" id="btn-stage-4" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-red-400 font-bold tech-font">STAGE IV</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">4. 膨胀红巨星</span>
+                        </button>
+                        <!-- Stage 5 -->
+                        <button onclick="changeStage(5)" id="btn-stage-5" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-teal-400 font-bold tech-font">STAGE V</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">5. 行星状星云</span>
+                        </button>
+                        <!-- Stage 6 -->
+                        <button onclick="changeStage(6)" id="btn-stage-6" class="stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left">
+                            <span class="text-[10px] text-blue-400 font-bold tech-font">STAGE VI</span>
+                            <span class="text-xs text-slate-300 font-semibold truncate">6. 白矮星</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 科学解释区域 -->
+                <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span id="text-stage-roman" class="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded border border-yellow-500/30 font-bold">STAGE I</span>
+                            <span class="text-[10px] text-slate-500 tracking-widest font-mono">STATUS: SIMULATING</span>
+                        </div>
+                        <h2 id="text-stage-title" class="text-2xl font-bold tracking-tight text-white mb-3">弥漫星云</h2>
+                        
+                        <div class="bg-yellow-500/5 border-l-2 border-yellow-500 p-3 mb-4 rounded-r">
+                            <p id="text-stage-short" class="text-xs text-yellow-200/90 leading-relaxed font-semibold">
+                                由氢、氦等元素及微尘构成的冰冷星云。
+                            </p>
+                        </div>
+
+                        <p id="text-stage-description" class="text-xs text-slate-400 leading-relaxed space-y-2">
+                            在大约 46 亿年前，一片巨大的分子星际云在邻近超新星爆发产生的激波冲击下发生引力坍缩。由于角动量守恒，坍缩的云团开始加速旋转，并在物质最密集的中心区域形成一个不稳定的重力深渊。这是太阳孕育最起初的胚胎状态。
+                        </p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-500 shrink-0">
+                        <p><i class="fa-solid fa-circle-info mr-1"></i> 三维模型支持双指缩放及单指拖拽视角旋转。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧面板: 天体遥测仪表 & 赫罗图 (带折叠) -->
+        <div id="panel-right" class="absolute right-0 top-0 bottom-0 z-20 w-[320px] max-w-[80vw] bg-black/75 backdrop-blur-lg border-l border-yellow-500/10 flex flex-col transition-transform duration-300 ease-in-out p-6 overflow-y-auto space-y-6">
+            <!-- 伸缩折叠手柄 -->
+            <button onclick="toggleRightPanel()" class="absolute top-1/2 -translate-y-1/2 -left-8 w-8 h-16 bg-black/90 border-y border-l border-yellow-500/20 rounded-l-xl flex flex-col items-center justify-center cursor-pointer text-yellow-400 hover:text-yellow-300 hover:bg-black transition-all shadow-[-5px_0_15px_rgba(0,0,0,0.5)] z-30 toggle-pulse" title="展开/收起右面板">
+                <i id="arrow-right" class="fa-solid fa-chevron-right text-xs"></i>
+                <span class="text-[8px] font-bold tracking-widest uppercase mt-1" style="writing-mode: vertical-lr;">DATA</span>
+            </button>
+
+            <!-- 传感器数据统计 -->
+            <div class="space-y-4 shrink-0">
+                <span class="text-xs text-yellow-500/70 font-semibold uppercase tracking-wider block border-b border-slate-800 pb-2"><i class="fa-solid fa-gauge mr-2"></i>实时天体物理遥测仪表</span>
+                
+                <!-- 属性: 温度 -->
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase block tracking-wider">核心表面温度</span>
+                        <span id="telemetry-temp" class="tech-font text-lg font-bold text-white">10 K</span>
+                    </div>
+                    <div class="text-red-400/80 bg-red-500/10 w-8 h-8 rounded flex items-center justify-center">
+                        <i class="fa-solid fa-temperature-three-quarters"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 半径 -->
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase block tracking-wider">恒星物理半径</span>
+                        <span id="telemetry-radius" class="tech-font text-lg font-bold text-white">1.5 光年</span>
+                    </div>
+                    <div class="text-blue-400/80 bg-blue-500/10 w-8 h-8 rounded flex items-center justify-center">
+                        <i class="fa-solid fa-ruler-combined"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 聚变状态 -->
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase block tracking-wider">核聚变燃料</span>
+                        <span id="telemetry-fusion" class="tech-font text-xs font-semibold text-white">未激活 (纯重力坍缩)</span>
+                    </div>
+                    <div class="text-amber-400/80 bg-amber-500/10 w-8 h-8 rounded flex items-center justify-center">
+                        <i class="fa-solid fa-fire-burner"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 引力平衡 -->
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase block tracking-wider">辐射压 vs 万有引力</span>
+                        <span id="telemetry-balance" class="tech-font text-xs font-semibold text-white">极度失衡 (向内坍缩)</span>
+                    </div>
+                    <div class="text-teal-400/80 bg-teal-500/10 w-8 h-8 rounded flex items-center justify-center">
+                        <i class="fa-solid fa-arrows-to-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 迷你赫罗图 (H-R Diagram) -->
+            <div class="space-y-2 shrink-0">
+                <div class="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-1">
+                    <span>赫罗图 (H-R Diagram) 位置</span>
+                    <i class="fa-solid fa-chart-line text-yellow-500"></i>
+                </div>
+                <div class="h-32 bg-slate-950 border border-slate-800 rounded-lg relative overflow-hidden flex items-end">
+                    <!-- 刻度底网 -->
+                    <div class="absolute inset-0 grid grid-cols-4 grid-rows-4 opacity-5 pointer-events-none">
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-b border-white"></div>
+                    </div>
+                    
+                    <span class="absolute left-1 top-1 text-[8px] text-slate-600 uppercase">Luminosity (光度)</span>
+                    <span class="absolute right-1 bottom-1 text-[8px] text-slate-600 uppercase">Temp (温度 O-M)</span>
+                    
+                    <!-- 主序星对角背景线 -->
+                    <div class="absolute w-[120%] h-0.5 bg-yellow-500/15 -rotate-[25deg] top-1/2 left-[-10%] pointer-events-none"></div>
+                    <!-- 巨星带 -->
+                    <div class="absolute top-4 right-4 w-6 h-6 rounded-full bg-red-500/5 border border-red-500/10 flex items-center justify-center text-[7px] text-red-500/30">巨星</div>
+                    <!-- 矮星带 -->
+                    <div class="absolute bottom-4 left-6 w-6 h-6 rounded-full bg-blue-500/5 border border-blue-500/10 flex items-center justify-center text-[7px] text-blue-500/30">矮星</div>
+
+                    <!-- 动态质点 -->
+                    <div id="hr-dot" class="absolute w-3.5 h-3.5 rounded-full bg-yellow-400 shadow-[0_0_10px_#eab308] border-2 border-white -translate-x-1/2 translate-y-1/2 transition-all duration-700 ease-out" style="left: 10%; bottom: 10%;"></div>
+                </div>
+                <p id="hr-brief" class="text-[10px] text-slate-500 leading-tight">目前处于赫罗图左下角/极冷稀散区域，等待引力点燃主序支线。</p>
+            </div>
+
+            <!-- 底栏传感器状态 -->
+            <div class="text-[10px] text-slate-600 flex items-center justify-between border-t border-slate-800/60 pt-3 shrink-0">
+                <span>SIM CORRIDOR: SUN-1M</span>
+                <span>COMPILER ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- 悬浮播放控制台 (页面底部) -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-md border border-slate-800 p-4 rounded-xl flex items-center space-x-6 z-30 w-[90%] max-w-[500px] shadow-2xl">
+            <button onclick="toggleAutoPlay()" id="btn-play" class="w-10 h-10 rounded-full bg-yellow-500 text-black flex items-center justify-center hover:bg-yellow-400 transition-all duration-300 shrink-0">
+                <i class="fa-solid fa-play ml-0.5" id="icon-play"></i>
+            </button>
+            <div class="flex-1">
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-400">自动演化进程加速</span>
+                    <span id="autoplay-speed-label" class="text-yellow-500 font-bold tech-font">5.0 亿年/秒</span>
+                </div>
+                <input type="range" id="autoplay-speed-slider" min="1" max="10" step="1" value="5" class="w-full accent-yellow-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 导入 Three.js 及轨道控制器 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- App 核心程序逻辑 -->
+    <script>
+        // --- 1. 恒星演化科学配置数据库 ---
+        const STAGE_CONFIGS = {
+            1: {
+                title: "弥漫分子星云",
+                roman: "STAGE I",
+                short: "星系尘埃与氢气分子在大尺度空间发生万有引力坍缩。",
+                desc: "在大约 46 亿年前，一团直径数光年的极冷弥漫星际气尘云（主要成分为氢分子）在外部冲击力作用下开始失去热压力平衡。万有引力驱动其核心颗粒相互靠近，虽然此时中心黑暗，但重力势能转化为初级内能，为其一生的演化敲响了最初的钟声。",
+                temp: "10 K (-263 °C)",
+                radius: "1.5 光年 (约14万亿公里)",
+                fusion: "未激活 (仅有重力势能生热)",
+                balance: "引力极度占优 (剧烈收缩)",
+                ageText: "0.00 年 (起点)",
+                colorClass: "text-purple-400",
+                hrPos: { x: 15, y: 15 }, 
+                hrBrief: "处于右下角广袤的极低温区域，光度极弱且结构松散。",
+                color: 0x9333ea
+            },
+            2: {
+                title: "原恒星 (Protostar) 🌟",
+                roman: "STAGE II",
+                short: "核心快速升温，形成发光球体，吸积盘与两极喷流高速运转。",
+                desc: "引力塌陷产生的角动量守恒使原本庞大的物质盘呈扁平旋涡状高速运转（吸积盘），并不断将外层物质“喂食”至中心。当中心温密攀升，开始释放强劲的多普勒双极热气射流（Jets）。虽然核心温度达到数百万度并发出刺眼红橙色光芒，但氢核聚变仍未触发，是一颗名副其实的“婴儿恒星”。",
+                temp: "3,200 K",
+                radius: "4.5 R☉ (太阳半径)",
+                fusion: "核能未点燃 (强热辐射、引力凝聚)",
+                balance: "引力占优 (质量高速吸积中)",
+                ageText: "约 10 万年 (极速演化期)",
+                colorClass: "text-amber-400",
+                hrPos: { x: 45, y: 35 },
+                hrBrief: "随着收缩，亮度极高，位于赫罗图林氏轨线（Hayashi Track）上空，正在向下移动。",
+                color: 0xf59e0b
+            },
+            3: {
+                title: "主序星阶段 (Main Sequence)",
+                roman: "STAGE III",
+                short: "核心温度冲破千万，氢核聚变完全开启，步入极长的黄金全盛期。",
+                desc: "当核心重力压榨使温度突破 1000 万开尔文时，极高动能促使质子越过库仑引力势垒，触发氢核聚变反应 ($4H \rightarrow He$)。向外猛烈的聚变辐射压与向内坍缩的万有引力形成完美的静力学平衡。它将在该支线上安稳工作约 100 亿年。这就是当前的太阳。",
+                temp: "5,778 K (黄白色)",
+                radius: "1.0 R☉ (约 69.6 万公里)",
+                fusion: "稳定氢核聚变 (生成氦并释放伽马射线)",
+                balance: "完美静力学平衡 (引力 = 辐射压)",
+                ageText: "46.00 亿年 (目前处于半程)",
+                colorClass: "text-yellow-400",
+                hrPos: { x: 60, y: 55 },
+                hrBrief: "完美位于著名的“主序带”中间，维持极长的发光稳定期。",
+                color: 0xeab308
+            },
+            4: {
+                title: "膨胀红巨星 (Red Giant)",
+                roman: "STAGE IV",
+                short: "核心氢燃尽并坍缩，外壳发生猛烈氦聚变爆炸导致体积疯狂膨胀。",
+                desc: "100亿年后核心氢燃料耗尽，反应熄灭导致重力再次占优，引发核心骤缩生热，点燃了外壳氢。极高热量让其外壳像皮球般极速胀大（膨胀上百倍）。这层稀薄的、温度较低的“红巨星外衣”将直接吞噬水星、金星，地球轨道外侧也将被火热的赤焰彻底吞没，此时恒星呈现壮烈深红。",
+                temp: "3,100 K (庞大而红冷)",
+                radius: "180.0 R☉ (超越地球轨道)",
+                fusion: "核心氦核聚变 (碳氧堆积) + 壳层氢聚变",
+                balance: "短暂平衡 (壳层猛烈膨胀挤压)",
+                ageText: "102.50 亿年 (生命末期膨胀)",
+                colorClass: "text-red-500",
+                hrPos: { x: 80, y: 80 },
+                hrBrief: "向右上方急速跳跃至“巨星分支”区，体积超群但表面冷凉。",
+                color: 0xef4444
+            },
+            5: {
+                title: "行星状星云 (Planetary Nebula)",
+                roman: "STAGE V",
+                short: "热脉动导致外层物质彻底摆脱引力束缚，向深空喷射出斑斓彩壳。",
+                desc: "当恒星演化至渐近巨星支，核心无法维持稳定。疯狂的热脉动和不稳定性将所有外层包裹的氢氦星际尘埃像剥洋葱一样彻底抖落至深空，露出炽热无比的微小碳氧核心。核心射出的超高能紫外线会激发电离这些向外扩散的气体壳，从远方看犹如一朵宇宙中绚烂绽放的七彩花朵。",
+                temp: "外壳 10,000 K / 核心 120,000 K",
+                radius: "0.5 光年 (巨大膨胀尘埃壳)",
+                fusion: "聚变完全熄灭 (仅余温辐射)",
+                balance: "结构崩溃 (外衣向宇宙无限扩散)",
+                ageText: "103.10 亿年 (转瞬即逝的极美瞬间)",
+                colorClass: "text-teal-400",
+                hrPos: { x: 30, y: 70 },
+                hrBrief: "核心迅速向左下方移动（高温高亮核心），气层向四周散去。",
+                color: 0x14b8a6
+            },
+            6: {
+                title: "白矮星 (White Dwarf)",
+                roman: "STAGE VI",
+                short: "星云散尽后留下的超高密度核，依靠电子简并压力抵抗引力。",
+                desc: "气壳完全散逸入星际介质后，仅剩下一颗类似地球体积大小的超致密碳氧核心。它不再具备任何核燃料燃烧的能力，只能依靠量子力学级别的“电子简并压力”抗衡其不可思议的引力塌陷。白矮星将像炉中余炭般，用接下来千亿年的寂静时间向外界慢慢释放它的残温，直到化为彻底冰冷黑暗的黑矮星。",
+                temp: "15,000 K (极高能余热)",
+                radius: "0.01 R☉ (接近地球大小)",
+                fusion: "无反应 (能量彻底耗尽，纯物理释能)",
+                balance: "电子简并压力 与 极强引力相抗衡",
+                ageText: "104.00 亿年起 (永无休止的冷却)",
+                colorClass: "text-blue-400",
+                hrPos: { x: 25, y: 25 },
+                hrBrief: "沉降至赫罗图底部的“白矮星带”，依靠微小的体积极缓慢地向下退化。",
+                color: 0x60a5fa
+            }
+        };
+
+        // --- 2. 初始化核心 3D 变量 ---
+        let scene, camera, renderer, controls;
+        let currentStage = 1;
+        let autoPlayInterval = null;
+        let isPlaying = false;
+        let autoPlaySpeed = 5;
+
+        // 控制面板可见性状态
+        let isLeftPanelOpen = true;
+        let isRightPanelOpen = true;
+
+        const stageGroup = new THREE.Group();
+        
+        // 过程化生成高质量发光纹理，摆脱对外部图片资源的依赖
+        function createParticleGlowTexture(innerColStr, outerColStr) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, innerColStr);
+            gradient.addColorStop(0.2, innerColStr);
+            gradient.addColorStop(0.5, outerColStr);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 纹理库
+        const textures = {
+            purpleGlow: createParticleGlowTexture('rgba(147,51,234,1)', 'rgba(88,28,135,0.3)'),
+            amberGlow: createParticleGlowTexture('rgba(245,158,11,1)', 'rgba(120,53,4,0.3)'),
+            blueGlow: createParticleGlowTexture('rgba(96,165,250,1)', 'rgba(30,58,138,0.2)'),
+            yellowGlow: createParticleGlowTexture('rgba(254,240,138,1)', 'rgba(161,98,7,0.3)'),
+            redGlow: createParticleGlowTexture('rgba(239,68,68,1)', 'rgba(127,29,29,0.3)'),
+            tealGlow: createParticleGlowTexture('rgba(20,184,166,1)', 'rgba(13,148,136,0.2)'),
+            whiteDot: createParticleGlowTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0.2)')
+        };
+
+        // 三维演化核心模型引用
+        let nebulaPoints;
+        let protostarObj = { core: null, disk: null, jetUp: null, jetDown: null };
+        let mainStarObj = { core: null, flares: null };
+        let redGiantObj = { core: null, corona: null };
+        let planetaryNebulaObj = { core: null, rings: [] };
+        let whiteDwarfObj = { core: null, halo: null };
+
+        // --- 3. 场景搭建 ---
+        function initScene() {
+            const container = document.getElementById('canvas3d');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x020205, 0.012);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 8, 18);
+
+            renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 100;
+            controls.minDistance = 3;
+
+            scene.add(stageGroup);
+
+            // 柔和漫反射光与核心点光源
+            const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambient);
+            
+            const mainLight = new THREE.PointLight(0xffffff, 2.5, 100);
+            mainLight.position.set(0, 0, 0);
+            scene.add(mainLight);
+
+            // 实例化各个生命历程的模型结构
+            buildNebula();
+            buildProtostar();
+            buildMainSequence();
+            buildRedGiant();
+            buildPlanetaryNebula();
+            buildWhiteDwarf();
+
+            // 响应移动端自适应折叠面板
+            checkResponsiveLayout();
+
+            // 激活初始弥漫星云状态
+            changeStage(1);
+
+            // 启动三维主循环
+            animate();
+        }
+
+        // --- 4. 面板折叠控制逻辑 ---
+        window.toggleLeftPanel = function(forceCollapse = null) {
+            const panel = document.getElementById('panel-left');
+            const arrow = document.getElementById('arrow-left');
+            
+            if (forceCollapse !== null) {
+                isLeftPanelOpen = !forceCollapse;
+            } else {
+                isLeftPanelOpen = !isLeftPanelOpen;
+            }
+
+            if (isLeftPanelOpen) {
+                panel.style.transform = 'translateX(0)';
+                arrow.className = 'fa-solid fa-chevron-left text-xs';
+            } else {
+                panel.style.transform = 'translateX(-100%)';
+                arrow.className = 'fa-solid fa-chevron-right text-xs';
+            }
+        };
+
+        window.toggleRightPanel = function(forceCollapse = null) {
+            const panel = document.getElementById('panel-right');
+            const arrow = document.getElementById('arrow-right');
+
+            if (forceCollapse !== null) {
+                isRightPanelOpen = !forceCollapse;
+            } else {
+                isRightPanelOpen = !isRightPanelOpen;
+            }
+
+            if (isRightPanelOpen) {
+                panel.style.transform = 'translateX(0)';
+                arrow.className = 'fa-solid fa-chevron-right text-xs';
+            } else {
+                panel.style.transform = 'translateX(100%)';
+                arrow.className = 'fa-solid fa-chevron-left text-xs';
+            }
+        };
+
+        // 针对移动设备的自动隐藏检测
+        function checkResponsiveLayout() {
+            if (window.innerWidth < 1024) {
+                // 移动端：为了呈现纯粹的 3D 星河，默认折叠左右侧边栏
+                toggleLeftPanel(true);
+                toggleRightPanel(true);
+            } else {
+                // PC宽屏：默认展开以方便阅读丰富资料
+                toggleLeftPanel(false);
+                toggleRightPanel(false);
+            }
+        }
+
+        // --- 5. 不同阶段的模型生产组装 ---
+
+        // STAGE 1: 弥漫星云
+        function buildNebula() {
+            const count = 4000;
+            const geom = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = Math.pow(Math.random(), 2.2) * 16 + 1.0;
+
+                positions[i] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i + 2] = r * Math.cos(phi);
+
+                // 混色：粉紫、幽蓝、品红
+                const mix = Math.random();
+                if (mix < 0.4) {
+                    colors[i] = 0.58; colors[i + 1] = 0.2; colors[i + 2] = 0.92;
+                } else if (mix < 0.7) {
+                    colors[i] = 0.12; colors[i + 1] = 0.3; colors[i + 2] = 0.95;
+                } else {
+                    colors[i] = 0.95; colors[i + 1] = 0.15; colors[i + 2] = 0.3;
+                }
+            }
+
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.25,
+                vertexColors: true,
+                map: textures.purpleGlow,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            nebulaPoints = new THREE.Points(geom, mat);
+            nebulaPoints.name = "stage1";
+            stageGroup.add(nebulaPoints);
+        }
+
+        // STAGE 2: 原恒星
+        function buildProtostar() {
+            const group = new THREE.Group();
+            group.name = "stage2";
+
+            // 1. 发热收缩核心
+            const coreGeom = new THREE.SphereGeometry(1.2, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: 0xff6600
+            });
+            protostarObj.core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(protostarObj.core);
+
+            // 热辐射气膜层
+            const coronaGeom = new THREE.SphereGeometry(1.35, 32, 32);
+            const coronaMat = new THREE.MeshBasicMaterial({
+                color: 0xff3300,
+                transparent: true,
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending
+            });
+            const corona = new THREE.Mesh(coronaGeom, coronaMat);
+            group.add(corona);
+
+            // 2. 原行星盘吸积扁平粒子盘
+            const diskParticleCount = 1800;
+            const diskGeom = new THREE.BufferGeometry();
+            const diskPositions = new Float32Array(diskParticleCount * 3);
+            const diskColors = new Float32Array(diskParticleCount * 3);
+
+            for (let i = 0; i < diskParticleCount * 3; i += 3) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.pow(Math.random(), 1.5) * 8.5 + 1.5;
+
+                diskPositions[i] = r * Math.cos(angle);
+                diskPositions[i + 1] = (Math.random() - 0.5) * 0.35; // 扁平化
+                diskPositions[i + 2] = r * Math.sin(angle);
+
+                const colorFactor = (r - 1.5) / 8.5;
+                diskColors[i] = 1.0;
+                diskColors[i + 1] = 0.45 + (1 - colorFactor) * 0.45; // 核心区域更白炽化
+                diskColors[i + 2] = 0.05;
+            }
+
+            diskGeom.setAttribute('position', new THREE.BufferAttribute(diskPositions, 3));
+            diskGeom.setAttribute('color', new THREE.BufferAttribute(diskColors, 3));
+
+            const diskMat = new THREE.PointsMaterial({
+                size: 0.16,
+                vertexColors: true,
+                map: textures.amberGlow,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            protostarObj.disk = new THREE.Points(diskGeom, diskMat);
+            group.add(protostarObj.disk);
+
+            // 3. 两极高能喷流
+            const jetCount = 450;
+            const jetUpGeom = new THREE.BufferGeometry();
+            const jetDownGeom = new THREE.BufferGeometry();
+            const posUp = new Float32Array(jetCount * 3);
+            const posDown = new Float32Array(jetCount * 3);
+
+            for(let i=0; i<jetCount*3; i+=3) {
+                posUp[i] = (Math.random() - 0.5) * 0.3;
+                posUp[i+1] = Math.random() * 8.0 + 1.2;
+                posUp[i+2] = (Math.random() - 0.5) * 0.3;
+
+                posDown[i] = (Math.random() - 0.5) * 0.3;
+                posDown[i+1] = -(Math.random() * 8.0 + 1.2);
+                posDown[i+2] = (Math.random() - 0.5) * 0.3;
+            }
+
+            jetUpGeom.setAttribute('position', new THREE.BufferAttribute(posUp, 3));
+            jetDownGeom.setAttribute('position', new THREE.BufferAttribute(posDown, 3));
+
+            const jetMat = new THREE.PointsMaterial({
+                size: 0.18,
+                color: 0x60a5fa,
+                map: textures.blueGlow,
+                transparent: true,
+                opacity: 0.75,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            protostarObj.jetUp = new THREE.Points(jetUpGeom, jetMat);
+            protostarObj.jetDown = new THREE.Points(jetDownGeom, jetMat);
+            group.add(protostarObj.jetUp);
+            group.add(protostarObj.jetDown);
+
+            stageGroup.add(group);
+        }
+
+        // STAGE 3: 主序星 (稳定的黄金白热球)
+        function buildMainSequence() {
+            const group = new THREE.Group();
+            group.name = "stage3";
+
+            const coreGeom = new THREE.SphereGeometry(1.5, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
+            mainStarObj.core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(mainStarObj.core);
+
+            // 日冕与微耀斑粒子包裹
+            const flareCount = 600;
+            const flareGeom = new THREE.BufferGeometry();
+            const flarePositions = new Float32Array(flareCount * 3);
+
+            for (let i = 0; i < flareCount * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = 1.55 + Math.random() * 0.35;
+
+                flarePositions[i] = r * Math.sin(phi) * Math.cos(theta);
+                flarePositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                flarePositions[i + 2] = r * Math.cos(phi);
+            }
+
+            flareGeom.setAttribute('position', new THREE.BufferAttribute(flarePositions, 3));
+            const flareMat = new THREE.PointsMaterial({
+                size: 0.15,
+                color: 0xeab308,
+                map: textures.yellowGlow,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            mainStarObj.flares = new THREE.Points(flareGeom, flareMat);
+            group.add(mainStarObj.flares);
+
+            stageGroup.add(group);
+        }
+
+        // STAGE 4: 红巨星 (臃肿庞大的极红稀薄外壳)
+        function buildRedGiant() {
+            const group = new THREE.Group();
+            group.name = "stage4";
+
+            const coreGeom = new THREE.SphereGeometry(4.2, 48, 48);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: 0xcc2200,
+                wireframe: true, // 用网格来隐喻其密度极度降低，只有庞大的气体空壳
+                transparent: true,
+                opacity: 0.3
+            });
+            redGiantObj.core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(redGiantObj.core);
+
+            // 高密度深红碳氧核
+            const denseCoreGeom = new THREE.SphereGeometry(1.0, 32, 32);
+            const denseCoreMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+            const denseCore = new THREE.Mesh(denseCoreGeom, denseCoreMat);
+            group.add(denseCore);
+
+            const coronaGeom = new THREE.SphereGeometry(4.35, 32, 32);
+            const coronaMat = new THREE.MeshBasicMaterial({
+                color: 0xff3300,
+                transparent: true,
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending
+            });
+            redGiantObj.corona = new THREE.Mesh(coronaGeom, coronaMat);
+            group.add(redGiantObj.corona);
+
+            stageGroup.add(group);
+        }
+
+        // STAGE 5: 行星状星云 (七彩电离向外扩展的气壳)
+        function buildPlanetaryNebula() {
+            const group = new THREE.Group();
+            group.name = "stage5";
+
+            const coreGeom = new THREE.SphereGeometry(0.2, 16, 16);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            planetaryNebulaObj.core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(planetaryNebulaObj.core);
+
+            const totalRings = 4;
+            const particlePerRing = 700;
+            planetaryNebulaObj.rings = [];
+
+            // 环1（绿）、环2（紫）、环3（红）、环4（蓝）
+            const ringColors = [0x14b8a6, 0x9333ea, 0xef4444, 0x3b82f6];
+            const ringRadii = [2.0, 4.5, 6.5, 8.0];
+
+            for (let rIdx = 0; rIdx < totalRings; rIdx++) {
+                const rGeom = new THREE.BufferGeometry();
+                const rPos = new Float32Array(particlePerRing * 3);
+
+                for (let i = 0; i < particlePerRing * 3; i += 3) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const inclination = (Math.random() - 0.5) * 1.1; // 双极漏斗漏砂感
+                    const radiusValue = ringRadii[rIdx] + (Math.random() - 0.5) * 0.8;
+
+                    rPos[i] = radiusValue * Math.cos(theta);
+                    rPos[i + 1] = radiusValue * Math.sin(inclination);
+                    rPos[i + 2] = radiusValue * Math.sin(theta);
+                }
+
+                rGeom.setAttribute('position', new THREE.BufferAttribute(rPos, 3));
+
+                const rMat = new THREE.PointsMaterial({
+                    size: rIdx === 0 ? 0.22 : 0.32,
+                    color: ringColors[rIdx],
+                    map: textures.whiteDot,
+                    transparent: true,
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+
+                const ringPoints = new THREE.Points(rGeom, rMat);
+                planetaryNebulaObj.rings.push({
+                    mesh: ringPoints,
+                    baseRadii: ringRadii[rIdx],
+                    color: ringColors[rIdx]
+                });
+                group.add(ringPoints);
+            }
+
+            stageGroup.add(group);
+        }
+
+        // STAGE 6: 白矮星 (耀眼高能核心与微小余热)
+        function buildWhiteDwarf() {
+            const group = new THREE.Group();
+            group.name = "stage6";
+
+            // 地球大小的超高密碳氧残渣
+            const coreGeom = new THREE.SphereGeometry(0.08, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            whiteDwarfObj.core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(whiteDwarfObj.core);
+
+            // 光晕壳模拟极其强烈的辐射能发光
+            const haloGeom = new THREE.SphereGeometry(0.35, 16, 16);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0x93c5fd,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending
+            });
+            whiteDwarfObj.halo = new THREE.Mesh(haloGeom, haloMat);
+            group.add(whiteDwarfObj.halo);
+
+            // 外围微弱的冰蓝色退化热能辐射带
+            const radCount = 500;
+            const radGeom = new THREE.BufferGeometry();
+            const radPos = new Float32Array(radCount * 3);
+
+            for (let i = 0; i < radCount * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const r = 0.5 + Math.random() * 4.0;
+                radPos[i] = r * Math.cos(theta);
+                radPos[i+1] = (Math.random() - 0.5) * 0.15;
+                radPos[i+2] = r * Math.sin(theta);
+            }
+
+            radGeom.setAttribute('position', new THREE.BufferAttribute(radPos, 3));
+            const radMat = new THREE.PointsMaterial({
+                size: 0.1,
+                color: 0x3b82f6,
+                map: textures.whiteDot,
+                transparent: true,
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const radiationRing = new THREE.Points(radGeom, radMat);
+            group.add(radiationRing);
+
+            stageGroup.add(group);
+        }
+
+        // --- 6. 导航演化操作控制器 ---
+        window.changeStage = function(stageIndex) {
+            currentStage = parseInt(stageIndex);
+            
+            // 切换 3D Object 显隐
+            stageGroup.children.forEach(child => {
+                child.visible = (child.name === `stage${currentStage}`);
+            });
+
+            const config = STAGE_CONFIGS[currentStage];
+            
+            // 面板文字更新
+            document.getElementById("text-stage-roman").innerText = config.roman;
+            document.getElementById("text-stage-title").innerText = config.title;
+            document.getElementById("text-stage-short").innerText = config.short;
+            document.getElementById("text-stage-description").innerText = config.desc;
+
+            // 天体遥测物理指标刷新
+            document.getElementById("telemetry-temp").innerText = config.temp;
+            document.getElementById("telemetry-radius").innerText = config.radius;
+            document.getElementById("telemetry-fusion").innerText = config.fusion;
+            document.getElementById("telemetry-balance").innerText = config.balance;
+            document.getElementById("cosmic-age-timer").innerText = config.ageText;
+
+            // 顶部总体进度更新
+            const percentage = (currentStage / 6) * 100;
+            document.getElementById("timeline-bar").style.width = `${percentage}%`;
+
+            // 侧边栏选中按钮的高亮样式流转
+            document.querySelectorAll(".stage-btn").forEach((btn) => {
+                btn.className = "stage-btn flex flex-col p-2 rounded-lg border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left";
+            });
+            const activeBtn = document.getElementById(`btn-stage-${currentStage}`);
+            if (activeBtn) {
+                activeBtn.className = "stage-btn flex flex-col p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 transition-all duration-300 text-left neon-border-amber";
+            }
+
+            // 驱动赫罗图指针精确游走
+            const hrDot = document.getElementById("hr-dot");
+            hrDot.style.left = `${config.hrPos.x}%`;
+            hrDot.style.bottom = `${config.hrPos.y}%`;
+            hrDot.style.boxShadow = `0 0 15px ${config.colorClass.includes('red') ? '#ef4444' : config.colorClass.includes('purple') ? '#9333ea' : '#eab308'}`;
+            document.getElementById("hr-brief").innerText = config.hrBrief;
+        };
+
+        // 自动播放时空旅行器
+        window.toggleAutoPlay = function() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById("icon-play");
+            const playBtn = document.getElementById("btn-play");
+
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playBtn.className = "w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-400 transition-all duration-300 animate-pulse shrink-0";
+                startAutoPlayTimer();
+            } else {
+                playIcon.className = "fa-solid fa-play ml-0.5";
+                playBtn.className = "w-10 h-10 rounded-full bg-yellow-500 text-black flex items-center justify-center hover:bg-yellow-400 transition-all duration-300 shrink-0";
+                clearInterval(autoPlayInterval);
+            }
+        };
+
+        function startAutoPlayTimer() {
+            if (autoPlayInterval) clearInterval(autoPlayInterval);
+            const intervalTime = (11 - autoPlaySpeed) * 1000;
+            
+            autoPlayInterval = setInterval(() => {
+                let nextStage = currentStage + 1;
+                if (nextStage > 6) nextStage = 1;
+                changeStage(nextStage);
+            }, intervalTime);
+        }
+
+        document.getElementById("autoplay-speed-slider").addEventListener("input", (e) => {
+            autoPlaySpeed = parseInt(e.target.value);
+            document.getElementById("autoplay-speed-label").innerText = `${(autoPlaySpeed).toFixed(1)} 亿年/秒`;
+            if (isPlaying) {
+                startAutoPlayTimer();
+            }
+        });
+
+        // --- 7. 三维心跳动画主循环 ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const elapsedTime = clock.getElapsedTime();
+            controls.update();
+
+            // 1. STAGE I: 星云缓慢扭摆螺旋
+            if (currentStage === 1 && nebulaPoints) {
+                nebulaPoints.rotation.y = elapsedTime * 0.04;
+                nebulaPoints.rotation.z = Math.sin(elapsedTime * 0.05) * 0.1;
+            }
+
+            // 2. STAGE II: 原恒星圆盘自转 + 吸积粒子振幅 + 两极垂直狂喷
+            if (currentStage === 2 && protostarObj) {
+                protostarObj.core.rotation.y = elapsedTime * 0.4;
+                protostarObj.disk.rotation.y = elapsedTime * 1.1; // 原行星吸积盘高速自转
+                
+                // 正弦扰动模拟扁平盘粒子波动
+                const diskGeom = protostarObj.disk.geometry;
+                const pos = diskGeom.attributes.position.array;
+                for (let i = 0; i < pos.length; i += 3) {
+                    const x = pos[i];
+                    const z = pos[i+2];
+                    const r = Math.sqrt(x*x + z*z);
+                    pos[i+1] = Math.sin(r * 1.5 - elapsedTime * 4.0) * 0.08;
+                }
+                diskGeom.attributes.position.needsUpdate = true;
+
+                // 轴向射流高速外喷流动画
+                const jetUpGeom = protostarObj.jetUp.geometry;
+                const jetDownGeom = protostarObj.jetDown.geometry;
+                const posUp = jetUpGeom.attributes.position.array;
+                const posDown = jetDownGeom.attributes.position.array;
+
+                for (let i = 1; i < posUp.length; i += 3) {
+                    posUp[i] += 0.08;
+                    if (posUp[i] > 9.0) posUp[i] = 1.2;
+
+                    posDown[i] -= 0.08;
+                    if (posDown[i] < -9.0) posDown[i] = -1.2;
+                }
+                jetUpGeom.attributes.position.needsUpdate = true;
+                jetDownGeom.attributes.position.needsUpdate = true;
+            }
+
+            // 3. STAGE III: 主序星呼吸震颤
+            if (currentStage === 3 && mainStarObj) {
+                mainStarObj.core.rotation.y = elapsedTime * 0.15;
+                mainStarObj.flares.rotation.y = -elapsedTime * 0.3;
+                
+                const pulse = 1.0 + Math.sin(elapsedTime * 2.5) * 0.025;
+                mainStarObj.core.scale.set(pulse, pulse, pulse);
+            }
+
+            // 4. STAGE IV: 臃肿红巨星低频脉动
+            if (currentStage === 4 && redGiantObj) {
+                redGiantObj.core.rotation.y = elapsedTime * 0.05;
+                redGiantObj.corona.rotation.y = -elapsedTime * 0.08;
+                
+                const pulse = 1.0 + Math.sin(elapsedTime * 0.8) * 0.04;
+                redGiantObj.core.scale.set(pulse, pulse, pulse);
+                redGiantObj.corona.scale.set(pulse * 1.02, pulse * 1.02, pulse * 1.02);
+            }
+
+            // 5. STAGE V: 行星状星云多重外层扩散退色
+            if (currentStage === 5 && planetaryNebulaObj) {
+                planetaryNebulaObj.core.rotation.y = elapsedTime * 0.6;
+
+                planetaryNebulaObj.rings.forEach((ring, idx) => {
+                    const rate = 0.5 + (idx * 0.2);
+                    const scaleFactor = 1.0 + ((elapsedTime * rate) % 4.0) * 0.15;
+                    ring.mesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                    ring.mesh.rotation.y = elapsedTime * (0.05 * (idx + 1));
+                    ring.mesh.material.opacity = 0.8 * (1.0 - (((elapsedTime * rate) % 4.0) / 4.0));
+                });
+            }
+
+            // 6. STAGE VI: 高能白矮星刺眼微动
+            if (currentStage === 6 && whiteDwarfObj) {
+                whiteDwarfObj.core.rotation.y = elapsedTime * 2.0;
+                
+                const shim = 0.95 + Math.random() * 0.1;
+                whiteDwarfObj.halo.scale.set(shim, shim, shim);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- 8. 事件处理与初始化部署 ---
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas3d');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            
+            // 调整视口时智能判定是否自动收折
+            checkResponsiveLayout();
+        });
+
+        // 页面就绪自动拉起三维空间
+        window.onload = function() {
+            initScene();
+        };
+    </script>
+</body>
+</html>
+
