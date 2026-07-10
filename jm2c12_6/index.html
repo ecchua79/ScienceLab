@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宇宙尺度探索 - 从地月系到总星系</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .header {
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+        }
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        .subtitle {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 3px;
+        }
+        
+        /* 移动端横向滑动控制栏 */
+        .controls {
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+            pointer-events: auto;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .controls::-webkit-scrollbar {
+            display: none;
+        }
+        
+        button {
+            background: rgba(20, 40, 80, 0.6);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:hover, button.active {
+            background: rgba(40, 100, 200, 0.85);
+            border-color: #fff;
+            box-shadow: 0 0 12px rgba(100, 150, 255, 0.5);
+        }
+
+        /* 可折叠信息面板 */
+        #info-panel {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            width: 280px;
+            max-width: calc(100% - 40px);
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(100, 150, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            overflow: hidden;
+            z-index: 20;
+        }
+        
+        #info-panel.collapsed {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(20, 40, 80, 0.8);
+            border-color: rgba(100, 150, 255, 0.5);
+        }
+
+        .toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: background 0.3s;
+            z-index: 21;
+        }
+        .toggle-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .toggle-icon {
+            width: 12px;
+            height: 12px;
+            stroke: white;
+            stroke-width: 2;
+            fill: none;
+            transition: transform 0.4s;
+        }
+        .collapsed .toggle-icon {
+            transform: rotate(45deg);
+        }
+
+        .info-content {
+            padding: 18px;
+            transition: opacity 0.3s;
+        }
+        .collapsed .info-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #info-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a90e2;
+            margin-top: 0;
+            margin-bottom: 10px;
+            padding-right: 25px;
+        }
+        #info-desc {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #ddd;
+            margin-bottom: 0;
+        }
+        
+        .collapsed-hint {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 44px;
+            height: 44px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a90e2;
+            pointer-events: none;
+        }
+        .collapsed .collapsed-hint {
+            display: flex;
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            z-index: 100;
+            pointer-events: none;
+            transition: opacity 1s;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 18px; }
+            #info-panel {
+                top: auto;
+                bottom: 90px;
+                right: 15px;
+                width: calc(100% - 30px);
+                max-width: 340px;
+            }
+            #info-panel.collapsed {
+                width: 40px;
+                height: 40px;
+                bottom: 90px;
+                right: 15px;
+            }
+            .collapsed-hint {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            .toggle-btn {
+                top: 8px;
+                right: 8px;
+            }
+        }
+    </style>
+    <!-- 引入 Three.js 和 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 引入 GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+
+    <div id="loading" class="loader">正在构建嵌套宇宙空间...</div>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="header">
+            <h1>宏观宇宙尺度演示</h1>
+            <div class="subtitle">滑动下方菜单或双指缩放探索嵌套宇宙</div>
+        </div>
+
+        <!-- 可折叠信息面板 -->
+        <div id="info-panel">
+            <div class="collapsed-hint">ℹ</div>
+            <div class="toggle-btn" onclick="toggleInfoPanel(event)">
+                <svg class="toggle-icon" viewBox="0 0 12 12">
+                    <line id="line1" x1="2" y1="2" x2="10" y2="10" />
+                    <line id="line2" x1="10" y1="2" x2="2" y2="10" />
+                </svg>
+            </div>
+            
+            <div class="info-content">
+                <h2 id="info-title">地月系</h2>
+                <p id="info-desc">地球与月球组成的引力系统。在标准视角下，月球沿逆时针方向公转。</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="zoomTo(0)" class="active" id="btn-0">1. 地月系</button>
+            <button onclick="zoomTo(1)" id="btn-1">2. 太阳系</button>
+            <button onclick="zoomTo(2)" id="btn-2">3. 银河系</button>
+            <button onclick="zoomTo(3)" id="btn-3">4. 本星系群</button>
+            <button onclick="zoomTo(4)" id="btn-4">5. 室女座超星系团</button>
+            <button onclick="zoomTo(5)" id="btn-5">6. 可观测宇宙</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 嵌套宇宙绝对坐标配置体系 ---
+        // 1. 宇宙(总星系)中心在 (0, 0, 0)
+        // 2. 室女座超星系团中心在 (15000, 5000, -10000)
+        // 3. 本星系群中心在 (17000, 4000, -7000)
+        // 4. 银河系中心在 (16200, 4000, -5800)
+        // 5. 太阳系中心在 (16360, 4000, -4600)  (对应银河系局域偏移: x:+160, z:+1200)
+        // 6. 地月系中心在 (16378, 4000, -4600)  (对应太阳系轨道偏移: x:+18)
+        
+        const worldPositions = {
+            earthMoon: new THREE.Vector3(16378, 4000, -4600),
+            solarSystem: new THREE.Vector3(16360, 4000, -4600),
+            milkyWay: new THREE.Vector3(16200, 4000, -5800),
+            localGroup: new THREE.Vector3(17000, 4000, -7000),
+            supercluster: new THREE.Vector3(15000, 5000, -10000),
+            universe: new THREE.Vector3(0, 0, 0)
+        };
+
+        const scales = [
+            {
+                title: "地月系",
+                desc: "地球与月球组成的引力系统。在这个尺度下，光旅行需要1.3秒。月球沿逆时针方向公转。放大到太阳系时，镜头会平移拉远，将地球置于其轨道之上。",
+                target: worldPositions.earthMoon,
+                offset: new THREE.Vector3(0, 5, 15),
+                visibleRange: [0, 50]
+            },
+            {
+                title: "太阳系",
+                desc: "以太阳为中心的引力系统。太阳位于绝对中心，地球及其他行星在其外围轨道运行。当切换到银河系时，镜头会斜向拉升，展现太阳系位于猎户臂边缘的真实位置。",
+                target: worldPositions.solarSystem,
+                offset: new THREE.Vector3(0, 50, 150),
+                visibleRange: [30, 800]
+            },
+            {
+                title: "银河系",
+                desc: "我们的母星系，顺时针缓缓旋转，四条旋臂像飘带一样在旋转时向后拖拽拉扯。我们在猎户臂外围标识了太阳系的位置（黄色发光点）。",
+                target: worldPositions.milkyWay,
+                offset: new THREE.Vector3(0, 400, 1100),
+                visibleRange: [500, 5000]
+            },
+            {
+                title: "本星系群",
+                desc: "由银河系、仙女座星系等50多个星系组成的集团。我们在其中标识了银河系的实际位置（蓝色光晕）。仙女座星系是本星系群中最大的成员。",
+                target: worldPositions.localGroup,
+                offset: new THREE.Vector3(0, 2500, 7500),
+                visibleRange: [3000, 25000]
+            },
+            {
+                title: "室女座超星系团",
+                desc: "由约30个星系团和星房密集交融而成的宏伟纤维网络（含35,000个星系粒子）。各个星团密实地凝聚在一起，由引力纤维连结，彻底告别了冰冷的对称十字分布。",
+                target: worldPositions.supercluster,
+                offset: new THREE.Vector3(0, 12000, 38000),
+                visibleRange: [18000, 120000]
+            },
+            {
+                title: "可观测宇宙",
+                desc: "人类理学观测的终极视界。在这个跨度930亿光年的宏伟视界天球内，大大小小的超级星系团呈群落分布，共同编织成浩瀚星海中最宏大的宇宙神经网络。",
+                target: worldPositions.universe,
+                offset: new THREE.Vector3(0, 70000, 210000),
+                visibleRange: [90000, 1500000]
+            }
+        ];
+
+        let currentScaleIndex = 0;
+        let isPanelCollapsed = false;
+        let isFlying = false;
+
+        // --- 收起/展开面板切换 ---
+        function toggleInfoPanel(event) {
+            if(event) event.stopPropagation();
+            const panel = document.getElementById('info-panel');
+            const line1 = document.getElementById('line1');
+            const line2 = document.getElementById('line2');
+            
+            isPanelCollapsed = !isPanelCollapsed;
+            
+            if (isPanelCollapsed) {
+                panel.classList.add('collapsed');
+                line1.setAttribute('x1', '6'); line1.setAttribute('y1', '2');
+                line1.setAttribute('x2', '6'); line1.setAttribute('y2', '10');
+                line2.setAttribute('x1', '2'); line2.setAttribute('y1', '6');
+                line2.setAttribute('x2', '10'); line2.setAttribute('y2', '6');
+            } else {
+                panel.classList.remove('collapsed');
+                line1.setAttribute('x1', '2'); line1.setAttribute('y1', '2');
+                line1.setAttribute('x2', '10'); line1.setAttribute('y2', '10');
+                line2.setAttribute('x1', '10'); line2.setAttribute('y1', '2');
+                line2.setAttribute('x2', '2'); line2.setAttribute('y2', '10');
+            }
+        }
+
+        document.getElementById('info-panel').addEventListener('click', function(e) {
+            if (isPanelCollapsed) {
+                toggleInfoPanel(e);
+            }
+        });
+
+        // --- Three.js 初始化 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000000);
+        
+        // 初始镜头落在地月系中心
+        const initialTarget = worldPositions.earthMoon;
+        camera.position.copy(initialTarget).add(new THREE.Vector3(0, 5, 15));
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600000;
+        controls.minDistance = 2;
+        controls.target.copy(initialTarget);
+
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
+        dirLight.position.set(5, 3, 5);
+        scene.add(dirLight);
+
+        // --- 核心方法：动态生成发光粒子纹理 ---
+        function createParticleTexture(glow) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            const center = 64;
+            const gradient = context.createRadialGradient(center, center, 0, center, center, center);
+            if(glow) {
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradient.addColorStop(0.2, 'rgba(200, 220, 255, 0.9)');
+                gradient.addColorStop(0.5, 'rgba(50, 100, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            } else {
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            }
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const particleTexture = createParticleTexture(false);
+        const glowTexture = createParticleTexture(true);
+
+        const groups = [];
+        let moonOrbitAngle = 0;
+
+        // --- 各层级模型构建（引入绝对坐标系） ---
+
+        // 1. 地月系 (建立在世界坐标 worldPositions.earthMoon)
+        function buildEarthMoon() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.earthMoon);
+            
+            // 地球
+            const earthGeo = new THREE.SphereGeometry(2, 32, 32);
+            const earthMat = new THREE.MeshPhongMaterial({ 
+                color: 0x1e90ff, 
+                emissive: 0x0a2a5c,
+                transparent: true,
+                opacity: 1
+            });
+            const earth = new THREE.Mesh(earthGeo, earthMat);
+            
+            // 月球
+            const moonGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const moonMat = new THREE.MeshStandardMaterial({ 
+                color: 0x888888,
+                transparent: true,
+                opacity: 1
+            });
+            const moon = new THREE.Mesh(moonGeo, moonMat);
+            moon.position.set(6, 0, 0);
+            
+            group.add(earth);
+            group.add(moon);
+            
+            group.moon = moon; 
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 2. 太阳系 (建立在世界坐标 worldPositions.solarSystem)
+        function buildSolarSystem() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.solarSystem);
+            
+            // 太阳 (位于本地中心)
+            const sunMat = new THREE.MeshBasicMaterial({ 
+                color: 0xffcc00, 
+                transparent: true, 
+                opacity: 0 
+            });
+            const sun = new THREE.Mesh(new THREE.SphereGeometry(4, 32, 32), sunMat);
+            group.add(sun);
+
+            const planetColors = [0xaaaaaa, 0xffaa00, 0x1e90ff, 0xff4400, 0xffcc88, 0xffddaa, 0x00ffff, 0x0000ff];
+            const orbitRadii = [8, 12, 18, 24, 36, 48, 62, 75];
+            
+            orbitRadii.forEach((r, index) => {
+                const orbitGeo = new THREE.RingGeometry(r, r + 0.2, 64);
+                const orbitMat = new THREE.MeshBasicMaterial({ 
+                    color: 0xffffff, 
+                    side: THREE.DoubleSide, 
+                    transparent: true, 
+                    opacity: 0,
+                    depthWrite: false
+                });
+                const orbit = new THREE.Mesh(orbitGeo, orbitMat);
+                orbit.rotation.x = Math.PI / 2;
+                group.add(orbit);
+
+                const pGeo = new THREE.SphereGeometry(index > 3 ? 1.5 : 0.8, 16, 16);
+                const pMat = new THREE.MeshPhongMaterial({
+                    color: planetColors[index],
+                    transparent: true,
+                    opacity: 0
+                });
+                const planet = new THREE.Mesh(pGeo, pMat);
+                
+                // 为了让地月系与太阳系的地球轨道完美对齐，
+                // 太阳系中的地球 (index=2) 初始角度强制为0，坐标设定在本地 (18, 0, 0)
+                const angle = (index === 2) ? 0 : Math.random() * Math.PI * 2;
+                planet.position.set(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+                group.add(planet);
+            });
+
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 3. 银河系 (建立在世界坐标 worldPositions.milkyWay)
+        function buildMilkyWay() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.milkyWay);
+
+            const particleCount = 12000;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const colorCenter = new THREE.Color(0xffffee);
+            const colorEdge = new THREE.Color(0x3366ff);
+
+            for (let i = 0; i < particleCount; i++) {
+                const dist = Math.random() * 400 + 10;
+                const armOffset = (i % 4) * (Math.PI / 2);
+                
+                // 将曲率系数设为负值（-0.015），使旋臂呈逆时针方向卷曲。
+                // 当银河系整体进行顺时针自转时，旋臂尖端向后拉扯
+                const theta = -dist * 0.015 + armOffset;
+                
+                const scatter = (Math.random() - 0.5) * 60 * (1 - dist / 500); 
+                const yScatter = (Math.random() - 0.5) * 20 * (1 - dist / 500);
+
+                const x = Math.cos(theta) * dist + scatter;
+                const z = Math.sin(theta) * dist + scatter;
+                const y = yScatter;
+
+                pos[i * 3] = x;
+                pos[i * 3 + 1] = y;
+                pos[i * 3 + 2] = z;
+
+                const mixRatio = dist / 400;
+                const mixedColor = colorCenter.clone().lerp(colorEdge, mixRatio);
+                colors[i * 3] = mixedColor.r;
+                colors[i * 3 + 1] = mixedColor.g;
+                colors[i * 3 + 2] = mixedColor.b;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 8,
+                map: glowTexture,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+
+            const points = new THREE.Points(geo, mat);
+            group.add(points);
+
+            // 【关键亮点】：在银河系中，添加太阳系所在位置的专属发光标记！
+            // 太阳系在银河系中的本地坐标偏移为 (160, 0, 1200) -> 猎户臂边缘
+            const sunMarkGeo = new THREE.SphereGeometry(12, 16, 16);
+            const sunMarkMat = new THREE.MeshBasicMaterial({
+                color: 0xffaa00,
+                transparent: true,
+                opacity: 0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const sunMarker = new THREE.Mesh(sunMarkGeo, sunMarkMat);
+            // 本地坐标对齐
+            sunMarker.position.set(160, 0, 1200);
+            group.add(sunMarker);
+            group.sunMarker = sunMarker; // 挂载引用以便更新透明度
+
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 4. 本星系群 (建立在世界坐标 worldPositions.localGroup)
+        function buildLocalGroup() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.localGroup);
+
+            const count = 120;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            
+            // 强制将第一个星系固定在本星系群下的本地坐标 (-800, 0, 1200)，作为银河系！
+            const mwLocalPos = new THREE.Vector3(-800, 0, 1200);
+
+            for (let i = 0; i < count; i++) {
+                if(i === 0) {
+                    pos[0] = mwLocalPos.x;
+                    pos[1] = mwLocalPos.y;
+                    pos[2] = mwLocalPos.z;
+                } else {
+                    const u = Math.random();
+                    const v = Math.random();
+                    const theta = u * 2.0 * Math.PI;
+                    const phi = Math.acos(2.0 * v - 1.0);
+                    const r = Math.cbrt(Math.random()) * 3000; 
+
+                    pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                    pos[i * 3 + 1] = (r * Math.sin(phi) * Math.sin(theta)) * 0.3;
+                    pos[i * 3 + 2] = r * Math.cos(phi);
+                }
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 100,
+                color: 0xaaccff,
+                map: glowTexture,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+            group.add(new THREE.Points(geo, mat));
+
+            // 【关键亮点】：添加银河系发光指示点
+            const mwMarkGeo = new THREE.SphereGeometry(120, 16, 16);
+            const mwMarkMat = new THREE.MeshBasicMaterial({
+                color: 0x3399ff,
+                transparent: true,
+                opacity: 0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const mwMarker = new THREE.Mesh(mwMarkGeo, mwMarkMat);
+            mwMarker.position.copy(mwLocalPos);
+            group.add(mwMarker);
+            group.mwMarker = mwMarker;
+
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 5. 室女座超星系团 (建立在世界坐标 worldPositions.supercluster)
+        function buildSupercluster() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.supercluster);
+
+            const count = 35000; 
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const clusters = [];
+            const clusterColors = [
+                new THREE.Color(0xff9999), 
+                new THREE.Color(0x99ccff), 
+                new THREE.Color(0xffcc99), 
+                new THREE.Color(0xcc99ff), 
+                new THREE.Color(0xff99ff), 
+                new THREE.Color(0x99ffcc), 
+                new THREE.Color(0xffffaa)  
+            ];
+            
+            // 核心1：强制固定在本星系群在超星系团下的本地投影 (2000, -1000, 3000)
+            clusters.push({
+                center: new THREE.Vector3(2000, -1000, 3000),
+                color: new THREE.Color(0x99ccff)
+            });
+
+            // 剩下29个核心随机分布
+            for (let i = 1; i < 30; i++) {
+                clusters.push({
+                    center: new THREE.Vector3(
+                        (Math.random() - 0.5) * 22000,
+                        (Math.random() - 0.5) * 12000,
+                        (Math.random() - 0.5) * 22000
+                    ),
+                    color: clusterColors[i % clusterColors.length]
+                });
+            }
+
+            for (let i = 0; i < count; i++) {
+                let x, y, z;
+                let particleColor;
+
+                if (Math.random() < 0.75) {
+                    const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+                    const radius = Math.pow(Math.random(), 3) * 1800; 
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+
+                    x = cluster.center.x + radius * Math.sin(phi) * Math.cos(theta);
+                    y = cluster.center.y + radius * Math.sin(phi) * Math.sin(theta);
+                    z = cluster.center.z + radius * Math.cos(phi);
+                    particleColor = cluster.color.clone();
+                } else {
+                    const c1 = clusters[Math.floor(Math.random() * clusters.length)];
+                    const c2 = clusters[Math.floor(Math.random() * clusters.length)];
+                    
+                    const t = Math.random(); 
+                    const noise = 1500;
+                    const driftX = (Math.random() - 0.5) * noise;
+                    const driftY = (Math.random() - 0.5) * noise;
+                    const driftZ = (Math.random() - 0.5) * noise;
+
+                    x = THREE.MathUtils.lerp(c1.center.x, c2.center.x, t) + driftX;
+                    y = THREE.MathUtils.lerp(c1.center.y, c2.center.y, t) + driftY;
+                    z = THREE.MathUtils.lerp(c1.center.z, c2.center.z, t) + driftZ;
+                    
+                    particleColor = c1.color.clone().lerp(c2.color, t);
+                }
+
+                pos[i * 3] = x;
+                pos[i * 3 + 1] = y;
+                pos[i * 3 + 2] = z;
+
+                colors[i * 3] = particleColor.r;
+                colors[i * 3 + 1] = particleColor.g;
+                colors[i * 3 + 2] = particleColor.b;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 180, 
+                map: glowTexture,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+
+            group.add(new THREE.Points(geo, mat));
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 6. 可观测宇宙 (建立在世界坐标 worldPositions.universe)
+        function buildUniverse() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.universe);
+            
+            // 1. 视界大球体边界线
+            const sphereRadius = 110000;
+            const boundaryGeo = new THREE.SphereGeometry(sphereRadius, 32, 24);
+            const boundaryMat = new THREE.MeshBasicMaterial({
+                color: 0x5a2ab3,
+                wireframe: true,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false
+            });
+            boundaryMat.userData = { maxOpacity: 0.15 }; 
+            
+            const boundaryMesh = new THREE.Mesh(boundaryGeo, boundaryMat);
+            group.add(boundaryMesh);
+
+            // 2. 宇宙网核心结构
+            const superClustersCount = 45;
+            const uniClusters = [];
+            const themeColors = [
+                new THREE.Color(0xff00bb), 
+                new THREE.Color(0x00ffff), 
+                new THREE.Color(0x9a4bfa), 
+                new THREE.Color(0xffbb00)  
+            ];
+
+            // 核心1：强制固定在室女座超星系团的本地坐标上 (15000, 5000, -10000)
+            uniClusters.push({
+                center: new THREE.Vector3(15000, 5000, -10000),
+                color: new THREE.Color(0x9a4bfa)
+            });
+
+            // 剩下44个星系团
+            for (let i = 1; i < superClustersCount; i++) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = Math.cbrt(Math.random()) * (sphereRadius * 0.82); 
+
+                uniClusters.push({
+                    center: new THREE.Vector3(
+                        r * Math.sin(phi) * Math.cos(theta),
+                        r * Math.sin(phi) * Math.sin(theta),
+                        r * Math.cos(phi)
+                    ),
+                    color: themeColors[i % themeColors.length]
+                });
+            }
+
+            const particleCount = 28000;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                let x, y, z;
+                let particleColor;
+
+                if (Math.random() < 0.85) {
+                    const cluster = uniClusters[Math.floor(Math.random() * uniClusters.length)];
+                    const clusterRadius = Math.pow(Math.random(), 3) * 6500 + 400;
+                    
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+
+                    x = cluster.center.x + clusterRadius * Math.sin(phi) * Math.cos(theta);
+                    y = cluster.center.y + clusterRadius * Math.sin(phi) * Math.sin(theta);
+                    z = cluster.center.z + clusterRadius * Math.cos(phi);
+                    particleColor = cluster.color.clone();
+                } else {
+                    const u = Math.random();
+                    const v = Math.random();
+                    const theta = u * 2.0 * Math.PI;
+                    const phi = Math.acos(2.0 * v - 1.0);
+                    const r = Math.cbrt(Math.random()) * (sphereRadius * 0.95);
+
+                    x = r * Math.sin(phi) * Math.cos(theta);
+                    y = r * Math.sin(phi) * Math.sin(theta);
+                    z = r * Math.cos(phi);
+                    particleColor = new THREE.Color(0x3a2070); 
+                }
+
+                pos[i * 3] = x;
+                pos[i * 3 + 1] = y;
+                pos[i * 3 + 2] = z;
+
+                colors[i * 3] = particleColor.r;
+                colors[i * 3 + 1] = particleColor.g;
+                colors[i * 3 + 2] = particleColor.b;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 400, 
+                map: glowTexture,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+
+            group.add(new THREE.Points(geo, mat));
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // --- 基于世界物理空间距离的透明度控制机制 ---
+        function updateOpacities() {
+            if (isFlying) return; // 飞行过程中由飞行插值接管
+
+            let activeIndex = 0;
+
+            scales.forEach((scale, index) => {
+                const group = groups[index];
+                if(!group) return;
+
+                // 核心改动：计算摄像机到当前天体系统中心的世界距离
+                const camDistance = camera.position.distanceTo(scale.target);
+                const [min, max] = scale.visibleRange;
+                let opacity = 0;
+
+                if (camDistance > min && camDistance < max) {
+                    const center = (min + max) / 2;
+                    const range = (max - min) / 2;
+                    opacity = 1 - Math.abs(camDistance - center) / range;
+                    opacity = Math.min(1, opacity * 2.2); 
+                    
+                    if (opacity > 0.75) {
+                        activeIndex = index;
+                    }
+                }
+
+                group.traverse((child) => {
+                    if (child.material) {
+                        const maxOp = (child.material.userData && child.material.userData.maxOpacity !== undefined) 
+                            ? child.material.userData.maxOpacity 
+                            : 1.0;
+                        child.material.opacity = opacity * maxOp;
+                        child.visible = opacity > 0.01;
+                    }
+                });
+
+                // 处理子组件（太阳系标记、银河系标记）
+                if (index === 2 && group.sunMarker) {
+                    group.sunMarker.material.opacity = opacity * 0.8;
+                }
+                if (index === 3 && group.mwMarker) {
+                    group.mwMarker.material.opacity = opacity * 0.8;
+                }
+            });
+
+            if (activeIndex !== currentScaleIndex) {
+                currentScaleIndex = activeIndex;
+                updateUI(activeIndex);
+            }
+        }
+
+        // --- UI 更新及滚动同步 ---
+        function updateUI(index) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach((btn, i) => {
+                btn.className = i === index ? 'active' : '';
+            });
+
+            const activeBtn = document.getElementById(`btn-${index}`);
+            if (activeBtn) {
+                activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+
+            const infoPanel = document.getElementById('info-panel');
+            const infoTitle = document.getElementById('info-title');
+            const infoDesc = document.getElementById('info-desc');
+
+            if (!isPanelCollapsed) {
+                gsap.to('.info-content', {
+                    opacity: 0,
+                    duration: 0.2,
+                    onComplete: () => {
+                        infoTitle.innerText = scales[index].title;
+                        infoDesc.innerText = scales[index].desc;
+                        gsap.to('.info-content', { opacity: 1, duration: 0.3 });
+                    }
+                });
+            } else {
+                infoTitle.innerText = scales[index].title;
+                infoDesc.innerText = scales[index].desc;
+            }
+        }
+
+        // --- 电影级镜头平移飞行机制 ---
+        function zoomTo(index) {
+            isFlying = true;
+            controls.enabled = false; // 飞航期间禁用用户手势操控，防止抖动
+
+            const targetCenter = scales[index].target;
+            const targetCamOffset = scales[index].offset;
+            const targetCamPos = targetCenter.clone().add(targetCamOffset);
+
+            // 同时过渡不同层级物体的可见度，保证飞航途中场景丝滑切换
+            scales.forEach((scale, i) => {
+                const group = groups[i];
+                if (!group) return;
+                
+                // 仅点亮的层级渐显，其余渐隐
+                const finalOpacity = (i === index) ? 1 : 0;
+                gsap.to(group.traverse ? {} : null, {
+                    duration: 2.2,
+                    onUpdate: function() {
+                        const progress = this.progress();
+                        group.traverse((child) => {
+                            if (child.material) {
+                                const maxOp = (child.material.userData && child.material.userData.maxOpacity !== undefined) 
+                                    ? child.material.userData.maxOpacity 
+                                    : 1.0;
+                                // 线性混合透明度
+                                child.material.opacity = THREE.MathUtils.lerp(child.material.opacity, finalOpacity * maxOp, progress * 0.1);
+                                if (child.material.opacity > 0.01) child.visible = true;
+                            }
+                        });
+                        if (i === 2 && group.sunMarker) {
+                            group.sunMarker.material.opacity = THREE.MathUtils.lerp(group.sunMarker.material.opacity, finalOpacity * 0.8, progress * 0.1);
+                        }
+                        if (i === 3 && group.mwMarker) {
+                            group.mwMarker.material.opacity = THREE.MathUtils.lerp(group.mwMarker.material.opacity, finalOpacity * 0.8, progress * 0.1);
+                        }
+                    }
+                });
+            });
+
+            // 镜头位置飞行插值
+            gsap.to(camera.position, {
+                x: targetCamPos.x,
+                y: targetCamPos.y,
+                z: targetCamPos.z,
+                duration: 2.5,
+                ease: "power2.inOut"
+            });
+
+            // 控制中心点平移飞跃 (Panning Target)
+            gsap.to(controls.target, {
+                x: targetCenter.x,
+                y: targetCenter.y,
+                z: targetCenter.z,
+                duration: 2.5,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    controls.enabled = true;
+                    isFlying = false;
+                    currentScaleIndex = index;
+                    updateUI(index);
+                }
+            });
+        }
+
+        // --- 初始化 & 动画主循环 ---
+        function init() {
+            buildEarthMoon();
+            buildSolarSystem();
+            buildMilkyWay();
+            buildLocalGroup();
+            buildSupercluster();
+            buildUniverse();
+
+            document.getElementById('loading').style.opacity = 0;
+            setTimeout(() => document.getElementById('loading').style.display = 'none', 1000);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            if (window.innerWidth <= 768) {
+                toggleInfoPanel();
+            }
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 1. 地月自转公转 (逆时针公转)
+            if(groups[0] && groups[0].moon) {
+                groups[0].rotation.y += 0.003;
+                moonOrbitAngle -= 0.008; 
+                groups[0].moon.position.x = Math.cos(moonOrbitAngle) * 6;
+                groups[0].moon.position.z = Math.sin(moonOrbitAngle) * 6;
+            }
+
+            // 2. 银河系顺时针旋转 (其下的旋臂因为极坐标为负而自然拖拽向后拉拉)
+            if(groups[2]) {
+                groups[2].rotation.y -= 0.0003;
+            }
+
+            // 3. 室女座与总星系在宇宙深空极其微弱地自转
+            if(groups[4]) {
+                groups[4].rotation.y += 0.0001;
+            }
+            if(groups[5]) {
+                groups[5].rotation.y += 0.00005;
+                groups[5].rotation.x += 0.00002;
+            }
+
+            // 更新渐隐渐显系统
+            updateOpacities();
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
