@@ -575,7 +575,7 @@ input[type="text"]:focus {
       <button class="btn btn-gold" id="download-btn" onclick="downloadCert()">⬇️ 下载证书 PNG</button>
       <button class="btn" onclick="location.reload()">🔄 再次游玩</button>
     </div>
-    <p class="watermark">峇株吧辖华仁中学 · 蔡逸众制作 · ecchua79</p>
+    <p class="watermark">峇株吧辖华仁中学 · 蔡逸众制作</p>
   </div>
 
 </div><!-- /app -->
@@ -769,13 +769,21 @@ function loadQuestion() {
     d.className = 'progress-dot' + (i < state.qIndex ? (state.results[i] === 'correct' ? ' done' : ' wrong-dot') : (i === state.qIndex ? ' current' : ''));
   });
 
-  // Options
+  // Shuffle options (Fisher-Yates), track correct answer's new index
+  const shuffled = q.options.map((text, i) => ({ text, isCorrect: i === q.answer }));
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  state.shuffledCorrectIndex = shuffled.findIndex(o => o.isCorrect);
+
+  // Render shuffled options
   const container = document.getElementById('options-container');
   container.innerHTML = '';
-  q.options.forEach((opt, i) => {
+  shuffled.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'btn btn-option';
-    btn.innerHTML = `<span class="opt-label">${String.fromCharCode(65+i)}</span>${opt}`;
+    btn.innerHTML = `<span class="opt-label">${String.fromCharCode(65+i)}</span>${opt.text}`;
     btn.onclick = () => checkAnswer(i, btn);
     container.appendChild(btn);
   });
@@ -820,12 +828,13 @@ function processAnswer(idx, btn) {
   state.answered = true;
   const q = QUESTIONS[state.qIndex];
   const allBtns = document.querySelectorAll('.btn-option');
-  const isCorrect = idx === q.answer;
+  const correctIdx = state.shuffledCorrectIndex;
+  const isCorrect = idx === correctIdx;
   const fb = document.getElementById('feedback-box');
   const timeoutMsg = idx === -1 ? '⌛ 时间到！' : '';
 
   // Highlight correct
-  allBtns[q.answer].classList.add('correct-btn');
+  allBtns[correctIdx].classList.add('correct-btn');
   allBtns.forEach(b => b.classList.add('disabled'));
 
   if (isCorrect) {
@@ -1150,7 +1159,7 @@ function generateCertificate() {
     ctx.fillText(st[1], bx + gw/2, by + 52);
   });
 
-  // Encouragement//Made by ecchua79
+  // Encouragement
   ctx.font = 'italic 14px Noto Sans SC, Arial';
   ctx.fillStyle = '#8ab0cc';
   ctx.textAlign = 'center';
@@ -1218,7 +1227,7 @@ function downloadCert() {
    MAIN ENTRY
    ════════════════════════════════ */
 // Start wave animation already runs on load
-
+//Made by ecchua79
 </script>
 </body>
 </html>
