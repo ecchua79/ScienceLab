@@ -1,0 +1,530 @@
+/*
+ * 胡克定律全变量科学实验室
+ * 峇株吧辖华仁中学 · 蔡逸众制作
+ */
+import React, { useState, useEffect, useRef } from 'react';
+
+// 默认支持 Gemini-2.5-flash 交互
+const apiKey = ""; // 运行时由环境自动填充
+
+export default function App() {
+  // 物理实验状态 - 变量区
+  const [L0, setL0] = useState(120); // 弹簧原长度 (像素 px)
+  const [k, setK] = useState(200); // 劲度系数 (N/m)
+  const [mass, setMass] = useState(2); // 悬挂质量 (kg)
+  const [gravity, setGravity] = useState(10); // 重力加速度 (N/kg) - 更改为初中科学常用估值 10
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // 预设对照状态
+  const [activePreset, setActivePreset] = useState('custom');
+
+  // 答题与 AI 系统状态
+  const [activeTab, setActiveTab] = useState('quiz');
+  const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [score, setScore] = useState(0);
+
+  // AI 聊天状态
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([
+    { 
+      role: 'model', 
+      text: '你好！我是“逸众老师小助手”。\n\n我是科学老师的贴心小助手，专门来陪伴大家快乐探索科学世界的奥秘！\n\n现在你可以自由调整弹簧的原长、劲度系数和重物的质量，也可以随时向我提问有关弹簧拉伸的科学问题哦！' 
+    }
+  ]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  // 水印：控制台标识
+  useEffect(() => {
+    console.log('%c胡克定律全变量科学实验室 · 华仁中学 · 蔡逸众', 'color:#818cf8;font-weight:bold;');
+  }, []);
+
+  // 物理计算
+  const scale = 300; // 物理长度(m) 到 像素(px) 的缩放比例 (1m = 300px)
+  
+  // 安全计算，防止 NaN 破坏渲染
+  const safeMass = isNaN(mass) || mass === null ? 2 : Math.max(0, Math.min(5, mass));
+  const safeK = isNaN(k) || k === null ? 200 : Math.max(100, Math.min(500, k));
+  const safeL0 = isNaN(L0) || L0 === null ? 120 : Math.max(80, Math.min(180, L0));
+
+  // F = m * g
+  const F_applied = safeMass * gravity;
+  // x = F / k
+  const x = F_applied / safeK;
+  // 总长度 L = L0 + x
+  const currentLengthPx = safeL0 + (x * scale);
+
+  // 预设对照
+  const applyPreset = (presetKey) => {
+    setActivePreset(presetKey);
+    if (presetKey === 'original') {
+      setMass(0);
+    } else if (presetKey === 'x1') {
+      setMass(2);
+      setK(200);
+    } else if (presetKey === 'x2') {
+      setMass(4);
+      setK(200);
+    }
+  };
+
+  // 监听变量调节
+  const handleParamChange = (setter, val) => {
+    if (isNaN(val)) return;
+    setter(val);
+    setActivePreset('custom');
+  };
+
+  // 拖拽逻辑（全平台安全防 NaN 触控版本）
+  const containerRef = useRef(null);
+  const handlePointerDown = () => setIsDragging(true);
+
+  useEffect(() => {
+    const handlePointerMove = (e) => {
+      if (!isDragging || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (!rect || rect.height === 0) return;
+      
+      // 兼容鼠标和多点触控
+      let clientY = e.clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientY = e.touches[0].clientY;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientY = e.changedTouches[0].clientY;
+      }
+      
+      if (clientY === undefined || clientY === null) return;
+      
+      const relativeY = clientY - rect.top;
+      // 映射到 SVG (0-400)
+      const svgY = (relativeY / rect.height) * 400;
+      
+      if (isNaN(svgY) || !isFinite(svgY)) return;
+
+      const targetLength = Math.max(safeL0, Math.min(380, svgY));
+      const targetX = (targetLength - safeL0) / scale; 
+      
+      if (isNaN(targetX) || !isFinite(targetX)) return;
+
+      // 计算质量 (F = k * x => m = (k * x) / g) 限制最大 5kg
+      const calculatedMass = Math.min(5, Math.max(0, parseFloat(((targetX * safeK) / gravity).toFixed(2))));
+      
+      if (!isNaN(calculatedMass) && isFinite(calculatedMass)) {
+        setMass(calculatedMass);
+        setActivePreset('custom');
+      }
+    };
+
+    const handlePointerUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      window.addEventListener('pointermove', handlePointerMove, { passive: false });
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('touchmove', handlePointerMove, { passive: false });
+      window.addEventListener('touchend', handlePointerUp);
+    }
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
+    };
+  }, [isDragging, safeL0, safeK, gravity]);
+
+  // 题库
+  const quizDatabase = [
+    {
+      id: 1,
+      question: '如果换了一根更长的弹簧（原长 L₀ 变大），但弹簧的粗细和材质没变（劲度系数 k 不变），挂同样的重物时，弹簧的“伸长量 x”会改变吗？',
+      options: [
+        { key: 'A', text: '伸长量会变大' },
+        { key: 'B', text: '伸长量会变小' },
+        { key: 'C', text: '伸长量保持不变' },
+        { key: 'D', text: '伸长量直接变为 0' }
+      ],
+      correct: 'C',
+      explanation: '正确答案是 C。太棒了！伸长量 x 只取决于拉力 F 和劲度系数 k（F = k × x）。弹簧的原长 L₀ 只是伸长的“起点”，它本身并不会影响弹簧受力后的“拉伸能力”哦。'
+    },
+    {
+      id: 2,
+      question: '一根原长 L₀ = 10 cm 的弹簧，挂上重物受到拉力 F₁ = 10 N 时，总长度变为了 12 cm。如果将拉力增大到 F₂ = 30 N，利用比例公式 F₁/x₁ = F₂/x₂，此时弹簧的总长度是多少？',
+      options: [
+        { key: 'A', text: '6 cm' },
+        { key: 'B', text: '16 cm' },
+        { key: 'C', text: '15 cm' },
+        { key: 'D', text: '13 cm' }
+      ],
+      correct: 'B',
+      explanation: '正确答案是 B。第一步计算初次形变量：x₁ = 12 cm - 10 cm = 2 cm。第二步利用比例公式：10 / 2 = 30 / x₂，计算得出新的伸长量 x₂ = 6 cm。最后注意，题目问的是弹簧的“总长度”，所以要加上原长：L = L₀ + x₂ = 10 cm + 6 cm = 16 cm。'
+    }
+  ];
+
+  const handleAnswerSubmit = (key) => {
+    if (showExplanation) return;
+    setSelectedAnswer(key);
+    setShowExplanation(true);
+    if (key === quizDatabase[currentQuizIndex].correct) setScore(score + 1);
+  };
+
+  // 生成漂亮的 SVG 弹簧螺线路径（极致安全，杜绝零长度或负长度导致的路径崩溃）
+  const getSpringPath = (startY, endY, coils = 12, width = 18) => {
+    const xCenter = 100;
+    const totalHeight = Math.max(15, endY - startY); // 确保弹簧高度绝不小于 15 像素，避免挤压成一个点
+    const topStraight = totalHeight * 0.1;
+    const bottomStraight = totalHeight * 0.1;
+    const coilHeight = totalHeight - topStraight - bottomStraight;
+    
+    let path = `M ${xCenter} ${startY}`;
+    path += ` L ${xCenter} ${startY + topStraight}`;
+    
+    const segments = coils * 2;
+    const step = coilHeight / segments;
+    for (let i = 0; i < segments; i++) {
+      const currentY = startY + topStraight + (i + 0.5) * step;
+      const direction = i % 2 === 0 ? 1 : -1;
+      const controlX = xCenter + direction * width;
+      const nextY = startY + topStraight + (i + 1) * step;
+      path += ` Q ${controlX} ${currentY} ${xCenter} ${nextY}`; // 去除多余的英文逗号，完美兼容所有浏览器SVG解析
+    }
+    
+    path += ` L ${xCenter} ${startY + totalHeight}`;
+    return path;
+  };
+
+  // 深度净化 AI 回答，智能转写乘号，去除 Markdown 符号，确保初中生阅读无障碍
+  const cleanMessageText = (text) => {
+    if (!text) return "";
+    let cleaned = text;
+
+    // 1. 将 "数字 * 数字" 或 "字母 * 字母" 智能替换成标准的中文乘号 " × "
+    cleaned = cleaned.replace(/(\d+)\s*\*\s*(\d+)/g, '$1 × $2');
+    cleaned = cleaned.replace(/([a-zA-Z0-9\u4e00-\u9fa5]+)\s*\*\s*([a-zA-Z0-9\u4e00-\u9fa5]+)/g, '$1 × $2');
+
+    // 2. 移除所有 Markdown 粗体（**）和斜体（*）的星号，防止格式错乱
+    cleaned = cleaned.replace(/\*\*/g, '');
+    cleaned = cleaned.replace(/\B\*\B|\*(?=\s)|(?<=\s)\*/g, '');
+
+    // 3. 去除无意义的井号（#）和反引号
+    cleaned = cleaned.replace(/#+\s+/g, '');
+    cleaned = cleaned.replace(/`/g, '');
+
+    return cleaned;
+  };
+
+  const callGeminiAPI = async (prompt) => {
+    const systemPrompt = `你是一位亲切、富有耐心的中学科学探究助手，名叫“逸众老师小助手”。你的角色是科学老师的贴心小助手。
+    请千万不要在文本中使用任何 $ 符号或繁琐的 LaTeX 语法。
+    
+    【核心书写规范 - 极其重要】：
+    1. 绝对不要使用星号（* 或 **）来代表乘法或进行加粗。请一律使用汉字乘号 " × " 来表达乘法关系（例如：5N × 2cm = 10cm，F = k × x）。
+    2. 使用双回车符（\\n\\n）将你的答案拆分成非常简短、好读的自然段。在手机屏幕上，每段尽量控制在2-3行。
+    3. 如果有计算步骤，请使用 1. 2. 3. 这种数字标号分行写，让初中生一眼就能看懂。
+    
+    当前实验室内的动态科学实验数据为：弹簧原长 L0 = ${(safeL0/scale*100).toFixed(1)} cm，劲度系数 k = ${safeK} N/m，重物质量 m = ${safeMass} kg，常数 g = 10 N/kg，当前拉力 F = ${(safeMass*gravity).toFixed(1)} N，伸长量 x = ${(x*100).toFixed(1)} cm。
+    你的任务是用浅显易懂、启发探究的科学语言回答同学的问题。多使用鼓励和发问的形式，引导他们通过“控制变量法”或“比例公式（F1/x1 = F2/x2）”来探究身边的科学现象。`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } })
+      });
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "逸众老师小助手正在为你查阅科学资料...";
+    } catch (err) { return "连接小助手失败，请检查网络后再试一试哦！"; }
+  };
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsAiLoading(true);
+    try {
+      const reply = await callGeminiAPI(userMessage);
+      setChatHistory(prev => [...prev, { role: 'model', text: reply }]);
+    } finally { setIsAiLoading(false); }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans antialiased select-none">
+      {/* 顶部标题栏 */}
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center space-x-3">
+          <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/20 text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <div>
+            <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">胡克定律全变量科学实验室</h1>
+            <p className="text-[10px] text-slate-400">科学老师的贴心教学助手</p>
+          </div>
+        </div>
+        <span className="text-xs text-slate-500 font-mono">常量 g = 10 N/kg</span>
+      </header>
+
+      {/* 主体视窗 */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 select-none">
+        
+        {/* 左侧实验沙盒 */}
+        <div className="lg:col-span-8 flex flex-col space-y-6">
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative">
+            <div className="p-4 border-b border-slate-700/60 bg-slate-800/30 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">对照实验：</span>
+                <div className="flex rounded-lg bg-slate-900 p-1 border border-slate-700/40">
+                  {['original', 'x1', 'x2'].map(p => (
+                    <button key={p} onClick={() => applyPreset(p)} className={`px-2.5 sm:px-3 py-1 text-xs rounded-md transition-all font-medium ${activePreset === p ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                      {p === 'original' ? '原长 L₀' : p === 'x1' ? 'L₀ + x₁ (2kg)' : 'L₀ + x₂ (4kg)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 动画演示区域 */}
+            <div className="h-[420px] bg-slate-950 relative">
+              
+              {/* 弹簧与标尺一体化 SVG */}
+              <div ref={containerRef} className="w-full h-full relative cursor-ns-resize overflow-hidden touch-none" onPointerDown={handlePointerDown}>
+                <svg className="w-full h-full" viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet">
+                  
+                  {/* 背景网格线 */}
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+                  <defs>
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(51, 65, 85, 0.25)" strokeWidth="1" />
+                    </pattern>
+                  </defs>
+                  
+                  {/* 固定天花板顶座 */}
+                  <rect x="40" y="20" width="120" height="12" rx="4" fill="#334155" />
+                  
+                  {/* 弹簧本体 */}
+                  <path 
+                    d={getSpringPath(32, currentLengthPx - 15)} 
+                    fill="none" 
+                    stroke={safeMass === 0 ? '#64748b' : '#38bdf8'} 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round" 
+                    className="transition-all duration-75" 
+                  />
+                  
+                  {/* 底端小挂钩 */}
+                  <path d={`M 100 ${currentLengthPx - 15} L 100 ${currentLengthPx}`} fill="none" stroke="#475569" strokeWidth="3" />
+
+                  {/* 挂载砝码 */}
+                  {safeMass > 0 && (
+                    <g transform={`translate(100, ${currentLengthPx})`} className="transition-all duration-75">
+                      <path d="M -12 0 L 0 -8 L 12 0" fill="none" stroke="#94a3b8" strokeWidth="2" />
+                      <rect x="-20" y="0" width="40" height={22 + safeMass * 5} rx="3" fill="url(#copperGrad)" stroke="#b45309" strokeWidth="1.5" />
+                      <text x="0" y={(22 + safeMass * 5) / 2 + 4} fill="#fef3c7" fontSize="9" fontWeight="bold" textAnchor="middle">{safeMass.toFixed(1)} kg</text>
+                    </g>
+                  )}
+                  <defs>
+                    <linearGradient id="copperGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#b45309" />
+                      <stop offset="30%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#78350f" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* 物理力平衡指示 */}
+                  {safeMass > 0 && (
+                    <g transform={`translate(165, ${currentLengthPx})`} className="transition-all duration-75">
+                      <line x1="0" y1="0" x2="0" y2={Math.min(50, F_applied * 1.5)} stroke="#ef4444" strokeWidth="2.5" markerEnd="url(#arrowRed)" />
+                      <text x="8" y={Math.min(25, F_applied * 0.7)} fill="#fca5a5" fontSize="8" fontWeight="bold">重力 G</text>
+                      
+                      <line x1="-12" y1="0" x2="-12" y2={-Math.min(50, F_applied * 1.5)} stroke="#10b981" strokeWidth="2.5" markerEnd="url(#arrowGreen)" />
+                      <text x="-52" y={-Math.min(25, F_applied * 0.7)} fill="#a7f3d0" fontSize="8" fontWeight="bold">弹力 F</text>
+                    </g>
+                  )}
+                  <defs>
+                    <marker id="arrowRed" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                      <path d="M0,0 L5,2.5 L0,5 Z" fill="#ef4444" />
+                    </marker>
+                    <marker id="arrowGreen" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                      <path d="M0,5 L5,2.5 L0,0 Z" fill="#10b981" />
+                    </marker>
+                  </defs>
+
+                  {/* 一体化厘米标尺 (彻底解决缩放与重叠) */}
+                  <g transform="translate(250, 0)">
+                    <line x1="0" y1="20" x2="0" y2="380" stroke="#475569" strokeWidth="2" />
+                    <text x="-5" y="15" fill="#94a3b8" fontSize="8" textAnchor="end">cm</text>
+
+                    {/* 厘米静态刻度 */}
+                    {[0, 10, 20, 30, 40, 50].map(cm => {
+                      const tickY = safeL0 + (cm / 100) * scale;
+                      if (tickY > 380) return null;
+                      return (
+                        <g key={cm} transform={`translate(0, ${tickY})`}>
+                          <line x1="0" y1="0" x2="-6" y2="0" stroke="#475569" strokeWidth="1.2" />
+                          <text x="6" y="3" fill="#64748b" fontSize="8" fontFamily="monospace">{cm}</text>
+                        </g>
+                      );
+                    })}
+
+                    {/* 动态伸长指示（锁定在标尺内侧） */}
+                    {x > 0 && (
+                      <g>
+                        <rect 
+                          x="-25" 
+                          y={safeL0} 
+                          width="25" 
+                          height={x * scale} 
+                          fill="rgba(239, 68, 68, 0.15)" 
+                          stroke="rgba(239, 68, 68, 0.4)" 
+                          strokeWidth="1" 
+                        />
+                        <g transform={`translate(-28, ${safeL0 + (x * scale) / 2})`}>
+                          <rect x="-62" y="-9" width="58" height="18" rx="4" fill="#ef4444" />
+                          <text x="-33" y="3.5" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                            x={(x*100).toFixed(1)}
+                          </text>
+                        </g>
+                      </g>
+                    )}
+
+                    {/* 动态原长起点虚线 */}
+                    <line x1="-220" y1={safeL0} x2="0" y2={safeL0} stroke="#475569" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
+                    <text x="-215" y={safeL0 - 4} fill="#64748b" fontSize="8" opacity="0.6">原长 L₀起点</text>
+                  </g>
+                </svg>
+
+                {/* 悬浮拖拽提示 */}
+                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700/60 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-300 pointer-events-none flex items-center space-x-1">
+                  <svg className="w-3 h-3 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                  <span>手指上下拖动砝码改变拉力</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 控制面板 */}
+            <div className="p-6 bg-slate-800/80 border-t border-slate-700/60 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-slate-400"><span>弹簧原长 (L₀)</span><span className="text-indigo-300 font-bold font-mono">{(safeL0/scale*100).toFixed(1)} cm</span></div>
+                  <input type="range" min="80" max="180" step="5" value={safeL0} onChange={(e) => handleParamChange(setL0, Number(e.target.value))} className="w-full accent-indigo-500 bg-slate-900 rounded-lg h-2 appearance-none cursor-pointer" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-slate-400"><span>劲度系数 (k) - 决定软硬</span><span className="text-emerald-300 font-bold font-mono">{safeK} N/m</span></div>
+                  <input type="range" min="100" max="500" step="20" value={safeK} onChange={(e) => handleParamChange(setK, Number(e.target.value))} className="w-full accent-emerald-500 bg-slate-900 rounded-lg h-2 appearance-none cursor-pointer" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-slate-400"><span>悬挂质量 (m)</span><span className="text-amber-300 font-bold font-mono">{safeMass.toFixed(2)} kg</span></div>
+                  <input type="range" min="0" max="5" step="0.1" value={safeMass} onChange={(e) => handleParamChange(setMass, Number(e.target.value))} className="w-full accent-amber-500 bg-slate-900 rounded-lg h-2 appearance-none cursor-pointer" />
+                </div>
+              </div>
+
+              {/* 运算看板 */}
+              <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-700/40 flex flex-col justify-center space-y-3">
+                <div className="flex justify-between text-xs font-mono text-slate-400"><span>拉力 F = m × g</span><span className="text-red-400">{F_applied.toFixed(1)} N</span></div>
+                <div className="flex justify-between text-xs font-mono text-slate-400"><span>伸长量 x = F / k</span><span className="text-sky-300">{(x*100).toFixed(1)} cm</span></div>
+                <div className="flex justify-between text-xs font-mono text-slate-400 border-t border-slate-800 pt-2 font-bold"><span>总长度 L = L₀ + x</span><span className="text-white">{(safeL0/scale*100 + x*100).toFixed(1)} cm</span></div>
+                <div className="mt-2 bg-indigo-950/40 p-2 rounded text-[10px] text-indigo-300">💡 科学规律：无论原长如何改变，相同的拉力产生的伸长量 x 是完全一致的。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 右侧交互面板 */}
+        <div className="lg:col-span-4 flex flex-col space-y-6">
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl overflow-hidden h-[620px] flex flex-col shadow-xl">
+            
+            {/* 标签 */}
+            <div className="flex bg-slate-800/40 border-b border-slate-700/60">
+              {['quiz', 'ai-tutor'].map(t => (
+                <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-3 text-sm font-semibold transition ${activeTab === t ? 'bg-indigo-600/30 text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500 hover:text-slate-300'}`}>
+                  {t === 'quiz' ? '物理冲关' : '逸众老师小助手'}
+                </button>
+              ))}
+            </div>
+
+            {/* 内容 */}
+            <div className="flex-1 p-4 overflow-y-auto bg-slate-900/40 flex flex-col justify-between">
+              {activeTab === 'quiz' ? (
+                <div className="space-y-4 flex-1 overflow-y-auto">
+                  <div className="bg-slate-800 border border-slate-700/50 p-4 rounded-xl">
+                    <p className="text-sm font-medium text-slate-200">{quizDatabase[currentQuizIndex].question}</p>
+                  </div>
+                  <div className="space-y-2">
+                    {quizDatabase[currentQuizIndex].options.map(o => (
+                      <button key={o.key} disabled={showExplanation} onClick={() => handleAnswerSubmit(o.key)} className={`w-full text-left p-3 rounded-xl border text-xs transition ${showExplanation ? (o.key === quizDatabase[currentQuizIndex].correct ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 font-semibold' : 'opacity-40 border-slate-800 text-slate-500') : 'border-slate-700 text-slate-300 hover:border-indigo-500'}`}>
+                        {o.key}. {o.text}
+                      </button>
+                    ))}
+                  </div>
+                  {showExplanation && (
+                    <div className="animate-fadeIn space-y-3 mt-4">
+                      <div className="text-[11px] text-slate-300 bg-slate-850 p-3 rounded-lg border border-slate-800 leading-relaxed">
+                        <strong className="text-slate-200 block mb-1">💡 科学精讲：</strong>
+                        {quizDatabase[currentQuizIndex].explanation}
+                      </div>
+                      <button onClick={() => { setShowExplanation(false); setCurrentQuizIndex((currentQuizIndex + 1) % quizDatabase.length); setSelectedAnswer(null); }} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/25 transition">
+                        下一关
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col h-full justify-between">
+                  {/* 对话渲染框 */}
+                  <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                    {chatHistory.map((m, i) => (
+                      <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`text-xs p-3.5 rounded-2xl max-w-[90%] leading-relaxed ${m.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-300 rounded-bl-none border border-slate-700/50'}`}>
+                          <strong className="text-[9px] block opacity-75 mb-1">{m.role === 'user' ? '你' : '逸众老师小助手'}</strong>
+                          {/* 段落清爽显示 */}
+                          {cleanMessageText(m.text).split('\n\n').map((para, paraIdx) => (
+                            <p key={paraIdx} className="mb-2.5 last:mb-0">
+                              {para}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {isAiLoading && (
+                      <div className="flex items-center space-x-2 text-[10px] text-slate-500 pl-1">
+                        <span className="animate-ping h-1.5 w-1.5 rounded-full bg-indigo-400"></span>
+                        <span>小助手正在整理步骤...</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 输入 */}
+                  <div className="mt-4 flex gap-2 border-t border-slate-800 pt-3">
+                    <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendChat()} className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600" placeholder="向小助手提问..." />
+                    <button onClick={handleSendChat} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition">发送</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* 经典公式卡 */}
+          <div className="bg-gradient-to-r from-slate-850 to-indigo-950 border border-indigo-900/40 rounded-2xl p-4 text-center">
+            <div className="grid grid-cols-2 gap-2 border-b border-slate-800/80 pb-2 mb-2">
+              <div>
+                <span className="block text-[8px] text-slate-400">胡克定律定义式</span>
+                <div className="text-base font-serif font-bold text-white">F = k × x</div>
+              </div>
+              <div className="border-l border-slate-800/80">
+                <span className="block text-[8px] text-indigo-400">探究比例公式</span>
+                <div className="text-base font-serif font-bold text-indigo-300">F₁/x₁ = F₂/x₂</div>
+              </div>
+            </div>
+            <p className="text-[9px] text-slate-500 leading-relaxed">利用比例关系，拉力的倍数和伸长的倍数完全相同，无需算出k值。</p>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer 水印 */}
+      <footer className="border-t border-slate-800/60 py-3 text-center">
+        <p className="text-[9px] text-slate-600 tracking-wide">峇株吧辖华仁中学 · 蔡逸众制作</p>
+      </footer>
+    </div>
+  );
+}
