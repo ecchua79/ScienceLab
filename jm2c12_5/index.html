@@ -100,6 +100,7 @@
         <!-- 低调版权标识 -->
         <div style="position:absolute; top:6px; left:50%; transform:translateX(-50%); font-size:0.55rem; color:rgba(56,189,248,0.18); z-index:1; pointer-events:none; user-select:none; letter-spacing:0.05em;">峇株吧辖华仁中学蔡逸众制作</div>
 
+
         <!-- 左侧面板: 阶段切换 & 科学阐述 -->
         <div id="panel-left" class="absolute left-0 top-0 bottom-0 z-20 w-[280px] sm:w-[350px] max-w-[85vw] bg-black/90 backdrop-blur-lg border-r border-yellow-500/10 flex flex-col transition-transform duration-300 ease-in-out">
             <!-- 伸缩折叠手柄 -->
@@ -271,6 +272,70 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- 引力透镜后处理 Shader (Gravitational Lensing Post-Process) 🕳️ -->
+    <!-- 原理: 屏幕空间径向采样偏移，模拟史瓦西黑洞对背景星光的引力弯曲；
+         事件视界内直接输出纯黑（光子被吞噬），边缘叠加光子环高亮辉光 -->
+    <script id="lensVertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="lensFragmentShader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D tDiffuse;
+        uniform vec2 uBHScreenPos;
+        uniform float uBHRadius;
+        uniform float uAspect;
+        uniform float uEnabled;
+        uniform float uTime;
+        varying vec2 vUv;
+
+        void main() {
+            if (uEnabled < 0.5) {
+                gl_FragColor = texture2D(tDiffuse, vUv);
+                return;
+            }
+
+            vec2 toCenter = vUv - uBHScreenPos;
+            toCenter.x *= uAspect;
+            float dist = length(toCenter);
+            float horizon = uBHRadius;
+
+            // 事件视界内：光子被吞噬，纯黑
+            if (dist < horizon) {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                return;
+            }
+
+            vec2 dir = toCenter / max(dist, 0.0001);
+
+            // 类史瓦西透镜位移公式：偏折量随距离平方反比衰减
+            float lensAmount = (horizon * horizon) / (dist * dist) * 1.35;
+            lensAmount = clamp(lensAmount, 0.0, 0.98);
+
+            vec2 warpedDir = dir * (1.0 - lensAmount);
+            vec2 offset = warpedDir * dist;
+            offset.x /= uAspect;
+
+            vec2 sampleUV = clamp(uBHScreenPos + offset, vec2(0.001), vec2(0.999));
+            vec4 color = texture2D(tDiffuse, sampleUV);
+
+            // 光子环：视界边缘的高亮细环，模拟光子球辉光
+            float ring = smoothstep(horizon * 1.22, horizon, dist) * smoothstep(horizon * 0.92, horizon * 1.05, dist);
+            float ringFlicker = 0.85 + 0.15 * sin(uTime * 3.0 + dist * 40.0);
+            color.rgb += vec3(1.0, 0.82, 0.55) * ring * 1.6 * ringFlicker;
+
+            // 视界外侧轻微暗晕，增强吞噬感
+            float darkHalo = smoothstep(horizon * 1.6, horizon, dist) * 0.35;
+            color.rgb *= (1.0 - darkHalo);
+
+            gl_FragColor = color;
+        }
+    </script>
 
     <!-- Custom Shader (GLSL Simplex Noise) for Solar/Stellar Surface (完美的、不发黑、高亮沸腾燃烧着色器) 🌟 -->
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -452,7 +517,6 @@
                     },
                     2: {
                         title: "超大原恒星", roman: "STAGE II", color: 0x2288ff, colorClass: "text-blue-500",
-        //峇株吧辖华仁中学蔡逸众制作
                         short: "旋转吞噬周边气体，高能蓝色对流核在狂暴等离子流中喷射。",
                         desc: "随着超强引力吸积，核心温度极高，并呈现蓝白色，高能轴向射流强度是太阳级的数万倍。",
                         temp: "8,000 K", radius: "12.0 R☉", fusion: "强引力压缩生热", balance: "疯狂吸积中", ageText: "2.5 万年", hrPos: { x: 40, y: 65 },
@@ -467,7 +531,6 @@
                     },
                     4: {
                         title: "红超巨星 (Red Supergiant)", roman: "STAGE IV", color: 0xd94406, colorClass: "text-amber-600", // 修正：洋葱红超巨星
-        //华仁中学蔡逸众制作
                         short: "核聚变历经氦、碳、氖、氧、硅，形成洋葱状核结构。",
                         desc: "氢耗尽后迅速膨胀为超巨星。其内部核反应合成重元素。当合成至铁元素（Fe）时，核心再也无法通过聚变释放能量，灾难即将来临。",
                         temp: "3,500 K", radius: "950 R☉", fusion: "各级壳层多重聚变直至铁核", balance: "洋葱核结构即将崩溃", ageText: "1,450 万年", hrPos: { x: 85, y: 92 },
@@ -479,6 +542,7 @@
                         desc: "无法支撑重力的铁核在一瞬间坍缩。核极度致密触发物质强烈反弹，引发摧毁整颗恒星的Ⅱ型超新星大爆炸，光度比肩一个星系。",
                         temp: "百亿开尔文", radius: "炸裂震荡波向外无限扩散", fusion: "瞬时超新星核合成 (产生金银铂重金)", balance: "彻底爆裂崩溃", ageText: "1,452 万年 (爆燃瞬时)", hrPos: { x: 75, y: 98 },
                         hrBrief: "光度暴增至极限，短暂冲出赫罗图峰值。", cameraDist: 20
+        //Made by ecchua79
                     },
                     6: {
                         title: "中子星 (Neutron Star) 💫", roman: "STAGE VI", color: 0xa5b4fc, colorClass: "text-indigo-300",
@@ -501,6 +565,7 @@
                     },
                     2: {
                         title: "高能蓝色原恒星", roman: "STAGE II", color: 0x0066ff, colorClass: "text-blue-700",
+        //峇株吧辖蔡逸众制作
                         short: "吞噬吸积盘尘埃速度惊人，蓝色高温内核伴随喷流剧烈爆发。",
                         desc: "极快、极重、极热的吸积涡流。由于重力巨大，还在原恒星阶段就已经在表面呈现刺眼的深蓝紫色。",
                         temp: "12,000 K", radius: "25 R☉", fusion: "重力塌缩生热", balance: "强风暴吸积", ageText: "1 万年", hrPos: { x: 35, y: 75 },
@@ -521,6 +586,7 @@
                         hrBrief: "赫罗图最右上方边缘，处于极度不稳定的暴风雨前夕。", cameraDist: 25
                     },
                     5: {
+        //华仁中学蔡逸众制作
                         title: "超超新星/极超新星 💥", roman: "STAGE V", color: 0xd97706, colorClass: "text-amber-500",
                         short: "极超新星爆发，瞬时能量是普通超新星的百倍。",
                         desc: "大核心的塌陷伴随着伽马射线暴（GRB），瞬间喷流能量可摧毁沿途数百光年内的一切星体，结合强色度 Bloom 极为刺眼。",
@@ -581,7 +647,6 @@
             blueGlow: createParticleGlowTexture('rgba(200,225,255,1)', 'rgba(59,130,246,0.3)'), 
             yellowGlow: createParticleGlowTexture('rgba(255,250,200,1)', 'rgba(161,98,7,0.35)'),
             redGlow: createParticleGlowTexture('rgba(255,210,210,1)', 'rgba(239,68,68,0.3)'),
-        //华仁中学蔡逸众制作
             tealGlow: createParticleGlowTexture('rgba(180,255,240,1)', 'rgba(20,184,166,0.3)'),
             whiteDot: createParticleGlowTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0.35)'),
             indigoGlow: createParticleGlowTexture('rgba(230,235,255,1)', 'rgba(99,102,241,0.35)') 
@@ -593,9 +658,48 @@
         let activeCompanion = null; 
         let specialOutflow = null; 
 
+        // 引力透镜后处理相关句柄 🕳️
+        let lensPass = null;
+        const bhCenterHelper = new THREE.Vector3(0, 0, 0);
+        //峇株吧辖蔡逸众制作
+        const bhRightHelper = new THREE.Vector3();
+        const bhEdgeHelper = new THREE.Vector3();
+
+        // 背景星空 (供引力透镜扭曲展示用的远景背景星光层)
+        function createBackgroundStarfield() {
+            const count = 6000;
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = 260 + Math.random() * 220;
+                pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i+2] = r * Math.cos(phi);
+                const b = 0.55 + Math.random() * 0.45;
+                colors[i] = b;
+                colors[i+1] = b;
+                colors[i+2] = Math.min(1.0, b + 0.08);
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 1.3,
+                vertexColors: true,
+                map: textures.whiteDot,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                sizeAttenuation: false
+            });
+            return new THREE.Points(geom, mat);
+        }
+
         // --- 3. 3D 场景与后期通道搭建 ---
         function initScene() {
-        //Made by ecchua79
             const container = document.getElementById('canvas3d');
             scene = new THREE.Scene();
             scene.fog = new THREE.FogExp2(0x010103, 0.01);
@@ -616,6 +720,9 @@
 
             scene.add(stageGroup);
 
+            // 背景星空层 (常驻场景，为黑洞引力透镜提供可扭曲的星光背景)
+            scene.add(createBackgroundStarfield());
+
             // 强环境光提亮
             const ambient = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambient);
@@ -633,12 +740,26 @@
                     uTime: { value: 0.0 },
                     uColor: { value: new THREE.Color(0xffaa00) }
                 }
-        //峇株吧辖华仁中学蔡逸众制作
             });
 
             // 核心后期处理管线设置
             const renderScene = new THREE.RenderPass(scene, camera);
-            
+
+            // 引力透镜后处理通道 🕳️ (仅在黑洞终极阶段启用，插在渲染与泛光之间，
+            // 使光子环的高亮弯曲边缘也能被 Bloom 进一步渲染得更炫目)
+            lensPass = new THREE.ShaderPass({
+                uniforms: {
+                    tDiffuse: { value: null },
+                    uBHScreenPos: { value: new THREE.Vector2(0.5, 0.5) },
+                    uBHRadius: { value: 0.12 },
+                    uAspect: { value: container.clientWidth / container.clientHeight },
+                    uEnabled: { value: 0.0 },
+                    uTime: { value: 0.0 }
+                },
+                vertexShader: document.getElementById('lensVertexShader').textContent,
+                fragmentShader: document.getElementById('lensFragmentShader').textContent
+            });
+
             const bloomPass = new THREE.UnrealBloomPass(
                 new THREE.Vector2(container.clientWidth, container.clientHeight), 
                 1.75,  
@@ -648,6 +769,7 @@
 
             composer = new THREE.EffectComposer(renderer);
             composer.addPass(renderScene);
+            composer.addPass(lensPass);
             composer.addPass(bloomPass);
 
             // 自适应布局
@@ -656,6 +778,7 @@
             // 生成阶段 Tab
             generateStageButtons();
 
+        //峇株吧辖华仁中学蔡逸众制作
             // 绘制初始 3D 天体
             buildStage3D();
 
@@ -691,7 +814,6 @@
 
                 const scaleRad = currentRoute === 'low' ? 12 : currentRoute === 'medium' ? 16 : 20;
                 
-        //峇株吧辖蔡逸众制作
                 for (let i = 0; i < count * 3; i += 3) {
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
@@ -788,6 +910,7 @@
                 activeStar = new THREE.Mesh(coreGeom, stellarShaderMaterial);
                 stageGroup.add(activeStar);
 
+        //Made by ecchua79
                 // 日冕环绕粒子
                 const coronaCount = 600;
                 const coronaGeom = new THREE.BufferGeometry();
@@ -854,7 +977,6 @@
                 } else {
                     // 2. 超新星大爆炸
                     const coreGeom = new THREE.SphereGeometry(0.8, 32, 32);
-        //Made by ecchua79
                     const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
                     activeStar = new THREE.Mesh(coreGeom, coreMat);
                     stageGroup.add(activeStar);
@@ -909,7 +1031,6 @@
 
                     const haloGeom = new THREE.SphereGeometry(0.4, 16, 16);
                     const haloMat = new THREE.MeshBasicMaterial({
-        //峇株吧辖蔡逸众制作
                         color: 0x93c5fd,
                         transparent: true,
                         opacity: 0.8, 
@@ -972,7 +1093,6 @@
                     stageGroup.add(activeStar);
 
                     const ringCount = 2000;
-        //峇株吧辖华仁中学蔡逸众制作
                     const ringGeom = new THREE.BufferGeometry();
                     const ringPos = new Float32Array(ringCount * 3);
                     const ringColors = new Float32Array(ringCount * 3);
@@ -1015,6 +1135,7 @@
                     const jetPos = new Float32Array(jetCount * 3);
                     for (let i = 0; i < jetCount * 3; i += 3) {
                         jetPos[i] = (Math.random() - 0.5) * 0.12;
+        //峇株吧辖华仁中学蔡逸众制作
                         jetPos[i+1] = Math.random() * 12.0 + 0.35; 
                         jetPos[i+2] = (Math.random() - 0.5) * 0.12;
                     }
@@ -1100,6 +1221,7 @@
                 pos[idx] = r * Math.sin(phi) * Math.cos(theta);
                 pos[idx+1] = r * Math.sin(phi) * Math.sin(theta);
                 pos[idx+2] = r * Math.cos(phi);
+        //华仁中学蔡逸众制作
 
                 customData[idx] = Math.sin(phi) * Math.cos(theta);
                 customData[idx+1] = Math.sin(phi) * Math.sin(theta);
@@ -1160,6 +1282,7 @@
                 const button = document.createElement("button");
                 button.id = `btn-stage-${i}`;
                 button.onclick = () => changeStage(i);
+        //峇株吧辖华仁中学蔡逸众制作
                 button.className = "stage-btn flex flex-col p-1.5 rounded border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left";
                 
                 button.innerHTML = `
@@ -1274,7 +1397,6 @@
 
         // --- 8. 面板展开收纳 ---
         window.toggleLeftPanel = function(forceCollapse = null) {
-        //华仁中学蔡逸众制作
             const panel = document.getElementById('panel-left');
             const arrow = document.getElementById('arrow-left');
             
@@ -1386,6 +1508,32 @@
                 stellarShaderMaterial.uniforms.uTime.value = elapsedTime;
             }
 
+            // 驱动引力透镜后处理 Uniform 🕳️ (仅黑洞终极阶段生效，实时计算黑洞在屏幕空间的位置与视半径)
+            if (lensPass) {
+                const isBlackHoleStage = (currentRoute === 'high' && currentStage === 6);
+                lensPass.uniforms.uEnabled.value = isBlackHoleStage ? 1.0 : 0.0;
+                if (isBlackHoleStage) {
+                    lensPass.uniforms.uTime.value = elapsedTime;
+        //Made by ecchua79
+
+                    // 黑洞中心投影到屏幕 UV 空间
+                    const centerNDC = bhCenterHelper.clone().project(camera);
+                    const centerScreenX = (centerNDC.x + 1) / 2;
+                    const centerScreenY = (centerNDC.y + 1) / 2;
+                    lensPass.uniforms.uBHScreenPos.value.set(centerScreenX, centerScreenY);
+
+                    // 沿相机右向量取事件视界世界坐标边缘点，投影后与中心的屏幕距离即为视半径
+                    bhRightHelper.set(1, 0, 0).applyQuaternion(camera.quaternion);
+                    bhEdgeHelper.copy(bhCenterHelper).addScaledVector(bhRightHelper, 0.3);
+                    const edgeNDC = bhEdgeHelper.clone().project(camera);
+                    const edgeScreenX = (edgeNDC.x + 1) / 2;
+                    const edgeScreenY = (edgeNDC.y + 1) / 2;
+                    const aspect = lensPass.uniforms.uAspect.value;
+                    const screenRadius = Math.hypot((edgeScreenX - centerScreenX) * aspect, edgeScreenY - centerScreenY);
+                    lensPass.uniforms.uBHRadius.value = Math.max(screenRadius, 0.01);
+                }
+            }
+
             // 1. STAGE I: 星云旋转
             if (currentStage === 1 && activePoints) {
                 activePoints.rotation.y = elapsedTime * 0.04;
@@ -1425,6 +1573,7 @@
                     });
                 }
             }
+        //峇株吧辖蔡逸众制作
 
             // 3. STAGE III: 主序星对流呼吸
             if (currentStage === 3) {
@@ -1445,7 +1594,6 @@
                     const pulse = 1.0 + Math.sin(elapsedTime * 0.8) * 0.03;
                     activeStar.scale.set(pulse, pulse, pulse);
                     
-        //Made by ecchua79
                     if (activeCompanion) {
                         activeCompanion.scale.set(pulse * 1.01, pulse * 1.01, pulse * 1.01);
                         activeCompanion.rotation.y = -elapsedTime * 0.06;
@@ -1522,13 +1670,13 @@
                     }
                 }
                 else if (currentRoute === 'medium') {
+        //华仁中学蔡逸众制作
                     if (activeStar) activeStar.rotation.y = elapsedTime * 4.0;
                     if (activeCompanion) {
                         const shim = 0.9 + Math.random() * 0.15;
                         activeCompanion.scale.set(shim, shim, shim);
                     }
                     if (specialOutflow) {
-        //峇株吧辖蔡逸众制作
                         specialOutflow.rotation.y = elapsedTime * 10.0; 
                         const geom = specialOutflow.geometry;
                         const pos = geom.attributes.position.array;
@@ -1590,6 +1738,9 @@
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
             composer.setSize(container.clientWidth, container.clientHeight);
+            if (lensPass) {
+                lensPass.uniforms.uAspect.value = container.clientWidth / container.clientHeight;
+            }
             checkResponsiveLayout();
         });
 
