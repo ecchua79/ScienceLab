@@ -1,0 +1,863 @@
+
+
+
+<!DOCTYPE html>
+<!--
+  胡克定律全变量科学实验室
+  华仁中学 · 蔡逸众
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="蔡逸众 · 华仁中学">
+<title>胡克定律全变量科学实验室 · 华仁中学</title>
+<style>
+  :root{
+    --slate-950:#020617; --slate-900:#0f172a; --slate-850:#152033; --slate-800:#1e293b;
+    --slate-700:#334155; --slate-600:#475569; --slate-500:#64748b; --slate-400:#94a3b8;
+    --slate-300:#cbd5e1; --slate-200:#e2e8f0; --slate-100:#f1f5f9;
+    --indigo-950:#1e1b4b; --indigo-600:#4f46e5; --indigo-500:#6366f1; --indigo-400:#818cf8; --indigo-300:#a5b4fc;
+    --purple-400:#c084fc; --pink-400:#f472b6;
+    --emerald-500:#10b981; --emerald-300:#6ee7b7;
+    --amber-300:#fcd34d; --amber-500:#f59e0b; --amber-700:#b45309; --amber-900:#78350f;
+    --red-400:#f87171; --red-500:#ef4444;
+    --sky-300:#7dd3fc; --sky-400:#38bdf8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--slate-900); color:var(--slate-100);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased; user-select:none;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--slate-700);border-radius:3px;}
+
+  /* Header */
+  header{
+    border-bottom:1px solid var(--slate-800); background:rgba(15,23,42,0.85); backdrop-filter:blur(8px);
+    padding:14px 24px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:50;
+  }
+  .logo-row{display:flex; align-items:center; gap:12px;}
+  .logo-badge{
+    background:var(--indigo-600); padding:8px; border-radius:12px; color:#fff;
+    box-shadow:0 8px 20px rgba(99,102,241,0.25); display:flex;
+  }
+  .title-main{
+    font-size:19px; font-weight:700; margin:0;
+    background:linear-gradient(90deg,var(--indigo-400),var(--purple-400),var(--pink-400));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .title-sub{font-size:10px; color:var(--slate-400); margin:2px 0 0;}
+  .g-const{font-size:12px; color:var(--slate-500); font-family:monospace;}
+
+  main{
+    flex:1; max-width:1280px; width:100%; margin:0 auto; padding:16px 20px;
+    display:grid; grid-template-columns:1fr; gap:24px;
+  }
+  @media(min-width:1024px){ main{ grid-template-columns: 2fr 1fr; padding:24px; } }
+
+  .panel{
+    background:rgba(30,41,59,0.5); border:1px solid rgba(51,65,85,0.6); border-radius:16px;
+    overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.35);
+  }
+
+  .panel-toolbar{
+    padding:14px 16px; border-bottom:1px solid rgba(51,65,85,0.6); background:rgba(30,41,59,0.3);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  .toolbar-label{font-size:11px; font-weight:600; color:var(--indigo-400); letter-spacing:0.05em; text-transform:uppercase;}
+  .preset-group{display:flex; border-radius:8px; background:var(--slate-900); padding:4px; border:1px solid rgba(51,65,85,0.4); gap:2px;}
+  .preset-btn{
+    padding:6px 10px; font-size:11px; border-radius:6px; border:none; background:transparent; color:var(--slate-400);
+    cursor:pointer; font-weight:500; transition:all .15s;
+  }
+  .preset-btn:hover{color:#fff;}
+  .preset-btn.active{background:var(--indigo-600); color:#fff;}
+
+  .stage-wrap{ height:420px; background:var(--slate-950); position:relative; }
+  .stage-svg-host{ width:100%; height:100%; position:relative; cursor:ns-resize; touch-action:none; overflow:hidden; }
+  .stage-svg-host svg{width:100%; height:100%; display:block;}
+
+  .drag-hint{
+    position:absolute; bottom:14px; left:14px; background:rgba(15,23,42,0.8); backdrop-filter:blur(4px);
+    border:1px solid rgba(51,65,85,0.6); padding:6px 10px; border-radius:8px; font-size:10px; color:var(--slate-300);
+    pointer-events:none; display:flex; align-items:center; gap:6px;
+  }
+  .drag-hint svg{ animation:bounce 1.4s infinite; }
+  @keyframes bounce{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+
+  .control-grid{
+    padding:24px; background:rgba(30,41,59,0.8); border-top:1px solid rgba(51,65,85,0.6);
+    display:grid; grid-template-columns:1fr; gap:32px;
+  }
+  @media(min-width:768px){ .control-grid{ grid-template-columns:1fr 1fr; } }
+
+  .slider-block{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+  .slider-row{display:flex; justify-content:space-between; font-size:12px; color:var(--slate-400);}
+  .slider-row b{font-family:monospace; font-weight:700;}
+  input[type=range]{
+    width:100%; height:6px; border-radius:6px; background:var(--slate-900); appearance:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    appearance:none; width:16px; height:16px; border-radius:50%; background:var(--indigo-500); cursor:pointer; border:2px solid #fff;
+  }
+  input[type=range].c-emerald::-webkit-slider-thumb{background:var(--emerald-500);}
+  input[type=range].c-amber::-webkit-slider-thumb{background:var(--amber-500);}
+
+  .board{
+    background:rgba(2,6,23,0.6); border-radius:12px; padding:16px; border:1px solid rgba(51,65,85,0.4);
+    display:flex; flex-direction:column; justify-content:center; gap:12px;
+  }
+  .board-row{display:flex; justify-content:space-between; font-size:12px; font-family:monospace; color:var(--slate-400);}
+  .board-row.total{border-top:1px solid var(--slate-800); padding-top:8px; font-weight:700;}
+  .board-row.total span:last-child{color:#fff;}
+  .board-tip{margin-top:8px; background:rgba(30,27,75,0.4); padding:8px; border-radius:6px; font-size:10px; color:var(--indigo-300);}
+
+  /* Right column */
+  .right-col{display:flex; flex-direction:column; gap:24px;}
+  .side-panel{
+    background:rgba(30,41,59,0.5); border:1px solid rgba(51,65,85,0.6); border-radius:16px;
+    overflow:hidden; height:620px; display:flex; flex-direction:column; box-shadow:0 20px 30px rgba(0,0,0,0.3);
+  }
+  .tabs{display:flex; background:rgba(30,41,59,0.4); border-bottom:1px solid rgba(51,65,85,0.6);}
+  .tab-btn{
+    flex:1; padding:12px; font-size:13px; font-weight:600; border:none; background:transparent; color:var(--slate-500);
+    cursor:pointer; border-bottom:2px solid transparent; transition:all .15s;
+  }
+  .tab-btn.active{background:rgba(79,70,229,0.15); color:var(--indigo-400); border-bottom-color:var(--indigo-500);}
+
+  .tab-content{flex:1; padding:16px; overflow-y:auto; background:rgba(15,23,42,0.4); display:flex; flex-direction:column;}
+  .quiz-view{display:none; flex-direction:column; gap:16px; flex:1; overflow-y:auto;}
+  .quiz-view.active{display:flex;}
+  .quiz-q{background:var(--slate-800); border:1px solid rgba(51,65,85,0.5); padding:16px; border-radius:12px; font-size:13px; font-weight:500; color:var(--slate-200);}
+  .quiz-options{display:flex; flex-direction:column; gap:8px;}
+  .opt-btn{
+    text-align:left; padding:12px; border-radius:12px; border:1px solid var(--slate-700); background:transparent;
+    color:var(--slate-300); font-size:12px; cursor:pointer; transition:all .15s;
+  }
+  .opt-btn:hover:not(:disabled){border-color:var(--indigo-500);}
+  .opt-btn:disabled{cursor:default;}
+  .opt-btn.correct{border-color:var(--emerald-500); background:rgba(16,185,129,0.1); color:var(--emerald-300); font-weight:600;}
+  .opt-btn.wrong-dim{opacity:0.4; border-color:var(--slate-800); color:var(--slate-500);}
+  .explain-box{display:none; flex-direction:column; gap:12px; margin-top:8px;}
+  .explain-box.show{display:flex;}
+  .explain-text{font-size:11px; color:var(--slate-300); background:var(--slate-850); padding:12px; border-radius:8px; border:1px solid var(--slate-800); line-height:1.7;}
+  .explain-text strong{display:block; color:var(--slate-200); margin-bottom:4px;}
+  .next-btn{
+    width:100%; background:var(--indigo-600); color:#fff; border:none; padding:10px; border-radius:8px;
+    font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 10px 20px rgba(99,102,241,0.25);
+  }
+  .next-btn:hover{background:var(--indigo-500);}
+
+  /* Hooke Calculator View */
+  .calc-view{display:none; flex-direction:column; height:100%; justify-content:space-between; flex:1;}
+  .calc-view.active{display:flex;}
+  .calc-tip{font-size:11px; color:var(--slate-400); background:var(--slate-800); padding:10px 12px; border-radius:10px; border-left:3px solid var(--indigo-500); line-height:1.5; margin-bottom:14px;}
+  .calc-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
+  .calc-field{display:flex; flex-direction:column; gap:4px;}
+  .calc-field label{font-size:11px; color:var(--slate-400); font-weight:500;}
+  .calc-input-wrapper{position:relative; display:flex; align-items:center;}
+  .calc-input-wrapper input{
+    width:100%; background:var(--slate-950); border:1px solid var(--slate-700); border-radius:8px; padding:8px 24px 8px 10px;
+    font-size:12px; color:#fff; outline:none; font-family:monospace; transition:all .15s;
+  }
+  .calc-input-wrapper input:focus{border-color:var(--indigo-500); box-shadow:0 0 0 2px rgba(99,102,241,0.2);}
+  .calc-input-wrapper input::placeholder{color:var(--slate-600); font-size:10px;}
+  .calc-unit{position:absolute; right:8px; font-size:10px; color:var(--slate-500); pointer-events:none; font-weight:bold;}
+ 
+  .calc-actions{display:flex; gap:8px; margin-bottom:16px;}
+  .calc-btn{flex:1; background:var(--indigo-600); color:#fff; border:none; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.2);}
+  .calc-btn:hover{background:var(--indigo-500);}
+  .reset-btn{background:var(--slate-800); color:var(--slate-300); border:1px solid var(--slate-700); padding:10px 14px; border-radius:8px; font-size:12px; cursor:pointer;}
+  .reset-btn:hover{background:var(--slate-700); color:#fff;}
+
+  .calc-result-box{
+    flex:1; background:var(--slate-950); border:1px solid var(--slate-800); border-radius:12px; padding:12px;
+    overflow-y:auto; font-size:11px; line-height:1.6; color:var(--slate-300); min-height:150px; max-height:220px;
+  }
+  .calc-result-title{font-size:10px; color:var(--slate-500); font-weight:bold; letter-spacing:0.05em; margin-bottom:8px; border-bottom:1px solid var(--slate-900); padding-bottom:4px; text-transform:uppercase;}
+  .step-item{background:rgba(30,41,59,0.4); border-left:2px solid var(--emerald-500); padding:8px; border-radius:4px; margin-bottom:8px;}
+  .step-item:last-child{margin-bottom:0; border-left-color:var(--indigo-400);}
+  .step-formula{font-family:Georgia, serif; color:var(--amber-300); font-size:12px; margin-bottom:2px;}
+  .step-text{color:var(--slate-200);}
+  .step-error{color:var(--red-400); text-align:center; padding:12px;}
+
+  .formula-card{
+    background:linear-gradient(90deg,var(--slate-850),var(--indigo-950)); border:1px solid rgba(49,46,129,0.4);
+    border-radius:16px; padding:16px; text-align:center;
+  }
+  .formula-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; border-bottom:1px solid rgba(30,41,59,0.8); padding-bottom:8px; margin-bottom:8px;}
+  .formula-grid div:last-child{border-left:1px solid rgba(30,41,59,0.8);}
+  .formula-label{display:block; font-size:8px; color:var(--slate-400);}
+  .formula-label.i{color:var(--indigo-400);}
+  .formula-val{font-family:Georgia,'Times New Roman',serif; font-size:16px; font-weight:700; color:#fff;}
+  .formula-val.i{color:var(--indigo-300);}
+  .formula-note{font-size:9px; color:var(--slate-500); line-height:1.6; margin:0;}
+
+  footer{border-top:1px solid rgba(30,41,59,0.6); padding:12px 0; text-align:center;}
+  footer p{font-size:9px; color:var(--slate-600); letter-spacing:0.05em; margin:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-row">
+    <div class="logo-badge">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    </div>
+    <div>
+      <p class="title-main">胡克定律全变量科学实验室</p>
+      <p class="title-sub">物理比例探究教学工具</p>
+    </div>
+  </div>
+  <span class="g-const">常量 g = 10 N/kg</span>
+</header>
+
+<main>
+  <div class="left-col">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="toolbar-label">对照实验：</span>
+          <div class="preset-group" id="presetGroup">
+            <button class="preset-btn" data-preset="original">原长 L₀</button>
+            <button class="preset-btn active" data-preset="x1">L₀ + x₁ (2kg)</button>
+            <button class="preset-btn" data-preset="x2">L₀ + x₂ (4kg)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-wrap">
+        <div class="stage-svg-host" id="stageHost">
+          <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(51,65,85,0.25)" stroke-width="1"/>
+              </pattern>
+              <linearGradient id="copperGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#b45309"/><stop offset="30%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#78350f"/>
+              </linearGradient>
+              <marker id="arrowRed" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#ef4444"/></marker>
+              <marker id="arrowGreen" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><path d="M0,5 L5,2.5 L0,0 Z" fill="#10b981"/></marker>
+            </defs>
+
+            <rect width="100%" height="100%" fill="url(#grid)"/>
+            <rect x="40" y="20" width="120" height="12" rx="4" fill="#334155"/>
+
+            <path id="springPath" fill="none" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <path id="hookPath" fill="none" stroke="#475569" stroke-width="3"/>
+
+            <g id="massGroup"></g>
+            <g id="forceGroup"></g>
+
+            <g transform="translate(250,0)">
+              <line x1="0" y1="20" x2="0" y2="380" stroke="#475569" stroke-width="2"/>
+              <text x="-5" y="15" fill="#94a3b8" font-size="8" text-anchor="end">cm</text>
+              <g id="ticksGroup"></g>
+              <g id="extGroup"></g>
+              <line id="l0Dash" x1="-220" y1="0" x2="0" y2="0" stroke="#475569" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+              <text id="l0Label" x="-215" y="0" fill="#64748b" font-size="8" opacity="0.6">原长 L₀起点</text>
+            </g>
+          </svg>
+
+          <div class="drag-hint">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+            <span>手指上下拖动砝码改变拉力</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <div>
+          <div class="slider-block">
+            <div class="slider-row"><span>弹簧原长 (L₀)</span><b id="l0Val" style="color:var(--indigo-300)">40.0 cm</b></div>
+            <input type="range" id="l0Range" min="80" max="180" step="5" value="120">
+          </div>
+          <div class="slider-block">
+            <div class="slider-row"><span>劲度系数 (k) - 决定软硬</span><b id="kVal" style="color:var(--emerald-300)">200 N/m</b></div>
+            <input type="range" id="kRange" class="c-emerald" min="100" max="500" step="20" value="200">
+          </div>
+          <div class="slider-block">
+            <div class="slider-row"><span>悬挂质量 (m)</span><b id="massVal" style="color:var(--amber-300)">2.00 kg</b></div>
+            <input type="range" id="massRange" class="c-amber" min="0" max="5" step="0.1" value="2">
+          </div>
+        </div>
+
+        <div class="board">
+          <div class="board-row"><span>拉力 F = m × g</span><span id="fVal" style="color:var(--red-400)">20.0 N</span></div>
+          <div class="board-row"><span>伸长量 x = F / k</span><span id="xVal" style="color:var(--sky-300)">10.0 cm</span></div>
+          <div class="board-row total"><span>总长度 L = L₀ + x</span><span id="lVal">50.0 cm</span></div>
+          <div class="board-tip">💡 科学规律：无论原长如何改变，相同的拉力产生的伸长量 x 是完全一致的。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <div class="side-panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="quiz">物理冲关</button>
+        <button class="tab-btn" data-tab="calc">比例计算器</button>
+      </div>
+
+      <div class="tab-content">
+        <div class="quiz-view active" id="quizView">
+          <div class="quiz-q" id="quizQ"></div>
+          <div class="quiz-options" id="quizOptions"></div>
+          <div class="explain-box" id="explainBox">
+            <div class="explain-text" id="explainText"></div>
+            <button class="next-btn" id="nextBtn">下一关</button>
+          </div>
+        </div>
+
+        <div class="calc-view" id="calcView">
+          <div class="calc-tip">
+            💡 <strong>智能自动求解器：</strong><br>
+            填入任意已知的数据，将你想求的<b>唯一物理量留空</b>，然后点击下方按钮，系统将自动推导出答案和详细解析过程！
+          </div>
+         
+          <div class="calc-grid">
+            <div class="calc-field">
+              <label>原长 L₀</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcL0" placeholder="留空或输入" step="any">
+                <span class="calc-unit">cm</span>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>目标总长度 L₂</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcL2" placeholder="留空或输入" step="any">
+                <span class="calc-unit">cm</span>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>初始拉力 F₁</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcF1" placeholder="留空或输入" step="any">
+                <span class="calc-unit">N</span>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>初始伸长量 x₁</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcX1" placeholder="留空或输入" step="any">
+                <span class="calc-unit">cm</span>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>目标拉力 F₂</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcF2" placeholder="留空或输入" step="any">
+                <span class="calc-unit">N</span>
+              </div>
+            </div>
+            <div class="calc-field">
+              <label>目标伸长量 x₂</label>
+              <div class="calc-input-wrapper">
+                <input type="number" id="calcX2" placeholder="留空或输入" step="any">
+                <span class="calc-unit">cm</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="calc-actions">
+            <button class="reset-btn" id="calcResetBtn">重置清空</button>
+            <button class="calc-btn" id="calcRunBtn">开始智能推导</button>
+          </div>
+
+          <div class="calc-result-box">
+            <div class="calc-result-title">公式推导与计算过程</div>
+            <div id="calcSteps">
+              <div style="color:var(--slate-500); text-align:center; padding-top:40px;">等待输入数据推导...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="formula-card">
+      <div class="formula-grid">
+        <div>
+          <span class="formula-label">胡克定律定义式</span>
+          <div class="formula-val">F = k × x</div>
+        </div>
+        <div>
+          <span class="formula-label i">探究比例公式</span>
+          <div class="formula-val i">F₁/x₁ = F₂/x₂</div>
+        </div>
+      </div>
+      <p class="formula-note">利用比例关系，拉力的倍数和伸长的倍数完全相同，无需算出k值。</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>华仁中学 · 蔡逸众</p>
+</footer>
+
+<script>
+/* 胡克定律全变量科学实验室 · 华仁中学 · 蔡逸众 */
+console.log('%c胡克定律全变量科学实验室 · 华仁中学 · 蔡逸众', 'color:#818cf8;font-weight:bold;');
+
+(function(){
+  "use strict";
+
+  const scale = 300;
+  const gravity = 10;
+
+  const state = {
+    L0: 120, k: 200, mass: 2, activePreset: 'x1',
+    activeTab: 'quiz', currentQuizIndex: 0, showExplanation: false, score: 0,
+    isDragging:false
+  };
+
+  const quizDatabase = [
+    {
+      question:'如果换了一根更长的弹簧（原长 L₀ 变大），但弹簧的粗细和材质没变（劲度系数 k 不变），挂挂同样的重物时，弹簧的"伸长量 x"会改变吗？',
+      options:[
+        {key:'A',text:'伸长量会变大'},
+        {key:'B',text:'伸长量会变小'},
+        {key:'C',text:'伸长量保持不变'},
+        {key:'D',text:'伸长量直接变为 0'}
+      ],
+      correct:'C',
+      explanation:'正确答案是 C。太棒了！伸长量 x 只取决于拉力 F 和劲度系数 k（F = k × x）。弹簧的原长 L₀ 只是伸长的"起点"，它本身并不会影响弹簧受力后的"拉伸能力"哦。'
+    },
+    {
+      question:'一根原长 L₀ = 10 cm 的弹簧，挂上重物受到拉力 F₁ = 10 N时，总长度变为了 12 cm。如果将拉力增大到 F₂ = 30 N，利用比例公式 F₁/x₁ = F₂/x₂，此时弹簧的总长度是多少？',
+      options:[
+        {key:'A',text:'6 cm'},
+        {key:'B',text:'16 cm'},
+        {key:'C',text:'15 cm'},
+        {key:'D',text:'13 cm'}
+      ],
+      correct:'B',
+      explanation:'正确答案是 B。第一步计算初次形变量：x₁ = 12 cm - 10 cm = 2 cm。第二步利用比例公式：10 / 2 = 30 / x₂，计算得出新的伸长量 x₂ = 6 cm。最后注意，题目问的是弹簧的"总长度"，所以要加上原长：L = L₀ + x₂ = 10 cm + 6 cm = 16 cm。'
+    }
+  ];
+
+  function safeMass(v){ return isNaN(v)||v===null ? 2 : Math.max(0, Math.min(5, v)); }
+  function safeK(v){ return isNaN(v)||v===null ? 200 : Math.max(100, Math.min(500, v)); }
+  function safeL0(v){ return isNaN(v)||v===null ? 120 : Math.max(80, Math.min(180, v)); }
+
+  function getSpringPath(startY, endY, coils, width){
+    coils = coils || 12; width = width || 18;
+    const xCenter = 100;
+    const totalHeight = Math.max(15, endY - startY);
+    const topStraight = totalHeight * 0.1;
+    const bottomStraight = totalHeight * 0.1;
+    const coilHeight = totalHeight - topStraight - bottomStraight;
+
+    let path = `M ${xCenter} ${startY}`;
+    path += ` L ${xCenter} ${startY + topStraight}`;
+
+    const segments = coils * 2;
+    const step = coilHeight / segments;
+    for (let i=0;i<segments;i++){
+      const currentY = startY + topStraight + (i+0.5)*step;
+      const direction = i%2===0 ? 1 : -1;
+      const controlX = xCenter + direction*width;
+      const nextY = startY + topStraight + (i+1)*step;
+      path += ` Q ${controlX} ${currentY} ${xCenter} ${nextY}`;
+    }
+    path += ` L ${xCenter} ${startY+totalHeight}`;
+    return path;
+  }
+
+  // ---- DOM refs ----
+  const l0Range = document.getElementById('l0Range');
+  const kRange = document.getElementById('kRange');
+  const massRange = document.getElementById('massRange');
+  const l0Val = document.getElementById('l0Val');
+  const kVal = document.getElementById('kVal');
+  const massVal = document.getElementById('massVal');
+  const fVal = document.getElementById('fVal');
+  const xVal = document.getElementById('xVal');
+  const lVal = document.getElementById('lVal');
+  const springPath = document.getElementById('springPath');
+  const hookPath = document.getElementById('hookPath');
+  const massGroup = document.getElementById('massGroup');
+  const forceGroup = document.getElementById('forceGroup');
+  const ticksGroup = document.getElementById('ticksGroup');
+  const extGroup = document.getElementById('extGroup');
+  const l0Dash = document.getElementById('l0Dash');
+  const l0Label = document.getElementById('l0Label');
+  const stageHost = document.getElementById('stageHost');
+  const presetGroup = document.getElementById('presetGroup');
+
+  function render(){
+    const sM = safeMass(state.mass);
+    const sK = safeK(state.k);
+    const sL0 = safeL0(state.L0);
+
+    const F = sM * gravity;
+    const x = F / sK;
+    const currentLengthPx = sL0 + x*scale;
+
+    // panel text
+    l0Val.textContent = (sL0/scale*100).toFixed(1) + ' cm';
+    kVal.textContent = sK + ' N/m';
+    massVal.textContent = sM.toFixed(2) + ' kg';
+    fVal.textContent = F.toFixed(1) + ' N';
+    xVal.textContent = (x*100).toFixed(1) + ' cm';
+    lVal.textContent = (sL0/scale*100 + x*100).toFixed(1) + ' cm';
+
+    // spring
+    springPath.setAttribute('d', getSpringPath(32, currentLengthPx-15));
+    springPath.setAttribute('stroke', sM===0 ? '#64748b' : '#38bdf8');
+    hookPath.setAttribute('d', `M 100 ${currentLengthPx-15} L 100 ${currentLengthPx}`);
+
+    // mass box
+    massGroup.innerHTML = '';
+    if (sM > 0){
+      const h = 22 + sM*5;
+      massGroup.innerHTML = `
+        <g transform="translate(100, ${currentLengthPx})">
+          <path d="M -12 0 L 0 -8 L 12 0" fill="none" stroke="#94a3b8" stroke-width="2"/>
+          <rect x="-20" y="0" width="40" height="${h}" rx="3" fill="url(#copperGrad)" stroke="#b45309" stroke-width="1.5"/>
+          <text x="0" y="${h/2+4}" fill="#fef3c7" font-size="9" font-weight="bold" text-anchor="middle">${sM.toFixed(1)} kg</text>
+        </g>`;
+    }
+
+    // force arrows
+    forceGroup.innerHTML = '';
+    if (sM > 0){
+      const gY = Math.min(50, F*1.5);
+      forceGroup.innerHTML = `
+        <g transform="translate(165, ${currentLengthPx})">
+          <line x1="0" y1="0" x2="0" y2="${gY}" stroke="#ef4444" stroke-width="2.5" marker-end="url(#arrowRed)"/>
+          <text x="8" y="${Math.min(25,F*0.7)}" fill="#fca5a5" font-size="8" font-weight="bold">重力 G</text>
+          <line x1="-12" y1="0" x2="-12" y2="${-gY}" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+          <text x="-52" y="${-Math.min(25,F*0.7)}" fill="#a7f3d0" font-size="8" font-weight="bold">弹力 F</text>
+        </g>`;
+    }
+
+    // ruler ticks
+    ticksGroup.innerHTML = '';
+    [0,10,20,30,40,50].forEach(cm=>{
+      const tickY = sL0 + (cm/100)*scale;
+      if (tickY > 380) return;
+      ticksGroup.innerHTML += `
+        <g transform="translate(0, ${tickY})">
+          <line x1="0" y1="0" x2="-6" y2="0" stroke="#475569" stroke-width="1.2"/>
+          <text x="6" y="3" fill="#64748b" font-size="8" font-family="monospace">${cm}</text>
+        </g>`;
+    });
+
+    // extension indicator
+    extGroup.innerHTML = '';
+    if (x > 0){
+      extGroup.innerHTML = `
+        <rect x="-25" y="${sL0}" width="25" height="${x*scale}" fill="rgba(239,68,68,0.15)" stroke="rgba(239,68,68,0.4)" stroke-width="1"/>
+        <g transform="translate(-28, ${sL0 + (x*scale)/2})">
+          <rect x="-62" y="-9" width="58" height="18" rx="4" fill="#ef4444"/>
+          <text x="-33" y="3.5" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">x=${(x*100).toFixed(1)}</text>
+        </g>`;
+    }
+
+    l0Dash.setAttribute('y1', sL0); l0Dash.setAttribute('y2', sL0);
+    l0Label.setAttribute('y', sL0-4);
+  }
+
+  function applyPreset(key){
+    state.activePreset = key;
+    if (key==='original') state.mass = 0;
+    else if (key==='x1'){ state.mass=2; state.k=200; }
+    else if (key==='x2'){ state.mass=4; state.k=200; }
+    l0Range.value = state.L0; kRange.value = state.k; massRange.value = state.mass;
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.toggle('active', b.dataset.preset===key));
+    render();
+  }
+
+  presetGroup.addEventListener('click', e=>{
+    const btn = e.target.closest('.preset-btn');
+    if (btn) applyPreset(btn.dataset.preset);
+  });
+
+  function markCustom(){
+    state.activePreset='custom';
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  }
+
+  l0Range.addEventListener('input', e=>{ state.L0 = Number(e.target.value); markCustom(); render(); });
+  kRange.addEventListener('input', e=>{ state.k = Number(e.target.value); markCustom(); render(); });
+  massRange.addEventListener('input', e=>{ state.mass = Number(e.target.value); markCustom(); render(); });
+
+  // ---- drag ----
+  function handlePointerMove(e){
+    if (!state.isDragging) return;
+    const rect = stageHost.getBoundingClientRect();
+    if (!rect || rect.height===0) return;
+
+    let clientY = e.clientY;
+    if (e.touches && e.touches.length>0) clientY = e.touches[0].clientY;
+    else if (e.changedTouches && e.changedTouches.length>0) clientY = e.changedTouches[0].clientY;
+    if (clientY===undefined || clientY===null) return;
+
+    const relativeY = clientY - rect.top;
+    const svgY = (relativeY/rect.height)*400;
+    if (isNaN(svgY) || !isFinite(svgY)) return;
+
+    const sL0 = safeL0(state.L0);
+    const sK = safeK(state.k);
+    const targetLength = Math.max(sL0, Math.min(380, svgY));
+    const targetX = (targetLength - sL0)/scale;
+    if (isNaN(targetX) || !isFinite(targetX)) return;
+
+    const calculatedMass = Math.min(5, Math.max(0, parseFloat(((targetX*sK)/gravity).toFixed(2))));
+    if (!isNaN(calculatedMass) && isFinite(calculatedMass)){
+      state.mass = calculatedMass;
+      massRange.value = calculatedMass;
+      markCustom();
+      render();
+    }
+  }
+  function handlePointerUp(){
+    state.isDragging=false;
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('touchmove', handlePointerMove);
+    window.removeEventListener('touchend', handlePointerUp);
+  }
+  stageHost.addEventListener('pointerdown', ()=>{
+    state.isDragging=true;
+    window.addEventListener('pointermove', handlePointerMove, {passive:false});
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('touchmove', handlePointerMove, {passive:false});
+    window.addEventListener('touchend', handlePointerUp);
+  });
+
+  // ---- tabs ----
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeTab = btn.dataset.tab;
+      document.getElementById('quizView').classList.toggle('active', state.activeTab==='quiz');
+      document.getElementById('calcView').classList.toggle('active', state.activeTab==='calc');
+    });
+  });
+
+  // ---- quiz ----
+  const quizQ = document.getElementById('quizQ');
+  const quizOptions = document.getElementById('quizOptions');
+  const explainBox = document.getElementById('explainBox');
+  const explainText = document.getElementById('explainText');
+  const nextBtn = document.getElementById('nextBtn');
+
+  function renderQuiz(){
+    const q = quizDatabase[state.currentQuizIndex];
+    quizQ.textContent = q.question;
+    quizOptions.innerHTML = '';
+    q.options.forEach(o=>{
+      const btn = document.createElement('button');
+      btn.className='opt-btn';
+      btn.textContent = `${o.key}. ${o.text}`;
+      btn.disabled = state.showExplanation;
+      if (state.showExplanation){
+        btn.classList.add(o.key===q.correct ? 'correct' : 'wrong-dim');
+      }
+      btn.addEventListener('click', ()=>{
+        if (state.showExplanation) return;
+        state.showExplanation = true;
+        if (o.key===q.correct) state.score++;
+        renderQuiz();
+        explainText.innerHTML = `<strong>💡 科学精讲：</strong>${q.explanation}`;
+        explainBox.classList.add('show');
+      });
+      quizOptions.appendChild(btn);
+    });
+    if (!state.showExplanation) explainBox.classList.remove('show');
+  }
+  nextBtn.addEventListener('click', ()=>{
+    state.showExplanation=false;
+    state.currentQuizIndex = (state.currentQuizIndex+1) % quizDatabase.length;
+    explainBox.classList.remove('show');
+    renderQuiz();
+  });
+  renderQuiz();
+
+  // ---- 比例计算器核心算法逻辑 ----
+  const calcL0 = document.getElementById('calcL0');
+  const calcL2 = document.getElementById('calcL2');
+  const calcF1 = document.getElementById('calcF1');
+  const calcX1 = document.getElementById('calcX1');
+  const calcF2 = document.getElementById('calcF2');
+  const calcX2 = document.getElementById('calcX2');
+  const calcSteps = document.getElementById('calcSteps');
+  const calcRunBtn = document.getElementById('calcRunBtn');
+  const calcResetBtn = document.getElementById('calcResetBtn');
+
+  function getVal(el) {
+    const val = el.value.trim();
+    return val === "" ? null : parseFloat(val);
+  }
+
+  function setVal(el, val) {
+    if (val !== null) {
+      el.value = parseFloat(val.toFixed(2));
+    }
+  }
+
+  function runHookeSolver() {
+    let L0 = getVal(calcL0);
+    let L2 = getVal(calcL2);
+    let F1 = getVal(calcF1);
+    let x1 = getVal(calcX1);
+    let F2 = getVal(calcF2);
+    let x2 = getVal(calcX2);
+
+    // 统计有多少个空值
+    let fields = { L0, L2, F1, x1, F2, x2 };
+    let nullKeys = Object.keys(fields).filter(k => fields[k] === null);
+
+    if (nullKeys.length === 0) {
+      calcSteps.innerHTML = `<div class="step-error">⚠️ 所有输入框都填满啦，请清空一个你想要求的物理量，再点击计算哦！</div>`;
+      return;
+    }
+
+    let steps = [];
+    let solvedAny = true;
+    let limit = 0;
+
+    // 采用循环推导引擎，模拟真实的物理分步演算
+    while (solvedAny && limit < 4) {
+      solvedAny = false;
+      limit++;
+
+      // 关系 1: L2 = L0 + x2
+      if (L2 === null && L0 !== null && x2 !== null) {
+        L2 = L0 + x2;
+        steps.push({
+          formula: "L₂ = L₀ + x₂",
+          desc: `已知弹簧原长 L₀ = ${L0} cm，目标形变量 x₂ = ${x2} cm，代入总长公式求得目标总长 L₂：` +
+                `<br><b>L₂</b> = ${L0}cm + ${x2}cm = <b>${L2.toFixed(2)} cm</b>`
+        });
+        solvedAny = true;
+      }
+      if (x2 === null && L2 !== null && L0 !== null) {
+        x2 = L2 - L0;
+        steps.push({
+          formula: "x₂ = L₂ - L₀",
+          desc: `已知目标总长 L₂ = ${L2} cm，弹簧原长 L₀ = ${L0} cm，代入形变量公式求得目标伸长量 x₂：` +
+                `<br><b>x₂</b> = ${L2}cm - ${L0}cm = <b>${x2.toFixed(2)} cm</b>`
+        });
+        solvedAny = true;
+      }
+      if (L0 === null && L2 !== null && x2 !== null) {
+        L0 = L2 - x2;
+        steps.push({
+          formula: "L₀ = L₂ - x₂",
+          desc: `已知目标总长 L₂ = ${L2} cm，形变量 x₂ = ${x2} cm，求得弹簧原长 L₀：` +
+                `<br><b>L₀</b> = ${L2}cm - ${x2}cm = <b>${L0.toFixed(2)} cm</b>`
+        });
+        solvedAny = true;
+      }
+
+      // 关系 2: F1 / x1 = F2 / x2 (胡克定律比例推导关系)
+      if (F1 === null && x1 !== null && F2 !== null && x2 !== null && x2 !== 0) {
+        F1 = (F2 * x1) / x2;
+        steps.push({
+          formula: "F₁ = (F₂ × x₁) / x₂",
+          desc: `根据比例公式 F₁/x₁ = F₂/x₂，变形求得初始拉力 F₁：` +
+                `<br><b>F₁</b> = (${F2}N × ${x1}cm) / ${x2}cm = <b>${F1.toFixed(2)} N</b>`
+        });
+        solvedAny = true;
+      }
+      if (x1 === null && F1 !== null && F2 !== null && x2 !== null && F2 !== 0) {
+        x1 = (F1 * x2) / F2;
+        steps.push({
+          formula: "x₁ = (F₁ × x₂) / F₂",
+          desc: `根据比例公式 F₁/x₁ = F₂/x₂，变形求得初始伸长量 x₁：` +
+                `<br><b>x₁</b> = (${F1}N × ${x2}cm) / ${F2}N = <b>${x1.toFixed(2)} cm</b>`
+        });
+        solvedAny = true;
+      }
+      if (F2 === null && F1 !== null && x1 !== null && x2 !== null && x1 !== 0) {
+        F2 = (F1 * x2) / x1;
+        steps.push({
+          formula: "F₂ = (F₁ × x₂) / x₁",
+          desc: `根据比例公式 F₁/x₁ = F₂/x₂，变形求得目标拉力 F₂：` +
+                `<br><b>F₂</b> = (${F1}N × ${x2}cm) / ${x1}cm = <b>${F2.toFixed(2)} N</b>`
+        });
+        solvedAny = true;
+      }
+      if (x2 === null && F1 !== null && x1 !== null && F2 !== null && F1 !== 0) {
+        x2 = (F2 * x1) / F1;
+        steps.push({
+          formula: "x₂ = (F₂ × x₁) / F₁",
+          desc: `根据比例公式 F₁/x₁ = F₂/x₂，变形求得目标伸长量 x₂：` +
+                `<br><b>x₂</b> = (${F2}N × ${x1}cm) / ${F1}N = <b>${x2.toFixed(2)} cm</b>`
+        });
+        solvedAny = true;
+      }
+    }
+
+    // 检查最终是否成功求解了留空项
+    let stillNull = Object.keys({ L0, L2, F1, x1, F2, x2 }).filter(k => {
+      if (k === 'L0') return L0 === null;
+      if (k === 'L2') return L2 === null;
+      if (k === 'F1') return F1 === null;
+      if (k === 'x1') return x1 === null;
+      if (k === 'F2') return F2 === null;
+      if (k === 'x2') return x2 === null;
+      return false;
+    });
+
+    if (steps.length === 0) {
+      calcSteps.innerHTML = `<div class="step-error">⚠️ 无法推导！已知的数据太少啦。对于胡克定律比例探究，请至少填满3个涉及受力比例的数值。</div>`;
+      return;
+    }
+
+    // 渲染结果到对应的空输入框中
+    setVal(calcL0, L0);
+    setVal(calcL2, L2);
+    setVal(calcF1, F1);
+    setVal(calcX1, x1);
+    setVal(calcF2, F2);
+    setVal(calcX2, x2);
+
+    // 渲染动态步骤
+    calcSteps.innerHTML = "";
+    steps.forEach((step, idx) => {
+      calcSteps.innerHTML += `
+        <div class="step-item">
+          <div class="step-formula">步骤 ${idx + 1}: ${step.formula}</div>
+          <div class="step-text">${step.desc}</div>
+        </div>`;
+    });
+   
+    if (stillNull.length > 0 && nullKeys.length > stillNull.length) {
+      calcSteps.innerHTML += `<div class="step-item" style="border-left-color:var(--amber-500); background:rgba(245,158,11,0.08);">
+        <div class="step-formula" style="color:var(--amber-300);">💡 推导提示</div>
+        <div class="step-text">部分数值已被解出！由于您提供的数据跨度较大，若想解出剩余未知的物理量，可以补充已知数据后再次计算。</div>
+      </div>`;
+    }
+  }
+
+  calcRunBtn.addEventListener('click', runHookeSolver);
+
+  calcResetBtn.addEventListener('click', () => {
+    calcL0.value = "";
+    calcL2.value = "";
+    calcF1.value = "";
+    calcX1.value = "";
+    calcF2.value = "";
+    calcX2.value = "";
+    calcSteps.innerHTML = `<div style="color:var(--slate-500); text-align:center; padding-top:40px;">等待输入数据推导...</div>`;
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
+
+ 
+
+
