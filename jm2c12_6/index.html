@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="author" content="蔡逸众 - 华仁中学 Chinese High School">
+    <meta name="author" content="蔡逸众 (ecchua79) - 华仁中学 Chinese High School">
     <title>宇宙尺度探索 - 从地月系到总星系</title>
     <style>
         body, html {
@@ -309,7 +309,7 @@
         <div class="header">
             <h1>宏观宇宙尺度演示</h1>
             <div class="subtitle">滑动下方菜单或双指缩放探索嵌套宇宙</div>
-            <div class="watermark">华仁中学 科学实验室 · 蔡逸众 制作</div>
+            <div class="watermark">华仁中学 科学实验室 · 蔡逸众 (ecchua79) 制作</div>
         </div>
 
         <!-- 可折叠信息面板 -->
@@ -341,7 +341,8 @@
             <button onclick="zoomTo(2)" id="btn-2">3. 银河系</button>
             <button onclick="zoomTo(3)" id="btn-3">4. 本星系群</button>
             <button onclick="zoomTo(4)" id="btn-4">5. 室女座超星系团</button>
-            <button onclick="zoomTo(5)" id="btn-5">6. 可观测宇宙</button>
+            <button onclick="zoomTo(5)" id="btn-5">6. 拉尼亚凯亚超星系团</button>
+            <button onclick="zoomTo(6)" id="btn-6">7. 可观测宇宙</button>
         </div>
     </div>
 
@@ -353,6 +354,7 @@
             milkyWay: new THREE.Vector3(16200, 4000, -5800),
             localGroup: new THREE.Vector3(17000, 4000, -7000),
             supercluster: new THREE.Vector3(15000, 5000, -10000),
+            laniakea: new THREE.Vector3(15000, 5000, -10000), // 室女座超星系团正是拉尼亚凯亚在此处的一个"叶瓣"，锚点复用同一坐标
             universe: new THREE.Vector3(0, 0, 0)
         };
 
@@ -391,11 +393,19 @@
             },
             {
                 title: "室女座超星系团",
-                desc: "由约30个密集交融的星系团和星群组成。引力丝线将数万个星系紧密连结，呈现出壮丽而饱满的有机宇宙网大尺度形态。",
+                desc: "由约30个密集交融的星系团和星群组成。引力丝线将数万个星系紧密连结，完美告别僵硬的十字对称，呈现出壮丽而饱满的有机宇宙网大尺度形态。",
                 data: "🕸️ 直径约 1.1亿光年　·　包含约 100个星系群/星系团",
                 target: worldPositions.supercluster,
                 offset: new THREE.Vector3(0, 12000, 38000),
-                visibleRange: [18000, 120000]
+                visibleRange: [18000, 90000]
+            },
+            {
+                title: "拉尼亚凯亚超星系团",
+                desc: "室女座超星系团只是这个更庞大结构展开的一条“羽毛”。拉尼亚凯亚由室女座超星系团（银河系所在）、长蛇-半人马座超星系团（内含引力中心“巨引源”）、孔雀-印第安超星系团三大叶瓣构成，形似展开的水母。2014年由夏威夷大学团队正式命名。有趣的是，后续研究发现它并未被引力真正束缚，未来终将逐渐溃散。",
+                data: "🌊 直径约 5.2亿光年　·　星系约 10万个　·　质量约为银河系的 10万倍",
+                target: worldPositions.laniakea,
+                offset: new THREE.Vector3(0, 55000, 175000),
+                visibleRange: [80000, 200000]
             },
             {
                 title: "可观测宇宙",
@@ -403,7 +413,7 @@
                 data: "🌠 直径约 930亿光年　·　宇宙年龄约 138亿年　·　星系数量估计超千亿个",
                 target: worldPositions.universe,
                 offset: new THREE.Vector3(0, 70000, 210000),
-                visibleRange: [90000, 1500000]
+                visibleRange: [190000, 1500000]
             }
         ];
 
@@ -510,6 +520,129 @@
         const particleTexture = createParticleTexture(false);
         const glowTexture = createParticleTexture(true);
 
+        // --- 经纬度坐标转贴图像素坐标（等距圆柱投影） ---
+        function latLonToXY(lon, lat, w, h) {
+            const x = (lon + 180) / 360 * w;
+            const y = (90 - lat) / 180 * h;
+            return [x, y];
+        }
+        function drawLandmass(ctx, points, w, h) {
+            ctx.beginPath();
+            points.forEach(([lon, lat], i) => {
+                const [x, y] = latLonToXY(lon, lat, w, h);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // --- 程序化生成地球贴图：简化大陆轮廓 + 海洋 + 极地冰盖 + 云层 ---
+        function createEarthTexture() {
+            const w = 1024, h = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // 海洋底色
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, h);
+            oceanGrad.addColorStop(0, '#1a4d8f');
+            oceanGrad.addColorStop(0.5, '#1f68c2');
+            oceanGrad.addColorStop(1, '#1a4d8f');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // 各大洲简化轮廓（经度,纬度）
+            const eurasia = [
+                [-9,43],[-9,36],[15,37],[28,41],[35,37],[50,30],[68,24],[80,8],[95,5],[105,10],
+                [122,31],[140,35],[150,45],[178,68],
+                [170,70],[140,73],[100,75],[60,70],[40,66],[30,70],[20,68],[5,60],[-5,50]
+            ];
+            const africa = [[-17,21],[10,37],[32,31],[43,12],[51,12],[45,-1],[40,-15],[35,-25],[20,-34],[12,-18],[9,4],[-6,5],[-17,15]];
+            const australia = [[113,-22],[122,-18],[130,-12],[136,-12],[142,-11],[145,-16],[153,-28],[150,-37],[143,-39],[137,-35],[131,-32],[118,-34],[113,-26]];
+            const namerica = [
+                [-165,65],[-155,58],[-130,55],[-125,49],[-117,32],[-105,20],[-97,16],[-90,18],
+                [-80,25],[-75,35],[-70,42],[-65,45],[-75,55],[-95,62],[-100,68],[-130,70],[-155,70]
+            ];
+            const samerica = [
+                [-77,8],[-80,0],[-81,-6],[-75,-15],[-71,-18],[-70,-30],[-73,-45],[-68,-55],
+                [-62,-45],[-58,-35],[-48,-25],[-35,-8],[-44,2],[-52,5],[-60,8],[-71,10]
+            ];
+            const greenland = [[-45,83],[-20,83],[-20,60],[-45,60],[-55,70]];
+
+            ctx.fillStyle = '#4a8f3c';
+            [eurasia, africa, australia, namerica, samerica].forEach(poly => drawLandmass(ctx, poly, w, h));
+
+            ctx.fillStyle = '#d8e8ec';
+            drawLandmass(ctx, greenland, w, h);
+
+            // 极地冰盖
+            ctx.fillStyle = '#eef6fa';
+            ctx.fillRect(0, 0, w, h * (90 - 75) / 180);
+            const southIceY = h * (90 - (-63)) / 180;
+            ctx.fillRect(0, southIceY, w, h - southIceY);
+
+            // 云层斑块（调淡、调小、调稀，避免糊住大陆轮廓）
+            ctx.globalAlpha = 0.12;
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 22; i++) {
+                const cx = Math.random() * w;
+                const cy = Math.random() * h * 0.85 + h * 0.05;
+                const rx = 20 + Math.random() * 30;
+                const ry = 8 + Math.random() * 14;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- 程序化生成月球贴图：月海(暗色玄武岩平原,居中于U≈0.5即正对地球一面) + 陨石坑 ---
+        function createMoonTexture() {
+            const w = 512, h = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#b8b4ae';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.fillStyle = '#726d68';
+            const maria = [
+                { cx: 0.42, cy: 0.42, rx: 0.10, ry: 0.09 }, // 雨海
+                { cx: 0.52, cy: 0.40, rx: 0.06, ry: 0.06 }, // 澄海
+                { cx: 0.58, cy: 0.48, rx: 0.07, ry: 0.05 }, // 静海
+                { cx: 0.34, cy: 0.55, rx: 0.09, ry: 0.08 }, // 风暴洋
+                { cx: 0.50, cy: 0.62, rx: 0.06, ry: 0.05 }, // 云海
+                { cx: 0.63, cy: 0.60, rx: 0.05, ry: 0.045 } // 危海
+            ];
+            maria.forEach(m => {
+                ctx.beginPath();
+                ctx.ellipse(m.cx * w, m.cy * h, m.rx * w, m.ry * h, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 陨石坑：全表面散布，简单光影模拟凹陷感
+            for (let i = 0; i < 220; i++) {
+                const cx = Math.random() * w;
+                const cy = Math.random() * h;
+                const r = 1.5 + Math.pow(Math.random(), 2.2) * 10;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(60,58,55,0.5)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(210,206,198,0.35)';
+                ctx.fill();
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
         const groups = [];
         let moonOrbitAngle = 0;
         let markerPulseTime = 0;
@@ -521,23 +654,30 @@
             const group = new THREE.Group();
             group.position.copy(worldPositions.earthMoon);
             
-            // 地球
-            const earthGeo = new THREE.SphereGeometry(2, 32, 32);
+            // 地球：真实材质贴图（程序化生成的简化大陆纹理）
+            const earthGeo = new THREE.SphereGeometry(2, 48, 48);
             const earthMat = new THREE.MeshPhongMaterial({ 
-                color: 0x1e90ff, 
+                map: createEarthTexture(),
+                color: 0xffffff,
                 emissive: 0x0a2a5c,
+                emissiveIntensity: 0.25,
                 transparent: true,
-                opacity: 1
+                opacity: 1,
+                depthWrite: false // 淡出时不写入深度缓冲，避免遮挡太阳系尺度里代表地球的小圆点
             });
             const earth = new THREE.Mesh(earthGeo, earthMat);
             group.earthMesh = earth; 
             
-            // 月球
-            const moonGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            // 月球：真实材质贴图（月海+陨石坑，纹理居中于U≈0.5，与潮汐锁定公式配套）
+            const moonGeo = new THREE.SphereGeometry(0.5, 32, 32);
             const moonMat = new THREE.MeshStandardMaterial({ 
-                color: 0x888888,
+                map: createMoonTexture(),
+                color: 0xffffff,
+                roughness: 0.9,
+                metalness: 0.0,
                 transparent: true,
-                opacity: 1
+                opacity: 1,
+                depthWrite: false
             });
             const moon = new THREE.Mesh(moonGeo, moonMat);
             moon.position.set(6, 0, 0);
@@ -594,6 +734,22 @@
 
                 if (index === 2) {
                     group.earthMesh = planet; 
+
+                    // 地球轨道定位高亮环，颜色与地月系里的真实地球保持一致的蓝色
+                    const earthMarkGeo = new THREE.RingGeometry(1.6, 1.9, 32);
+                    const earthMarkMat = new THREE.MeshBasicMaterial({
+                        color: 0x1e90ff,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    const earthMarker = new THREE.Mesh(earthMarkGeo, earthMarkMat);
+                    earthMarker.position.copy(planet.position);
+                    earthMarker.rotation.x = Math.PI / 2;
+                    group.add(earthMarker);
+                    group.earthMarker = earthMarker;
                 }
             });
 
@@ -606,22 +762,29 @@
             const group = new THREE.Group();
             group.position.copy(worldPositions.milkyWay);
 
-            const particleCount = 20000; 
-            const geo = new THREE.BufferGeometry();
-            const pos = new Float32Array(particleCount * 3);
-            const colors = new Float32Array(particleCount * 3);
+            // 核心(球核+恒星棒) 与 旋臂 拆成两组独立Points，各自可单独调节点径/亮度/权重
+            const bulgeCount = 2700;
+            const barCount = 3600;
+            const coreCount = bulgeCount + barCount;
+            const armCount = 18700; // 旋臂粒子大幅提高占比，避免被棒心/球核压过风头
+
+            const colorBar = new THREE.Color(0xffaa44);
             const colorCenter = new THREE.Color(0xffffee);
-            const colorEdge = new THREE.Color(0x3366ff);
-            const colorBar = new THREE.Color(0xffaa44); 
+            const colorEdge = new THREE.Color(0x6fb3ff);  // 提亮旋臂尾端蓝色，避免过暗
+            const colorSpark = new THREE.Color(0xffe0f5); // 旋臂上年轻星团/电离氢区的高亮点缀色
 
             const barLength = 260; // 核心棒半长度
             const barAngle = Math.PI / 6; // 恒星棒偏转角 30度
 
-            for (let i = 0; i < particleCount; i++) {
+            // --- (A+B) 星系中央球核 + 恒星核心棒：单独一组Points ---
+            const corePos = new Float32Array(coreCount * 3);
+            const coreColors = new Float32Array(coreCount * 3);
+
+            for (let i = 0; i < coreCount; i++) {
                 let x, y, z, mixedColor;
 
-                if (i < 3500) {
-                    // (A) 星系中央球核 (Galactic Bulge)
+                if (i < bulgeCount) {
+                    // 星系中央球核 (Galactic Bulge)
                     const r = Math.pow(Math.random(), 2.2) * 110; 
                     const u = Math.random();
                     const v = Math.random();
@@ -633,9 +796,8 @@
                     z = r * Math.cos(phi);
 
                     mixedColor = new THREE.Color(0xfff8ee).lerp(new THREE.Color(0xffaa00), Math.random() * 0.4);
-                } 
-                else if (i < 8000) {
-                    // (B) 恒星核心棒 (Galactic Bar) - 呈现优雅梭形的密集恒星棒
+                } else {
+                    // 恒星核心棒 (Galactic Bar) - 呈现优雅梭形的密集恒星棒
                     const progress = (Math.random() - 0.5) * 2 * barLength; 
                     const taperFactor = 1.0 - Math.abs(progress) / (barLength * 1.15); // 两端收窄
                     
@@ -650,49 +812,86 @@
                     y = thicknessY;
 
                     mixedColor = new THREE.Color(0xfff3e0).lerp(colorBar, Math.abs(progress) / barLength);
-                } 
-                else {
-                    // (C) 四条对称的璀璨对数主旋臂 (4 Spiral Arms) - 完美模仿英仙、人马等四大主臂
-                    const armIndex = i % 4; 
-                    let startAngle;
-
-                    if (armIndex === 0 || armIndex === 1) {
-                        startAngle = barAngle + (armIndex === 0 ? 0 : 0.35);
-                    } else {
-                        startAngle = barAngle + Math.PI + (armIndex === 2 ? 0 : 0.35);
-                    }
-
-                    const dist = Math.random() * 1500; // 旋臂延展径向距离
-                    
-                    // Winding Constant 设定为 7.5 弧度，旋转缠绕超一整圈，呈现极高包拢感
-                    const theta = startAngle - Math.pow(dist / 1500, 0.7) * 7.5;
-
-                    // 窄范围控制散射，保证4条旋臂轨道极度分明清晰
-                    const scatter = (Math.random() - 0.5) * 45 * (1 - dist / 1800);
-                    const yScatter = (Math.random() - 0.5) * 25 * (1 - dist / 1800);
-
-                    x = Math.cos(theta) * (barLength + dist) + (Math.random() - 0.5) * scatter;
-                    z = Math.sin(theta) * (barLength + dist) + (Math.random() - 0.5) * scatter;
-                    y = yScatter;
-
-                    const mixRatio = dist / 1500;
-                    mixedColor = colorCenter.clone().lerp(colorEdge, mixRatio);
                 }
 
-                pos[i * 3] = x;
-                pos[i * 3 + 1] = y;
-                pos[i * 3 + 2] = z;
+                corePos[i * 3] = x;
+                corePos[i * 3 + 1] = y;
+                corePos[i * 3 + 2] = z;
 
-                colors[i * 3] = mixedColor.r;
-                colors[i * 3 + 1] = mixedColor.g;
-                colors[i * 3 + 2] = mixedColor.b;
+                coreColors[i * 3] = mixedColor.r;
+                coreColors[i * 3 + 1] = mixedColor.g;
+                coreColors[i * 3 + 2] = mixedColor.b;
             }
 
-            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const coreGeo = new THREE.BufferGeometry();
+            coreGeo.setAttribute('position', new THREE.BufferAttribute(corePos, 3));
+            coreGeo.setAttribute('color', new THREE.BufferAttribute(coreColors, 3));
 
-            const mat = new THREE.PointsMaterial({
-                size: 9.0,
+            const coreMat = new THREE.PointsMaterial({
+                size: 8.0,
+                sizeAttenuation: true,
+                map: glowTexture,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+            coreMat.userData = { maxOpacity: 0.88 }; // 略微收敛核心亮度，把视觉重心让给旋臂
+
+            group.add(new THREE.Points(coreGeo, coreMat));
+
+            // --- (C) 四条对称的璀璨对数主旋臂 (4 Spiral Arms)：独立一组Points，加粗加亮 ---
+            const armPos = new Float32Array(armCount * 3);
+            const armColors = new Float32Array(armCount * 3);
+
+            for (let i = 0; i < armCount; i++) {
+                const armIndex = i % 4; 
+                let startAngle;
+
+                if (armIndex === 0 || armIndex === 1) {
+                    startAngle = barAngle + (armIndex === 0 ? 0 : 0.35);
+                } else {
+                    startAngle = barAngle + Math.PI + (armIndex === 2 ? 0 : 0.35);
+                }
+
+                const dist = Math.random() * 1500; // 旋臂延展径向距离
+                
+                // Winding Constant 设定为 7.5 弧度，旋转缠绕超一整圈，呈现极高包拢感
+                const theta = startAngle - Math.pow(dist / 1500, 0.7) * 7.5;
+
+                // 窄范围控制散射，保证4条旋臂轨道极度分明清晰
+                const scatter = (Math.random() - 0.5) * 45 * (1 - dist / 1800);
+                const yScatter = (Math.random() - 0.5) * 25 * (1 - dist / 1800);
+
+                const x = Math.cos(theta) * (barLength + dist) + (Math.random() - 0.5) * scatter;
+                const z = Math.sin(theta) * (barLength + dist) + (Math.random() - 0.5) * scatter;
+                const y = yScatter;
+
+                // 用平方根让暖色调保留更久，避免旋臂尾端过快变暗蓝
+                const mixRatio = Math.sqrt(dist / 1500);
+                let mixedColor = colorCenter.clone().lerp(colorEdge, mixRatio);
+
+                // 约10%概率生成明亮的年轻星团/电离氢区光斑，模拟旋臂上的恒星形成区，打破单调蓝色
+                if (Math.random() < 0.1) {
+                    mixedColor = colorSpark.clone().lerp(mixedColor, Math.random() * 0.4);
+                }
+
+                armPos[i * 3] = x;
+                armPos[i * 3 + 1] = y;
+                armPos[i * 3 + 2] = z;
+
+                armColors[i * 3] = mixedColor.r;
+                armColors[i * 3 + 1] = mixedColor.g;
+                armColors[i * 3 + 2] = mixedColor.b;
+            }
+
+            const armGeo = new THREE.BufferGeometry();
+            armGeo.setAttribute('position', new THREE.BufferAttribute(armPos, 3));
+            armGeo.setAttribute('color', new THREE.BufferAttribute(armColors, 3));
+
+            const armMat = new THREE.PointsMaterial({
+                size: 13.0, // 明显大于核心点径，让旋臂在银河系尺度下无需放大也清晰可见
                 sizeAttenuation: true,
                 map: glowTexture,
                 vertexColors: true,
@@ -702,8 +901,54 @@
                 opacity: 0
             });
 
-            const points = new THREE.Points(geo, mat);
+            const points = new THREE.Points(armGeo, armMat);
             group.add(points);
+
+            // --- (D) 弥散恒星晕：填充旋臂之外的空旷区域，模拟晕族老年恒星与背景星点 ---
+            const haloCount = 7000;
+            const haloPos = new Float32Array(haloCount * 3);
+            const haloColors = new Float32Array(haloCount * 3);
+            const haloColorBase = new THREE.Color(0xcdd8ff);
+
+            for (let i = 0; i < haloCount; i++) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                // 中心密、外围疏的球状分布，半径远超旋臂末端，让星点均匀"晕染"整个视野
+                const r = Math.pow(Math.random(), 0.7) * 2700;
+
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta) * 0.65; // 略压扁成晕状而非正球体
+                const z = r * Math.cos(phi);
+
+                haloPos[i * 3] = x;
+                haloPos[i * 3 + 1] = y;
+                haloPos[i * 3 + 2] = z;
+
+                const c = haloColorBase.clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.5);
+                haloColors[i * 3] = c.r;
+                haloColors[i * 3 + 1] = c.g;
+                haloColors[i * 3 + 2] = c.b;
+            }
+
+            const haloGeo = new THREE.BufferGeometry();
+            haloGeo.setAttribute('position', new THREE.BufferAttribute(haloPos, 3));
+            haloGeo.setAttribute('color', new THREE.BufferAttribute(haloColors, 3));
+
+            const haloMat = new THREE.PointsMaterial({
+                size: 5.0,
+                sizeAttenuation: true,
+                map: particleTexture, // 用锐利点纹理而非glow，模拟远处的一个个独立星点
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+            haloMat.userData = { maxOpacity: 0.55 }; // 亮度收敛，作为背景点缀而非视觉主体
+
+            group.add(new THREE.Points(haloGeo, haloMat));
 
             // 太阳系物理位置，使用与旋臂公式完全一致的坐标点（精确嵌套在第1条旋臂上）
             const sunDist = 850;
@@ -887,7 +1132,120 @@
             groups.push(group);
         }
 
-        // 6. 可观测宇宙
+        // 6. 拉尼亚凯亚超星系团 (Laniakea) - 室女座超星系团只是其中一条延展的"羽毛"
+        function buildLaniakea() {
+            const group = new THREE.Group();
+            group.position.copy(worldPositions.laniakea);
+
+            const count = 21000;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            // 拉尼亚凯亚三大叶瓣的重心方向：室女座超星系团(我们所在)、长蛇-半人马座超星系团(含巨引源)、孔雀-印第安超星系团
+            const lobes = [
+                { center: new THREE.Vector3(0, 0, 0), color: new THREE.Color(0x77bbff) },
+                { center: new THREE.Vector3(-48000, 14000, 32000), color: new THREE.Color(0xff9966) },
+                { center: new THREE.Vector3(42000, -16000, -46000), color: new THREE.Color(0x99ffcc) }
+            ];
+
+            // 在三大叶瓣周围散布次级星系团"结点"，结点之间用引力丝桥接，才能勾勒出真正的宇宙网结构
+            // （而不是单纯从3个中心向外辐射的云雾）
+            const nodes = [];
+            lobes.forEach((lobe, li) => {
+                const nodeCountForLobe = li === 0 ? 6 : 9; // 室女座已用标记环单独强调，结点少放一些
+                for (let n = 0; n < nodeCountForLobe; n++) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 2 - 1);
+                    const r = Math.pow(Math.random(), 0.7) * 34000;
+                    nodes.push({
+                        center: lobe.center.clone().add(new THREE.Vector3(
+                            r * Math.sin(phi) * Math.cos(theta),
+                            r * Math.sin(phi) * Math.sin(theta) * 0.5,
+                            r * Math.cos(phi)
+                        )),
+                        color: lobe.color
+                    });
+                }
+            });
+
+            for (let i = 0; i < count; i++) {
+                let x, y, z, particleColor;
+
+                if (Math.random() < 0.55) {
+                    // 星系团结点本体：密集聚集成团
+                    const node = nodes[Math.floor(Math.random() * nodes.length)];
+                    const radius = Math.pow(Math.random(), 3) * 5500;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 2 - 1);
+
+                    x = node.center.x + radius * Math.sin(phi) * Math.cos(theta);
+                    y = node.center.y + radius * Math.sin(phi) * Math.sin(theta);
+                    z = node.center.z + radius * Math.cos(phi);
+                    particleColor = node.color.clone();
+                } else {
+                    // 连结相邻结点的引力丝状纤维 (filament bridges)：真正勾勒出宇宙网的关键
+                    const n1 = nodes[Math.floor(Math.random() * nodes.length)];
+                    const n2 = nodes[Math.floor(Math.random() * nodes.length)];
+
+                    const t = Math.random();
+                    const noise = 4500;
+                    const driftX = (Math.random() - 0.5) * noise;
+                    const driftY = (Math.random() - 0.5) * noise * 0.6;
+                    const driftZ = (Math.random() - 0.5) * noise;
+
+                    x = THREE.MathUtils.lerp(n1.center.x, n2.center.x, t) + driftX;
+                    y = THREE.MathUtils.lerp(n1.center.y, n2.center.y, t) + driftY;
+                    z = THREE.MathUtils.lerp(n1.center.z, n2.center.z, t) + driftZ;
+
+                    particleColor = n1.color.clone().lerp(n2.color, t);
+                }
+
+                pos[i * 3] = x;
+                pos[i * 3 + 1] = y;
+                pos[i * 3 + 2] = z;
+
+                colors[i * 3] = particleColor.r;
+                colors[i * 3 + 1] = particleColor.g;
+                colors[i * 3 + 2] = particleColor.b;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 220,
+                map: glowTexture,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+
+            group.add(new THREE.Points(geo, mat));
+
+            // 室女座超星系团（银河系与地球所在）高亮定位环
+            const virgoMarkGeo = new THREE.RingGeometry(3200, 3700, 64);
+            const virgoMarkMat = new THREE.MeshBasicMaterial({
+                color: 0x66ccff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const virgoMarker = new THREE.Mesh(virgoMarkGeo, virgoMarkMat);
+            virgoMarker.position.copy(lobes[0].center);
+            virgoMarker.rotation.x = Math.PI / 2;
+            group.add(virgoMarker);
+            group.virgoMarker = virgoMarker;
+
+            scene.add(group);
+            groups.push(group);
+        }
+
+        // 7. 可观测宇宙
         function buildUniverse() {
             const group = new THREE.Group();
             group.position.copy(worldPositions.universe);
@@ -1026,7 +1384,7 @@
         function updateOpacities() {
             if (isFlying) return; 
 
-            const targetOpacities = [0, 0, 0, 0, 0, 0];
+            const targetOpacities = [0, 0, 0, 0, 0, 0, 0];
             
             switch(currentScaleIndex) {
                 case 0: // 地月系
@@ -1035,7 +1393,7 @@
                     targetOpacities[2] = 0.55; 
                     break;
                 case 1: // 太阳系
-                    targetOpacities[0] = 0.25; 
+                    targetOpacities[0] = 0.02; // 详细大地球几乎完全淡出，改由轨道上的蓝色小圆点+标记环代表地球
                     targetOpacities[1] = 1.0; 
                     targetOpacities[2] = 0.65; 
                     break;
@@ -1049,14 +1407,19 @@
                     targetOpacities[3] = 1.0;  
                     targetOpacities[4] = 0.3;  
                     break;
-                case 4: // 超星系团
+                case 4: // 室女座超星系团
                     targetOpacities[3] = 0.1;
                     targetOpacities[4] = 1.0;
                     targetOpacities[5] = 0.35; 
                     break;
-                case 5: // 可观测宇宙
-                    targetOpacities[4] = 0.1;
-                    targetOpacities[5] = 1.0; 
+                case 5: // 拉尼亚凯亚超星系团
+                    targetOpacities[4] = 0.2;  // 室女座作为其中一叶继续可见
+                    targetOpacities[5] = 1.0;
+                    targetOpacities[6] = 0.3;
+                    break;
+                case 6: // 可观测宇宙
+                    targetOpacities[5] = 0.1;
+                    targetOpacities[6] = 1.0; 
                     break;
             }
 
@@ -1081,9 +1444,24 @@
                     group.sunMarker.visible = (currentScaleIndex === 2);
                     group.sunMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
+                if (index === 1 && group.earthMarker) {
+                    group.earthMarker.visible = (currentScaleIndex === 1);
+                    group.earthMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
+                }
+                if (index === 0) {
+                    // 地月系不透明度较高时(地月系视角)恢复真正的实心遮挡；
+                    // 淡出到接近0时(太阳系视角)才关闭深度写入，避免挡住太阳系里代表地球的小圆点
+                    const earthMoonOpaque = group.currentOpacity > 0.5;
+                    if (group.earthMesh) group.earthMesh.material.depthWrite = earthMoonOpaque;
+                    if (group.moon) group.moon.material.depthWrite = earthMoonOpaque;
+                }
                 if (index === 3 && group.mwMarker) {
                     group.mwMarker.visible = (currentScaleIndex === 3);
                     group.mwMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
+                }
+                if (index === 5 && group.virgoMarker) {
+                    group.virgoMarker.visible = (currentScaleIndex === 5);
+                    group.virgoMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
             });
 
@@ -1176,9 +1554,22 @@
                             group.sunMarker.visible = (index === 2);
                             group.sunMarker.material.opacity = group.currentOpacity * 0.8;
                         }
+                        if (i === 1 && group.earthMarker) {
+                            group.earthMarker.visible = (index === 1);
+                            group.earthMarker.material.opacity = group.currentOpacity * 0.8;
+                        }
+                        if (i === 0) {
+                            const earthMoonOpaque = group.currentOpacity > 0.5;
+                            if (group.earthMesh) group.earthMesh.material.depthWrite = earthMoonOpaque;
+                            if (group.moon) group.moon.material.depthWrite = earthMoonOpaque;
+                        }
                         if (i === 3 && group.mwMarker) {
                             group.mwMarker.visible = (index === 3);
                             group.mwMarker.material.opacity = group.currentOpacity * 0.8;
+                        }
+                        if (i === 5 && group.virgoMarker) {
+                            group.virgoMarker.visible = (index === 5);
+                            group.virgoMarker.material.opacity = group.currentOpacity * 0.8;
                         }
                     }
                 });
@@ -1219,6 +1610,7 @@
             buildMilkyWay();
             buildLocalGroup();
             buildSupercluster();
+            buildLaniakea();
             buildUniverse();
 
             document.getElementById('loading').style.opacity = 0;
@@ -1242,12 +1634,20 @@
 
             markerPulseTime += 0.015;
 
-            // 1. 地月自转公转 (逆时针公转)
-            if(groups[0] && groups[0].moon) {
-                groups[0].rotation.y += 0.003;
+            // 1. 地球自转 (逆时针，从北极上方俯视)：只转地球网格本身，不再借用父级group整体旋转，
+            //    这样才不会连带把月球公转轨迹一起拖着转
+            if(groups[0] && groups[0].moon && groups[0].earthMesh) {
+                groups[0].earthMesh.rotation.y += 0.003;
+
+                // 月球公转 (逆时针)
                 moonOrbitAngle -= 0.008; 
                 groups[0].moon.position.x = Math.cos(moonOrbitAngle) * 6;
                 groups[0].moon.position.z = Math.sin(moonOrbitAngle) * 6;
+
+                // 潮汐锁定：月球自转角速度严格等于公转角速度，永远同一面朝向地球
+                // (贴图的月海图案画在纹理U≈0.5处，与此处的角度换算配套；
+                //  如果实测发现朝向偏移，只需整体加减 Math.PI 或 Math.PI/2 即可修正)
+                groups[0].moon.rotation.y = -moonOrbitAngle - Math.PI;
             }
 
             // 2. 银河系顺时针自转 (其下的4条主旋臂及太阳地标同步旋转)
