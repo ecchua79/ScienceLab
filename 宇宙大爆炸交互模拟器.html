@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宇宙大爆炸交互模拟器 (Big Bang Simulation)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #010103;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #f3f4f6;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* 自定义滚动条 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        /* 强制画布全屏 */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* 遮罩防止移动端滑动冲突 */
+        .ui-element {
+            z-index: 10;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- Three.js 渲染容器 -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 md:p-6 z-10">
+        
+        <!-- 顶部标题区域 -->
+        <header class="ui-element pointer-events-auto bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex justify-between items-center max-w-xl w-full mx-auto md:mx-0 shadow-lg shadow-black/50 transition-all duration-300">
+            <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-blue-400 via-purple-400 to-red-400 bg-clip-text text-transparent">宇宙大爆炸模拟器</h1>
+                <p class="text-xs text-gray-400 mt-1">THE BIG BANG INTERACTIVE SIMULATOR</p>
+                <p style="font-size:0.55rem;color:rgba(56,189,248,0.18);margin-top:2px;letter-spacing:0.5px;">峇株吧辖华仁中学蔡逸众制作</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="btn-reset" class="bg-white/10 hover:bg-white/20 text-white rounded-lg p-2.5 transition-all text-xs flex items-center gap-1 border border-white/10 active:scale-95" title="重启大爆炸">
+                    <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">重置</span>
+                </button>
+                <button id="btn-play-pause" class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg p-2.5 transition-all text-xs flex items-center gap-1 border border-blue-500/30 active:scale-95" title="播放/暂停演化">
+                    <i class="fa-solid fa-pause" id="play-icon"></i> <span class="hidden sm:inline" id="play-text">暂停</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 中间：非活跃状态大爆炸奇点快速引爆提示 -->
+        <div id="boom-hint" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 transition-opacity duration-500 text-center">
+            <p class="text-lg md:text-xl text-blue-400 font-bold animate-pulse">点击"播放"或拖动下方滑块</p>
+            <p class="text-xs text-gray-500 mt-2">见证极限微小奇点的无限暴胀</p>
+        </div>
+
+        <!-- 底部大爆炸纪元进度控制条 (PC & 移动端) -->
+        <div class="ui-element pointer-events-auto w-full max-w-4xl mx-auto bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-5 shadow-2xl mb-2">
+            <!-- 步进导航/刻度 -->
+            <div class="relative flex justify-between items-center mb-3 overflow-x-auto py-2 custom-scrollbar gap-4 whitespace-nowrap">
+                <div class="absolute h-0.5 bg-white/10 left-0 right-0 top-1/2 -translate-y-1/2 z-0 min-w-[600px]"></div>
+                <!-- 进度滑块轨道激活背景 -->
+                <div id="timeline-active-line" class="absolute h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500 left-0 top-1/2 -translate-y-1/2 z-0 origin-left transition-all duration-300" style="width: 0%;"></div>
+                
+                <!-- 八个纪元的节点 -->
+                <button onclick="jumpToEpoch(0)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="0">
+                    <span class="node-dot w-4 h-4 rounded-full bg-blue-400 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-blue-400">普朗克时期</span>
+                </button>
+                <button onclick="jumpToEpoch(1)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="1">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">暴胀时期</span>
+                </button>
+                <button onclick="jumpToEpoch(2)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="2">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">强子轻子</span>
+                </button>
+                <button onclick="jumpToEpoch(3)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="3">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">元素核合成</span>
+                </button>
+                <button onclick="jumpToEpoch(4)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="4">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">复合(38万年)</span>
+                </button>
+                <button onclick="jumpToEpoch(5)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="5">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">黑暗时代</span>
+                </button>
+                <button onclick="jumpToEpoch(6)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="6">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">恒星与星系</span>
+                </button>
+                <button onclick="jumpToEpoch(7)" class="epoch-node relative z-10 flex flex-col items-center focus:outline-none" data-index="7">
+                    <span class="node-dot w-4 h-4 rounded-full bg-white/30 border-4 border-black transition-all"></span>
+                    <span class="text-[10px] mt-1 font-semibold text-gray-400">现代宇宙</span>
+                </button>
+            </div>
+
+            <!-- 时间轴滑块 -->
+            <div class="flex items-center gap-3 mt-1">
+                <span class="text-[10px] font-mono text-gray-400 w-12">奇点 (0s)</span>
+                <input id="timeline-slider" type="range" min="0" max="100" value="0" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none">
+                <span class="text-[10px] font-mono text-gray-400 w-16 text-right">138亿年 (现今)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 侧边可折叠讲解信息面板 (PC 端右侧，移动端自适应可折叠) -->
+    <div id="info-panel" class="ui-element pointer-events-auto absolute right-4 top-24 md:top-6 bottom-32 md:bottom-6 w-[calc(100%-2rem)] md:w-[420px] max-w-[420px] bg-black/75 backdrop-blur-lg border border-white/15 rounded-2xl flex flex-col shadow-2xl z-20 transition-all duration-500 ease-in-out transform translate-x-0">
+        
+        <!-- 面板头部/折叠控制 -->
+        <div class="flex items-center justify-between p-4 border-b border-white/10 bg-white/5 rounded-t-2xl">
+            <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+                <h2 id="epoch-title" class="text-base md:text-lg font-bold tracking-wide">普朗克时期 (Planck Epoch)</h2>
+            </div>
+            <!-- 收起按钮 -->
+            <button id="btn-toggle-panel" class="text-gray-400 hover:text-white transition-colors p-1" title="收起面板">
+                <i id="toggle-icon" class="fa-solid fa-chevron-right text-lg"></i>
+            </button>
+        </div>
+
+        <!-- 面板核心内容（可滚动） -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
+            <!-- 关键宇宙数据卡片 -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider">演化时间</p>
+                    <p id="stat-time" class="text-sm md:text-base font-mono font-bold mt-1 text-blue-300">0s ~ 10⁻⁴³s</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider">估计温度</p>
+                    <p id="stat-temp" class="text-sm md:text-base font-mono font-bold mt-1 text-red-400">&gt; 10³² K</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider">宇宙尺度</p>
+                    <p id="stat-size" class="text-sm md:text-base font-mono font-bold mt-1 text-purple-300">普朗克长度</p>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-3">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wider">主导物理/状态</p>
+                    <p id="stat-state" class="text-sm md:text-base font-semibold mt-1 text-emerald-400">量子引力</p>
+                </div>
+            </div>
+
+            <!-- 阶段详细叙述 -->
+            <div class="space-y-2">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">时期详情</h3>
+                <p id="epoch-description" class="text-xs md:text-sm text-gray-300 leading-relaxed bg-white/5 border border-white/5 p-4 rounded-xl">
+                    在宇宙创生最初的 10⁻⁴³ 秒，四种基本自然力（引力、电磁力、强核力、弱核力）结合成为一种"超级大统一力"。在这个极高温度、极高密度的状态下，整个宇宙的大小甚至远小于一个质子。
+                </p>
+            </div>
+
+            <!-- 科学里程碑/关键现象 -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">关键物理里程碑</h3>
+                <div id="milestone-container" class="space-y-2">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 面板底部交互提示 -->
+        <div class="p-3 bg-white/5 border-t border-white/10 text-center text-[10px] text-gray-400 flex justify-between items-center px-4">
+            <span>💡 拖拽屏幕可旋转空间，滚轮/双指捏合缩放</span>
+            <span class="font-mono text-[9px] opacity-60">V1.6</span>
+        </div>
+    </div>
+
+    <!-- 侧边栏折叠后的迷你激活按钮 -->
+    <button id="btn-expand-panel" class="ui-element pointer-events-auto absolute right-4 top-24 bg-black/80 hover:bg-black text-white border border-white/20 p-3 rounded-full shadow-2xl hidden transition-all duration-300 active:scale-95 z-20">
+        <i class="fa-solid fa-circle-info text-lg text-blue-400"></i>
+    </button>
+
+    <!-- JS 逻辑处理 -->
+    <script>
+        // ==========================================
+        // 科学数据定义：八个主要的宇宙纪元
+        // ==========================================
+        const EPOCHS = [
+            {
+                title: "1. 普朗克时期 (Planck Epoch)",
+                time: "0 ~ 10⁻⁴³ 秒",
+                temp: "> 10³² K (普朗克温度)",
+                size: "无限稠密奇点 (< 10⁻³⁵ 米)",
+                state: "量子超级引力力",
+                description: "这是宇宙的最早阶段。此时，引力、强相互作用、弱相互作用和电磁力汇聚成单一的大统一力。整个宇宙被压缩在一个极小（甚至在普朗克长度以下）的几何奇点中，物质与空间的概念在此时并不存在，只有纯粹高能的涨落。由于没有维度展开，奇点在宏观角度上小到几乎不可见，却孕育着全部未来。",
+                milestones: [
+                    "空间与时间在该阶段最前端瞬间萌生",
+                    "四大基本作用力完全统一在一起",
+                    "宇宙体积近乎为绝对零，处于无限稠密的数学奇点"
+                ],
+                color: 0x5a8eff, // 极高能蓝白色
+                particleSpeed: 0.01,
+                expansionScale: 0.001 // 奇点状态：几乎收缩到原点
+            },
+            {
+                title: "2. 暴胀时期 (Inflationary Epoch)",
+                time: "10⁻³⁶ ~ 10⁻³2 秒",
+                temp: "10²⁸ K ~ 10²² K",
+                size: "奇点瞬间膨胀至微米并迅速扩散",
+                state: "指数级急剧暴胀",
+                description: "在极短的时间内，宇宙经历了不可思议的'暴胀'阶段，其体积瞬间膨胀了10⁷⁸倍！这种超光速级别的空间扩展平整了空间，也让原先极度微小的奇点以肉眼可见的速度在广阔的三维宇宙中爆开。大统一力对称性破缺，释放出巨大的相变能量，粒子在此处被源源不断地创造出来。",
+                milestones: [
+                    "空间以指数级的惊人速度由奇点爆开",
+                    "强相互作用力从统一力中分离出来",
+                    "量子微扰被拉扯到宏观尺度，形成日后星系结构的骨架"
+                ],
+                color: 0xffffff, // 耀眼强光白
+                particleSpeed: 2.5,
+                expansionScale: 1.5 // 瞬间爆开
+            },
+            {
+                title: "3. 强子与轻子时期 (Hadron & Lepton Epoch)",
+                time: "10⁻⁶ ~ 1 秒",
+                temp: "10¹³ K ~ 10¹⁰ K",
+                size: "约数个太阳系大小",
+                state: "夸克-胶子等离子体汤",
+                description: "暴胀结束，能量转化为高温高密的'粒子汤'。随着宇宙迅速膨胀和降温，夸克得以结合形成强子（如质子、中子）。随后温度进一步下降，轻子（如电子、中微子）开始主导。正反物质在此阶段不断发生湮灭，但因某种未知的对称性破缺，物质比反物质多了一十亿分之一，这微小的多余构成了今天的所有宇宙实体。",
+                milestones: [
+                    "夸克凝结形成质子和中子（强子）",
+                    "正反物质剧烈湮灭，最终物质获胜",
+                    "宇宙中微子背景辐射脱耦，开始自由传播"
+                ],
+                color: 0xffaa44, // 炽热橙黄
+                particleSpeed: 1.5,
+                expansionScale: 6.0
+            },
+            // 峇株吧辖蔡逸众制作
+            {
+                title: "4. 太初核合成时期 (Nucleosynthesis)",
+                time: "10秒 ~ 20分钟",
+                temp: "10⁹ K ~ 10⁷ K",
+                size: "约数个光年范围",
+                state: "核反应等离子体",
+                description: "随着宇宙温度下降到'仅有'几千万度，质子和中子终于能够碰撞结合，而不被高能光子立刻撕碎。在这个天然的'全宇宙热核反应堆'中，大约四分之一的物质合成了氦-4核，以及少量的氘、氦-3和锂-7。大部分质子保持游离，成为了未来的氢核。这奠定了宇宙今日元素的丰度基础（约75%氢，25%氦）。",
+                milestones: [
+                    "形成最初的轻元素原子核（氢、氦、锂）",
+                    "全宇宙成为一个巨型的天然核聚变反应炉",
+                    "核反应在大约20分钟后因温度过低而停止"
+                ],
+                color: 0xff3300, // 红热状态
+                particleSpeed: 0.8,
+                expansionScale: 15.0
+            },
+            {
+                title: "5. 复合时期与CMB (Recombination & CMB)",
+                time: "38万年",
+                temp: "3000 K",
+                size: "数千万光年",
+                state: "中性原子形成，宇宙变透明",
+                description: "在漫长的38万年中，宇宙就像一团不透光的核雾霾。温度终于降至约3000开尔文时，带正电的原子核终于能够捕捉住自由电子，形成了稳定的中性氢和氦原子。没有了自由电子散射，光子终于可以无阻碍地在太空中穿梭。第一缕'光'得以照亮宇宙，这就是今天探测到的'宇宙微波背景辐射'（CMB）。",
+                milestones: [
+                    "电子与原子核结合，自由电荷消失",
+                    "光子脱耦自由穿梭，宇宙从此变得透明",
+                    "宇宙微波背景辐射（CMB）由此诞生并流传至今"
+                ],
+                color: 0xaa55ff, // 复合期渐冷紫
+                particleSpeed: 0.4,
+                expansionScale: 35.0
+            },
+            {
+                title: "6. 宇宙黑暗时代 (The Dark Ages)",
+                time: "38万年 ~ 1.5亿年",
+                temp: "3000 K ~ 60 K",
+                size: "数亿光年",
+                state: "冰冷无光的氢气云",
+                description: "宇宙变得透明，但依然一片死寂。没有任何恒星、星系或黑洞，只有均匀弥漫的中性氢和氦气云在太空中漂浮。随着膨胀，宇宙不断降温并陷入彻底的黑暗。然而，在这个看似死寂的时代，万有引力正在看不见的暗物质网格上，默默将气体汇聚到密度稍高的地方，为第一代恒星的'点火'暗中积蓄能量。",
+                milestones: [
+                    "没有任何天体发光，全宇宙处于冰冷黑暗之中",
+                    "物质在引力作用下向暗物质聚集区聚拢",
+                    "温度持续下降至接近绝对零度"
+                ],
+                // Made by ecchua79
+                color: 0x111122, // 接近黑暗的深蓝色
+                particleSpeed: 0.2,
+                expansionScale: 60.0
+            },
+            {
+                title: "7. 恒星与星系形成 (First Stars & Galaxies)",
+                time: "1.5亿年 ~ 10亿年",
+                temp: "60 K ~ 10 K",
+                size: "局部区域开始剧烈凝聚",
+                state: "局部引力塌缩，核聚变再点燃",
+                description: "在引力的持续牵引下，高密度气体云崩塌收缩，中心温度急剧攀升。终于，宇宙的第一代恒星（第三星族星，极其巨大且短命）点火爆发，照亮了夜空！它们的强光剥离了周围气体的电子（再电离）。随着它们超新星爆发，重元素诞生，引力又将恒星残骸和气体汇聚，诞生了第一代原星系与超级黑洞。",
+                milestones: [
+                    "第一代大质量恒星（第三星族）诞生并点亮宇宙",
+                    "紫外辐射导致宇宙气体发生'再电离'",
+                    "大尺度引力结构搭建完成，原始星系开始形成"
+                ],
+                color: 0xdd88ff, // 带有星云色彩的紫粉色
+                particleSpeed: 0.5,
+                expansionScale: 85.0
+            },
+            {
+                title: "8. 现代宇宙 (Modern Universe - Present)",
+                time: "138亿年 (今天)",
+                temp: "2.73 K (微波背景温度)",
+                size: "可观测宇宙直径930亿光年",
+                state: "星系群林立，暗能量主导加速膨胀",
+                description: "经过138亿年的演化，大大小小的星系合并形成了壮丽的星系团和超星系团。在约46亿年前，在一处平凡的螺旋星系边缘，我们的太阳系诞生了。生命和人类文明得以演化并凝望星空。今天的宇宙由神秘的暗能量主导，正以越来越快的速度加速膨胀，将把遥远的星系推向更加孤立的深空。",
+                milestones: [
+                    "复杂而美丽的旋涡星系（如银河系）演化成熟",
+                    "太阳系与地球诞生，生命在此绽放",
+                    "暗能量超越引力，使宇宙进入加速膨胀的新阶段"
+                ],
+                color: 0x33ccff, // 星空蔚蓝色
+                particleSpeed: 0.3,
+                expansionScale: 100.0
+            }
+        ];
+        // 峇株吧辖华仁中学蔡逸众制作
+
+        // ==========================================
+        // 全局状态管理
+        // ==========================================
+        let currentEpochIndex = 0;
+        let isPlaying = true;
+        let expansionFactor = 0; // 0 (极小奇点) 到 100 (完全膨胀)
+        let speedMultiplier = 0.15; // 演化速度
+
+        // UI 元素引用
+        const timelineSlider = document.getElementById('timeline-slider');
+        const activeLine = document.getElementById('timeline-active-line');
+        const epochNodes = document.querySelectorAll('.epoch-node');
+        const epochTitle = document.getElementById('epoch-title');
+        const epochDesc = document.getElementById('epoch-description');
+        const statTime = document.getElementById('stat-time');
+        const statTemp = document.getElementById('stat-temp');
+        const statSize = document.getElementById('stat-size');
+        const statState = document.getElementById('stat-state');
+        const milestoneContainer = document.getElementById('milestone-container');
+        
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const btnReset = document.getElementById('btn-reset');
+        const playIcon = document.getElementById('play-icon');
+        const playText = document.getElementById('play-text');
+        
+        const infoPanel = document.getElementById('info-panel');
+        const btnTogglePanel = document.getElementById('btn-toggle-panel');
+        const btnExpandPanel = document.getElementById('btn-expand-panel');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const boomHint = document.getElementById('boom-hint');
+
+        // ==========================================
+        // Three.js 设置与逻辑
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        let scene, camera, renderer;
+        
+        // 粒子相关
+        let particlesGeometry, particlesMaterial, particleSystem;
+        const particleCount = 12000;
+        let originalDirections = []; // 保存每个粒子的初始移动向量
+
+        // 奇点超亮光源与发光核心
+        let coreLight, coreGlow;
+
+        // 交互参数 (拖动/缩放)
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotationSpeed = 0.003;
+        let zoomScale = 1.0;
+        let targetRotation = { x: 0.2, y: -0.5 };
+        let currentRotation = { x: 0.2, y: -0.5 };
+
+        // 精致的径向渐变贴图，用于粒子核心
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.2, 'rgba(255, 240, 220, 0.9)');
+            gradient.addColorStop(0.5, 'rgba(255, 100, 50, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 32, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 初始化 3D 场景
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x010103, 0.015);
+
+            // 宽屏/移动自适应相机
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.z = 60;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x010103, 1);
+            container.appendChild(renderer.domElement);
+
+            // 弱底色环境光
+            const ambientLight = new THREE.AmbientLight(0x0a0a15);
+            scene.add(ambientLight);
+
+            // 奇点超亮白色聚能点光源
+            coreLight = new THREE.PointLight(0xffffff, 12, 120);
+            scene.add(coreLight);
+
+            // 奇点超级发光核心 (设计得极小：基础半径减缩至 0.08，凸显"极点"概念)
+            const glowGeo = new THREE.SphereGeometry(0.08, 32, 32);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.95
+            });
+            coreGlow = new THREE.Mesh(glowGeo, glowMat);
+            scene.add(coreGlow);
+            // 华仁中学蔡逸众制作
+
+            // 初始化粒子系统
+            particlesGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const sizes = new Float32Array(particleCount);
+
+            const glowTexture = createGlowTexture();
+
+            for (let i = 0; i < particleCount; i++) {
+                // 粒子初始聚集范围从 0.2 缩减至极其微小的 0.001 (让它们完美贴合在一个点上)
+                positions[i * 3] = (Math.random() - 0.5) * 0.001;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 0.001;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 0.001;
+
+                // 确立发射的膨胀方向
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                
+                const dx = Math.sin(phi) * Math.cos(theta);
+                const dy = Math.sin(phi) * Math.sin(theta);
+                const dz = Math.cos(phi);
+                
+                const speedScale = 0.5 + Math.random() * 2.5; 
+                const rx = -dy * 0.3; // 形成旋转星云的切向分量
+                const ry = dx * 0.3;
+                
+                originalDirections.push({
+                    dx: dx * speedScale,
+                    dy: dy * speedScale,
+                    dz: dz * speedScale,
+                    rx: rx,
+                    ry: ry,
+                    rz: (Math.random() - 0.5) * 0.1,
+                    noise: Math.random() * 2 
+                });
+
+                colors[i * 3] = 1.0;
+                colors[i * 3 + 1] = 1.0;
+                colors[i * 3 + 2] = 1.0;
+
+                sizes[i] = 1.0 + Math.random() * 4.0;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            particlesMaterial = new THREE.PointsMaterial({
+                size: 0.65,
+                map: glowTexture,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.95,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particleSystem);
+
+            // 监听窗口大小
+            window.addEventListener('resize', onWindowResize);
+
+            // 触控交互
+            setupInteractions();
+        }
+
+        // ==========================================
+        // 手势交互处理 (适配移动端和电脑端)
+        // ==========================================
+        function setupInteractions() {
+            const dom = container;
+
+            // 鼠标
+            dom.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            dom.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+                targetRotation.y += deltaMove.x * rotationSpeed;
+                targetRotation.x += deltaMove.y * rotationSpeed;
+                targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // 滚轮缩放 (PC)
+            dom.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                zoomScale += e.deltaY * 0.001;
+                zoomScale = Math.max(0.3, Math.min(2.5, zoomScale));
+            }, { passive: false });
+
+            // 触摸缩放和旋转 (移动端)
+            let touchStartDist = 0;
+            dom.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                } else if (e.touches.length === 2) {
+                    touchStartDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            }, { passive: true });
+            // 峇株吧辖蔡逸众制作
+
+            dom.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length === 1) {
+                    const deltaMove = {
+                        x: e.touches[0].clientX - previousMousePosition.x,
+                        y: e.touches[0].clientY - previousMousePosition.y
+                    };
+                    targetRotation.y += deltaMove.x * rotationSpeed * 1.5;
+                    targetRotation.x += deltaMove.y * rotationSpeed * 1.5;
+                    targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (touchStartDist > 0) {
+                        const factor = dist / touchStartDist;
+                        zoomScale /= factor;
+                        zoomScale = Math.max(0.3, Math.min(2.5, zoomScale));
+                    }
+                    touchStartDist = dist;
+                }
+            }, { passive: true });
+
+            dom.addEventListener('touchend', () => {
+                isDragging = false;
+                touchStartDist = 0;
+            });
+        }
+        // 峇株吧辖华仁中学蔡逸众制作
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // ==========================================
+        // 核心渲染与动力学模拟
+        // ==========================================
+        let clock = new THREE.Clock();
+        // Made by ecchua79
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+            
+            // 自动播放
+            if (isPlaying) {
+                expansionFactor += speedMultiplier;
+                if (expansionFactor > 100) {
+                    expansionFactor = 0; // 循环
+                }
+                timelineSlider.value = expansionFactor;
+                updateTimelineUI();
+            }
+
+            const currentVal = expansionFactor;
+            
+            // 寻找两个纪元并缓动插值
+            let activeIdx = 0;
+            const step = 100 / (EPOCHS.length - 1);
+            activeIdx = Math.floor(currentVal / step);
+            if (activeIdx >= EPOCHS.length - 1) activeIdx = EPOCHS.length - 2;
+            
+            const localRatio = (currentVal % step) / step;
+
+            const currentEp = EPOCHS[activeIdx];
+            const nextEp = EPOCHS[activeIdx + 1] || currentEp;
+
+            // 混合膨胀比例与粒子运动参数
+            const currentSpeed = currentEp.particleSpeed * (1 - localRatio) + nextEp.particleSpeed * localRatio;
+            const currentBaseScale = currentEp.expansionScale * (1 - localRatio) + nextEp.expansionScale * localRatio;
+
+            // 色谱过渡
+            const cColor = new THREE.Color(currentEp.color);
+            const nColor = new THREE.Color(nextEp.color);
+            const mixedColor = cColor.clone().lerp(nColor, localRatio);
+
+            // 奇点微小核心特效
+            if (currentVal < 0.2) {
+                // 处于极静止的极限奇点
+                coreGlow.visible = true;
+                coreGlow.scale.set(1.0, 1.0, 1.0); // 针尖般的大小
+                coreLight.intensity = 15.0; // 耀眼的密度
+            } else {
+                // 爆开过程：核心几何体缩减并快速蒸发
+                coreGlow.visible = currentVal < 18;
+                const glowSize = Math.max(0.001, 1.0 - (currentVal * 0.08));
+                coreGlow.scale.set(glowSize, glowSize, glowSize);
+                coreLight.intensity = Math.max(0, 15.0 - (currentVal * 0.8));
+            }
+
+            // 更新 12000 个粒子的三维轨迹 (非线性爆破)
+            const positions = particlesGeometry.attributes.position.array;
+            const colors = particlesGeometry.attributes.color.array;
+
+            for (let i = 0; i < particleCount; i++) {
+                const dir = originalDirections[i];
+                let scale = currentBaseScale;
+
+                // 旋转和动力拉扯
+                const rotSpeed = 0.06 * (currentVal / 100);
+                const cosR = Math.cos(rotSpeed + dir.noise * 0.01);
+                const sinR = Math.sin(rotSpeed + dir.noise * 0.01);
+
+                // 星系纤维网凝聚特效
+                let gravityPull = 0;
+                if (currentVal > 60) {
+                    gravityPull = Math.sin(dir.noise * 10) * 0.15 * (currentVal - 60) / 40;
+                }
+
+                // 粒子膨胀与轨道方程
+                let targetX = dir.dx * scale + (dir.rx * currentVal * 0.08) + gravityPull;
+                let targetY = dir.dy * scale + (dir.ry * currentVal * 0.08) + gravityPull;
+                let targetZ = dir.dz * scale + (dir.rz * currentVal * 0.08);
+
+                // 平滑缓动
+                positions[i * 3] += (targetX - positions[i * 3]) * 0.25;
+                positions[i * 3 + 1] += (targetY - positions[i * 3 + 1]) * 0.25;
+                positions[i * 3 + 2] += (targetZ - positions[i * 3 + 2]) * 0.25;
+
+                // 核心颜色亮度计算
+                const distToCenter = Math.sqrt(positions[i*3]**2 + positions[i*3+1]**2 + positions[i*3+2]**2);
+                const brightness = Math.max(0.35, 1.0 - (distToCenter / (scale * 2 + 1)));
+                
+                colors[i * 3] = mixedColor.r * brightness;
+                colors[i * 3 + 1] = mixedColor.g * brightness;
+                colors[i * 3 + 2] = mixedColor.b * brightness;
+
+                // 黑暗时代粒子亮度淡出
+                if (currentVal >= 55 && currentVal <= 75) {
+                    const darkFactor = currentVal <= 65 ? 1 - ((currentVal - 55)/10) * 0.85 : 0.15 + ((currentVal - 65)/10) * 0.85;
+                    colors[i * 3] *= darkFactor;
+                    colors[i * 3 + 1] *= darkFactor;
+                    colors[i * 3 + 2] *= darkFactor;
+                }
+            }
+
+            particlesGeometry.attributes.position.needsUpdate = true;
+            particlesGeometry.attributes.color.needsUpdate = true;
+            // 峇株吧辖华仁中学蔡逸众制作
+
+            // 惯性拖拽旋转
+            currentRotation.y += (targetRotation.y - currentRotation.y) * 0.1;
+            currentRotation.x += (targetRotation.x - currentRotation.x) * 0.1;
+
+            if (particleSystem) {
+                particleSystem.rotation.x = currentRotation.x;
+                particleSystem.rotation.y = currentRotation.y;
+                coreGlow.rotation.x = currentRotation.x;
+                coreGlow.rotation.y = currentRotation.y;
+            }
+
+            // 场景微弱自转
+            if (!isDragging) {
+                targetRotation.y += 0.0012; 
+            }
+
+            // 相机惯性缩放
+            camera.position.z += (zoomScale * 60 - camera.position.z) * 0.1;
+
+            renderer.render(scene, camera);
+        }
+        // 峇株吧辖蔡逸众制作
+
+        // ==========================================
+        // UI 控制与逻辑绑定
+        // ==========================================
+
+        function updateTimelineUI() {
+            const currentVal = parseFloat(timelineSlider.value);
+            activeLine.style.width = currentVal + '%';
+
+            const step = 100 / (EPOCHS.length - 1);
+            let activeIndex = Math.floor(currentVal / step);
+            if (activeIndex >= EPOCHS.length) activeIndex = EPOCHS.length - 1;
+
+            // 更新刻度节点状态
+            epochNodes.forEach((node, idx) => {
+                const dot = node.querySelector('.node-dot');
+                const text = node.querySelector('span:last-child');
+                
+                if (idx <= activeIndex) {
+                    dot.className = "node-dot w-4 h-4 rounded-full bg-blue-500 border-4 border-black scale-110 transition-all shadow-lg shadow-blue-500/50";
+                    text.className = "text-[10px] mt-1 font-bold text-white transition-colors";
+                } else {
+                    dot.className = "node-dot w-4 h-4 rounded-full bg-white/20 border-4 border-black transition-all";
+                    text.className = "text-[10px] mt-1 font-semibold text-gray-500 transition-colors";
+                }
+            });
+
+            // 说明面板切换
+            if (activeIndex !== currentEpochIndex) {
+                currentEpochIndex = activeIndex;
+                renderEpochInfo(activeIndex);
+            }
+
+            // 奇点提示显示
+            if (currentVal < 0.2) {
+                boomHint.style.opacity = "1";
+            } else {
+                boomHint.style.opacity = "0";
+            }
+        }
+
+        // 填充面板内容
+        function renderEpochInfo(index) {
+            const data = EPOCHS[index];
+            epochTitle.innerText = data.title;
+            statTime.innerText = data.time;
+            statTemp.innerText = data.temp;
+            statSize.innerText = data.size;
+            statState.innerText = data.state;
+            epochDesc.innerText = data.description;
+
+            milestoneContainer.innerHTML = '';
+            data.milestones.forEach(text => {
+                const item = document.createElement('div');
+                item.className = "flex items-start gap-2.5 bg-white/5 p-3 rounded-xl border border-white/5 hover:bg-white/10 transition-colors";
+                item.innerHTML = `
+                    <div class="mt-1 flex-shrink-0 w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <span class="text-xs md:text-sm text-gray-200">${text}</span>
+                `;
+                milestoneContainer.appendChild(item);
+            });
+        }
+
+        // 切换时段
+        window.jumpToEpoch = function(index) {
+            const step = 100 / (EPOCHS.length - 1);
+            expansionFactor = index * step;
+            timelineSlider.value = expansionFactor;
+            updateTimelineUI();
+            
+            infoPanel.classList.add('ring-2', 'ring-blue-500/40');
+            setTimeout(() => {
+                infoPanel.classList.remove('ring-2', 'ring-blue-500/40');
+            }, 500);
+        };
+
+        // 滑块输入
+        timelineSlider.addEventListener('input', (e) => {
+            expansionFactor = parseFloat(e.target.value);
+            updateTimelineUI();
+        });
+
+        // 播放暂停
+        btnPlayPause.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playText.innerText = "暂停";
+                if (expansionFactor >= 99.8) {
+                    expansionFactor = 0;
+                }
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                playText.innerText = "播放";
+            }
+        });
+
+        // 重置大爆炸
+        btnReset.addEventListener('click', () => {
+            expansionFactor = 0;
+            timelineSlider.value = 0;
+            updateTimelineUI();
+            
+            targetRotation.x = 0.2;
+            targetRotation.y = -0.5;
+            zoomScale = 1.0;
+
+            container.classList.add('translate-y-1');
+            setTimeout(() => container.classList.remove('translate-y-1'), 150);
+        });
+        // Made by ecchua79
+
+        // 折叠控制
+        btnTogglePanel.addEventListener('click', () => {
+            infoPanel.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                infoPanel.classList.add('hidden');
+                btnExpandPanel.classList.remove('hidden');
+                btnExpandPanel.classList.add('flex');
+            }, 300);
+        });
+
+        btnExpandPanel.addEventListener('click', () => {
+            btnExpandPanel.classList.add('hidden');
+            infoPanel.classList.remove('hidden');
+            setTimeout(() => {
+                infoPanel.classList.remove('translate-x-full', 'opacity-0');
+            }, 50);
+        });
+
+        // 移动端轻触事件
+        let touchDownTime = 0;
+        container.addEventListener('touchstart', () => { touchDownTime = Date.now(); });
+        container.addEventListener('touchend', (e) => {
+            if (Date.now() - touchDownTime < 250) { 
+                if (expansionFactor < 1.0) {
+                    btnPlayPause.click();
+                }
+            }
+        });
+
+        // 启动
+        window.onload = function() {
+            initThree();
+            renderEpochInfo(0);
+            updateTimelineUI();
+            animate();
+        };
+        // 华仁中学蔡逸众制作
+    </script>
+</body>
+</html>
