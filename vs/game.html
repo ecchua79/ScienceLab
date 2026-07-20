@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科学对决</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #ff2233;
+  --red-dark: #880011;
+  --blue: #0099ff;
+  --blue-dark: #003d99;
+  --bg: #0a0a12;
+  --bar-bg: #0d0d1e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#intro {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, #08000f 0%, #000810 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 200; gap: 0;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+#intro.hidden { display: none; }
+.intro-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.2rem; font-weight: 900;
+  letter-spacing: 6px; text-align: center;
+  margin-bottom: 6px;
+  background: linear-gradient(90deg, var(--red), #fff, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.intro-sub {
+  font-family: 'Orbitron', monospace; font-size: 0.65rem;
+  letter-spacing: 4px; opacity: 0.4; margin-bottom: 28px;
+}
+.rules-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; max-width: 700px; width: 100%; margin-bottom: 24px;
+}
+.rule-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.rule-card.red-card  { border-color: rgba(255,34,51,0.35);  background: rgba(255,34,51,0.06); }
+.rule-card.blue-card { border-color: rgba(0,153,255,0.35);  background: rgba(0,153,255,0.06); }
+.rule-card.gold-card { border-color: rgba(255,200,0,0.35);  background: rgba(255,180,0,0.06); grid-column: 1 / -1; }
+.rule-icon { font-size: 1.5rem; }
+.rule-title {
+  font-family: 'Orbitron', monospace; font-size: 0.7rem;
+  font-weight: 900; letter-spacing: 2px; margin-bottom: 2px;
+}
+.rule-card.red-card  .rule-title { color: var(--red); }
+.rule-card.blue-card .rule-title { color: var(--blue); }
+.rule-card.gold-card .rule-title { color: #ffcc44; }
+.rule-body { font-size: 0.82rem; line-height: 1.6; opacity: 0.8; }
+.bar-demo {
+  width: 100%; max-width: 500px; height: 20px;
+  border-radius: 10px; overflow: hidden; margin: 10px 0 4px;
+  display: flex; border: 1px solid rgba(255,255,255,0.1);
+}
+.bar-demo-red  { flex: 1; background: linear-gradient(to right, #880011, var(--red)); }
+.bar-demo-blue { flex: 1; background: linear-gradient(to left, #003d99, var(--blue)); }
+.bar-demo-label {
+  display: flex; justify-content: space-between;
+  width: 100%; max-width: 500px;
+  font-size: 0.72rem; opacity: 0.5; letter-spacing: 1px;
+}
+#start-btn {
+  margin-top: 6px; background: transparent;
+  border: 2px solid #fff; color: #fff;
+  padding: 16px 32px; width: 100%; max-width: 360px;
+  font-family: 'Orbitron', monospace; font-size: 0.95rem; font-weight: 900;
+  letter-spacing: 2px; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s;
+  position: relative; overflow: clip; white-space: nowrap;
+}
+#start-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(255,34,51,0.3), rgba(0,153,255,0.3));
+  opacity: 0; transition: opacity 0.2s;
+}
+#start-btn:hover::before { opacity: 1; }
+#start-btn:hover { transform: scale(1.03); box-shadow: 0 0 24px rgba(255,255,255,0.2); }
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 18px; background: #080810;
+  border-bottom: 1px solid #1a1a30; flex-shrink: 0;
+}
+.team-name {
+  font-family: 'Orbitron', monospace; font-size: 1rem; font-weight: 900;
+  letter-spacing: 3px; display: flex; align-items: center; gap: 6px; min-width: 100px;
+}
+.team-name.left  { color: var(--red);  text-shadow: 0 0 12px var(--red); }
+.team-name.right { color: var(--blue); text-shadow: 0 0 12px var(--blue); justify-content: flex-end; }
+.warn-icon { font-size: 1.1rem; display: none; animation: warnPulse 0.55s infinite alternate; }
+.warn-icon.show { display: inline; }
+@keyframes warnPulse { from{opacity:1;transform:scale(1);} to{opacity:0.3;transform:scale(1.35);} }
+#bar-container { display: flex; align-items: center; gap: 8px; flex: 1; padding: 0 14px; }
+.score-badge { font-family: 'Orbitron', monospace; font-size: 1.3rem; font-weight: 900; min-width: 28px; text-align: center; }
+.score-badge.left  { color: var(--red); }
+.score-badge.right { color: var(--blue); }
+#health-track { flex: 1; height: 30px; background: var(--bar-bg); border-radius: 15px; border: 1px solid #2a2a44; position: relative; overflow: visible; }
+#health-inner { position: absolute; inset: 0; border-radius: 15px; overflow: hidden; }
+#bar-red { position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: linear-gradient(to right, var(--red-dark), var(--red)); transition: width 0.55s cubic-bezier(.4,0,.2,1); }
+#bar-blue { position: absolute; top: 0; bottom: 0; left: 50%; right: 0; background: linear-gradient(to left, var(--blue-dark), var(--blue)); transition: left 0.55s cubic-bezier(.4,0,.2,1); }
+#bar-divider { position: absolute; top: -4px; bottom: -4px; left: 50%; width: 5px; background: #fff; transform: translateX(-50%); z-index: 10; border-radius: 3px; transition: left 0.55s cubic-bezier(.4,0,.2,1); box-shadow: 0 0 10px #fff, 0 0 20px rgba(255,255,255,0.5); }
+#bar-divider.shake { animation: dividerShake 0.45s ease; }
+@keyframes dividerShake {
+  0%{transform:translateX(-50%) scaleY(1);} 20%{transform:translateX(calc(-50% + 6px)) scaleY(1.3);}
+  40%{transform:translateX(calc(-50% - 4px)) scaleY(1.5);} 60%{transform:translateX(calc(-50% + 2px)) scaleY(1.2);}
+  80%{transform:translateX(calc(-50% - 1px)) scaleY(1.1);} 100%{transform:translateX(-50%) scaleY(1);}
+}
+.shockwave { position: absolute; top: 50%; transform: translateY(-50%); width: 16px; height: 30px; border-radius: 50%; pointer-events: none; z-index: 8; animation: shockwaveAnim 0.55s ease-out forwards; }
+.shockwave.left-wave  { background: radial-gradient(ellipse at left,  rgba(255,34,51,0.9) 0%, rgba(255,34,51,0) 80%); box-shadow: 0 0 12px var(--red); }
+.shockwave.right-wave { background: radial-gradient(ellipse at right, rgba(0,153,255,0.9) 0%, rgba(0,153,255,0) 80%); box-shadow: 0 0 12px var(--blue); }
+@keyframes shockwaveAnim { 0%{width:16px;opacity:1;} 60%{width:80px;opacity:0.8;} 100%{width:120px;opacity:0;} }
+#bar-red.pulse-warn  { animation: redPulseWarn  0.8s ease infinite; }
+#bar-blue.pulse-warn { animation: bluePulseWarn 0.8s ease infinite; }
+@keyframes redPulseWarn  { 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.5) saturate(1.5);} }
+@keyframes bluePulseWarn { 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.5) saturate(1.5);} }
+.tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,0.35); z-index: 5; }
+#game { flex: 1; display: flex; overflow: hidden; }
+.panel { flex: 1; display: flex; flex-direction: column; padding: 14px 18px 12px; position: relative; overflow: hidden; }
+.panel.left  { border-right: 2px solid #1a1a30; background: linear-gradient(160deg, #160407 0%, #0a0205 100%); }
+.panel.right { border-left:  2px solid #1a1a30; background: linear-gradient(200deg, #020c18 0%, #010810 100%); }
+.panel.left::before  { content:''; position:absolute; top:0;left:0;right:0;height:3px; background:linear-gradient(90deg,var(--red),transparent); }
+.panel.right::before { content:''; position:absolute; top:0;left:0;right:0;height:3px; background:linear-gradient(270deg,var(--blue),transparent); }
+.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-shrink:0; }
+.player-label { font-family:'Orbitron',monospace; font-size:0.68rem; letter-spacing:2px; opacity:0.6; }
+.dots { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; flex-shrink:0; }
+.dot { width:10px; height:10px; border-radius:50%; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.04); transition:all 0.3s; }
+.panel.left  .dot.filled { background:var(--red);  border-color:var(--red);  box-shadow:0 0 7px var(--red); }
+.panel.right .dot.filled { background:var(--blue); border-color:var(--blue); box-shadow:0 0 7px var(--blue); }
+.q-box { flex:1; display:flex; flex-direction:column; gap:8px; overflow-y:auto; }
+.q-num  { font-size:0.6rem; letter-spacing:2px; opacity:0.3; flex-shrink:0; }
+.q-text { font-size:0.9rem; line-height:1.65; font-weight:700; flex-shrink:0; }
+.options { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+.opt-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:9px 13px; border-radius:6px; font-size:0.82rem; font-family:'Noto Sans SC',sans-serif; cursor:pointer; text-align:left; transition:all 0.15s; line-height:1.4; }
+.panel.left  .opt-btn:hover:not(:disabled) { background:rgba(255,34,51,0.13);  border-color:var(--red);  color:#fff; }
+.panel.right .opt-btn:hover:not(:disabled) { background:rgba(0,153,255,0.13);  border-color:var(--blue); color:#fff; }
+.opt-btn.correct { background:rgba(0,230,100,0.18)!important; border-color:#00dd66!important; color:#00dd66!important; }
+.opt-btn.wrong   { background:rgba(255,60,60,0.16)!important;  border-color:#ff4444!important; color:#ff6666!important; text-decoration:line-through; }
+.opt-btn:disabled { cursor:default; }
+.explanation-box { margin-top:4px; padding:10px 13px; border-radius:6px; font-size:0.79rem; line-height:1.55; border:1px solid rgba(255,200,0,0.3); background:rgba(255,180,0,0.07); color:#ffdd88; flex-shrink:0; }
+.expl-label { font-weight:900; font-size:0.7rem; letter-spacing:1px; color:#ffcc44; margin-bottom:4px; }
+.countdown-wrap { margin-top:7px; height:3px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
+.countdown-bar  { height:100%; width:100%; background:#ffcc44; border-radius:2px; }
+.panel.flash-correct { animation:flashGreen  0.45s ease; }
+.panel.flash-wrong   { animation:flashOrange 0.55s ease; }
+@keyframes flashGreen  { 0%{background-color:rgba(0,230,100,0.12)} 100%{background-color:transparent} }
+@keyframes flashOrange { 0%{background-color:rgba(255,150,0,0.13)} 100%{background-color:transparent} }
+#center-divider { width:4px; position:relative; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#1a1a30; z-index:5; }
+#vs-badge { position:absolute; background:#0a0a12; border:2px solid #2a2a44; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',monospace; font-size:0.52rem; font-weight:900; color:#fff; letter-spacing:1px; z-index:6; }
+#overlay { position:fixed; inset:0; background:rgba(0,0,0,0.88); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:12px; overflow-y:auto; padding:24px 16px; }
+#overlay.hidden { display:none; }
+#overlay h1 { font-family:'Orbitron',monospace; font-size:2.4rem; font-weight:900; letter-spacing:4px; text-align:center; }
+#overlay h1.left-wins  { color:var(--red);  text-shadow:0 0 40px var(--red); }
+#overlay h1.right-wins { color:var(--blue); text-shadow:0 0 40px var(--blue); }
+#overlay p { font-size:1rem; opacity:0.55; letter-spacing:2px; }
+.overlay-btns { display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; justify-content:center; }
+.ov-btn { background:transparent; border:2px solid rgba(255,255,255,0.5); color:rgba(255,255,255,0.7); padding:11px 28px; font-family:'Orbitron',monospace; font-size:0.8rem; font-weight:700; letter-spacing:2px; border-radius:4px; cursor:pointer; transition:all 0.2s; }
+.ov-btn:hover { background:rgba(255,255,255,0.08); color:#fff; border-color:#fff; }
+.ov-btn.primary { border-color:#fff; color:#fff; }
+.waiting { opacity:0.3; font-size:0.8rem; letter-spacing:2px; text-align:center; padding:40px 0; }
+.exhausted-box { display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px 12px; flex-shrink:0; }
+.exhausted-label { font-size:0.72rem; letter-spacing:2px; opacity:0.45; text-align:center; }
+.replay-btn { background:transparent; border:2px solid rgba(255,255,255,0.4); color:#fff; padding:11px 28px; font-family:'Orbitron',monospace; font-size:0.78rem; font-weight:700; letter-spacing:2px; border-radius:6px; cursor:pointer; transition:all 0.2s; }
+.panel.left  .replay-btn:hover { border-color:var(--red);  color:var(--red); }
+.panel.right .replay-btn:hover { border-color:var(--blue); color:var(--blue); }
+.replay-btn:active { transform:scale(0.97); }
+.exhausted-notice { font-size:0.68rem; letter-spacing:1px; opacity:0.4; text-align:center; margin-top:4px; flex-shrink:0; }
+.q-box::-webkit-scrollbar { width:3px; }
+.q-box::-webkit-scrollbar-thumb { background:#333; border-radius:2px; }
+.name-section { width:100%; max-width:600px; display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0 4px; }
+.name-col { display:flex; flex-direction:column; gap:6px; }
+.name-col label { font-family:'Orbitron',monospace; font-size:0.68rem; letter-spacing:2px; opacity:0.7; }
+.name-col.left-col  label { color:var(--red); }
+.name-col.right-col label { color:var(--blue); }
+.name-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#fff; padding:9px 12px; font-size:0.85rem; font-family:'Noto Sans SC',sans-serif; outline:none; transition:border-color 0.2s; width:100%; }
+.name-col.left-col  .name-input:focus { border-color:var(--red); }
+.name-col.right-col .name-input:focus { border-color:var(--blue); }
+.name-input::placeholder { opacity:0.35; }
+.name-hint { font-size:0.65rem; opacity:0.35; letter-spacing:1px; text-align:center; margin-top:-4px; margin-bottom:4px; }
+.victory-players { display:flex; gap:30px; justify-content:center; flex-wrap:wrap; margin:4px 0; }
+.victory-player { font-size:1.1rem; font-weight:700; letter-spacing:1px; opacity:0.9; }
+.confetti-wrap { position:fixed; inset:0; pointer-events:none; z-index:99; overflow:hidden; }
+.confetti-piece { position:absolute; width:10px; height:10px; border-radius:2px; opacity:0; animation:confettiFall linear forwards; }
+@keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1;} 100%{transform:translateY(110vh) rotate(720deg);opacity:0.2;} }
+</style>
+<script>
+//峇株吧辖华仁中学蔡逸众制作
+// 支持两种模式：
+//   1) game.html?chapter=1c3        —— 原本的单章节模式（不变）
+//   2) game.html?mix=1c1,1c3,1c5    —— 混合复习模式：只选2章就全部题目都用，3章以上则100题按章节平均分配
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const mixParam = params.get('mix');
+  const TOTAL_MIX_QUESTIONS = 100;
+
+  // 在独立的函数作用域里执行题目文件的代码，
+  // 这样每个文件里的 const CHAPTER_INFO / ALL_QUESTIONS 不会互相覆盖
+  function extractModule(code) {
+    const runner = new Function(
+      code + '\n;return { CHAPTER_INFO: (typeof CHAPTER_INFO!=="undefined"?CHAPTER_INFO:null), ' +
+      'ALL_QUESTIONS: (typeof ALL_QUESTIONS!=="undefined"?ALL_QUESTIONS:null) };'
+    );
+    return runner();
+  }
+
+  async function loadChapterModule(chapterId) {
+    const res = await fetch('questions/' + chapterId + '.js');
+    if (!res.ok) throw new Error('找不到题目文件：questions/' + chapterId + '.js');
+    const code = await res.text();
+    const mod = extractModule(code);
+    if (!mod.ALL_QUESTIONS) throw new Error('questions/' + chapterId + '.js 里没有 ALL_QUESTIONS');
+    return mod;
+  }
+
+  function buildMixedQuestions(modules) {
+    const n = modules.length;
+    // 只选2章：两章题目全部混合
+    if (n <= 2) {
+      return modules.flatMap(m => m.ALL_QUESTIONS.slice());
+    }
+    // 3章或以上：总共100题，按章节平均分配
+    const base = Math.floor(TOTAL_MIX_QUESTIONS / n);
+    const remainder = TOTAL_MIX_QUESTIONS - base * n;
+    // 每章节的题目上限不能超过该章节实际拥有的题数
+    let quotas = modules.map((m, i) => Math.min(base + (i < remainder ? 1 : 0), m.ALL_QUESTIONS.length));
+    // 如果有章节题目不够，缺口平摊给还有余量的其他章节，尽量凑够100题
+    let shortage = TOTAL_MIX_QUESTIONS - quotas.reduce((a, b) => a + b, 0);
+    while (shortage > 0) {
+      let gave = false;
+      for (let i = 0; i < n && shortage > 0; i++) {
+        if (quotas[i] < modules[i].ALL_QUESTIONS.length) { quotas[i]++; shortage--; gave = true; }
+      }
+      if (!gave) break; // 所选章节题目全部用完，无法再凑
+    }
+    const combined = [];
+    modules.forEach((m, i) => {
+      const shuffled = m.ALL_QUESTIONS.slice().sort(() => Math.random() - 0.5);
+      combined.push(...shuffled.slice(0, quotas[i]));
+    });
+    return combined;
+  }
+
+  function buildMixedChapterInfo(modules) {
+    const titles = modules.map(m => (m.CHAPTER_INFO && m.CHAPTER_INFO.title) || '').filter(Boolean);
+    return { emoji: '🔀', title: '混合复习 · ' + titles.join('、') };
+  }
+
+  try {
+    if (mixParam) {
+      const chapterIds = mixParam.split(',').map(s => s.trim()).filter(Boolean);
+      const modules = await Promise.all(chapterIds.map(loadChapterModule));
+      window.ALL_QUESTIONS = buildMixedQuestions(modules);
+      window.CHAPTER_INFO = buildMixedChapterInfo(modules);
+      applyChapterInfo();
+      document.getElementById('intro').classList.remove('hidden');
+    } else {
+      const chapter = params.get('chapter') || 'c6';
+      const script = document.createElement('script');
+      script.src = 'questions/' + chapter + '.js';
+      script.onload = function() {
+        applyChapterInfo();
+        document.getElementById('intro').classList.remove('hidden');
+      };
+      script.onerror = function() {
+        alert('找不到题目文件：questions/' + chapter + '.js');
+      };
+      document.head.appendChild(script);
+    }
+  } catch (err) {
+    alert('题目载入失败：' + err.message);
+  }
+})();
+</script>
+</head>
+<body>
+
+<div id="intro" class="hidden">
+  <div class="intro-title">🦁 科学对决 🐯</div>
+  <div class="intro-sub">SCIENCE BATTLE · 科学 · 狮队 VS 虎队</div>
+  <div class="rules-grid">
+    <div class="rule-card red-card">
+      <div class="rule-icon">🦁</div>
+      <div class="rule-title">狮队（左）</div>
+      <div class="rule-body">坐左边的同学操控左侧题目。答对得分，血条往右推进。<b>领先对方5分</b>即获胜！</div>
+    </div>
+    <div class="rule-card blue-card">
+      <div class="rule-icon">🐯</div>
+      <div class="rule-title">虎队（右）</div>
+      <div class="rule-body">坐右边的同学操控右侧题目。答对得分，血条往左推进。<b>领先对方5分</b>即获胜！</div>
+    </div>
+    <div class="rule-card" style="border-color:rgba(0,230,100,0.3);background:rgba(0,200,80,0.06)">
+      <div class="rule-icon">✅</div>
+      <div class="rule-title" style="color:#00dd66">答对</div>
+      <div class="rule-body">己方血条发出<b>波动拳</b>冲击波，分界线向对方推进一格，立刻跳下一题。</div>
+    </div>
+    <div class="rule-card" style="border-color:rgba(255,150,0,0.3);background:rgba(255,130,0,0.06)">
+      <div class="rule-icon">❌</div>
+      <div class="rule-title" style="color:#ffaa33">答错</div>
+      <div class="rule-body">显示正确答案和解析，<b>停留5秒</b>后才能作答下一题（惩罚时间）。</div>
+    </div>
+    <div class="rule-card gold-card">
+      <div class="rule-icon">⚠️</div>
+      <div class="rule-title">警告机制</div>
+      <div class="rule-body">分差每超过 <b>3分</b> 时，落后方出现闪烁 ⚠️ 警告，血条脉冲提示危机。分差达 <b>5分</b> 即分出胜负，没有总分上限，可能打到 21:16！</div>
+    </div>
+  </div>
+  <div class="bar-demo">
+    <div class="bar-demo-red"></div>
+    <div class="bar-demo-blue"></div>
+  </div>
+  <div class="bar-demo-label">
+    <span>🦁 狮队得分推向右 →</span>
+    <span>← 虎队得分推向左 🐯</span>
+  </div>
+  <div class="name-section">
+    <div class="name-col left-col">
+      <label>🦁 狮队队员姓名（可选）</label>
+      <input class="name-input" id="name-l1" placeholder="队员 1">
+      <input class="name-input" id="name-l2" placeholder="队员 2">
+      <input class="name-input" id="name-l3" placeholder="队员 3">
+    </div>
+    <div class="name-col right-col">
+      <label>🐯 虎队队员姓名（可选）</label>
+      <input class="name-input" id="name-r1" placeholder="队员 1">
+      <input class="name-input" id="name-r2" placeholder="队员 2">
+      <input class="name-input" id="name-r3" placeholder="队员 3">
+    </div>
+  </div>
+  <div class="name-hint">姓名可以不填，直接开始也可以</div>
+  <button id="start-btn" onclick="launchGame()">▶ 开始对决</button>
+  <div style="margin-top:20px; font-size:0.62rem; opacity:0.22; letter-spacing:2px; text-align:center; font-family:'Orbitron',monospace; color:#fff;">
+    © 峇株吧辖华仁中学 &nbsp;·&nbsp; 制作：蔡逸众 老师 &nbsp;·&nbsp; 科学复习工具 &nbsp;·&nbsp; 未经授权请勿转载
+  </div>
+</div>
+
+<div id="topbar">
+  <div class="team-name left" id="left-name">
+    <span id="warn-left" class="warn-icon">⚠️</span>🦁 狮队
+  </div>
+  <div id="bar-container">
+    <div class="score-badge left"  id="score-left">0</div>
+    <div id="health-track">
+      <div id="health-inner">
+        <div id="bar-red"></div>
+        <div id="bar-blue"></div>
+      </div>
+      <div id="bar-divider"></div>
+    </div>
+    <div class="score-badge right" id="score-right">0</div>
+  </div>
+  <div class="team-name right" id="right-name">
+    虎队 🐯<span id="warn-right" class="warn-icon">⚠️</span>
+  </div>
+</div>
+
+<div id="game">
+  <div class="panel left" id="panel-left">
+    <div class="panel-header">
+      <span class="player-label" style="color:var(--red)">🦁 狮队</span>
+    </div>
+    <div class="dots" id="dots-left"></div>
+    <div class="q-box" id="qbox-left"><div class="waiting">等待开始...</div></div>
+  </div>
+  <div id="center-divider"><div id="vs-badge">VS</div></div>
+  <div class="panel right" id="panel-right">
+    <div class="panel-header">
+      <span class="player-label" style="color:var(--blue)">虎队 🐯</span>
+    </div>
+    <div class="dots" id="dots-right"></div>
+    <div class="q-box" id="qbox-right"><div class="waiting">等待开始...</div></div>
+  </div>
+</div>
+
+<div class="confetti-wrap" id="confetti-wrap"></div>
+
+<div id="overlay" class="hidden">
+  <h1 id="win-title"></h1>
+  <p  id="win-sub"></p>
+  <div class="victory-players" id="victory-players"></div>
+  <div id="win-cheer" style="font-size:1rem;line-height:1.8;text-align:center;max-width:420px;opacity:0.88;"></div>
+  <div class="overlay-btns">
+    <button class="ov-btn" onclick="resetNames()">🔄 重置姓名</button>
+    <button class="ov-btn" onclick="startGame()">▶ 再来一局</button>
+    <button class="ov-btn primary" onclick="showIntro()">📖 玩法说明</button>
+  </div>
+</div>
+
+<script>
+// Questions loaded from external chapter file
+const WIN_LEAD = 5;
+const WARN_GAP = 3;
+const LABELS = ['A','B','C','D'];
+
+let state = {
+  leftScore:0, rightScore:0,
+  leftIdx:[], rightIdx:[],
+  leftLocked:false, rightLocked:false,
+  gameOver:false
+};
+
+//峇株吧辖华仁中学蔡逸众制作
+/* ── BAR + ANIMATIONS ── */
+function updateBar(scoringSide) {
+  const pctPerPoint = 50 / WIN_LEAD;
+  const divPct = Math.min(100, Math.max(0, 50 + (state.leftScore - state.rightScore) * pctPerPoint));
+  document.getElementById('bar-red').style.width    = divPct + '%';
+  document.getElementById('bar-blue').style.left    = divPct + '%';
+  document.getElementById('bar-divider').style.left = divPct + '%';
+  document.getElementById('score-left').textContent  = state.leftScore;
+  document.getElementById('score-right').textContent = state.rightScore;
+  if (scoringSide) fireShockwave(scoringSide, divPct);
+  const div = document.getElementById('bar-divider');
+  div.classList.remove('shake'); void div.offsetWidth; div.classList.add('shake');
+  setTimeout(() => div.classList.remove('shake'), 500);
+  const gap = state.leftScore - state.rightScore;
+  const wL = document.getElementById('warn-left');
+  const wR = document.getElementById('warn-right');
+  const bR = document.getElementById('bar-red');
+  const bB = document.getElementById('bar-blue');
+  const leftWarn  = gap <= -WARN_GAP;
+  const rightWarn = gap >=  WARN_GAP;
+  const wasLeftWarn  = wL.classList.contains('show');
+  const wasRightWarn = wR.classList.contains('show');
+  wL.classList.toggle('show', leftWarn);
+  wR.classList.toggle('show', rightWarn);
+  if ((leftWarn && !wasLeftWarn) || (rightWarn && !wasRightWarn)) playWarn();
+  bR.classList.toggle('pulse-warn', leftWarn);
+  bB.classList.toggle('pulse-warn', rightWarn);
+  updateDots();
+}
+
+function fireShockwave(side, divPct) {
+  const track = document.getElementById('health-track');
+  const sw = document.createElement('div');
+  sw.className = 'shockwave ' + (side === 'left' ? 'left-wave' : 'right-wave');
+  const startPx = (divPct / 100) * track.offsetWidth;
+  if (side === 'left') { sw.style.left = startPx + 'px'; }
+  else { sw.style.right = (track.offsetWidth - startPx) + 'px'; sw.style.left = 'auto'; }
+  sw.style.top = '50%';
+  track.appendChild(sw);
+  playShockwave();
+  setTimeout(() => sw.remove(), 600);
+}
+
+function updateDots() {
+  const gap = state.leftScore - state.rightScore;
+  const leftLead  = Math.max(0,  gap);
+  const rightLead = Math.max(0, -gap);
+  ['left','right'].forEach(s => {
+    const el = document.getElementById('dots-' + s);
+    el.innerHTML = '';
+    const lead = s === 'left' ? leftLead : rightLead;
+    for (let i = 0; i < WIN_LEAD; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < lead ? ' filled' : '');
+      el.appendChild(d);
+    }
+  });
+}
+
+//Made by ecchua79
+/* ── QUESTIONS ── */
+function pickQuestion(usedIdxs) {
+  const avail = ALL_QUESTIONS.map((_,i)=>i).filter(i => !usedIdxs.includes(i));
+  if (!avail.length) return null;
+  const pick = avail[Math.floor(Math.random() * avail.length)];
+  usedIdxs.push(pick);
+  return pick;
+}
+
+function showExhausted(side, qbox) {
+  qbox.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'exhausted-box';
+  const label = document.createElement('div');
+  label.className = 'exhausted-label';
+  label.textContent = '🎉 已答完全部题目！';
+  box.appendChild(label);
+  const btn = document.createElement('button');
+  btn.className = 'replay-btn';
+  btn.textContent = '🔄 重新答题';
+  btn.onclick = () => replayQuestions(side);
+  box.appendChild(btn);
+  const hint = document.createElement('div');
+  hint.className = 'exhausted-label';
+  hint.style.fontSize = '0.62rem';
+  hint.textContent = '重新答题将让对方得1分';
+  box.appendChild(hint);
+  qbox.appendChild(box);
+}
+
+function replayQuestions(side) {
+  if (state.gameOver) return;
+  if (side === 'left')  state.leftIdx  = [];
+  else                  state.rightIdx = [];
+  const opponent = side === 'left' ? 'right' : 'left';
+  if (opponent === 'left')  state.leftScore++;
+  else                      state.rightScore++;
+  showReplayNotice(side);
+  playShockwave();
+  updateBar(opponent);
+  checkWin();
+  if (!state.gameOver) renderQuestion(side);
+}
+
+function showReplayNotice(side) {
+  const existing = document.getElementById('replay-notice-' + side);
+  if (existing) existing.remove();
+  const notice = document.createElement('div');
+  notice.id = 'replay-notice-' + side;
+  notice.className = 'exhausted-notice';
+  notice.textContent = '已答完50题 · 第' + getReplayCount(side) + '轮重玩';
+  const panel = document.getElementById('panel-' + side);
+  const dots  = document.getElementById('dots-' + side);
+  panel.insertBefore(notice, dots.nextSibling);
+}
+
+function getReplayCount(side) {
+  if (!state.replayCount) state.replayCount = { left: 0, right: 0 };
+  state.replayCount[side]++;
+  return state.replayCount[side];
+}
+
+//华仁中学蔡逸众制作
+function renderQuestion(side) {
+  const qbox = document.getElementById('qbox-' + side);
+  const idxs = side === 'left' ? state.leftIdx : state.rightIdx;
+  const qi = pickQuestion(idxs);
+  if (qi === null) { showExhausted(side, qbox); return; }
+  const q = ALL_QUESTIONS[qi];
+  qbox.innerHTML = '';
+  const numEl = document.createElement('div');
+  numEl.className = 'q-num';
+  numEl.textContent = '题目 ' + idxs.length;
+  qbox.appendChild(numEl);
+  const qEl = document.createElement('div');
+  qEl.className = 'q-text';
+  qEl.textContent = q.q;
+  qbox.appendChild(qEl);
+  const optsEl = document.createElement('div');
+  optsEl.className = 'options';
+  // 打乱选项顺序，保留原始索引
+  const shuffled = q.opts.map((opt, i) => ({ opt, i })).sort(() => Math.random() - 0.5);
+  shuffled.forEach((item, newIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = LABELS[newIdx] + '. ' + item.opt;
+    btn._origIdx = item.i;
+    btn.onclick = () => handleAnswer(side, item.i, q, optsEl, btn);
+    optsEl.appendChild(btn);
+  });
+  qbox.appendChild(optsEl);
+}
+
+//峇株吧辖蔡逸众制作
+function handleAnswer(side, chosen, q, optsEl, btn) {
+  if (state.gameOver) return;
+  if (side === 'left'  && state.leftLocked)  return;
+  if (side === 'right' && state.rightLocked) return;
+  if (side === 'left')  state.leftLocked  = true;
+  else                  state.rightLocked = true;
+  optsEl.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  const panel = document.getElementById('panel-' + side);
+  const isCorrect = chosen === q.ans;
+  if (isCorrect) {
+    btn.classList.add('correct');
+    if (side === 'left')  state.leftScore++;
+    else                  state.rightScore++;
+    panel.classList.add('flash-correct');
+    setTimeout(() => panel.classList.remove('flash-correct'), 450);
+    playCorrect();
+    updateBar(side);
+    checkWin();
+    if (!state.gameOver) {
+      setTimeout(() => {
+        if (side === 'left')  state.leftLocked  = false;
+        else                  state.rightLocked = false;
+        renderQuestion(side);
+      }, 750);
+    }
+  } else {
+    btn.classList.add('wrong');
+    // 用 _origIdx 找正确答案按钮，不受打乱顺序影响
+    optsEl.querySelectorAll('.opt-btn').forEach(b => { if (b._origIdx === q.ans) b.classList.add('correct'); });
+    panel.classList.add('flash-wrong');
+    setTimeout(() => panel.classList.remove('flash-wrong'), 550);
+    playWrong();
+    const qbox = document.getElementById('qbox-' + side);
+    const uid = 'cd-' + side + '-' + Date.now();
+    const exBox = document.createElement('div');
+    exBox.className = 'explanation-box';
+    // 找到打乱后正确答案显示的字母
+    let displayLabel = '';
+    optsEl.querySelectorAll('.opt-btn').forEach((b, idx) => {
+      if (b._origIdx === q.ans) displayLabel = LABELS[idx];
+    });
+    exBox.innerHTML =
+      '<div class="expl-label">✗ 正确答案：' + displayLabel + '　' + q.opts[q.ans] + '</div>' +
+      '<div>' + (q.expl || '') + '</div>' +
+      '<div class="countdown-wrap"><div class="countdown-bar" id="' + uid + '"></div></div>';
+    qbox.appendChild(exBox);
+    qbox.scrollTop = qbox.scrollHeight;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const bar = document.getElementById(uid);
+      if (bar) { bar.style.transition = 'width 10s linear'; bar.style.width = '0%'; }
+    }));
+    setTimeout(() => {
+      if (side === 'left')  state.leftLocked  = false;
+      else                  state.rightLocked = false;
+      renderQuestion(side);
+    }, 10000);
+  }
+}
+
+function checkWin() {
+  if (state.leftScore  - state.rightScore >= WIN_LEAD) endGame('left');
+  else if (state.rightScore - state.leftScore >= WIN_LEAD) endGame('right');
+}
+
+//峇株吧辖华仁中学蔡逸众制作
+/* ── AUDIO ENGINE ── */
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, type, dur, vol, startFreq) {
+  const osc = AC.createOscillator();
+  const gain = AC.createGain();
+  osc.connect(gain); gain.connect(AC.destination);
+  osc.type = type;
+  if (startFreq) { osc.frequency.setValueAtTime(startFreq, AC.currentTime); osc.frequency.linearRampToValueAtTime(freq, AC.currentTime + dur * 0.6); }
+  else { osc.frequency.setValueAtTime(freq, AC.currentTime); }
+  gain.gain.setValueAtTime(vol, AC.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+  osc.start(AC.currentTime); osc.stop(AC.currentTime + dur);
+}
+function playCorrect() {
+  playTone(520,'sine',0.08,0.3);
+  setTimeout(() => playTone(780,'sine',0.12,0.3), 80);
+  setTimeout(() => playTone(1040,'sine',0.18,0.25), 170);
+}
+function playWrong()     { playTone(180,'sawtooth',0.3,0.2,300); }
+function playShockwave() {
+  const osc = AC.createOscillator(); const gain = AC.createGain();
+  osc.connect(gain); gain.connect(AC.destination); osc.type = 'square';
+  osc.frequency.setValueAtTime(120, AC.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(40, AC.currentTime + 0.25);
+  gain.gain.setValueAtTime(0.25, AC.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.25);
+  osc.start(AC.currentTime); osc.stop(AC.currentTime + 0.25);
+}
+function playVictory() {
+  const notes = [523,659,784,1047,784,1047,1175,1047];
+  const durs  = [0.15,0.15,0.15,0.25,0.1,0.1,0.2,0.4];
+  let t = 0;
+  notes.forEach((f,i) => { setTimeout(() => playTone(f,'sine',durs[i]+0.05,0.28), t*1000); t += durs[i] + 0.03; });
+}
+function playWarn() {
+  playTone(440,'square',0.1,0.15);
+  setTimeout(() => playTone(220,'square',0.12,0.12), 120);
+}
+
+//Made by ecchua79
+/* ── CONFETTI ── */
+function launchConfetti(color) {
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = [color, '#fff', '#ffdd44', color+'aa'];
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left   = Math.random()*100 + 'vw';
+    p.style.top    = '-20px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.width  = (6+Math.random()*10) + 'px';
+    p.style.height = (6+Math.random()*10) + 'px';
+    p.style.animationDuration = (1.5+Math.random()*2.5) + 's';
+    p.style.animationDelay   = (Math.random()*1.2) + 's';
+    wrap.appendChild(p);
+  }
+  setTimeout(() => { wrap.innerHTML = ''; }, 5000);
+}
+
+//华仁中学蔡逸众制作
+/* ── PLAYER NAMES ── */
+let playerNames = { left:[], right:[] };
+function launchGame() {
+  playerNames.left  = ['l1','l2','l3'].map(id => document.getElementById('name-'+id).value.trim()).filter(Boolean);
+  playerNames.right = ['r1','r2','r3'].map(id => document.getElementById('name-'+id).value.trim()).filter(Boolean);
+  document.getElementById('intro').classList.add('hidden');
+  startGame();
+}
+function showIntro() {
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('intro').classList.remove('hidden');
+}
+//峇株吧辖蔡逸众制作
+function resetNames() {
+  ['l1','l2','l3','r1','r2','r3'].forEach(id => { document.getElementById('name-' + id).value = ''; });
+  playerNames = { left:[], right:[] };
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('intro').classList.remove('hidden');
+}
+
+/* ── NAMES IN ENDGAME ── */
+function showVictoryPlayers(winner) {
+  const players = winner === 'left' ? playerNames.left : playerNames.right;
+  const color   = winner === 'left' ? 'var(--red)' : 'var(--blue)';
+  const el = document.getElementById('victory-players');
+  el.innerHTML = '';
+  if (players.length === 0) return;
+  players.forEach(name => {
+    const d = document.createElement('div');
+    d.className = 'victory-player';
+    d.style.color = color;
+    d.textContent = '🎉 ' + name;
+    el.appendChild(d);
+  });
+}
+
+//峇株吧辖华仁中学蔡逸众制作
+function startGame() {
+  state = { leftScore:0, rightScore:0, leftIdx:[], rightIdx:[], leftLocked:false, rightLocked:false, gameOver:false };
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('confetti-wrap').innerHTML = '';
+  ['left','right'].forEach(s => { const n = document.getElementById('replay-notice-' + s); if (n) n.remove(); });
+  document.getElementById('victory-players').innerHTML = '';
+  updateBar(null);
+  renderQuestion('left');
+  renderQuestion('right');
+}
+
+//Made by ecchua79
+const WIN_CHEERS = [
+  '太厉害了！知识掌握得滚瓜烂熟，真正的科学高手！🔥',
+  '势如破竹，一路领先！这份自信和实力令人佩服！💪',
+  '完美发挥！每一道题都是对努力备考的最佳回报！🏅',
+  '智勇双全，今天的胜利属于你们！继续保持！⚡',
+  '思维拉满，逻辑无懈可击！这波操作简直是学霸本霸，太稳了！🧠',
+  '知识点直接形成肌肉记忆了吧？答得又快又准，真正的全能选手！💯',
+  '不仅智商在线，细节也抓得死死的！这场答题秀，你就是绝对的主角！🌟',
+  '满屏的统治力！这速度和正确率，直接把大家甩到尾灯都看不见的地方！🚀',
+  '不仅有破竹的气势，更有死磕的底气！今天的全场MVP非你莫属！👑',
+  '气场全开，出手就是绝杀！这种遇强则强的爆发力看得人心潮澎湃！💥',
+  '平时的底子打得太扎实了！所有的努力都在今天变成了闪闪发光的成绩！👏',
+  '稳扎稳打，一战封神！这就叫悄悄努力，然后惊艳所有人！太棒了！🔥',
+  '教科书级别的表现！今天的荣耀是终点，也是下一次高燃冲刺的起点！🏃',
+  '要实力有实力，要心态有心态！今天的胜利只是标配，未来更不可限量！⚡',
+];
+//峇株吧辖蔡逸众制作
+const LOSE_CHEERS = [
+  '虽败犹荣！今天的错题就是明天的实力，加油！💙',
+  '失败是成功之母，下一局卷土重来，你们可以的！🔄',
+  '差一点点就追上了！再复习一遍，下次一定赢！📚',
+  '不怕输，就怕不站起来！调整状态，下局再战！🦾',
+  '虽败犹荣！这次的微小差距，正是下次实现完美逆袭的起跑线！🏁',
+  '别气馁！看清了错题的漏洞，接下来的查漏补缺才是变强的王牌！🛠️',
+  '过程比结果更精彩！发现了问题就是最大的收获，下局我们稳扎稳打！🎯',
+  '输了一场比赛，却赢得了经验！整理好心情，属于你们的胜利还在后头！🌅',
+  '实力一直在，只是这次幸运女神开起了玩笑，下一场绝对能找回场子！🎲',
+  '热血不减，斗志不灭！短暂的跌倒不过是蓄力，期待你们下一次的高燃反击！🔥',
+  '没有完美的常胜将军，只有越挫越勇的硬核战队！拍拍灰尘，下局看你们的！🔋',
+  '差距只有一步之遥！把不甘心变成动力，下一次在终点等你们！🏃',
+  '今天的失利是最好的清醒剂，沉淀下来，厚积薄发才更有爆发力！🌊',
+  '不以成败论英雄！敢于拼尽全力的你们同样闪闪发光，调整状态再战江湖！💎',
+];
+
+//华仁中学蔡逸众制作
+function endGame(winner) {
+  state.gameOver = true;
+  const lName = '🦁 狮队', rName = '🐯 虎队';
+  const title = document.getElementById('win-title');
+  const sub   = document.getElementById('win-sub');
+  const cheer = document.getElementById('win-cheer');
+  const winMsg  = WIN_CHEERS[Math.floor(Math.random() * WIN_CHEERS.length)];
+  const loseMsg = LOSE_CHEERS[Math.floor(Math.random() * LOSE_CHEERS.length)];
+  if (winner === 'left') {
+    title.textContent = lName + ' 获胜！'; title.className = 'left-wins';
+    sub.textContent = state.leftScore + ' : ' + state.rightScore + ' （领先 ' + WIN_LEAD + ' 分）';
+    cheer.innerHTML = '<span style="color:var(--red)">🦁 狮队：</span>' + winMsg + '<br><br><span style="color:var(--blue)">🐯 虎队：</span>' + loseMsg;
+    launchConfetti('#ff2233');
+  } else {
+    title.textContent = rName + ' 获胜！'; title.className = 'right-wins';
+    sub.textContent = state.rightScore + ' : ' + state.leftScore + ' （领先 ' + WIN_LEAD + ' 分）';
+    cheer.innerHTML = '<span style="color:var(--blue)">🐯 虎队：</span>' + winMsg + '<br><br><span style="color:var(--red)">🦁 狮队：</span>' + loseMsg;
+    launchConfetti('#0099ff');
+  }
+  showVictoryPlayers(winner);
+  playVictory();
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+// Tick marks
+(function(){
+  const track = document.getElementById('health-inner');
+  for (let i = 1; i < 12; i++) {
+    const t = document.createElement('div');
+    t.className = 'tick';
+    t.style.left = (i/12*100) + '%';
+    track.appendChild(t);
+  }
+})();
+
+//峇株吧辖蔡逸众制作
+/* ── CHAPTER INFO DISPLAY ── */
+function applyChapterInfo() {
+  if (typeof CHAPTER_INFO === 'undefined') return;
+  const sub = document.querySelector('.intro-sub');
+  if (sub) sub.textContent = 'SCIENCE BATTLE · ' + CHAPTER_INFO.title + ' · 狮队 VS 虎队';
+  document.title = '科学对决 · ' + CHAPTER_INFO.title;
+  const titleEl = document.querySelector('.intro-title');
+  if (titleEl && CHAPTER_INFO.emoji) {
+    titleEl.textContent = CHAPTER_INFO.emoji + ' 科学对决 ' + CHAPTER_INFO.emoji;
+  }
+}
+</script>
+</body>
+</html>
