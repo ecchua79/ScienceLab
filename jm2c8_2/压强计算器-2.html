@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="蔡逸众 / ecchua79 / 峇株吧辖华仁中学">
+<title>压强-压力-面积学习系统</title>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght=500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+:root{
+    --bg-deep:#060a14;
+    --bg-panel:#0c1322;
+    --bg-panel-alt:#0f1c30;
+    --cyan:#00eaff;
+    --cyan-dim:#0aa9c4;
+    --magenta:#ff2e88;
+    --green:#39ff8c;
+    --red:#ff4d6a;
+    --text-main:#e7f1ff;
+    --text-dim:#7d93b8;
+    --border-glow:rgba(0,234,255,.35);
+}
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    color:var(--text-main);
+    background:
+        radial-gradient(circle at 18% 18%, rgba(0,234,255,.12), transparent 40%),
+        radial-gradient(circle at 82% 78%, rgba(255,46,136,.08), transparent 45%),
+        var(--bg-deep);
+    background-attachment:fixed;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:center;
+    padding:24px;
+/* //Made by ecchua79 */
+    position:relative;
+    overflow-x:hidden;
+}
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background-image:
+        linear-gradient(rgba(0,234,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,234,255,.05) 1px, transparent 1px);
+    background-size:36px 36px;
+    mask-image:radial-gradient(circle at center, black 0%, transparent 75%);
+    pointer-events:none;
+    z-index:0;
+}
+
+.container{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:640px;
+    background:rgba(12,19,34,.88);
+    backdrop-filter:blur(6px);
+    border:1px solid var(--border-glow);
+    border-radius:18px;
+    padding:32px 28px;
+    animation:containerGlow 4s ease-in-out infinite;
+    margin:auto 0;
+}
+
+@keyframes containerGlow{
+    0%,100%{ box-shadow:0 0 0 1px rgba(0,234,255,.08), 0 25px 70px rgba(0,0,0,.55), 0 0 24px rgba(0,234,255,.12); }
+    50%{ box-shadow:0 0 0 1px rgba(0,234,255,.18), 0 25px 70px rgba(0,0,0,.55), 0 0 40px rgba(0,234,255,.28); }
+}
+
+@keyframes powerOn{
+    0%{ opacity:0; transform:scale(.96); filter:blur(4px); }
+    100%{ opacity:1; transform:scale(1); filter:blur(0); }
+}
+#calculatorSection:not(.hidden){
+    animation:powerOn .5s ease-out;
+}
+
+.kicker{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.72em;
+    letter-spacing:.25em;
+    color:var(--cyan-dim);
+    text-align:center;
+    margin-bottom:8px;
+}
+
+h1,h2{
+    text-align:center;
+    font-size:1.5em;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    -webkit-text-fill-color:transparent;
+    text-shadow:0 0 18px rgba(0,234,255,.25);
+    margin-bottom:6px;
+}
+
+.subtitle{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:.92em;
+    margin-bottom:14px;
+}
+.subtitle .accent{ color:var(--cyan); font-weight:bold; }
+
+.status-tag{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.7em;
+    letter-spacing:.15em;
+    padding:4px 10px;
+    border:1px solid var(--border-glow);
+    border-radius:20px;
+    color:var(--cyan);
+    margin:0 auto 18px;
+    width:fit-content;
+    text-align:center;
+}
+
+.hidden{ display:none; }
+
+.energy-bar{
+    display:flex;
+    gap:6px;
+    margin:18px 0 8px;
+}
+.segment{
+    flex:1;
+    height:14px;
+    border-radius:4px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(0,234,255,.25);
+    transition:background .3s, box-shadow .3s;
+/* //峇株吧辖华仁中学蔡逸众制作 */
+}
+.segment.filled{
+    background:linear-gradient(90deg,var(--cyan),var(--cyan-dim));
+    box-shadow:0 0 12px rgba(0,234,255,.7);
+}
+.segment.pulse{
+    animation:segPulse .5s ease-out;
+}
+@keyframes segPulse{
+    0%{ transform:scaleY(1.7); }
+    100%{ transform:scaleY(1); }
+}
+
+.bar-label{
+    text-align:center;
+    font-family:'Share Tech Mono',monospace;
+    color:var(--text-dim);
+    font-size:.85em;
+    margin-bottom:18px;
+}
+
+.hud-panel{
+    position:relative;
+    background:var(--bg-panel-alt);
+    border-left:3px solid var(--cyan);
+    border-radius:8px;
+    padding:22px 20px;
+    margin:18px 0;
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    font-size:1.15em;
+    text-align:center;
+    white-space:pre-line;
+    line-height:1.6;
+}
+.hud-panel::before,.hud-panel::after{
+    content:"";
+    position:absolute;
+    width:14px;
+    height:14px;
+    top:-1px;
+    left:-1px;
+    border-top:2px solid var(--cyan);
+    border-left:2px solid var(--cyan);
+}
+.hud-panel::after{
+    top:auto;
+    left:auto;
+    bottom:-1px;
+    right:-1px;
+    border-top:none;
+    border-left:none;
+    border-bottom:2px solid var(--cyan);
+    border-right:2px solid var(--cyan);
+}
+
+.answer-row{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+}
+.answer-row input{ flex:1; }
+
+.unit-badge{
+    font-family:'Share Tech Mono',monospace;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:74px;
+    padding:0 12px;
+    border:1px solid var(--border-glow);
+    border-radius:8px;
+    color:var(--cyan);
+    background:rgba(0,234,255,.06);
+    font-size:.95em;
+}
+
+input,select{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(0,234,255,.25);
+    color:var(--text-main);
+    border-radius:8px;
+    padding:11px 12px;
+    font-size:1em;
+    font-family:'Share Tech Mono', "Microsoft YaHei", sans-serif;
+}
+input:focus,select:focus{
+    outline:none;
+    border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(0,234,255,.15);
+}
+input::placeholder{ color:var(--text-dim); }
+
+button{
+    width:100%;
+    margin-top:14px;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    font-size:1em;
+    letter-spacing:.05em;
+/* //华仁中学蔡逸众制作 */
+    cursor:pointer;
+    font-family:'Orbitron','Microsoft YaHei',sans-serif;
+    font-weight:600;
+    transition:transform .15s, box-shadow .15s, filter .15s;
+}
+button:hover{ transform:translateY(-2px); filter:brightness(1.1); }
+button:active{ transform:translateY(0); }
+
+.btn-primary{
+    background:linear-gradient(90deg,var(--cyan),#0aa9c4);
+    color:#03121a;
+    box-shadow:0 0 20px rgba(0,234,255,.35);
+}
+.btn-secondary{
+    background:rgba(255,255,255,.06);
+    color:var(--text-dim);
+    border:1px solid rgba(255,255,255,.15);
+}
+
+.feedback{
+    text-align:center;
+    margin-top:12px;
+    font-weight:bold;
+    font-family:'Share Tech Mono',monospace;
+    min-height:1.4em;
+}
+.feedback.correct{ color:var(--green); text-shadow:0 0 12px rgba(57,255,140,.6); }
+.feedback.wrong{ color:var(--red); text-shadow:0 0 12px rgba(255,77,106,.6); }
+
+.formula-panel{
+    background:var(--bg-panel-alt);
+    border:1px solid var(--border-glow);
+    border-radius:10px;
+    padding:6px;
+    margin-bottom:20px;
+}
+.formula-row{
+    padding:10px 14px;
+    border-radius:6px;
+    color:var(--text-dim);
+    font-size:.95em;
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    transition:background .25s, color .25s;
+}
+.formula-row.active{
+    background:rgba(0,234,255,.12);
+    color:var(--cyan);
+    box-shadow:inset 0 0 0 1px rgba(0,234,255,.3);
+}
+.formula-row.active::before{
+    content:"▸ ";
+}
+
+.field-group{ margin-bottom:16px; }
+.field-group label{
+    display:block;
+    font-family:'Share Tech Mono',monospace;
+    font-size:.78em;
+    letter-spacing:.1em;
+    color:var(--text-dim);
+    margin-bottom:6px;
+}
+.field-row{ display:flex; gap:10px; }
+.field-row input{ flex:1; }
+.field-row select{ flex:1; }
+
+.dual-speed{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.speed-unit-box{
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    min-width:0;
+}
+.value-slot{ flex:1; min-width:0; }
+.value-slot input{ width:100%; }
+.unit-tag-flex{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.78em;
+    color:var(--cyan-dim);
+    flex-shrink:0;
+}
+.sync-icon{
+    font-size:1.2em;
+    color:var(--cyan);
+    flex-shrink:0;
+}
+
+/* 科学计数法输入 */
+.sci-pair{
+    display:flex;
+    align-items:center;
+    gap:4px;
+}
+.sci-pair input{
+    width:100%;
+/* //峇株吧辖蔡逸众制作 */
+    min-width:0;
+    padding:11px 6px;
+    text-align:center;
+}
+.sci-x{
+    font-family:'Share Tech Mono',monospace;
+    font-size:.78em;
+    color:var(--cyan-dim);
+    flex-shrink:0;
+    white-space:nowrap;
+}
+.sci-btn{
+    width:auto;
+    flex-shrink:0;
+    margin-top:0;
+    padding:9px 8px;
+    font-size:.9em;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.15);
+    color:var(--text-dim);
+    border-radius:8px;
+}
+.sci-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+.result{ font-size:1em; text-align:left; }
+.result:empty{ display:none; }
+
+.convert-row{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+}
+.convert-row select{ flex:1; }
+.btn-convert{
+    width:auto;
+    flex-shrink:0;
+    margin-top:0;
+    padding:11px 16px;
+    font-size:.85em;
+}
+.convert-output{
+    margin-top:10px;
+    font-family:'Share Tech Mono',monospace;
+    color:var(--cyan);
+    text-align:center;
+    min-height:1.2em;
+    font-size:1.15em;
+}
+
+/* 科学计数法切换按钮 */
+.notation-row{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+}
+.notation-row button{
+    margin-top:0;
+    flex:1;
+    padding:11px 8px;
+    font-size:.82em;
+}
+.notation-row button.active{
+    background:linear-gradient(90deg,var(--cyan),#0aa9c4);
+    color:#03121a;
+    box-shadow:0 0 16px rgba(0,234,255,.4);
+}
+
+.tip-panel{
+    margin-top:24px;
+    background:rgba(255,255,255,.03);
+    border:1px dashed rgba(0,234,255,.25);
+    border-radius:10px;
+    padding:16px 18px;
+}
+.tip-title{
+    font-family:'Share Tech Mono',monospace;
+    color:var(--cyan-dim);
+    font-size:.85em;
+    margin-bottom:8px;
+}
+.tip-body{
+    font-family:'Share Tech Mono', "Microsoft YaHei", monospace;
+    color:var(--text-dim);
+    font-size:.85em;
+    line-height:1.7;
+    white-space:pre-line;
+}
+
+.embedded-calc {
+    background: rgba(15, 28, 48, 0.6);
+    border: 1px solid rgba(0, 234, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 18px 0 6px 0;
+}
+.embedded-calc-display {
+    width: 100%;
+    height: 46px;
+    background: rgba(6, 10, 20, 0.8);
+    border: 1px solid var(--border-glow);
+/* //峇株吧辖华仁中学蔡逸众制作 */
+    border-radius: 6px;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.3em;
+    text-align: right;
+    padding: 0 12px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 8px rgba(0,234,255,0.1);
+}
+.embedded-calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.embedded-calc-grid button {
+    margin-top: 0;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1em;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    border: 1px solid rgba(0, 234, 255, 0.15);
+}
+.embedded-calc-grid button:hover {
+    background: rgba(0, 234, 255, 0.15);
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0,234,255,0.3);
+}
+.embedded-calc-grid button.op-btn {
+    color: var(--cyan);
+    background: rgba(0, 234, 255, 0.05);
+}
+.embedded-calc-grid button.clear-btn {
+    color: var(--red);
+    background: rgba(255, 77, 106, 0.05);
+    border-color: rgba(255, 77, 106, 0.2);
+}
+.embedded-calc-grid button.clear-btn:hover {
+    background: rgba(255, 77, 106, 0.2);
+    border-color: var(--red);
+    box-shadow: 0 0 8px rgba(255,77,106,0.3);
+}
+.embedded-calc-grid button.eq-btn {
+    color: #03121a;
+    background: linear-gradient(90deg, var(--cyan), var(--cyan-dim));
+    grid-column: span 2;
+    font-weight: bold;
+}
+
+.footer-credit{
+    text-align:center;
+    margin-top:24px;
+    padding-bottom:12px;
+    font-size:.7em;
+    color:rgba(255,255,255,.18);
+    user-select:none;
+}
+
+.cover-credit{
+    text-align:center;
+    margin-top:20px;
+    font-size:.62em;
+    letter-spacing:.05em;
+    color:rgba(20,28,46,.9);
+    user-select:none;
+}
+
+@media(max-width:600px){
+    .container{ padding:24px 18px; }
+    .dual-speed{ flex-direction:column; }
+    .sync-icon{ transform:rotate(90deg); }
+    .field-row{ flex-direction:column; }
+    .notation-row{ flex-direction:column; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 封面页 -->
+<div id="coverSection">
+
+<div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
+<h1>🧱 压强 · 压力 · 面积 学习系统</h1>
+<p class="subtitle">P = F ÷ A　压强＝压力÷受力面积</p>
+
+<div class="hud-panel" style="text-align:left;">📖 使用方法
+
+1. 点击下方「开始使用」进入闯关测试
+2. 连续答对 2 题即可解锁「计算终端」
+3. 答错会清零连续记录，需重新累计
+4. 解锁后，在质量/压力、面积、压强三组中任填两项，点击「计算」自动求出第三项
+5. 数值太大或太小时，可点输入框旁的 🔬 切换成「尾数 × 10^指数」输入
+6. 算出答案后，可用下方按钮切换「小数」或「科学计数法」显示
+
+📌 使用条件
+
+• 适合已学过压强公式 P = F ÷ A 的学生使用
+• 电脑、平板、手机皆可使用，手机请直向操作
+• 请先自行心算或演算，再用内置计算器核对
+• 质量与压力会自动换算（1 kg = 10 N）
+• 面积单位 m² 与 cm² 会自动同步（1 m² = 10000 cm²）</div>
+
+<button class="btn-primary" onclick="startTool()">🚀 开始使用</button>
+
+<div class="cover-credit">峇株吧辖华仁中学蔡逸众制作</div>
+
+<!-- //Made by ecchua79 -->
+</div>
+
+<!-- 闯关答题板块 -->
+<div id="quizSection" class="hidden">
+
+<div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
+<h1>🧱 压强-压力-面积闯关</h1>
+<p class="subtitle">连续答对 <span class="accent">2</span> 题，解锁计算终端</p>
+<div class="status-tag">🔒 状态：未解锁</div>
+
+<div class="energy-bar" id="energyBar">
+<div class="segment"></div>
+<div class="segment"></div>
+</div>
+<div class="bar-label">能量：<span id="score">0</span> / 2</div>
+
+<div id="question-box" class="hud-panel"></div>
+
+<div class="answer-row">
+<input type="number" id="answer" placeholder="请输入答案" step="any">
+<span id="answerUnit" class="unit-badge"></span>
+</div>
+
+<button class="btn-primary" onclick="checkAnswer()">提交答案</button>
+
+<p id="feedback" class="feedback"></p>
+
+</div>
+
+<!-- 解锁后的主计算终端板块 -->
+<div id="calculatorSection" class="hidden">
+
+<div class="kicker">PHYSICS NAVIGATION SYSTEM</div>
+<h2>🎉 计算终端已解锁</h2>
+<div class="status-tag">🔓 状态：已解锁</div>
+
+<div class="formula-panel">
+<div class="formula-row" id="formula-p">压强 P = 压力 F ÷ 受力面积 A</div>
+<div class="formula-row" id="formula-f">压力 F = 压强 P × 受力面积 A</div>
+<div class="formula-row" id="formula-a">面积 A = 压力 F ÷ 压强 P</div>
+</div>
+
+<div class="field-group">
+<label>MASS / FORCE 质量与压力（1 kg = 10 N，双向同步）</label>
+<div class="dual-speed">
+<div class="speed-unit-box">
+<div class="value-slot">
+<input type="number" id="massKg" step="any" placeholder="0">
+<div class="sci-pair hidden" id="massKg_sciPair">
+<input type="number" id="massKg_m" step="any" placeholder="尾数" class="sci-mantissa">
+<span class="sci-x">×10</span>
+<input type="number" id="massKg_e" step="1" placeholder="指数" class="sci-exp">
+</div>
+</div>
+<button type="button" class="sci-btn" id="massKg_sciBtn" onclick="toggleSci('massKg')">🔬</button>
+<span class="unit-tag-flex">kg</span>
+</div>
+<span class="sync-icon">⇄</span>
+<div class="speed-unit-box">
+<div class="value-slot">
+<input type="number" id="forceN" step="any" placeholder="0">
+<div class="sci-pair hidden" id="forceN_sciPair">
+<input type="number" id="forceN_m" step="any" placeholder="尾数" class="sci-mantissa">
+<span class="sci-x">×10</span>
+<input type="number" id="forceN_e" step="1" placeholder="指数" class="sci-exp">
+</div>
+</div>
+<button type="button" class="sci-btn" id="forceN_sciBtn" onclick="toggleSci('forceN')">🔬</button>
+<span class="unit-tag-flex">N</span>
+</div>
+</div>
+</div>
+
+<div class="field-group">
+<label>AREA 受力面积（m² 与 cm² 双向同步）</label>
+<div class="dual-speed">
+<div class="speed-unit-box">
+<div class="value-slot">
+<input type="number" id="areaM2" step="any" placeholder="0">
+<div class="sci-pair hidden" id="areaM2_sciPair">
+<input type="number" id="areaM2_m" step="any" placeholder="尾数" class="sci-mantissa">
+<span class="sci-x">×10</span>
+<input type="number" id="areaM2_e" step="1" placeholder="指数" class="sci-exp">
+</div>
+</div>
+<button type="button" class="sci-btn" id="areaM2_sciBtn" onclick="toggleSci('areaM2')">🔬</button>
+<span class="unit-tag-flex">m²</span>
+</div>
+<span class="sync-icon">⇄</span>
+<div class="speed-unit-box">
+<!-- //华仁中学蔡逸众制作 -->
+<div class="value-slot">
+<input type="number" id="areaCm2" step="any" placeholder="0">
+<div class="sci-pair hidden" id="areaCm2_sciPair">
+<input type="number" id="areaCm2_m" step="any" placeholder="尾数" class="sci-mantissa">
+<span class="sci-x">×10</span>
+<input type="number" id="areaCm2_e" step="1" placeholder="指数" class="sci-exp">
+</div>
+</div>
+<button type="button" class="sci-btn" id="areaCm2_sciBtn" onclick="toggleSci('areaCm2')">🔬</button>
+<span class="unit-tag-flex">cm²</span>
+</div>
+</div>
+</div>
+
+<div class="field-group">
+<label>PRESSURE 压强</label>
+<div class="field-row">
+<div class="value-slot">
+<input type="number" id="pressurePa" step="any" placeholder="0">
+<div class="sci-pair hidden" id="pressurePa_sciPair">
+<input type="number" id="pressurePa_m" step="any" placeholder="尾数" class="sci-mantissa">
+<span class="sci-x">×10</span>
+<input type="number" id="pressurePa_e" step="1" placeholder="指数" class="sci-exp">
+</div>
+</div>
+<button type="button" class="sci-btn" id="pressurePa_sciBtn" onclick="toggleSci('pressurePa')">🔬</button>
+<span class="unit-badge">Pa</span>
+</div>
+</div>
+
+<button class="btn-primary" onclick="calculate()">计算 CALCULATE</button>
+<button class="btn-secondary" onclick="clearInputs()">🔄 重置（清空所有输入）</button>
+<button class="btn-secondary" onclick="resetQuiz()">重新开始闯关</button>
+
+<div id="result" class="result hud-panel"></div>
+
+<div id="notationSection" class="hidden">
+<div class="notation-row">
+<button id="btnDec" class="btn-secondary active" onclick="setNotation('dec')">🔢 小数显示</button>
+<button id="btnSci" class="btn-secondary" onclick="setNotation('sci')">🔬 科学计数法显示</button>
+</div>
+<div id="notationOutput" class="convert-output"></div>
+</div>
+
+<div class="tip-panel">
+<div class="tip-title">💡 常用换算</div>
+<div class="tip-body">质量 → 压力（重力）：kg × 10 = N
+面积：1 m² = 10000 cm²，所以 cm² → m² 要 ÷ 10000
+
+例：60 kg 的物体，重力 = 60 × 10 = 600 N
+例：500 cm² = 500 ÷ 10000 = 0.05 m²</div>
+</div>
+
+<div class="embedded-calc">
+<input type="text" id="embedDisplay" class="embedded-calc-display" readonly value="0">
+<div class="embedded-calc-grid">
+<button class="clear-btn" onclick="embedClear()">C</button>
+<button onclick="embedAppend('(')">(</button>
+<button onclick="embedAppend(')')">)</button>
+<button class="op-btn" onclick="embedAppend('/')">÷</button>
+<button onclick="embedAppend('7')">7</button>
+<button onclick="embedAppend('8')">8</button>
+<button onclick="embedAppend('9')">9</button>
+<button class="op-btn" onclick="embedAppend('*')">×</button>
+<button onclick="embedAppend('4')">4</button>
+<button onclick="embedAppend('5')">5</button>
+<button onclick="embedAppend('6')">6</button>
+<button class="op-btn" onclick="embedAppend('-')">-</button>
+<button onclick="embedAppend('1')">1</button>
+<button onclick="embedAppend('2')">2</button>
+<button onclick="embedAppend('3')">3</button>
+<button class="op-btn" onclick="embedAppend('+')">+</button>
+<button onclick="embedAppend('0')">0</button>
+<button onclick="embedAppend('.')">.</button>
+<button class="eq-btn" onclick="embedCalculate()">=</button>
+</div>
+</div>
+
+</div>
+
+<div class="footer-credit">峇株吧辖华仁中学蔡逸众制作</div>
+
+</div>
+
+<script>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+console.log("峇株吧辖华仁中学蔡逸众制作 / ecchua79");
+
+let correctCount = 0;
+let currentAnswer = 0;
+let currentUnit = "";
+
+//峇株吧辖蔡逸众制作
+let lastResultType = null;      // 'pressure' | 'force' | 'area'
+let lastAnswerValue = null;     // 数值（SI 单位：Pa / N / m²）
+let lastAnswerUnit = "";
+let notationMode = "dec";       // 'dec' | 'sci'
+
+function fmt(v){
+    if(!isFinite(v)) return "0";
+    const abs = Math.abs(v);
+    if(abs === 0) return "0.00";
+    if(abs < 0.01) return v.toFixed(6);
+    if(abs < 1) return v.toFixed(4);
+    return v.toFixed(2);
+}
+
+const SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+
+function toSci(v){
+    if(!isFinite(v)) return "0";
+    if(v === 0) return "0 × 10⁰";
+    const neg = v < 0;
+    let val = Math.abs(v);
+    let exp = Math.floor(Math.log10(val));
+    let mantissa = val / Math.pow(10, exp);
+    mantissa = parseFloat(mantissa.toFixed(2));
+    if(mantissa >= 10){ mantissa = mantissa/10; exp++; }
+    const expStr = String(exp).split('').map(ch=>SUP[ch]||ch).join('');
+    return `${neg?'-':''}${mantissa} × 10${expStr}`;
+}
+
+/* ---------------- 闯关出题 ---------------- */
+
+function randInt(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+const AREA_CM2_CHOICES = [50,100,200,250,400,500,800,1000,2000];
+
+function generateQuestion(){
+    const type = Math.floor(Math.random()*3);      // 0:求P 1:求F 2:求A
+    const useMass = Math.random() < 0.5;            // 用质量给出压力
+    const useCm2 = Math.random() < 0.5;              // 用 cm² 给出面积
+
+    const forceN = randInt(2,50) * 10;               // 20 ~ 500 N
+    const areaCm2 = AREA_CM2_CHOICES[randInt(0, AREA_CM2_CHOICES.length-1)];
+    const areaM2 = areaCm2 / 10000;
+    const pressurePa = forceN / areaM2;
+
+    const forceLabel = useMass ? `${(forceN/10)} kg 重的物体` : `压力 ${forceN} N`;
+    const areaLabel = useCm2 ? `${areaCm2} cm²` : `${areaM2} m²`;
+
+    let question = "";
+
+    if(type === 0){
+        currentAnswer = pressurePa;
+        currentUnit = "Pa";
+        question = `${forceLabel}，压在 ${areaLabel} 的面积上，压强是多少？`;
+    }
+    else if(type === 1){
+        currentAnswer = forceN;
+        currentUnit = "N";
+        question = `压强 ${fmt(pressurePa)} Pa，受力面积 ${areaLabel}，压力是多少？`;
+    }
+    else{
+        currentAnswer = useCm2 ? areaCm2 : areaM2;
+        currentUnit = useCm2 ? "cm²" : "m²";
+        question = `${forceLabel}，压强是 ${fmt(pressurePa)} Pa，受力面积是多少？`;
+    }
+
+    document.getElementById("question-box").innerText = question;
+    document.getElementById("answerUnit").innerText = currentUnit;
+}
+
+function updateEnergyBar(){
+    const segs = document.querySelectorAll("#energyBar .segment");
+    segs.forEach((seg,idx)=>{
+        if(idx < correctCount){
+            if(!seg.classList.contains("filled")){
+                seg.classList.add("filled","pulse");
+                setTimeout(()=>seg.classList.remove("pulse"),500);
+            }
+        }else{
+            seg.classList.remove("filled","pulse");
+        }
+    });
+}
+
+function checkAnswer(){
+    let user = parseFloat(document.getElementById("answer").value);
+    if(isNaN(user)) return;
+
+//峇株吧辖华仁中学蔡逸众制作
+    const feedback = document.getElementById("feedback");
+    const tolerance = Math.max(0.05, Math.abs(currentAnswer)*0.02);
+
+    if(Math.abs(user-currentAnswer) < tolerance){
+        correctCount++;
+        document.getElementById("score").innerText = correctCount;
+        updateEnergyBar();
+
+        feedback.textContent = "✅ 正确！";
+        feedback.className = "feedback correct";
+
+        if(correctCount>=2){
+            document.getElementById("quizSection").classList.add("hidden");
+            document.getElementById("calculatorSection").classList.remove("hidden");
+            updateFormula();
+            return;
+        }
+        generateQuestion();
+    }else{
+        correctCount = 0;
+        document.getElementById("score").innerText = 0;
+        updateEnergyBar();
+
+        feedback.textContent = `❌ 答错了！正确答案是 ${fmt(currentAnswer)} ${currentUnit}，连续记录已清零`;
+        feedback.className = "feedback wrong";
+
+        generateQuestion();
+    }
+    document.getElementById("answer").value = "";
+    embedClear();
+}
+
+generateQuestion();
+
+function startTool(){
+    document.getElementById("coverSection").classList.add("hidden");
+    document.getElementById("quizSection").classList.remove("hidden");
+}
+
+document.getElementById("answer").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        checkAnswer();
+    }
+});
+
+/* ---------------- 计算终端 ---------------- */
+
+function syncMassFromKg(){
+    const kg = document.getElementById("massKg").value;
+    const fField = document.getElementById("forceN");
+    if(kg === ""){
+        fField.value = "";
+    }else{
+        fField.value = (parseFloat(kg)*10).toFixed(2);
+    }
+    updateFormula();
+}
+
+function syncMassFromN(){
+    const n = document.getElementById("forceN").value;
+    const kgField = document.getElementById("massKg");
+    if(n === ""){
+        kgField.value = "";
+    }else{
+        kgField.value = (parseFloat(n)/10).toFixed(2);
+    }
+    updateFormula();
+}
+
+function syncAreaFromM2(){
+    const m2 = document.getElementById("areaM2").value;
+    const cmField = document.getElementById("areaCm2");
+    if(m2 === ""){
+        cmField.value = "";
+    }else{
+        cmField.value = (parseFloat(m2)*10000).toFixed(2);
+    }
+    updateFormula();
+}
+
+function syncAreaFromCm2(){
+    const cm2 = document.getElementById("areaCm2").value;
+    const m2Field = document.getElementById("areaM2");
+    if(cm2 === ""){
+        m2Field.value = "";
+    }else{
+        m2Field.value = (parseFloat(cm2)/10000).toFixed(6);
+    }
+    updateFormula();
+}
+//Made by ecchua79
+
+document.getElementById("massKg").addEventListener("input", syncMassFromKg);
+document.getElementById("forceN").addEventListener("input", syncMassFromN);
+document.getElementById("areaM2").addEventListener("input", syncAreaFromM2);
+document.getElementById("areaCm2").addEventListener("input", syncAreaFromCm2);
+document.getElementById("pressurePa").addEventListener("input", updateFormula);
+
+/* ---------------- 科学计数法输入 ---------------- */
+
+const SCI_FIELDS = ["massKg","forceN","areaM2","areaCm2","pressurePa"];
+
+function splitSci(val){
+    const neg = val < 0;
+    const abs = Math.abs(val);
+    if(abs === 0) return {mantissa:0, exp:0};
+    let exp = Math.floor(Math.log10(abs));
+    let mantissa = abs / Math.pow(10, exp);
+    mantissa = parseFloat(mantissa.toFixed(4));
+    if(mantissa >= 10){ mantissa = mantissa/10; exp++; }
+    return {mantissa:(neg?-1:1)*mantissa, exp:exp};
+}
+
+function toggleSci(fieldId){
+    const input = document.getElementById(fieldId);
+    const sciPair = document.getElementById(fieldId+"_sciPair");
+    const btn = document.getElementById(fieldId+"_sciBtn");
+    const isCurrentlySci = !sciPair.classList.contains("hidden");
+
+    if(!isCurrentlySci){
+        const val = parseFloat(input.value);
+        if(!isNaN(val)){
+            const parts = splitSci(val);
+            document.getElementById(fieldId+"_m").value = parts.mantissa;
+            document.getElementById(fieldId+"_e").value = parts.exp;
+        }else{
+            document.getElementById(fieldId+"_m").value = "";
+            document.getElementById(fieldId+"_e").value = "";
+        }
+        input.classList.add("hidden");
+        sciPair.classList.remove("hidden");
+        btn.textContent = "🔢";
+        btn.title = "切换回小数输入";
+    }else{
+        input.classList.remove("hidden");
+        sciPair.classList.add("hidden");
+        btn.textContent = "🔬";
+        btn.title = "切换成科学计数法输入";
+    }
+}
+
+function updateFromSci(fieldId){
+    const m = parseFloat(document.getElementById(fieldId+"_m").value);
+    const e = parseFloat(document.getElementById(fieldId+"_e").value);
+    const input = document.getElementById(fieldId);
+    if(isNaN(m) || isNaN(e)){
+        input.value = "";
+    }else{
+        input.value = m * Math.pow(10, e);
+    }
+    input.dispatchEvent(new Event("input", {bubbles:true}));
+}
+
+SCI_FIELDS.forEach(id=>{
+    document.getElementById(id+"_m").addEventListener("input", ()=>updateFromSci(id));
+    document.getElementById(id+"_e").addEventListener("input", ()=>updateFromSci(id));
+});
+
+function clearInputs(){
+    SCI_FIELDS.forEach(id=>{
+        document.getElementById(id).value = "";
+        document.getElementById(id+"_m").value = "";
+        document.getElementById(id+"_e").value = "";
+        const sciPair = document.getElementById(id+"_sciPair");
+        const input = document.getElementById(id);
+        const btn = document.getElementById(id+"_sciBtn");
+        if(!sciPair.classList.contains("hidden")){
+            sciPair.classList.add("hidden");
+            input.classList.remove("hidden");
+            btn.textContent = "🔬";
+        }
+    });
+    lastResultType = null;
+    lastAnswerValue = null;
+    document.getElementById("result").innerText = "";
+    document.getElementById("notationSection").classList.add("hidden");
+    document.getElementById("notationOutput").innerText = "";
+    document.querySelectorAll(".formula-row").forEach(el=>el.classList.remove("active"));
+}
+
+function updateFormula(){
+//华仁中学蔡逸众制作
+    const f = document.getElementById("forceN").value;
+    const a = document.getElementById("areaM2").value;
+    const p = document.getElementById("pressurePa").value;
+
+    document.querySelectorAll(".formula-row").forEach(el=>el.classList.remove("active"));
+
+    let target = "formula-p";
+    if(f && a && !p) target = "formula-p";
+    else if(!f && a && p) target = "formula-f";
+    else if(f && !a && p) target = "formula-a";
+
+    document.getElementById(target).classList.add("active");
+}
+
+function calculate(){
+    let fRaw = document.getElementById("forceN").value;
+    let aRaw = document.getElementById("areaM2").value;
+    let pRaw = document.getElementById("pressurePa").value;
+
+    const hasF = fRaw !== "";
+    const hasA = aRaw !== "";
+    const hasP = pRaw !== "";
+
+    const count = (hasF?1:0)+(hasA?1:0)+(hasP?1:0);
+    const resultBox = document.getElementById("result");
+
+    document.getElementById("notationSection").classList.add("hidden");
+    document.getElementById("notationOutput").innerText = "";
+
+    if(count !== 2){
+        resultBox.innerText = "⚠ 请只输入两个数值（质量会自动换算成压力）。";
+        lastResultType = null;
+        return;
+    }
+
+    let fVal = parseFloat(fRaw);
+    let aVal = parseFloat(aRaw);
+    let pVal = parseFloat(pRaw);
+
+    if(hasA && aVal===0){ resultBox.innerText="⚠ 面积不能为0"; lastResultType=null; return; }
+    if(hasP && pVal===0){ resultBox.innerText="⚠ 压强不能为0"; lastResultType=null; return; }
+
+    let resultText = "";
+    const aCm2 = hasA ? aVal*10000 : null;
+
+    if(!hasP){
+        const result = fVal / aVal;
+        resultText = `已知：\n\n压力 F = ${fmt(fVal)} N\n面积 A = ${fmt(aVal)} m²（= ${fmt(aCm2)} cm²）\n\n公式：\n压强 = 压力 ÷ 面积\n\n代入：\n压强 = ${fmt(fVal)} ÷ ${fmt(aVal)}\n\n答案：\n压强 = ${fmt(result)} Pa`;
+        document.getElementById("pressurePa").value = result.toFixed(4);
+        lastResultType = "pressure";
+        lastAnswerValue = result;
+        lastAnswerUnit = "Pa";
+    }
+    else if(!hasA){
+        const result = fVal / pVal;
+        resultText = `已知：\n\n压力 F = ${fmt(fVal)} N\n压强 P = ${fmt(pVal)} Pa\n\n公式：\n面积 = 压力 ÷ 压强\n\n代入：\n面积 = ${fmt(fVal)} ÷ ${fmt(pVal)}\n\n答案：\n面积 = ${fmt(result)} m²（= ${fmt(result*10000)} cm²）`;
+        document.getElementById("areaM2").value = result.toFixed(6);
+        document.getElementById("areaCm2").value = (result*10000).toFixed(2);
+        lastResultType = "area";
+        lastAnswerValue = result;
+        lastAnswerUnit = "m²";
+    }
+    else{
+        const result = pVal * aVal;
+        resultText = `已知：\n\n压强 P = ${fmt(pVal)} Pa\n面积 A = ${fmt(aVal)} m²（= ${fmt(aCm2)} cm²）\n\n公式：\n压力 = 压强 × 面积\n\n代入：\n压力 = ${fmt(pVal)} × ${fmt(aVal)}\n\n答案：\n压力 = ${fmt(result)} N（相当于 ${fmt(result/10)} kg 重）`;
+        document.getElementById("forceN").value = result.toFixed(2);
+        document.getElementById("massKg").value = (result/10).toFixed(2);
+        lastResultType = "force";
+        lastAnswerValue = result;
+        lastAnswerUnit = "N";
+    }
+
+    resultBox.innerText = resultText;
+    notationMode = "dec";
+    document.getElementById("btnDec").classList.add("active");
+    document.getElementById("btnSci").classList.remove("active");
+    document.getElementById("notationSection").classList.remove("hidden");
+    renderNotation();
+}
+
+function setNotation(mode){
+    notationMode = mode;
+    document.getElementById("btnDec").classList.toggle("active", mode==="dec");
+    document.getElementById("btnSci").classList.toggle("active", mode==="sci");
+    renderNotation();
+}
+
+function renderNotation(){
+    if(lastAnswerValue === null) return;
+    const display = notationMode === "sci" ? toSci(lastAnswerValue) : fmt(lastAnswerValue);
+//峇株吧辖蔡逸众制作
+    document.getElementById("notationOutput").innerText = `= ${display} ${lastAnswerUnit}`;
+}
+
+function resetQuiz(){
+    correctCount = 0;
+    lastResultType = null;
+    lastAnswerValue = null;
+    notationMode = "dec";
+
+    document.getElementById("score").innerText = 0;
+    updateEnergyBar();
+
+    document.getElementById("calculatorSection").classList.add("hidden");
+    document.getElementById("quizSection").classList.remove("hidden");
+
+    clearInputs();
+
+    embedClear();
+    generateQuestion();
+}
+
+/* ---------------- 📊 辅助计算器脚本逻辑 ---------------- */
+const embedDisp = document.getElementById('embedDisplay');
+
+function embedAppend(val) {
+    if (embedDisp.value === '0' && val !== '.') {
+        embedDisp.value = val;
+    } else {
+        embedDisp.value += val;
+    }
+}
+
+function embedClear() {
+    embedDisp.value = '0';
+}
+
+function embedCalculate() {
+    try {
+        let result = eval(embedDisp.value);
+        if (!Number.isInteger(result)) {
+            result = parseFloat(result.toFixed(8));
+        }
+        embedDisp.value = result;
+    } catch (error) {
+        embedDisp.value = '错误';
+    }
+}
+</script>
+
+</body>
+</html>
