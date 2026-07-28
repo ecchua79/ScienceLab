@@ -2205,61 +2205,81 @@ function showSection(id) {
     const W=c.width,H=c.height;
     ctx.clearRect(0,0,W,H);
     const cx=W/2,cy=H/2;
-    // cart
-    ctx.fillStyle='rgba(129,140,248,0.2)';
-    ctx.strokeStyle='rgba(129,140,248,0.5)';
-    ctx.lineWidth=1.5;
-    ctx.beginPath();
-    ctx.roundRect(cx-45,cy-25,90,50,8);
-    ctx.fill();ctx.stroke();
-    // wheels
-    [cx-25,cx+25].forEach(wx=>{
-      ctx.beginPath();ctx.arc(wx,cy+28,12,0,Math.PI*2);
-      ctx.fillStyle='rgba(129,140,248,0.3)';ctx.fill();
-      ctx.strokeStyle='rgba(129,140,248,0.5)';ctx.stroke();
-    });
-    ctx.fillStyle='rgba(148,163,184,0.7)';ctx.font='12px Noto Sans SC';
-    ctx.textAlign='center';ctx.fillText('小车',cx,cy+8);
+    const cartW=90,cartH=50,cartR=8;
+    const cartL=cx-cartW/2, cartT=cy-cartH/2;
 
-    // O point — always at cart centre
-    const ox = cx;
-    const oy = cy;
-    ctx.beginPath();ctx.arc(ox,oy,6,0,Math.PI*2);
-    ctx.fillStyle='#34d399';ctx.fill();
-    ctx.strokeStyle='#0a0e1a';ctx.lineWidth=1.5;ctx.stroke();
-    ctx.fillStyle='#34d399';ctx.font='bold 12px Noto Sans SC';
-    ctx.textAlign='left';
-    ctx.fillText('O',ox+10,oy-8);
-
-    // arrow
-    const scale=40;
+    // ── 计算箭头 ──
+    // 比例：每50N = 60px（保证50N箭头明显超出小车边缘）
+    const scale=60;
     let dx=0,dy=0;
     if(curDir==='left'){dx=-curMag*scale;}
     else if(curDir==='right'){dx=curMag*scale;}
     else if(curDir==='up'){dy=-curMag*scale;}
     else{dy=curMag*scale;}
-    ctx.strokeStyle='#fb923c';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+dx,oy+dy);ctx.stroke();
-    // arrowhead
+
+    // O 点在小车中心
+    const ox=cx, oy=cy;
+    // 箭头终点
+    const ex=ox+dx, ey=oy+dy;
+
+    // ── 先画小车（箭头从O穿过车身，之后还要再画箭头盖在车上）──
+    ctx.fillStyle='rgba(129,140,248,0.2)';
+    ctx.strokeStyle='rgba(129,140,248,0.5)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.roundRect(cartL,cartT,cartW,cartH,cartR);
+    ctx.fill();ctx.stroke();
+    // wheels
+    [cx-25,cx+25].forEach(wx=>{
+      ctx.beginPath();ctx.arc(wx,cy+cartH/2+3,11,0,Math.PI*2);
+      ctx.fillStyle='rgba(129,140,248,0.3)';ctx.fill();
+      ctx.strokeStyle='rgba(129,140,248,0.5)';ctx.lineWidth=1.5;ctx.stroke();
+    });
+    ctx.fillStyle='rgba(148,163,184,0.7)';ctx.font='12px Noto Sans SC';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('小车',cx,cy+8);
+
+    // ── 力箭头：从 O 画到终点，画在小车上层 ──
+    // 虚线段：O → 小车边缘（在车内的部分）
+    // 实线段：小车边缘 → 终点（在车外的部分，才是真正"看得见"的力）
+    // 简化：直接整条画实线，覆盖小车，颜色不透明即可看清
+    ctx.strokeStyle='#fb923c';ctx.lineWidth=3;
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+
+    // 箭头头部
     const angle=Math.atan2(dy,dx);
     ctx.fillStyle='#fb923c';
     ctx.beginPath();
-    ctx.moveTo(ox+dx,oy+dy);
-    ctx.lineTo(ox+dx-14*Math.cos(angle-0.35),oy+dy-14*Math.sin(angle-0.35));
-    ctx.lineTo(ox+dx-14*Math.cos(angle+0.35),oy+dy-14*Math.sin(angle+0.35));
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-16*Math.cos(angle-0.38),ey-16*Math.sin(angle-0.38));
+    ctx.lineTo(ex-16*Math.cos(angle+0.38),ey-16*Math.sin(angle+0.38));
     ctx.closePath();ctx.fill();
 
-    // label
+    // ── O 点（画在最上层，确保不被箭头线盖住）──
+    ctx.beginPath();ctx.arc(ox,oy,7,0,Math.PI*2);
+    ctx.fillStyle='#34d399';ctx.fill();
+    ctx.strokeStyle='#0a0e1a';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 13px Noto Sans SC';
+    ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('O',ox+11,oy-9);
+
+    // ── 力的标注 ──
     const F=curMag*50;
     const dirs={'left':'← 向左','right':'向右 →','up':'↑ 向上','down':'↓ 向下'};
-    ctx.fillStyle='#fb923c';ctx.font='13px JetBrains Mono';
-    ctx.textAlign='center';
-    ctx.fillText(`F = ${F} N  ${dirs[curDir]}`,ox+dx/2,oy+dy/2-14);
+    // 标注放在箭头中点旁边，偏移避免遮挡
+    const lx=ox+dx*0.65, ly=oy+dy*0.65;
+    const offX=dy!==0?18:0, offY=dx!==0?-18:0;
+    ctx.fillStyle='#fb923c';ctx.font='bold 13px JetBrains Mono';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(`F = ${F} N`,lx+offX,ly+offY);
+    ctx.font='11px Noto Sans SC';
+    ctx.fillText(dirs[curDir],lx+offX,ly+offY+18);
 
-    // scale info
+    // ── 比例说明 ──
     ctx.fillStyle='rgba(148,163,184,0.5)';ctx.font='10px Noto Sans SC';
-    ctx.textAlign='left';
-    ctx.fillText('比例：1 cm = 50 N',10,H-10);
+    ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText('比例：1 cm = 50 N',10,H-8);
   }
   resize();window.addEventListener('resize',resize);
   draw();
