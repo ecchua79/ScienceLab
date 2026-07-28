@@ -183,11 +183,9 @@
   .btn.gold{background:linear-gradient(90deg,var(--gold),#ff9a4d);}
   .btn.ghost{background:transparent;border:1px solid rgba(75,227,255,0.4);color:var(--cyan);}
 
-  /* 屏幕切换 //峇株吧辖华仁中学蔡逸众制作*/
   .screen{display:none;}
   .screen.active{display:flex;flex-direction:column;}
 
-  /* 说明页 */
   .intro-icon{font-size:44px;text-align:center;margin-bottom:6px;}
   .intro-list{
     list-style:none;
@@ -230,7 +228,6 @@
     margin-bottom:6px;
   }
 
-  /* 结果 / 证书页 */
   .result-screen{text-align:center;padding:6px 2px;}
   .result-screen h2{
     font-size:24px;
@@ -309,15 +306,14 @@
     <p>中和反应 Neutralization Reaction · 共 20 题</p>
   </header>
 
-  <!-- 说明页 -->
   <div class="card screen active" id="introScreen">
     <div class="intro-icon">🧪</div>
     <ul class="intro-list">
       <li><span class="num">1</span><span>本测验共 <b>20 题</b>，涵盖「求盐」「求酸碱」「求碱」「求酸」四种题型。</span></li>
-      <li><span class="num">2</span><span>题目与选项会随机以「文字式」或「化学式」出现，两者可能互相交叉。</span></li>
-      <li><span class="num">3</span><span>每题只有一次作答机会，选择后会立即显示正确答案与反应式。</span></li>
-      <li><span class="num">4</span><span>按下「开始作答」后<b>即刻开始计时</b>，请专心完成全部题目。</span></li>
-      <li><span class="num">5</span><span>测验结束后可输入姓名，生成个人证书并下载保存（PNG 格式）。</span></li>
+      <li><span class="num">2</span><span>酸包括盐酸、硫酸、硝酸、碳酸、磷酸；碱包括氢氧化钠、氢氧化钾、氢氧化钙、氨水、氢氧化镁、氢氧化铝。</span></li>
+      <li><span class="num">3</span><span>题目与选项会随机以「文字式」或「化学式」出现，两者可能互相交叉。</span></li>
+      <li><span class="num">4</span><span>每题只有一次作答机会，选择后会立即显示正确答案与反应式。</span></li>
+      <li><span class="num">5</span><span>按下「开始作答」后<b>即刻开始计时</b>，测验结束后可输入姓名生成证书并下载（PNG）。</span></li>
     </ul>
     <div class="intro-warn">⏱️ 计时从点击「开始作答」那一刻开始，请准备好后再按！</div>
     <div class="controls">
@@ -325,7 +321,6 @@
     </div>
   </div>
 
-  <!-- 测验页 Made by ecchua79-->
   <div class="screen" id="quizScreen">
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <div class="meta-row">
@@ -346,7 +341,6 @@
     </div>
   </div>
 
-  <!-- 结果 / 证书页 -->
   <div class="card screen" id="resultScreen"></div>
 
   <footer>
@@ -357,43 +351,62 @@
 <script>
 console.log("酸碱中和成盐选择题 | Created by 蔡逸众 · Chinese High School 华仁中学");
 
-/* ---------------- 基础数据 ---------------- */
+/* ---------------- 基础数据：酸（含酸根离子信息） ---------------- */
 const ACIDS = [
-  {formula:'HCl', html:'HCl', name:'盐酸'},
-  {formula:'H2SO4', html:'H<sub>2</sub>SO<sub>4</sub>', name:'硫酸'},
-  {formula:'HNO3', html:'HNO<sub>3</sub>', name:'硝酸'},
+  {formula:'HCl',   html:'HCl',                     name:'盐酸', anionSym:'Cl',  anionHtml:'Cl',                     anionCharge:1, poly:false, namePrefix:'氯化'},
+  {formula:'H2SO4', html:'H<sub>2</sub>SO<sub>4</sub>', name:'硫酸', anionSym:'SO4', anionHtml:'SO<sub>4</sub>',        anionCharge:2, poly:true,  namePrefix:'硫酸'},
+  {formula:'HNO3',  html:'HNO<sub>3</sub>',           name:'硝酸', anionSym:'NO3', anionHtml:'NO<sub>3</sub>',        anionCharge:1, poly:true,  namePrefix:'硝酸'},
+  {formula:'H2CO3', html:'H<sub>2</sub>CO<sub>3</sub>', name:'碳酸', anionSym:'CO3', anionHtml:'CO<sub>3</sub>',        anionCharge:2, poly:true,  namePrefix:'碳酸'},
+  {formula:'H3PO4', html:'H<sub>3</sub>PO<sub>4</sub>', name:'磷酸', anionSym:'PO4', anionHtml:'PO<sub>4</sub>',        anionCharge:3, poly:true,  namePrefix:'磷酸'},
 ];
+// 仅作为"求酸"题目的额外干扰项，绝不会是正确答案
 const EXTRA_ACID_DISTRACTOR = {formula:'CH3COOH', html:'CH<sub>3</sub>COOH', name:'醋酸'};
 
+/* ---------------- 基础数据：碱（含金属阳离子信息） ---------------- */
 const BASES = [
-  {formula:'NaOH', html:'NaOH', name:'氢氧化钠'},
-  {formula:'KOH', html:'KOH', name:'氢氧化钾'},
-  {formula:'Ca(OH)2', html:'Ca(OH)<sub>2</sub>', name:'氢氧化钙'},
-  {formula:'NH3·H2O', html:'NH<sub>3</sub>·H<sub>2</sub>O', name:'氨水'},
+  {formula:'NaOH',     html:'NaOH',                              name:'氢氧化钠', cationSym:'Na',  cationHtml:'Na',                  cationCharge:1, poly:false, saltName:'钠'},
+  {formula:'KOH',      html:'KOH',                               name:'氢氧化钾', cationSym:'K',   cationHtml:'K',                   cationCharge:1, poly:false, saltName:'钾'},
+  {formula:'Ca(OH)2',  html:'Ca(OH)<sub>2</sub>',                 name:'氢氧化钙', cationSym:'Ca',  cationHtml:'Ca',                  cationCharge:2, poly:false, saltName:'钙'},
+  {formula:'NH3·H2O',  html:'NH<sub>3</sub>·H<sub>2</sub>O',      name:'氨水',     cationSym:'NH4', cationHtml:'NH<sub>4</sub>',      cationCharge:1, poly:true,  saltName:'铵'},
+  {formula:'Mg(OH)2',  html:'Mg(OH)<sub>2</sub>',                 name:'氢氧化镁', cationSym:'Mg',  cationHtml:'Mg',                  cationCharge:2, poly:false, saltName:'镁'},
+  {formula:'Al(OH)3',  html:'Al(OH)<sub>3</sub>',                 name:'氢氧化铝', cationSym:'Al',  cationHtml:'Al',                  cationCharge:3, poly:false, saltName:'铝'},
 ];
 
-const COMBOS = [
-  {acid:'HCl', base:'NaOH', salt:'NaCl', saltHtml:'NaCl', saltName:'氯化钠'},
-  {acid:'HCl', base:'KOH', salt:'KCl', saltHtml:'KCl', saltName:'氯化钾'},
-  {acid:'HCl', base:'Ca(OH)2', salt:'CaCl2', saltHtml:'CaCl<sub>2</sub>', saltName:'氯化钙'},
-  {acid:'HCl', base:'NH3·H2O', salt:'NH4Cl', saltHtml:'NH<sub>4</sub>Cl', saltName:'氯化铵'},
+/* ---------------- 依据化合价交叉相乘，自动生成盐的化学式与名称 ---------------- */
+function gcd(a,b){ return b===0 ? a : gcd(b, a%b); }
 
-  {acid:'H2SO4', base:'NaOH', salt:'Na2SO4', saltHtml:'Na<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸钠'},
-  {acid:'H2SO4', base:'KOH', salt:'K2SO4', saltHtml:'K<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸钾'},
-  {acid:'H2SO4', base:'Ca(OH)2', salt:'CaSO4', saltHtml:'CaSO<sub>4</sub>', saltName:'硫酸钙'},
-  {acid:'H2SO4', base:'NH3·H2O', salt:'(NH4)2SO4', saltHtml:'(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸铵'},
+function wrapIon(symPlain, symHtml, isPoly, count){
+  if(count <= 1) return {plain: symPlain, html: symHtml};
+  if(isPoly) return {plain: `(${symPlain})${count}`, html: `(${symHtml})<sub>${count}</sub>`};
+  return {plain: `${symPlain}${count}`, html: `${symHtml}<sub>${count}</sub>`};
+}
 
-  {acid:'HNO3', base:'NaOH', salt:'NaNO3', saltHtml:'NaNO<sub>3</sub>', saltName:'硝酸钠'},
-  {acid:'HNO3', base:'KOH', salt:'KNO3', saltHtml:'KNO<sub>3</sub>', saltName:'硝酸钾'},
-  {acid:'HNO3', base:'Ca(OH)2', salt:'Ca(NO3)2', saltHtml:'Ca(NO<sub>3</sub>)<sub>2</sub>', saltName:'硝酸钙'},
-  {acid:'HNO3', base:'NH3·H2O', salt:'NH4NO3', saltHtml:'NH<sub>4</sub>NO<sub>3</sub>', saltName:'硝酸铵'},
-];
+function buildCombo(acid, base){
+  const g = gcd(acid.anionCharge, base.cationCharge);
+  const cationCount = acid.anionCharge / g;   // 阳离子个数
+  const anionCount  = base.cationCharge / g;  // 酸根个数
 
-function findAcid(f){ return ACIDS.find(a=>a.formula===f); }
-function findBase(f){ return BASES.find(b=>b.formula===f); }
-COMBOS.forEach(c=>{
-  c.acidObj = findAcid(c.acid);
-  c.baseObj = findBase(c.base);
+  const cationPart = wrapIon(base.cationSym, base.cationHtml, base.poly, cationCount);
+  const anionPart  = wrapIon(acid.anionSym,  acid.anionHtml,  acid.poly, anionCount);
+
+  return {
+    acid: acid.formula,
+    base: base.formula,
+    acidObj: acid,
+    baseObj: base,
+    salt: cationPart.plain + anionPart.plain,
+    saltHtml: cationPart.html + anionPart.html,
+    saltName: acid.namePrefix + base.saltName,
+  };
+}
+
+const COMBOS = [];
+ACIDS.forEach(acid=>{
+  BASES.forEach(base=>{
+    // 碳酸铝 Al2(CO3)3 在水中会完全水解、并不稳定存在，故排除此组合以维持化学正确性
+    if(acid.formula === 'H2CO3' && base.formula === 'Al(OH)3') return;
+    COMBOS.push(buildCombo(acid, base));
+  });
 });
 
 const TOTAL_Q = 20;
@@ -413,6 +426,18 @@ function getCloseCombos(correct){
   const others = COMBOS.filter(c => c.salt !== correct.salt);
   const close = others.filter(c => c.acid === correct.acid || c.base === correct.base);
   const far = others.filter(c => c.acid !== correct.acid && c.base !== correct.base);
+  return shuffle(close).concat(shuffle(far));
+}
+function getCloseBases(correctBase){
+  const others = BASES.filter(b => b.formula !== correctBase.formula);
+  const close = others.filter(b => b.cationCharge === correctBase.cationCharge);
+  const far = others.filter(b => b.cationCharge !== correctBase.cationCharge);
+  return shuffle(close).concat(shuffle(far));
+}
+function getCloseAcids(correctAcid){
+  const others = [...ACIDS.filter(a => a.formula !== correctAcid.formula), EXTRA_ACID_DISTRACTOR];
+  const close = others.filter(a => a.anionCharge === correctAcid.anionCharge);
+  const far = others.filter(a => a.anionCharge !== correctAcid.anionCharge);
   return shuffle(close).concat(shuffle(far));
 }
 
@@ -484,7 +509,8 @@ function makeQuestion(spec){
     const questionText = qFormat==='word'
       ? `${saltQ} 是由 ${acidQ} 与某种碱中和而成的，该碱是什么？`
       : `已知 ${saltQ} 是 ${acidQ} 与某碱反应的产物之一，该碱是什么？`;
-    const optionBases = shuffle(BASES);
+    const distractorBases = getCloseBases(combo.baseObj).slice(0,3);
+    const optionBases = shuffle([combo.baseObj, ...distractorBases]);
     const options = optionBases.map(b => ({
       display: aFormat==='word' ? b.name : b.html,
       isCorrect: b.formula === combo.base
@@ -496,7 +522,8 @@ function makeQuestion(spec){
     const questionText = qFormat==='word'
       ? `${saltQ} 是由某种酸与 ${baseQ} 中和而成的，该酸是什么？`
       : `已知 ${saltQ} 是某酸与 ${baseQ} 反应的产物之一，该酸是什么？`;
-    const optionAcids = shuffle([...ACIDS, EXTRA_ACID_DISTRACTOR]);
+    const distractorAcids = getCloseAcids(combo.acidObj).slice(0,3);
+    const optionAcids = shuffle([combo.acidObj, ...distractorAcids]);
     const options = optionAcids.map(a => ({
       display: aFormat==='word' ? a.name : a.html,
       isCorrect: a.formula === combo.acid
@@ -618,7 +645,7 @@ function finishQuiz(){
   showResult();
 }
 
-/* ---------------- 结果页 / 证书 ---------------- */
+/* ---------------- 结果页 / 证书 ----------------Made by ecchua79 */
 function showResult(){
   showScreen(resultScreen);
   const pct = Math.round((score/TOTAL_Q)*100);
@@ -689,16 +716,14 @@ function onGenerateCert(){
   });
 }
 
-/* 绘制直立式（portrait）证书到 canvas，返回 canvas 元素 */
 function drawCertificate(name, correct, total, pct, timeMs){
   const canvas = document.createElement('canvas');
   canvas.id = 'certCanvas';
-  const W = 1000, H = 1414; // A4 直立比例，双倍分辨率保证下载清晰
+  const W = 1000, H = 1414;
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // 背景渐变
   const bg = ctx.createLinearGradient(0,0,W,H);
   bg.addColorStop(0, '#070b1c');
   bg.addColorStop(0.5, '#0b1226');
@@ -706,7 +731,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.fillStyle = bg;
   ctx.fillRect(0,0,W,H);
 
-  // 星点装饰
   for(let i=0;i<160;i++){
     const x = Math.random()*W, y = Math.random()*H;
     const r = Math.random()*1.6+0.3;
@@ -716,7 +740,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
     ctx.fill();
   }
 
-  // 外边框（渐变）
   const borderGrad = ctx.createLinearGradient(0,0,W,H);
   borderGrad.addColorStop(0,'#4be3ff');
   borderGrad.addColorStop(0.5,'#a06bff');
@@ -730,7 +753,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   roundRect(ctx, 48, 48, W-96, H-96, 18);
   ctx.stroke();
 
-  // 顶部徽章（原子图案）
   const cx = W/2, badgeY = 175;
   ctx.save();
   ctx.translate(cx, badgeY);
@@ -753,7 +775,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.shadowBlur = 0;
   ctx.restore();
 
-  // 标题
   ctx.textAlign = 'center';
   const titleGrad = ctx.createLinearGradient(cx-260,0,cx+260,0);
   titleGrad.addColorStop(0,'#4be3ff');
@@ -771,19 +792,16 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.font = '400 17px "Microsoft YaHei",sans-serif';
   ctx.fillText('酸碱中和成盐 · 选择题挑战站', cx, 385);
 
-  // 分隔线
   ctx.strokeStyle = 'rgba(160,107,255,0.4)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(cx-160,415); ctx.lineTo(cx+160,415);
   ctx.stroke();
 
-  // 兹证明
   ctx.fillStyle = 'rgba(219,232,255,0.75)';
   ctx.font = '400 20px "Microsoft YaHei",sans-serif';
   ctx.fillText('兹 证 明', cx, 475);
 
-  // 姓名
   ctx.fillStyle = '#ffffff';
   let nameFontSize = 58;
   ctx.font = `700 ${nameFontSize}px "Microsoft YaHei","PingFang SC",sans-serif`;
@@ -793,7 +811,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   }
   ctx.fillText(name, cx, 550);
 
-  // 姓名下划线装饰
   const nameWidth = Math.min(ctx.measureText(name).width + 60, W-160);
   const underGrad = ctx.createLinearGradient(cx-nameWidth/2,0,cx+nameWidth/2,0);
   underGrad.addColorStop(0,'rgba(75,227,255,0)');
@@ -809,7 +826,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.font = '400 20px "Microsoft YaHei",sans-serif';
   ctx.fillText('已完成本测验，成绩记录如下：', cx, 625);
 
-  // 成绩卡片区
   const cardY = 680, cardH = 300, cardW = W-160, cardX = 80;
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   roundRect(ctx, cardX, cardY, cardW, cardH, 20);
@@ -842,7 +858,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
     }
   });
 
-  // 评语
   let grade = '';
   if(pct===100) grade = '★ 完美掌握 Perfect Mastery ★';
   else if(pct>=80) grade = '★ 表现优异 Excellent ★';
@@ -852,13 +867,11 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.font = '600 22px "Microsoft YaHei",sans-serif';
   ctx.fillText(grade, cx, cardY+cardH+55);
 
-  // 底部日期与学校水印
   const dateStr = new Date().toLocaleDateString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit'});
   ctx.fillStyle = 'rgba(219,232,255,0.5)';
   ctx.font = '400 17px "Microsoft YaHei",sans-serif';
   ctx.fillText(`颁发日期：${dateStr}`, cx, H-170);
 
-  // 印章圆圈
   ctx.save();
   ctx.translate(W-180, H-190);
   ctx.rotate(-0.2);
@@ -878,7 +891,6 @@ function drawCertificate(name, correct, total, pct, timeMs){
   ctx.fillText('CERTIFIED', 0, 14);
   ctx.restore();
 
-  // 页脚水印
   ctx.fillStyle = 'rgba(127,143,192,0.55)';
   ctx.font = '400 14px "Microsoft YaHei",sans-serif';
   ctx.fillText('华仁中学 Chinese High School · 酸碱中和成盐选择题', cx, H-95);
@@ -899,7 +911,6 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.closePath();
 }
 
-/* ---------------- 星空背景（页面全局） ---------------- */
 (function starfield(){
   const canvas = document.getElementById('starfield');
   const ctx = canvas.getContext('2d');
