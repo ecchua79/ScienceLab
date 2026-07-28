@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<!-- 力学指挥中心 · 引力异常监测站 | 制作: 蔡逸众 (ecchua79) | 华仁中学 Chinese High School -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="蔡逸众 (ecchua79) · 华仁中学 Chinese High School">
+<title>力学指挥中心 · 引力异常监测站 | 初一科学 第11章 力</title>
+<style>
+/* ===================================================================
+   力学指挥中心 — design tokens
+   制作: 蔡逸众 (ecchua79) — 华仁中学 Chinese High School
+   =================================================================== */
+:root{
+  --void:#050712;
+  --panel:#0c1120;
+  --panel-2:#121a33;
+  --panel-border:#243258;
+  --cyan:#4fd8e8;
+  --gold:#ffb454;
+  --violet:#a78bfa;
+  --rose:#ff6b81;
+  --green:#4ade80;
+  --red:#f87171;
+  --ink:#eaf2ff;
+  --dim:#8a96c2;
+  --font-display:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  --font-mono:"SF Mono",Consolas,"Cascadia Mono",monospace;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--void);color:var(--ink);
+  font-family:var(--font-display); overflow-x:hidden;}
+body{min-height:100vh;}
+#bg-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;}
+button{font-family:inherit;cursor:pointer;}
+::selection{background:var(--cyan);color:var(--void);}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;} }
+
+#app{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;}
+.hidden{display:none !important;}
+
+/* ---------- HUD ---------- */
+#hud{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;
+  padding:10px 16px;background:linear-gradient(180deg,rgba(5,7,18,.92),rgba(5,7,18,.75));
+  backdrop-filter:blur(6px);border-bottom:1px solid var(--panel-border);
+}
+#hud .hud-title{font-weight:800;letter-spacing:.06em;font-size:14px;color:var(--cyan);
+  text-transform:uppercase;white-space:nowrap;}
+#hud .hud-xp{margin-left:auto;font-family:var(--font-mono);font-size:14px;color:var(--gold);
+  background:rgba(255,180,84,.08);border:1px solid rgba(255,180,84,.3);padding:4px 10px;border-radius:20px;
+  white-space:nowrap;}
+#hud .hud-back{background:transparent;border:1px solid var(--panel-border);color:var(--dim);
+  border-radius:8px;padding:6px 10px;font-size:13px;}
+#hud .hud-back:hover{color:var(--ink);border-color:var(--cyan);}
+
+/* ---------- Screens ---------- */
+.screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 16px 60px;width:100%;max-width:980px;margin:0 auto;}
+
+/* Intro */
+#screen-intro .badge{font-family:var(--font-mono);font-size:12px;letter-spacing:.15em;color:var(--violet);
+  border:1px solid rgba(167,139,250,.4);padding:4px 12px;border-radius:20px;margin-bottom:18px;}
+#screen-intro h1{font-size:clamp(28px,6vw,46px);font-weight:800;text-align:center;margin:0 0 12px;
+  background:linear-gradient(90deg,var(--cyan),var(--violet) 60%,var(--gold));-webkit-background-clip:text;
+  background-clip:text;color:transparent;line-height:1.25;}
+#screen-intro p.lead{max-width:620px;text-align:center;color:var(--dim);line-height:1.9;font-size:15px;margin:0 0 26px;}
+#screen-intro .brief{max-width:640px;background:rgba(18,26,51,.6);border:1px solid var(--panel-border);
+  border-radius:16px;padding:18px 22px;margin-bottom:28px;line-height:1.85;font-size:14px;color:#c7d2f5;}
+#screen-intro .brief b{color:var(--gold);}
+.btn-primary{background:linear-gradient(90deg,var(--cyan),var(--violet));border:none;color:#050712;
+  font-weight:800;font-size:16px;padding:14px 38px;border-radius:30px;box-shadow:0 0 30px rgba(79,216,232,.35);
+  transition:transform .15s ease;}
+.btn-primary:hover{transform:translateY(-2px) scale(1.03);}
+.btn-primary:active{transform:translateY(0) scale(.98);}
+
+/* Hub */
+#screen-hub{max-width:1080px;}
+#screen-hub h2{font-size:clamp(20px,4vw,28px);font-weight:800;margin:0 0 6px;text-align:center;color:var(--ink);}
+#screen-hub .sub{color:var(--dim);font-size:13px;margin-bottom:24px;text-align:center;}
+.node-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;width:100%;}
+.node-card{position:relative;background:linear-gradient(160deg,var(--panel-2),var(--panel));
+  border:1px solid var(--panel-border);border-radius:18px;padding:18px 16px;text-align:left;
+  min-height:150px;display:flex;flex-direction:column;gap:8px;transition:.18s ease;overflow:hidden;color:var(--ink);}
+.node-card::before{content:"";position:absolute;inset:0;background:radial-gradient(120px 80px at 90% -10%,var(--node-glow,var(--cyan)) 0%,transparent 70%);
+  opacity:.18;pointer-events:none;}
+.node-card:hover{transform:translateY(-4px);border-color:var(--node-glow,var(--cyan));box-shadow:0 8px 30px rgba(79,216,232,.15);}
+.node-card .n-num{font-family:var(--font-mono);font-size:11px;color:var(--dim);letter-spacing:.1em;}
+.node-card .n-icon{font-size:30px;line-height:1;}
+.node-card .n-title{font-weight:800;font-size:15px;line-height:1.35;}
+.node-card .n-desc{font-size:12px;color:var(--dim);line-height:1.5;flex:1;}
+.node-card .n-stars{font-size:14px;letter-spacing:2px;color:#334066;}
+.node-card .n-stars.earned{color:var(--gold);}
+.node-card.locked{opacity:.45;filter:grayscale(.6);cursor:not-allowed;}
+.node-card.locked:hover{transform:none;box-shadow:none;}
+.node-card.boss{border-color:var(--rose);}
+.node-card.boss .n-title{color:var(--rose);}
+
+/* Station shell */
+#screen-station{max-width:900px;width:100%;}
+.station-shell{width:100%;background:rgba(9,13,26,.72);border:1px solid var(--panel-border);border-radius:20px;
+  padding:22px 20px;backdrop-filter:blur(4px);}
+.station-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.station-head h3{margin:0;font-size:19px;font-weight:800;color:var(--cyan);}
+.station-head .pill{font-family:var(--font-mono);font-size:12px;color:var(--dim);border:1px solid var(--panel-border);
+  padding:3px 10px;border-radius:14px;}
+.progress-track{width:100%;height:6px;background:#161f3d;border-radius:6px;overflow:hidden;margin-bottom:16px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));width:0%;transition:width .3s ease;}
+.prompt-box{background:rgba(18,26,51,.55);border:1px solid var(--panel-border);border-radius:14px;padding:16px 18px;
+  font-size:15px;line-height:1.8;margin-bottom:16px;}
+.prompt-box .scenario{font-size:17px;font-weight:700;color:var(--ink);}
+.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.choice-btn{background:var(--panel-2);border:1.5px solid var(--panel-border);color:var(--ink);border-radius:14px;
+  padding:16px 12px;font-size:15px;font-weight:700;transition:.15s ease;min-height:56px;}
+.choice-btn:hover{border-color:var(--cyan);transform:translateY(-2px);}
+.choice-btn:disabled{cursor:default;}
+.choice-btn.correct{background:rgba(74,222,128,.18);border-color:var(--green);color:var(--green);}
+.choice-btn.wrong{background:rgba(248,113,113,.18);border-color:var(--red);color:var(--red);}
+.choice-btn.dim{opacity:.4;}
+.feedback-line{min-height:22px;font-size:14px;font-weight:700;margin-top:12px;}
+.feedback-line.ok{color:var(--green);}
+.feedback-line.bad{color:var(--red);}
+.numeric-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+.numeric-row input[type=number]{background:var(--panel-2);border:1.5px solid var(--panel-border);color:var(--ink);
+  border-radius:10px;padding:10px 12px;font-size:16px;font-family:var(--font-mono);width:130px;}
+.numeric-row input[type=number]:focus{outline:none;border-color:var(--cyan);}
+.btn-check{background:var(--cyan);border:none;color:#04121a;font-weight:800;border-radius:10px;padding:10px 20px;font-size:14px;}
+.btn-check:disabled{opacity:.5;}
+.btn-next{background:transparent;border:1.5px solid var(--gold);color:var(--gold);font-weight:800;border-radius:10px;
+  padding:10px 20px;font-size:14px;}
+.footer-row{display:flex;justify-content:space-between;align-items:center;margin-top:18px;flex-wrap:wrap;gap:10px;}
+.streak-tag{font-family:var(--font-mono);font-size:12px;color:var(--gold);}
+.timer-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.timer-track{flex:1;height:8px;background:#161f3d;border-radius:6px;overflow:hidden;}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));width:100%;transition:width .1s linear,background .3s ease;}
+.timer-fill.low{background:linear-gradient(90deg,var(--gold),var(--red));}
+.timer-num{font-family:var(--font-mono);font-size:12px;color:var(--dim);width:36px;text-align:right;}
+.bonus-tag{font-family:var(--font-mono);font-size:12px;color:var(--gold);margin-left:6px;}
+.hearts{font-size:16px;letter-spacing:3px;}
+
+/* Station 2 spring lab */
+.spring-lab{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+.spring-visual{flex:1;min-width:220px;display:flex;justify-content:center;}
+.spring-controls{flex:1;min-width:220px;}
+.weight-btn{background:var(--panel-2);border:1.5px solid var(--panel-border);color:var(--ink);border-radius:10px;
+  padding:10px 14px;margin:4px;font-family:var(--font-mono);font-size:14px;}
+.weight-btn.active{border-color:var(--gold);color:var(--gold);}
+.readout{font-family:var(--font-mono);font-size:14px;line-height:2;color:#c7d2f5;margin-top:10px;}
+.readout b{color:var(--cyan);}
+
+/* Station 3 vector canvas */
+#vec-canvas{background:radial-gradient(circle at 30% 20%,#0e1630,#050712);border:1px solid var(--panel-border);
+  border-radius:14px;touch-action:none;width:100%;max-width:640px;display:block;margin:0 auto;}
+.vec-task{text-align:center;font-size:15px;margin-bottom:10px;}
+.vec-task b{color:var(--gold);}
+
+/* Station 4 falling sort */
+#fall-canvas{width:100%;max-width:640px;height:340px;display:block;margin:0 auto;border-radius:14px;
+  background:linear-gradient(180deg,#0a0f22,#050712);border:1px solid var(--panel-border);}
+.sort-buttons{display:flex;gap:12px;justify-content:center;margin-top:14px;}
+.sort-buttons button{flex:1;max-width:220px;background:var(--panel-2);border:1.5px solid var(--panel-border);
+  color:var(--ink);border-radius:14px;padding:16px;font-weight:800;font-size:15px;}
+.sort-buttons button:active{transform:scale(.97);}
+
+/* Station 6 conveyor */
+.conveyor-wrap{position:relative;height:120px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#0a0f22,#050712);
+  border:1px solid var(--panel-border);margin-bottom:14px;}
+.conveyor-item{position:absolute;top:50%;transform:translateY(-50%);background:rgba(18,26,51,.9);
+  border:1.5px solid var(--gold);border-radius:12px;padding:14px 18px;font-weight:700;font-size:14px;white-space:nowrap;}
+
+/* Station 7 friction sliders */
+.friction-sim{background:rgba(18,26,51,.55);border:1px solid var(--panel-border);border-radius:14px;padding:16px;margin-bottom:16px;}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.slider-row label{width:110px;font-size:13px;color:var(--dim);}
+.slider-row input[type=range]{flex:1;accent-color:var(--cyan);}
+.slider-row .val{font-family:var(--font-mono);color:var(--gold);width:34px;text-align:right;}
+.friction-track{position:relative;height:60px;border-bottom:3px solid #3a4776;border-radius:6px;margin-top:8px;overflow:hidden;}
+.friction-block{position:absolute;bottom:3px;left:6px;width:44px;height:34px;background:linear-gradient(160deg,var(--cyan),var(--violet));
+  border-radius:6px;transition:left .05s linear;}
+.friction-bar-wrap{margin-top:10px;height:10px;background:#161f3d;border-radius:6px;overflow:hidden;}
+.friction-bar{height:100%;background:linear-gradient(90deg,var(--green),var(--gold),var(--red));width:20%;transition:width .2s;}
+
+/* Boss */
+.boss-hp-wrap{margin-bottom:6px;}
+.boss-hp-label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-family:var(--font-mono);margin-bottom:4px;}
+.boss-hp-track{height:16px;background:#1a1030;border-radius:10px;overflow:hidden;border:1px solid rgba(255,107,129,.4);}
+.boss-hp-fill{height:100%;background:linear-gradient(90deg,var(--rose),#ff2d55);width:100%;transition:width .3s ease;}
+
+/* Result panel */
+.result-panel{text-align:center;padding:30px 10px;}
+.result-panel .stars-big{font-size:42px;letter-spacing:8px;margin:10px 0;color:var(--gold);}
+.result-panel h4{font-size:22px;margin:6px 0;}
+.result-panel p{color:var(--dim);font-size:14px;}
+
+/* Certificate */
+#screen-cert{max-width:520px; justify-content:flex-start; align-items:center; padding-top:22px; padding-bottom:80px;}
+.cert-card{width:100%; max-width:420px; min-height:600px; background:linear-gradient(170deg,#0e1530,#080b1a);
+  border:2px solid var(--gold); border-radius:20px; padding:28px 22px; text-align:center; position:relative;
+  overflow:hidden; box-shadow:0 0 60px rgba(255,180,84,.15); display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-start;}
+.cert-card::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 15% 8%,rgba(79,216,232,.14),transparent 42%),
+  radial-gradient(circle at 85% 95%,rgba(167,139,250,.14),transparent 42%);pointer-events:none;}
+.cert-card::after{content:"";position:absolute;inset:8px;border:1px solid rgba(255,180,84,.35);border-radius:13px;pointer-events:none;}
+.cert-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--violet);margin-top:6px;}
+.cert-seal{font-size:34px;margin:10px 0 2px;filter:drop-shadow(0 0 10px rgba(255,180,84,.5));}
+.cert-card h2{font-size:clamp(19px,5vw,24px);margin:6px 0 2px;color:var(--gold);line-height:1.35;}
+.cert-sub{color:var(--dim);font-size:12px;margin:2px 0;}
+.cert-name-input{background:transparent;border:none;border-bottom:2px dashed var(--cyan);color:var(--ink);
+  font-size:20px;text-align:center;font-weight:800;padding:6px 8px;width:min(280px,88%);font-family:var(--font-display);
+  margin:6px 0;}
+.cert-name-input:focus{outline:none;border-color:var(--gold);}
+.cert-desc{color:var(--dim);font-size:12px;line-height:1.7;margin:4px 0 6px;padding:0 6px;}
+.cert-stats{display:flex;justify-content:center;gap:32px;margin:14px 0 2px;}
+.cert-stats .stat b{display:block;font-size:20px;font-family:var(--font-mono);color:var(--cyan);}
+.cert-stats .stat span{font-size:11px;color:var(--dim);}
+.cert-rank{width:100%;margin:6px 0 4px;}
+.cert-rank .r-label{display:block;font-size:11px;color:var(--dim);margin-bottom:3px;}
+.cert-rank .r-value{display:block;font-size:clamp(16px,5vw,22px);font-weight:800;color:var(--cyan);
+  font-family:var(--font-display);white-space:nowrap;}
+.cert-line{border-top:1px dashed var(--panel-border);margin:14px auto 10px;width:70%;}
+.cert-footer{font-size:10px;color:var(--dim);letter-spacing:.04em;margin-top:auto;padding-top:8px;}
+.cert-actions{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;width:100%;}
+.cert-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0 4px;}
+.badge-chip{display:flex;align-items:center;gap:5px;background:rgba(255,180,84,.1);border:1px solid rgba(255,180,84,.4);
+  border-radius:20px;padding:5px 10px;font-size:11px;color:var(--gold);font-weight:700;}
+.badge-chip .b-icon{font-size:14px;}
+.btn-download{background:transparent;border:1.5px solid var(--cyan);color:var(--cyan);font-weight:800;
+  border-radius:10px;padding:12px 20px;font-size:14px;}
+.btn-download:hover{background:rgba(79,216,232,.12);}
+.btn-reset{background:transparent;border:1.5px solid var(--rose);color:var(--rose);font-weight:800;
+  border-radius:10px;padding:12px 20px;font-size:14px;}
+.btn-reset:hover{background:rgba(255,107,129,.12);}
+
+/* Watermark footer (visible, location 4) */
+#site-footer{text-align:center;font-size:11px;color:#3a4470;padding:16px 10px 22px;letter-spacing:.03em;}
+
+/* toast */
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);z-index:50;
+  background:var(--panel-2);border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:30px;
+  font-size:13px;font-weight:700;opacity:0;transition:.3s ease;pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media (max-width:520px){
+  .station-shell{padding:16px 12px;}
+  .choice-grid{grid-template-columns:1fr 1fr;}
+  .spring-lab{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+<!-- 力学指挥中心 build watermark: 蔡逸众 / ecchua79 / 华仁中学 Chinese High School -->
+<canvas id="bg-canvas"></canvas>
+<div id="toast"></div>
+
+<div id="app">
+  <div id="hud" class="hidden">
+    <button class="hud-back" id="hud-back">← 返回站图</button>
+    <div class="hud-title">力学指挥中心</div>
+    <div class="hud-xp" id="hud-xp">XP 0</div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="screen" id="screen-intro">
+    <div class="badge">引力异常监测站 · 学员登入</div>
+    <h1>力学指挥中心</h1>
+    <p class="lead">深空监测站捕捉到一个黑洞的吸积盘正高速旋转——那是恒星残骸被强大重力撕裂后留下的痕迹。连光都无法逃脱的力量，究竟是什么？在你成为合格的"力学观察员"之前，指挥中心需要你完成七项实战训练，并通过最终的综合考核。</p>
+    <div class="brief">
+      <b>本次任务涵盖：</b> 力的效应 · 胡克定律与弹簧秤 · 力的图示法 · 接触力与非接触力 · 重力与重量 · 弹力与形变 · 摩擦力<br>
+      每完成一站可获得 <b>1～3 颗星</b> 与经验值(XP)，集满七站即可挑战终极关卡「黑洞审判」。
+    </div>
+    <button class="btn-primary" id="btn-start">进入指挥中心 →</button>
+  </div>
+
+  <!-- HUB -->
+  <div class="screen hidden" id="screen-hub">
+    <h2>观察员任务站图</h2>
+    <div class="sub">点击任意站点开始训练 · 完成全部七站可解锁终极关卡</div>
+    <div class="node-grid" id="node-grid"></div>
+  </div>
+
+  <!-- STATION SHELL -->
+  <div class="screen hidden" id="screen-station">
+    <div class="station-shell" id="station-shell"></div>
+  </div>
+
+  <!-- CERTIFICATE -->
+  <div class="screen hidden" id="screen-cert">
+    <div class="cert-card" id="cert-card">
+      <div class="cert-eyebrow">引力异常监测站 · 认证证书</div>
+      <div class="cert-seal">🕳️</div>
+      <h2>力学观察员<br>结业证书</h2>
+      <p class="cert-sub">兹证明</p>
+      <input class="cert-name-input" id="cert-name" type="text" placeholder="在此输入姓名" maxlength="16" inputmode="text" enterkeyhint="done">
+      <p class="cert-desc">已完成初一科学第11章「力」全部训练，成功通过黑洞审判。</p>
+      <div class="cert-stats">
+        <div class="stat"><b id="cert-xp">0</b><span>总经验值</span></div>
+        <div class="stat"><b id="cert-stars">0/21</b><span>获得星数</span></div>
+      </div>
+      <div class="cert-rank"><span class="r-label">观察员等级</span><span class="r-value" id="cert-rank">—</span></div>
+      <div class="cert-line"></div>
+      <div class="cert-badges" id="cert-badges"></div>
+      <div class="cert-footer">力学指挥中心 · 引力异常监测站<br>制作：蔡逸众 · 华仁中学</div>
+    </div>
+    <div class="cert-actions">
+      <button class="btn-download" id="cert-download">⬇ 下载证书图片</button>
+      <button class="btn-reset" id="cert-restart">🔄 重新挑战</button>
+      <button class="btn-next" id="cert-back">返回站图</button>
+    </div>
+  </div>
+
+  <div id="site-footer">力学指挥中心 · 初一科学 第11章「力」互动教学游戏 &nbsp;|&nbsp; 制作：蔡逸众 · 华仁中学</div>
+</div>
+
+<script>
+/* =====================================================================
+   力学指挥中心 — Force Chapter Interactive Game Suite
+   制作: 蔡逸众 (ecchua79)  |  华仁中学 Chinese High School
+   ===================================================================== */
+console.log("%c力学指挥中心 · 引力异常监测站","color:#4fd8e8;font-weight:bold;font-size:14px;",
+  "\n制作: 蔡逸众 (ecchua79) | 华仁中学 Chinese High School");
+
+/* ---------------- Background: starfield + accretion disk ---------------- */
+(function bgFX(){
+  const cv = document.getElementById('bg-canvas');
+  const ctx = cv.getContext('2d');
+  let W,H,stars=[],t=0;
+  function resize(){
+    W = cv.width = window.innerWidth;
+    H = cv.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize); resize();
+  const N = 140;
+  for(let i=0;i<N;i++){
+    stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+0.3,s:Math.random()*0.6+0.15,tw:Math.random()*Math.PI*2});
+  }
+  function draw(){
+    t+=0.006;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#050712';
+    ctx.fillRect(0,0,W,H);
+    // starfield
+    for(const st of stars){
+      st.y += st.s;
+      if(st.y>H){st.y=-2; st.x=Math.random()*W;}
+      const flicker = 0.5+0.5*Math.sin(t*3+st.tw);
+      ctx.globalAlpha = 0.35+0.5*flicker;
+      ctx.fillStyle = '#cfe4ff';
+      ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // accretion disk (signature element) - bottom right, subtle
+    const cx = W*0.86, cy = H*0.88;
+    for(let i=0;i<3;i++){
+      const rx = 90+i*46, ry = 26+i*10;
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(t*(0.4-i*0.08));
+      ctx.beginPath();
+      ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);
+      const grad = ctx.createLinearGradient(-rx,0,rx,0);
+      grad.addColorStop(0,'rgba(167,139,250,0)');
+      grad.addColorStop(0.5,`rgba(79,216,232,${0.14-i*0.03})`);
+      grad.addColorStop(1,'rgba(255,180,84,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.translate(cx,cy);
+    const coreGrad = ctx.createRadialGradient(0,0,0,0,0,20);
+    coreGrad.addColorStop(0,'rgba(5,7,18,1)');
+    coreGrad.addColorStop(1,'rgba(5,7,18,0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ---------------- Toast ---------------- */
+let toastTimer=null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+/* ---------------- Global State ---------------- */
+const STATIONS = [
+  {id:'s1', icon:'🧩', title:'力的效应侦探', desc:'判断力是改变形状还是改变运动状态', glow:'#4fd8e8'},
+  {id:'s2', icon:'🌀', title:'胡克定律实验室', desc:'弹簧秤模拟 + 比例计算挑战', glow:'#ffb454'},
+  {id:'s3', icon:'📐', title:'力的图示法', desc:'按比例画出力的箭头图', glow:'#a78bfa'},
+  {id:'s4', icon:'🧲', title:'接触力 / 非接触力', desc:'限时分类：接触力还是超距力？', glow:'#4fd8e8'},
+  {id:'s5', icon:'🪐', title:'重力大冒险', desc:'W=mg 计算 + 不同天体的重量比较', glow:'#ffb454'},
+  {id:'s6', icon:'🎯', title:'弹力检测站', desc:'弹性形变 or 塑性形变？传送带分类', glow:'#a78bfa'},
+  {id:'s7', icon:'🛞', title:'摩擦力实验站', desc:'滑块摩擦模拟 + 摩擦力分类挑战', glow:'#4fd8e8'},
+  {id:'boss', icon:'🕳️', title:'黑洞审判', desc:'终极综合挑战：击败引力异常', glow:'#ff6b81', boss:true},
+];
+
+const state = {
+  xp:0,
+  results:{}, // id -> {stars, maxStars}
+  fastAnswers:0,   // count of quick correct answers (for 极速反应 badge)
+  bossNoDamage:false, // true if boss was defeated without losing any life
+};
+
+function totalStarsEarned(){
+  return STATIONS.filter(s=>!s.boss).reduce((a,s)=> a + (state.results[s.id]?.stars||0), 0);
+}
+function allSevenDone(){
+  return STATIONS.filter(s=>!s.boss).every(s=> state.results[s.id]);
+}
+function saveResult(id, stars, xp){
+  const prev = state.results[id];
+  if(!prev || stars > prev.stars){
+    state.xp += xp - (prev? prev.xp : 0);
+    state.results[id] = {stars, xp};
+  }
+  updateHUD();
+}
+function updateHUD(){
+  document.getElementById('hud-xp').textContent = '经验值 ' + state.xp;
+}
+
+/* ---------------- Screen management ---------------- */
+const screens = ['screen-intro','screen-hub','screen-station','screen-cert'];
+function showScreen(id){
+  screens.forEach(s=> document.getElementById(s).classList.toggle('hidden', s!==id));
+  document.getElementById('hud').classList.toggle('hidden', id==='screen-intro');
+  window.scrollTo({top:0,behavior:'instant'});
+}
+document.getElementById('btn-start').addEventListener('click', ()=>{ renderHub(); showScreen('screen-hub'); });
+document.getElementById('hud-back').addEventListener('click', ()=>{ renderHub(); showScreen('screen-hub'); });
+document.getElementById('cert-back').addEventListener('click', ()=>{ renderHub(); showScreen('screen-hub'); });
+document.getElementById('cert-name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.target.blur(); } });
+document.getElementById('cert-download').addEventListener('click', downloadCertificatePNG);
+document.getElementById('cert-restart').addEventListener('click', ()=>{
+  const ok = window.confirm('确定要重新开始吗？这将清除目前所有站点的星级与经验值。');
+  if(!ok) return;
+  state.xp = 0;
+  state.results = {};
+  state.fastAnswers = 0;
+  state.bossNoDamage = false;
+  updateHUD();
+  renderHub();
+  showScreen('screen-hub');
+  toast('已重置，重新开始你的观察员训练！');
+});
+
+function renderHub(){
+  const grid = document.getElementById('node-grid');
+  grid.innerHTML = '';
+  STATIONS.forEach((s,idx)=>{
+    const res = state.results[s.id];
+    const locked = s.boss && !allSevenDone();
+    const card = document.createElement('button');
+    card.className = 'node-card' + (locked?' locked':'') + (s.boss?' boss':'');
+    card.style.setProperty('--node-glow', s.glow);
+    const starCount = s.boss ? 3 : 3;
+    const starsStr = res ? '★'.repeat(res.stars)+'☆'.repeat(starCount-res.stars) : '☆☆☆';
+    card.innerHTML = `
+      <div class="n-num">${s.boss? '终极关卡' : ('第 '+(idx+1)+' 站')}</div>
+      <div class="n-icon">${s.icon}</div>
+      <div class="n-title">${s.title}</div>
+      <div class="n-desc">${locked? '完成全部七站以解锁' : s.desc}</div>
+      <div class="n-stars ${res?'earned':''}">${locked? '🔒 已锁定' : starsStr}</div>
+    `;
+    if(!locked){
+      card.addEventListener('click', ()=> openStation(s.id));
+    }
+    grid.appendChild(card);
+  });
+}
+
+function openStation(id){
+  showScreen('screen-station');
+  const shell = document.getElementById('station-shell');
+  shell.innerHTML = '';
+  const finish = (stars, xp)=> showResult(id, stars, xp);
+  switch(id){
+    case 's1': initStation1(shell, finish); break;
+    case 's2': initStation2(shell, finish); break;
+    case 's3': initStation3(shell, finish); break;
+    case 's4': initStation4(shell, finish); break;
+    case 's5': initStation5(shell, finish); break;
+    case 's6': initStation6(shell, finish); break;
+    case 's7': initStation7(shell, finish); break;
+    case 'boss': initBoss(shell, finishBoss); break;
+  }
+}
+
+function showResult(id, stars, xp){
+  saveResult(id, stars, xp);
+  const shell = document.getElementById('station-shell');
+  const info = STATIONS.find(s=>s.id===id);
+  shell.innerHTML = `
+    <div class="result-panel">
+      <div style="font-size:40px;">${info.icon}</div>
+      <h4>${info.title} · 完成！</h4>
+      <div class="stars-big">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+      <p>获得经验值 +${xp}</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
+        <button class="btn-primary" id="res-retry">再玩一次</button>
+        <button class="btn-next" id="res-hub">返回站图</button>
+      </div>
+    </div>`;
+  document.getElementById('res-retry').addEventListener('click', ()=> openStation(id));
+  document.getElementById('res-hub').addEventListener('click', ()=>{ renderHub(); showScreen('screen-hub'); });
+  toast('训练完成 +' + xp + ' 经验值');
+}
+
+function finishBoss(won, xp, noDamage){
+  saveResult('boss', won?3:1, xp);
+  if(won){
+    state.bossNoDamage = !!noDamage;
+    renderCertificate();
+    showScreen('screen-cert');
+  } else {
+    const shell = document.getElementById('station-shell');
+    shell.innerHTML = `
+      <div class="result-panel">
+        <div style="font-size:40px;">🕳️</div>
+        <h4>黑洞暂未被击败……</h4>
+        <p>再复习一下各站的知识点，重新挑战吧！获得经验值 +${xp}</p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
+          <button class="btn-primary" id="res-retry">再挑战一次</button>
+          <button class="btn-next" id="res-hub">返回站图</button>
+        </div>
+      </div>`;
+    document.getElementById('res-retry').addEventListener('click', ()=> openStation('boss'));
+    document.getElementById('res-hub').addEventListener('click', ()=>{ renderHub(); showScreen('screen-hub'); });
+  }
+}
+
+function computeBadges(){
+  const badges = [];
+  const perfectAll = STATIONS.filter(s=>!s.boss).every(s=> state.results[s.id] && state.results[s.id].stars===3);
+  if(allSevenDone()) badges.push({icon:'🏅', name:'全站制霸'});
+  if(perfectAll) badges.push({icon:'🌟', name:'满分达人'});
+  if(state.bossNoDamage) badges.push({icon:'🛡️', name:'无伤过关'});
+  if(state.fastAnswers>=15) badges.push({icon:'⚡', name:'极速反应'});
+  if(perfectAll && state.bossNoDamage) badges.push({icon:'👑', name:'传奇观察员'});
+  return badges;
+}
+
+function renderCertificate(){
+  document.getElementById('cert-xp').textContent = state.xp;
+  const stars = totalStarsEarned();
+  document.getElementById('cert-stars').textContent = stars + '/21';
+  let rank = '见习观察员';
+  if(stars>=18) rank='首席观察员';
+  else if(stars>=14) rank='高级观察员';
+  else if(stars>=9) rank='合格观察员';
+  document.getElementById('cert-rank').textContent = rank;
+  const badges = computeBadges();
+  document.getElementById('cert-badges').innerHTML = badges.map(b=>
+    `<div class="badge-chip"><span class="b-icon">${b.icon}</span>${b.name}</div>`
+  ).join('');
+}
+
+/* ---- Certificate PNG export (drawn on an offscreen canvas, no external libs) ---- */
+function downloadCertificatePNG(){
+  const name = (document.getElementById('cert-name').value || '').trim() || '力学观察员';
+  const xp = state.xp;
+  const stars = totalStarsEarned();
+  const rank = document.getElementById('cert-rank').textContent;
+
+  const W = 1200, H = 1620; // portrait, high-res
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // background
+  const bgGrad = ctx.createLinearGradient(0,0,W*0.3,H);
+  bgGrad.addColorStop(0,'#0e1530');
+  bgGrad.addColorStop(1,'#080b1a');
+  ctx.fillStyle = bgGrad;
+  roundRectPath(ctx, 0,0,W,H,46);
+  ctx.fill();
+
+  // ambient glows
+  let g1 = ctx.createRadialGradient(W*0.15,H*0.08,0,W*0.15,H*0.08,W*0.5);
+  g1.addColorStop(0,'rgba(79,216,232,.18)'); g1.addColorStop(1,'rgba(79,216,232,0)');
+  ctx.fillStyle = g1; ctx.fillRect(0,0,W,H);
+  let g2 = ctx.createRadialGradient(W*0.85,H*0.95,0,W*0.85,H*0.95,W*0.5);
+  g2.addColorStop(0,'rgba(167,139,250,.18)'); g2.addColorStop(1,'rgba(167,139,250,0)');
+  ctx.fillStyle = g2; ctx.fillRect(0,0,W,H);
+
+  // outer + inner border
+  ctx.strokeStyle = '#ffb454'; ctx.lineWidth = 6;
+  roundRectPath(ctx, 14,14,W-28,H-28,40); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,180,84,.4)'; ctx.lineWidth = 2;
+  roundRectPath(ctx, 34,34,W-68,H-68,32); ctx.stroke();
+
+  // accretion disk motif (decorative, top center)
+  ctx.save();
+  ctx.translate(W/2, 150);
+  for(let i=0;i<3;i++){
+    ctx.save();
+    ctx.rotate(-0.25 + i*0.12);
+    ctx.beginPath();
+    ctx.ellipse(0,0, 150+i*40, 34+i*10, 0, 0, Math.PI*2);
+    const sg = ctx.createLinearGradient(-190,0,190,0);
+    sg.addColorStop(0,'rgba(167,139,250,0)');
+    sg.addColorStop(0.5,`rgba(79,216,232,${0.5-i*0.12})`);
+    sg.addColorStop(1,'rgba(255,180,84,0)');
+    ctx.strokeStyle = sg; ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.fillStyle = '#05070f';
+  ctx.beginPath(); ctx.arc(0,0,26,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#a78bfa';
+  ctx.font = '600 24px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('引 力 异 常 监 测 站 · 认 证 证 书', W/2, 250);
+
+  ctx.fillStyle = '#ffb454';
+  ctx.font = '800 66px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('力学观察员', W/2, 350);
+  ctx.fillText('结业证书', W/2, 430);
+
+  ctx.fillStyle = '#8a96c2';
+  ctx.font = '400 26px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('兹证明', W/2, 500);
+
+  // name with underline
+  ctx.fillStyle = '#eaf2ff';
+  ctx.font = '800 54px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(name, W/2, 590);
+  ctx.strokeStyle = '#4fd8e8'; ctx.lineWidth = 3;
+  ctx.setLineDash([10,8]);
+  ctx.beginPath(); ctx.moveTo(W/2-260,616); ctx.lineTo(W/2+260,616); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#8a96c2';
+  ctx.font = '400 26px "PingFang SC","Microsoft YaHei",sans-serif';
+  wrapText(ctx, '已完成初一科学第11章「力」全部训练，成功通过黑洞审判。', W/2, 680, 760, 38);
+
+  // stats row (xp + stars only — two short numeric values, safe side by side)
+  const statY = 810;
+  const stats = [ [String(xp),'总经验值'], [stars+'/21','获得星数'] ];
+  const colGap = 220;
+  stats.forEach((s,i)=>{
+    const x = W/2 + (i===0 ? -colGap : colGap);
+    ctx.fillStyle = '#4fd8e8';
+    ctx.font = '800 46px "SF Mono",Consolas,monospace';
+    ctx.fillText(s[0], x, statY);
+    ctx.fillStyle = '#8a96c2';
+    ctx.font = '400 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(s[1], x, statY+38);
+  });
+
+  // rank — its own full-width centered line so long labels (e.g. 首席观察员) never overflow
+  ctx.fillStyle = '#8a96c2';
+  ctx.font = '400 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('观察员等级', W/2, 900);
+  ctx.fillStyle = '#4fd8e8';
+  ctx.font = '800 44px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(rank, W/2, 952);
+
+  // dashed divider
+  ctx.strokeStyle = 'rgba(138,150,194,.4)'; ctx.lineWidth = 2;
+  ctx.setLineDash([8,8]);
+  ctx.beginPath(); ctx.moveTo(W*0.2, 1000); ctx.lineTo(W*0.8, 1000); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // star row
+  ctx.fillStyle = '#ffb454';
+  ctx.font = '32px sans-serif';
+  ctx.fillText('★'.repeat(stars>21?21:stars) + '☆'.repeat(Math.max(0,21-stars)), W/2, 1068);
+
+  // badge row (auto-shrinks font and wraps to a second line if needed so it never overflows the card)
+  const badges = computeBadges();
+  if(badges.length){
+    const maxRowWidth = W - 160; // safe inner margin
+    let badgeFont = 26;
+    ctx.font = `600 ${badgeFont}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    const gap = 20, padX = 24, chipH = 54;
+    function rowWidth(fontPx){
+      ctx.font = `600 ${fontPx}px "PingFang SC","Microsoft YaHei",sans-serif`;
+      const widths = badges.map(b=> ctx.measureText(b.icon+' '+b.name).width + padX*2);
+      return {total: widths.reduce((a,w)=>a+w,0) + gap*(badges.length-1), widths};
+    }
+    let {total, widths} = rowWidth(badgeFont);
+    while(total > maxRowWidth && badgeFont > 16){
+      badgeFont -= 2;
+      ({total, widths} = rowWidth(badgeFont));
+    }
+    const chipY = 1128;
+    let x = W/2 - total/2;
+    ctx.font = `600 ${badgeFont}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    badges.forEach((b,i)=>{
+      const w = widths[i];
+      ctx.fillStyle = 'rgba(255,180,84,.12)';
+      ctx.strokeStyle = 'rgba(255,180,84,.5)';
+      ctx.lineWidth = 2;
+      roundRectPath(ctx, x, chipY, w, chipH, chipH/2);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffb454';
+      ctx.fillText(b.icon+' '+b.name, x+w/2, chipY+chipH/2+8);
+      x += w + gap;
+    });
+  }
+
+  // footer credits
+  ctx.fillStyle = '#8a96c2';
+  ctx.font = '400 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('力学指挥中心 · 引力异常监测站', W/2, H-140);
+  ctx.font = '400 20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('制作：蔡逸众 · 华仁中学', W/2, H-104);
+  ctx.fillStyle = '#4a5580';
+  ctx.font = '400 16px "SF Mono",Consolas,monospace';
+  ctx.fillText('初一科学 第11章「力」互动教学游戏', W/2, H-70);
+
+  cv.toBlob(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `力学观察员结业证书_${name}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    toast('证书已下载 📥');
+  }, 'image/png');
+}
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function wrapText(ctx, text, cx, y, maxWidth, lineHeight){
+  const chars = text.split('');
+  let line = '', lines = [];
+  for(const ch of chars){
+    const test = line + ch;
+    if(ctx.measureText(test).width > maxWidth && line){
+      lines.push(line); line = ch;
+    } else line = test;
+  }
+  if(line) lines.push(line);
+  lines.forEach((l,i)=> ctx.fillText(l, cx, y + i*lineHeight));
+}
+
+/* =====================================================================
+   Shuffle helpers — every quiz's question order AND each question's
+   choice order are randomized on every playthrough.
+   ===================================================================== */
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function shuffleQuestion(q){
+  const order = shuffleArray(q.choices.map((c,i)=>i));
+  const newChoices = order.map(i=>q.choices[i]);
+  const newCorrectIdx = order.indexOf(q.correctIdx);
+  return Object.assign({}, q, {choices:newChoices, correctIdx:newCorrectIdx});
+}
+function shuffleQuestions(questions){
+  return shuffleArray(questions).map(shuffleQuestion);
+}
+
+/* =====================================================================
+   Generic quiz engine (used by several stations)
+   questions: [{prompt, choices:[...], correctIdx, explain}]
+   Each round: questions AND their choices are shuffled; a countdown
+   timer runs per question — answering faster earns a speed bonus.
+   ===================================================================== */
+function runQuizFlow(container, opts){
+  const {title, tag, onDone, xpPerCorrect=8, timeLimit=12} = opts;
+  const questions = shuffleQuestions(opts.questions);
+  let idx=0, correct=0, streak=0, best=0, bonusTotal=0;
+  let timeLeft=timeLimit, timerId=null;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="station-head"><h3>${title}</h3><span class="pill">${tag}</span></div>
+    <div class="progress-track"><div class="progress-fill" id="qf-progress"></div></div>
+    <div class="timer-row"><div class="timer-track"><div class="timer-fill" id="qf-timer-fill"></div></div><span class="timer-num" id="qf-timer-num">${timeLimit}s</span></div>
+    <div class="prompt-box"><div class="scenario" id="qf-scenario"></div></div>
+    <div class="choice-grid" id="qf-choices"></div>
+    <div class="feedback-line" id="qf-feedback"></div>
+    <div class="footer-row">
+      <span class="streak-tag" id="qf-streak">连击 x0</span>
+      <span class="pill" id="qf-count"></span>
+    </div>
+  `;
+  container.appendChild(wrap);
+  const elScenario = wrap.querySelector('#qf-scenario');
+  const elChoices = wrap.querySelector('#qf-choices');
+  const elFeedback = wrap.querySelector('#qf-feedback');
+  const elProgress = wrap.querySelector('#qf-progress');
+  const elStreak = wrap.querySelector('#qf-streak');
+  const elCount = wrap.querySelector('#qf-count');
+  const elTimerFill = wrap.querySelector('#qf-timer-fill');
+  const elTimerNum = wrap.querySelector('#qf-timer-num');
+
+  function startTimer(){
+    timeLeft = timeLimit;
+    updateTimerUI();
+    clearInterval(timerId);
+    timerId = setInterval(()=>{
+      timeLeft = Math.max(0, timeLeft-0.1);
+      updateTimerUI();
+      if(timeLeft<=0){ clearInterval(timerId); pick(-1, null); }
+    }, 100);
+  }
+  function updateTimerUI(){
+    const pct = Math.max(0, timeLeft/timeLimit*100);
+    elTimerFill.style.width = pct+'%';
+    elTimerFill.classList.toggle('low', timeLeft <= timeLimit*0.3);
+    elTimerNum.textContent = Math.ceil(timeLeft)+'s';
+  }
+  function renderQ(){
+    const q = questions[idx];
+    elScenario.textContent = q.prompt;
+    elFeedback.textContent = '';
+    elFeedback.className = 'feedback-line';
+    elProgress.style.width = (idx/questions.length*100)+'%';
+    elCount.textContent = `${idx+1} / ${questions.length}`;
+    elChoices.innerHTML = '';
+    q.choices.forEach((c,i)=>{
+      const b = document.createElement('button');
+      b.className = 'choice-btn';
+      b.textContent = c;
+      b.addEventListener('click', ()=> pick(i,b));
+      elChoices.appendChild(b);
+    });
+    startTimer();
+  }
+  function pick(i, btnEl){
+    clearInterval(timerId);
+    const q = questions[idx];
+    const timedOut = (i===-1);
+    Array.from(elChoices.children).forEach(b=> b.disabled=true);
+    if(!timedOut && i===q.correctIdx){
+      const frac = timeLeft/timeLimit; // 1 = instant, 0 = out of time
+      const bonus = Math.round(xpPerCorrect * frac * 0.6);
+      bonusTotal += bonus;
+      if(frac >= 0.6) state.fastAnswers++;
+      btnEl.classList.add('correct');
+      elFeedback.innerHTML = '✔ 正确！' + (q.explain||'') + (bonus>0? `<span class="bonus-tag">+${bonus} 速度加成</span>`:'');
+      elFeedback.classList.add('ok');
+      correct++; streak++; best=Math.max(best,streak);
+    } else {
+      if(btnEl) btnEl.classList.add('wrong');
+      elChoices.children[q.correctIdx].classList.add('correct');
+      elFeedback.textContent = (timedOut? '⏱ 时间到！' : '✘ ') + '正确答案是：' + q.choices[q.correctIdx] + '。' + (q.explain||'');
+      elFeedback.classList.add('bad');
+      streak=0;
+    }
+    elStreak.textContent = '连击 x' + streak;
+    setTimeout(()=>{
+      idx++;
+      if(idx>=questions.length){
+        elProgress.style.width='100%';
+        const pct = correct/questions.length;
+        const stars = pct>=0.85?3:pct>=0.6?2:1;
+        const xp = correct*xpPerCorrect + best*4 + bonusTotal;
+        onDone(stars, xp, correct, questions.length);
+      } else {
+        renderQ();
+      }
+    }, 1350);
+  }
+  renderQ();
+}
+
+/* =====================================================================
+   Station 1: 力的效应侦探 (shape change vs motion state change)
+   ===================================================================== */
+function initStation1(container, finish){
+  const bank = [
+    {prompt:'手捏橡皮擦，橡皮擦被压扁变形', a:'shape'},
+    {prompt:'足球被踢出后飞向球门（原来静止→运动）', a:'motion'},
+    {prompt:'风吹树木，枝叶来回摇摆', a:'motion'},
+    {prompt:'汽车相撞，车头凹陷变形', a:'shape'},
+    {prompt:'手推购物车，购物车从静止开始移动', a:'motion'},
+    {prompt:'拉开易拉罐拉环，罐身金属发生形变', a:'shape'},
+    {prompt:'头顶足球，球的运动方向被改变', a:'motion'},
+    {prompt:'用力捏橡皮泥，捏出想要的形状', a:'shape'},
+    {prompt:'汽车刹车，车速由快变慢直到停止', a:'motion'},
+    {prompt:'拉伸弹弓的橡皮筋，弹弓形状被拉长', a:'shape'},
+  ];
+  const shuffled = [...bank].sort(()=>Math.random()-0.5).slice(0,8);
+  const questions = shuffled.map(q=>({
+    prompt: q.prompt,
+    choices: ['改变形状','改变运动状态'],
+    correctIdx: q.a==='shape' ? 0 : 1,
+    explain: q.a==='shape' ? '力使物体的形状发生了改变。' : '力使物体由静止变运动、或运动方向/快慢改变。'
+  }));
+  runQuizFlow(container, {
+    title:'🧩 力的效应侦探', tag:'第 1 站', questions,
+    onDone: finish
+  });
+}
+
+/* =====================================================================
+   Station 2: 胡克定律实验室
+   k = 100 N/m (matches textbook 例11.1)
+   ===================================================================== */
+function initStation2(container, finish){
+  const k = 100; // N/m
+  let mass = 100; // g, current selection
+  container.innerHTML = `
+    <div class="station-head"><h3>🌀 胡克定律实验室</h3><span class="pill">第 2 站 · 第一部分：模拟实验</span></div>
+    <p style="color:var(--dim);font-size:13px;line-height:1.7;">在弹簧上悬挂不同质量的砝码（取 g = 10 N/kg），观察弹簧的伸长量 x，并验证 F/x 是否维持定值（劲度系数 k）。</p>
+    <div class="spring-lab">
+      <div class="spring-visual"><svg id="spring-svg" width="140" height="260" viewBox="0 0 140 260"></svg></div>
+      <div class="spring-controls">
+        <div>选择砝码质量：</div>
+        <div id="weight-btns"></div>
+        <div class="readout" id="spring-readout"></div>
+      </div>
+    </div>
+    <div class="footer-row">
+      <span class="pill">提示：F = mg，x 由弹簧伸长量决定</span>
+      <button class="btn-primary" id="to-quiz">进入计算挑战 →</button>
+    </div>
+  `;
+  const masses = [100,200,300,400,500];
+  const btnsWrap = container.querySelector('#weight-btns');
+  masses.forEach(m=>{
+    const b = document.createElement('button');
+    b.className='weight-btn' + (m===mass?' active':'');
+    b.textContent = m+'g';
+    b.addEventListener('click', ()=>{
+      mass = m;
+      Array.from(btnsWrap.children).forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      drawSpring();
+    });
+    btnsWrap.appendChild(b);
+  });
+  function drawSpring(){
+    const F = (mass/1000)*10; // N
+    const x = F / k; // m
+    const L0 = 100; // px baseline coil length
+    const stretchPx = x * 3000; // visual scale
+    const svg = container.querySelector('#spring-svg');
+    const coilTop = 20, hookY = coilTop + L0 + stretchPx;
+    let coils = '';
+    const nCoils = 10;
+    const coilH = L0 + stretchPx;
+    for(let i=0;i<nCoils;i++){
+      const y1 = coilTop + (coilH/nCoils)*i;
+      const y2 = coilTop + (coilH/nCoils)*(i+1);
+      const xMid = i%2===0 ? 45 : 95;
+      coils += `<line x1="70" y1="${y1}" x2="${xMid}" y2="${(y1+y2)/2}" stroke="#4fd8e8" stroke-width="3" stroke-linecap="round"/>`;
+      coils += `<line x1="${xMid}" y1="${(y1+y2)/2}" x2="70" y2="${y2}" stroke="#4fd8e8" stroke-width="3" stroke-linecap="round"/>`;
+    }
+    svg.innerHTML = `
+      <rect x="30" y="6" width="80" height="12" rx="3" fill="#243258"/>
+      ${coils}
+      <rect x="50" y="${hookY}" width="40" height="26" rx="4" fill="#ffb454"/>
+      <text x="70" y="${hookY+18}" font-size="12" text-anchor="middle" fill="#050712" font-weight="700">${mass}g</text>
+    `;
+    container.querySelector('#spring-readout').innerHTML =
+      `拉力 F = mg = ${(mass/1000)}kg × 10N/kg = <b>${F.toFixed(1)} N</b><br>`+
+      `伸长量 x = F/k = <b>${x.toFixed(2)} m</b><br>`+
+      `劲度系数 k = F/x = <b>${k} N/m</b>（保持不变 ✓）`;
+  }
+  drawSpring();
+
+  container.querySelector('#to-quiz').addEventListener('click', ()=>{
+    const questions = [
+      {prompt:'已知弹簧劲度系数 k=100 N/m，当伸长量 x=0.03m 时，拉力 F 是多少？', choices:['2N','3N','4N','30N'], correctIdx:1, explain:'F=kx=100×0.03=3N'},
+      {prompt:'弹簧受到拉力 4N，劲度系数 k=100 N/m，伸长量 x 是多少？', choices:['0.4m','0.04m','4m','0.004m'], correctIdx:1, explain:'x=F/k=4/100=0.04m'},
+      {prompt:'第一次实验：F₁=2N, x₁=0.02m。第二次实验伸长量 x₂=0.05m，拉力 F₂ 是多少？（F₁/x₁=F₂/x₂）', choices:['4N','5N','2.5N','10N'], correctIdx:1, explain:'2/0.02=F₂/0.05 → F₂=5N'},
+      {prompt:'已知拉力 F=2N，伸长量 x=0.02m，弹簧的劲度系数 k 是多少？', choices:['50 N/m','100 N/m','0.01 N/m','200 N/m'], correctIdx:1, explain:'k=F/x=2/0.02=100N/m'},
+      {prompt:'胡克定律成立的前提条件是什么？', choices:['弹簧必须是金属制','必须在弹性限度内','拉力必须小于1N','弹簧必须竖直悬挂'], correctIdx:1, explain:'超过弹性限度后 F/x 不再是定值。'},
+    ];
+    container.innerHTML='';
+    runQuizFlow(container, {title:'🌀 胡克定律 · 计算挑战', tag:'第 2 站 · 第二部分', questions, onDone: finish, xpPerCorrect:10, timeLimit:20});
+  });
+}
+
+/* =====================================================================
+   Station 3: 力的图示法绘图挑战
+   ===================================================================== */
+function initStation3(container, finish){
+  const rounds = [
+    {F:150, dir:'left',  scale:50, label:'150 N 向左拉小车，1cm 代表 50N'},
+    {F:200, dir:'up',    scale:50, label:'200 N 向上提起物体，1cm 代表 50N'},
+    {F:300, dir:'down',  scale:100,label:'300 N 向下压物体，1cm 代表 100N'},
+    {F:250, dir:'right', scale:50, label:'250 N 向右推箱子，1cm 代表 50N'},
+    {F:120, dir:'left',  scale:40, label:'120 N 向左拉绳子，1cm 代表 40N'},
+  ];
+  let idx=0, score=0;
+  container.innerHTML = `
+    <div class="station-head"><h3>📐 力的图示法绘图挑战</h3><span class="pill">第 3 站</span></div>
+    <div class="progress-track"><div class="progress-fill" id="v-progress"></div></div>
+    <div class="vec-task" id="v-task"></div>
+    <canvas id="vec-canvas" width="640" height="320"></canvas>
+    <div class="footer-row">
+      <span class="pill">从中心的 O 点按住并拖动，画出正确长度和方向的箭头</span>
+      <span class="pill" id="v-count"></span>
+    </div>
+    <div class="feedback-line" id="v-feedback"></div>
+  `;
+  const cv = container.querySelector('#vec-canvas');
+  const ctx = cv.getContext('2d');
+  const ORIGIN = {x:cv.width/2, y:cv.height/2};
+  const PX_PER_CM = 40;
+  let dragging=false, end=null;
+
+  function dirToAngle(dir){ return {left:180, right:0, up:270, down:90}[dir]; }
+  function angleFromPoint(dx,dy){
+    let a = Math.atan2(dy,dx) * 180/Math.PI;
+    if(a<0) a += 360;
+    return a;
+  }
+  function drawGrid(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle = 'rgba(79,216,232,0.08)';
+    ctx.lineWidth=1;
+    for(let x=0;x<cv.width;x+=40){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke(); }
+    for(let y=0;y<cv.height;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke(); }
+    ctx.fillStyle = '#ffb454';
+    ctx.beginPath(); ctx.arc(ORIGIN.x,ORIGIN.y,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c7d2f5'; ctx.font='13px sans-serif';
+    ctx.fillText('O', ORIGIN.x+8, ORIGIN.y-8);
+  }
+  function drawArrow(to, color){
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(ORIGIN.x,ORIGIN.y); ctx.lineTo(to.x,to.y); ctx.stroke();
+    const ang = Math.atan2(to.y-ORIGIN.y, to.x-ORIGIN.x);
+    const ah=12;
+    ctx.beginPath();
+    ctx.moveTo(to.x,to.y);
+    ctx.lineTo(to.x - ah*Math.cos(ang-0.4), to.y - ah*Math.sin(ang-0.4));
+    ctx.lineTo(to.x - ah*Math.cos(ang+0.4), to.y - ah*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+  }
+  function render(){
+    const r = rounds[idx];
+    container.querySelector('#v-task').innerHTML = `第 ${idx+1} 题：<b>${r.label}</b>`;
+    container.querySelector('#v-count').textContent = `${idx+1} / ${rounds.length}`;
+    container.querySelector('#v-progress').style.width = (idx/rounds.length*100)+'%';
+    container.querySelector('#v-feedback').textContent='';
+    drawGrid();
+    end=null;
+  }
+  function pos(e){
+    const rect = cv.getBoundingClientRect();
+    const cx = (e.touches? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches? e.touches[0].clientY : e.clientY) - rect.top;
+    return {x:cx*(cv.width/rect.width), y:cy*(cv.height/rect.height)};
+  }
+  cv.addEventListener('mousedown', e=>{ dragging=true; end=pos(e); drawGrid(); drawArrow(end,'#4fd8e8'); });
+  cv.addEventListener('mousemove', e=>{ if(!dragging) return; end=pos(e); drawGrid(); drawArrow(end,'#4fd8e8'); });
+  window.addEventListener('mouseup', ()=>{ if(dragging){ dragging=false; evaluate(); } });
+  cv.addEventListener('touchstart', e=>{ dragging=true; end=pos(e); drawGrid(); drawArrow(end,'#4fd8e8'); e.preventDefault(); }, {passive:false});
+  cv.addEventListener('touchmove', e=>{ if(!dragging) return; end=pos(e); drawGrid(); drawArrow(end,'#4fd8e8'); e.preventDefault(); }, {passive:false});
+  cv.addEventListener('touchend', ()=>{ if(dragging){ dragging=false; evaluate(); } });
+
+  function evaluate(){
+    if(!end) return;
+    const r = rounds[idx];
+    const dx = end.x-ORIGIN.x, dy = end.y-ORIGIN.y;
+    const lenPx = Math.hypot(dx,dy);
+    const lenCm = lenPx/PX_PER_CM;
+    const expectedCm = r.F/r.scale;
+    const angle = angleFromPoint(dx,dy);
+    const expectedAngle = dirToAngle(r.dir);
+    let angleDiff = Math.abs(angle-expectedAngle); angleDiff = Math.min(angleDiff, 360-angleDiff);
+    const lenOk = Math.abs(lenCm-expectedCm) <= Math.max(0.6, expectedCm*0.22);
+    const angleOk = angleDiff <= 20;
+    const fb = container.querySelector('#v-feedback');
+    if(lenOk && angleOk){
+      score++;
+      fb.textContent = `✔ 正确！应画 ${expectedCm.toFixed(1)}cm 长的箭头，方向正确。`;
+      fb.className='feedback-line ok';
+      drawGrid(); drawArrow(end,'#4ade80');
+    } else {
+      fb.textContent = `✘ 提示：应画约 ${expectedCm.toFixed(1)}cm 长（你画了${lenCm.toFixed(1)}cm），方向应朝${ {left:'左',right:'右',up:'上',down:'下'}[r.dir] }。`;
+      fb.className='feedback-line bad';
+      drawGrid(); drawArrow(end,'#f87171');
+    }
+    setTimeout(()=>{
+      idx++;
+      if(idx>=rounds.length){
+        const pct = score/rounds.length;
+        const stars = pct>=0.8?3:pct>=0.5?2:1;
+        finish(stars, score*12+8);
+      } else render();
+    }, 1600);
+  }
+  render();
+}
+
+/* =====================================================================
+   Station 4: 接触力 / 非接触力 (falling item sort)
+   ===================================================================== */
+function initStation4(container, finish){
+  const bank = [
+    {t:'汽车相撞', a:'contact'},
+    {t:'手推购物车', a:'contact'},
+    {t:'推开一扇门', a:'contact'},
+    {t:'鞋底与地面的摩擦力', a:'contact'},
+    {t:'手提水桶', a:'contact'},
+    {t:'磁铁吸引铁粉', a:'noncontact'},
+    {t:'塑料梳子吸引头发（静电力）', a:'noncontact'},
+    {t:'苹果受到地球的重力', a:'noncontact'},
+    {t:'地球吸引月球（引力）', a:'noncontact'},
+    {t:'压橡皮擦使其变形', a:'contact'},
+  ];
+  const seq = [...bank].sort(()=>Math.random()-0.5).slice(0,8);
+  let idx=0, score=0, misses=0;
+  container.innerHTML = `
+    <div class="station-head"><h3>🧲 接触力 / 非接触力</h3><span class="pill">第 4 站</span></div>
+    <div class="progress-track"><div class="progress-fill" id="f4-progress"></div></div>
+    <p style="color:var(--dim);font-size:13px;">卡片下落前，点击正确的分类按钮！答慢了会掉出监测范围哦～</p>
+    <canvas id="fall-canvas" width="640" height="340"></canvas>
+    <div class="sort-buttons">
+      <button id="btn-contact">🤝 接触力</button>
+      <button id="btn-noncontact">✨ 非接触力</button>
+    </div>
+    <div class="feedback-line" id="f4-feedback" style="text-align:center;"></div>
+  `;
+  const cv = container.querySelector('#fall-canvas');
+  const ctx = cv.getContext('2d');
+  let itemY=20, speed=0.9, active=true, answered=false;
+  let raf;
+  function currentItem(){ return seq[idx]; }
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle='rgba(79,216,232,.06)';
+    for(let y=0;y<cv.height;y+=34) ctx.fillRect(0,y,cv.width,1);
+    const item = currentItem();
+    if(item && active){
+      itemY += speed;
+      ctx.fillStyle = '#121a33';
+      ctx.strokeStyle = '#4fd8e8';
+      ctx.lineWidth=2;
+      const w = Math.min(560, ctx.measureText(item.t).width+60);
+      const x = (cv.width-w)/2;
+      roundRect(ctx, x, itemY, w, 56, 12);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#eaf2ff';
+      ctx.font='16px sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText(item.t, cv.width/2, itemY+34);
+      ctx.textAlign='left';
+      if(itemY > cv.height-60 && !answered){
+        answered=true;
+        registerAnswer(null);
+      }
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function nextItem(){
+    idx++; itemY=20; speed = Math.min(2.6, speed+0.13); answered=false;
+    const fb = container.querySelector('#f4-feedback');
+    fb.textContent=''; fb.className='feedback-line';
+    if(idx>=seq.length){
+      cancelAnimationFrame(raf);
+      active=false;
+      const pct = score/seq.length;
+      const stars = pct>=0.85?3:pct>=0.6?2:1;
+      setTimeout(()=> finish(stars, score*9+6), 400);
+    }
+  }
+  function registerAnswer(choice){
+    const item = currentItem();
+    const fb = container.querySelector('#f4-feedback');
+    if(choice===item.a){
+      score++;
+      fb.textContent = '✔ 正确！' + (item.a==='contact' ? '施力物体与受力物体相互接触。' : '两者没有接触也能产生力的作用。');
+      fb.className='feedback-line ok';
+    } else if(choice===null){
+      fb.textContent = '⏱ 超时！正确答案：' + (item.a==='contact'?'接触力':'非接触力');
+      fb.className='feedback-line bad';
+    } else {
+      fb.textContent = '✘ 错误。正确答案：' + (item.a==='contact'?'接触力':'非接触力');
+      fb.className='feedback-line bad';
+    }
+    setTimeout(nextItem, 900);
+  }
+  container.querySelector('#btn-contact').addEventListener('click', ()=>{ if(!answered){answered=true; registerAnswer('contact');} });
+  container.querySelector('#btn-noncontact').addEventListener('click', ()=>{ if(!answered){answered=true; registerAnswer('noncontact');} });
+  container.querySelector('#f4-progress').style.width='0%';
+  draw();
+  const progInterval = setInterval(()=>{
+    if(!active){ clearInterval(progInterval); return; }
+    container.querySelector('#f4-progress').style.width = (idx/seq.length*100)+'%';
+  }, 200);
+}
+
+/* =====================================================================
+   Station 5: 重力大冒险 (W=mg across contexts)
+   ===================================================================== */
+function initStation5(container, finish){
+  const questions = [
+    {prompt:'物体的质量 m=1.2kg，取 g=10N/kg，重量 W 是多少？（如市场里的木瓜）', choices:['1.2N','12N','120N','0.12N'], correctIdx:1, explain:'W=mg=1.2×10=12N'},
+    {prompt:'一个静止悬挂的灯泡，绳子拉力为1N（W=F=1N），取g=10N/kg，灯泡质量是多少克？', choices:['10g','100g','1000g','1g'], correctIdx:1, explain:'m=W/g=1/10=0.1kg=100g'},
+    {prompt:'同一个人分别站在地球赤道和北极，何处的体重（重量）比较大？', choices:['赤道','北极','一样大','无法比较'], correctIdx:1, explain:'赤道离地心较远，g较小，所以赤道体重较小，北极体重较大。'},
+    {prompt:'同一个人分别在平地和高山上，何处的体重比较大？', choices:['平地','高山','一样大','取决于温度'], correctIdx:0, explain:'高山上离地心更远，g较小，重量较小。'},
+    {prompt:'在地球表面重量为600N的物体，若月球表面g值约为地球的六分之一，它在月球上的重量约是多少？', choices:['600N','300N','100N','3600N'], correctIdx:2, explain:'600÷6=100N，物体质量保持不变。'},
+    {prompt:'质量5kg的物体，取g=10N/kg，重量W是多少？', choices:['0.5N','5N','50N','500N'], correctIdx:2, explain:'W=mg=5×10=50N'},
+    {prompt:'物体重量为20N，取g=10N/kg，它的质量是多少？', choices:['0.2kg','2kg','20kg','200kg'], correctIdx:1, explain:'m=W/g=20/10=2kg'},
+    {prompt:'物体从地球带到月球，下列哪一项不会改变？', choices:['重量','质量','g值','以上皆会变'], correctIdx:1, explain:'质量是物体本身含有物质的量，不随位置改变。'},
+  ];
+  runQuizFlow(container, {
+    title:'🪐 重力大冒险 · W = mg', tag:'第 5 站', questions, onDone: finish, xpPerCorrect:9, timeLimit:18
+  });
+}
+
+/* =====================================================================
+   Station 6: 弹力检测站 (elastic vs plastic conveyor)
+   ===================================================================== */
+function initStation6(container, finish){
+  const bank = [
+    {t:'拉伸的钢丝弹簧（撤力后恢复原状）', a:'elastic'},
+    {t:'拉长的橡皮筋（撤力后恢复原状）', a:'elastic'},
+    {t:'撑杆跳运动员弯曲的撑杆', a:'elastic'},
+    {t:'拉开又弹回的弹弓', a:'elastic'},
+    {t:'蹦床被压下后弹回', a:'elastic'},
+    {t:'弯折后回不了原状的铁线衣架', a:'plastic'},
+    {t:'被捏成各种形状的橡皮泥', a:'plastic'},
+    {t:'对折后留下折痕的纸张', a:'plastic'},
+    {t:'揉成一团后摊不平整的锡纸', a:'plastic'},
+    {t:'弯曲后无法回直的铜线', a:'plastic'},
+  ];
+  const seq = [...bank].sort(()=>Math.random()-0.5).slice(0,8);
+  let idx=0, score=0, x=640, answered=false, raf, speed=1.6;
+  container.innerHTML = `
+    <div class="station-head"><h3>🎯 弹力检测站</h3><span class="pill">第 6 站</span></div>
+    <div class="progress-track"><div class="progress-fill" id="f6-progress"></div></div>
+    <p style="color:var(--dim);font-size:13px;">物体正沿传送带经过检测站，判断它属于弹性形变还是塑性形变！</p>
+    <div class="conveyor-wrap" id="conveyor"><div class="conveyor-item" id="conveyor-item"></div></div>
+    <div class="sort-buttons">
+      <button id="btn-elastic">🔵 弹性形变</button>
+      <button id="btn-plastic">🟠 塑性形变</button>
+    </div>
+    <div class="feedback-line" id="f6-feedback" style="text-align:center;"></div>
+  `;
+  const wrap = container.querySelector('#conveyor');
+  const itemEl = container.querySelector('#conveyor-item');
+  function currentItem(){ return seq[idx]; }
+  function place(){
+    x = wrap.clientWidth + 20;
+    itemEl.textContent = currentItem().t;
+    itemEl.style.left = x+'px';
+    answered=false;
+  }
+  function tick(){
+    if(!currentItem()) return;
+    x -= speed;
+    itemEl.style.left = x+'px';
+    if(x < -itemEl.offsetWidth-20 && !answered){
+      answered=true; registerAnswer(null);
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function registerAnswer(choice){
+    const item = currentItem();
+    const fb = container.querySelector('#f6-feedback');
+    if(choice===item.a){
+      score++;
+      fb.textContent = '✔ 正确！' + (item.a==='elastic' ? '外力撤除后能恢复原状 → 弹性形变。' : '外力撤除后无法恢复原状 → 塑性形变。');
+      fb.className='feedback-line ok';
+    } else if(choice===null){
+      fb.textContent = '⏱ 错过了！正确答案：' + (item.a==='elastic'?'弹性形变':'塑性形变');
+      fb.className='feedback-line bad';
+    } else {
+      fb.textContent = '✘ 错误。正确答案：' + (item.a==='elastic'?'弹性形变':'塑性形变');
+      fb.className='feedback-line bad';
+    }
+    setTimeout(()=>{
+      idx++;
+      speed = Math.min(3.2, speed+0.12);
+      container.querySelector('#f6-progress').style.width = (idx/seq.length*100)+'%';
+      if(idx>=seq.length){
+        cancelAnimationFrame(raf);
+        const pct = score/seq.length;
+        const stars = pct>=0.85?3:pct>=0.6?2:1;
+        setTimeout(()=> finish(stars, score*9+6), 300);
+      } else { place(); }
+    }, 900);
+  }
+  container.querySelector('#btn-elastic').addEventListener('click', ()=>{ if(!answered){answered=true; registerAnswer('elastic');} });
+  container.querySelector('#btn-plastic').addEventListener('click', ()=>{ if(!answered){answered=true; registerAnswer('plastic');} });
+  place();
+  tick();
+}
+
+/* =====================================================================
+   Station 7: 摩擦力实验站 (slider sim + classification quiz)
+   ===================================================================== */
+function initStation7(container, finish){
+  container.innerHTML = `
+    <div class="station-head"><h3>🛞 摩擦力实验站</h3><span class="pill">第 7 站 · 第一部分：模拟实验</span></div>
+    <p style="color:var(--dim);font-size:13px;">调整「压力大小」与「接触面粗糙度」，观察摩擦力如何变化。</p>
+    <div class="friction-sim">
+      <div class="slider-row"><label>压力大小</label><input type="range" id="fr-pressure" min="1" max="5" value="2"><span class="val" id="fr-pressure-val">2</span></div>
+      <div class="slider-row"><label>接触面粗糙度</label><input type="range" id="fr-rough" min="1" max="5" value="2"><span class="val" id="fr-rough-val">2</span></div>
+      <div class="friction-bar-wrap"><div class="friction-bar" id="fr-bar"></div></div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px;">摩擦力相对大小</div>
+      <div class="friction-track"><div class="friction-block" id="fr-block"></div></div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px;">滑块被恒定推力推动 → 摩擦力越大，滑块移动越慢</div>
+    </div>
+    <button class="btn-primary" id="fr-to-quiz">进入分类挑战 →</button>
+  `;
+  const pSlider = container.querySelector('#fr-pressure');
+  const rSlider = container.querySelector('#fr-rough');
+  const bar = container.querySelector('#fr-bar');
+  const block = container.querySelector('#fr-block');
+  let pos=6, dir=1, raf;
+  function frictionVal(){ return (+pSlider.value) * (+rSlider.value); } // 1..25
+  function updateReadout(){
+    container.querySelector('#fr-pressure-val').textContent = pSlider.value;
+    container.querySelector('#fr-rough-val').textContent = rSlider.value;
+    const f = frictionVal();
+    bar.style.width = Math.min(100, f/25*100)+'%';
+  }
+  [pSlider,rSlider].forEach(s=> s.addEventListener('input', updateReadout));
+  function animate(){
+    const f = frictionVal();
+    const speed = Math.max(0.3, (26-f)/6); // higher friction -> slower
+    const trackW = container.querySelector('.friction-track').clientWidth - 50;
+    pos += dir*speed;
+    if(pos>trackW || pos<6) dir*=-1;
+    block.style.left = pos+'px';
+    raf = requestAnimationFrame(animate);
+  }
+  updateReadout();
+  animate();
+
+  container.querySelector('#fr-to-quiz').addEventListener('click', ()=>{
+    cancelAnimationFrame(raf);
+    const questions = [
+      {prompt:'压力越大、接触面越粗糙，摩擦力会怎样变化？', choices:['越大','越小','不变','先大后小'], correctIdx:0, explain:'压力越大，接触面越粗糙，摩擦力就越大。'},
+      {prompt:'书本放在略微倾斜的桌面上仍保持静止，此时存在的摩擦力是？', choices:['静摩擦力','滑动摩擦力','滚动摩擦力','没有摩擦力'], correctIdx:0, explain:'物体相对静止但有滑动趋势时产生静摩擦力。'},
+      {prompt:'用力拖拽书本使其在桌面上滑动，此时的摩擦力属于？', choices:['静摩擦力','滑动摩擦力','滚动摩擦力','弹力'], correctIdx:1, explain:'物体已经相对滑动，属于动摩擦力中的滑动摩擦力。'},
+      {prompt:'滚动的篮球所受到的摩擦力属于？', choices:['静摩擦力','滑动摩擦力','滚动摩擦力','没有摩擦力'], correctIdx:2, explain:'物体滚动时产生滚动摩擦力，通常比滑动摩擦力小。'},
+      {prompt:'浴室使用防滑垫、鞋底使用花纹，目的是？', choices:['增大摩擦','减小摩擦','改变重力','增加弹力'], correctIdx:0, explain:'粗糙表面能增加有益摩擦，防止滑倒。'},
+      {prompt:'在两个摩擦面之间添加润滑油，或使用滚动轴承，目的是？', choices:['增大摩擦','减小摩擦','增大压力','改变方向'], correctIdx:1, explain:'润滑油和轴承能让接触面更光滑或转为滚动摩擦，减小摩擦。'},
+      {prompt:'物体从静止开始被推动前，摩擦力会随施力增加而增大，直到超过最大静摩擦力后就会？', choices:['摩擦力消失','转变为动摩擦力','摩擦力突然变大很多','重量增加'], correctIdx:1, explain:'超过最大静摩擦力后物体开始运动，转变为动摩擦力（通常更小）。'},
+    ];
+    container.innerHTML='';
+    runQuizFlow(container, {title:'🛞 摩擦力 · 分类挑战', tag:'第 7 站 · 第二部分', questions, onDone: finish, xpPerCorrect:9, timeLimit:14});
+  });
+}
+
+/* =====================================================================
+   BOSS: 黑洞审判 — mixed comprehensive challenge
+   ===================================================================== */
+function initBoss(container, finishBossCb){
+  const bank = [
+    {prompt:'力的定义是什么？', choices:['物体的运动状态','物体对物体的作用','物体的质量大小','物体的形状'], correctIdx:1},
+    {prompt:'力的国际单位是？', choices:['焦耳(J)','千克(kg)','牛顿(N)','帕斯卡(Pa)'], correctIdx:2},
+    {prompt:'实验室中常用什么工具测量力的大小？', choices:['温度计','弹簧秤','量筒','天平'], correctIdx:1},
+    {prompt:'胡克定律描述的是弹簧的伸长量与什么成正比？', choices:['弹簧长度','外力大小','弹簧粗细','弹簧颜色'], correctIdx:1},
+    {prompt:'弹簧原长0.04m，受力后长度变为0.09m，伸长量x是多少？', choices:['0.13m','0.05m','0.09m','0.04m'], correctIdx:1},
+    {prompt:'力的三要素是什么？', choices:['大小、方向、作用点','长度、宽度、高度','速度、方向、时间','质量、体积、密度'], correctIdx:0},
+    {prompt:'力是标量还是向量？', choices:['标量','向量','都不是','取决于情况'], correctIdx:1},
+    {prompt:'摩擦力属于接触力还是非接触力？', choices:['接触力','非接触力','两者都是','两者都不是'], correctIdx:0},
+    {prompt:'物体受到的重力属于？', choices:['接触力','非接触力','摩擦力','弹力'], correctIdx:1},
+    {prompt:'重量的公式是？', choices:['W=mg','W=m/g','W=m+g','W=g/m'], correctIdx:0},
+    {prompt:'地球平均g值大约是多少？', choices:['9.8 N/kg','1 N/kg','98 N/kg','0.98 N/kg'], correctIdx:0},
+    {prompt:'一个人从地球平地到高山上，体重会怎样变化？', choices:['变大','变小','不变','先变大后变小'], correctIdx:1},
+    {prompt:'弹性形变超过弹性限度后会怎样？', choices:['物体消失','无法恢复原状','变得更有弹性','质量增加'], correctIdx:1},
+    {prompt:'铁线衣架被弯折后无法恢复，这属于哪种形变？', choices:['弹性形变','塑性形变','磁性形变','热形变'], correctIdx:1},
+    {prompt:'摩擦力的方向与物体相对运动方向？', choices:['相同','相反','垂直','无关'], correctIdx:1},
+    {prompt:'气垫船利用高压空气的目的是？', choices:['增大摩擦力','减小摩擦力','增加重量','增大弹力'], correctIdx:1},
+    {prompt:'质量1.2kg的物体，取g=10N/kg，重量是多少？', choices:['1.2N','12N','120N','0.12N'], correctIdx:1},
+    {prompt:'月球表面g值约为地球的多少分之一？', choices:['1/2','1/6','1/10','1/3'], correctIdx:1},
+    {prompt:'画力的图示时，箭头的长度表示什么？', choices:['力的方向','力的大小','作用点位置','时间长短'], correctIdx:1},
+    {prompt:'桌面支持放在其上的书本，这个支持力属于？', choices:['重力','弹力','摩擦力','磁力'], correctIdx:1},
+  ];
+  const seq = shuffleQuestions([...bank].sort(()=>Math.random()-0.5).slice(0,12));
+  let idx=0, hp=100, lives=3, xp=0, timeLeft=0, timerId=null;
+  const TIME_LIMIT = 14;
+  const dmgPerHit = Math.ceil(100/seq.length);
+  container.innerHTML = `
+    <div class="station-head"><h3>🕳️ 黑洞审判 · 终极综合挑战</h3><span class="pill">终极关卡</span></div>
+    <div class="boss-hp-wrap">
+      <div class="boss-hp-label"><span>引力异常 能量</span><span id="boss-hp-text">100%</span></div>
+      <div class="boss-hp-track"><div class="boss-hp-fill" id="boss-hp-fill"></div></div>
+    </div>
+    <div class="timer-row"><div class="timer-track"><div class="timer-fill" id="boss-timer-fill"></div></div><span class="timer-num" id="boss-timer-num">${TIME_LIMIT}s</span></div>
+    <div class="prompt-box"><div class="scenario" id="boss-scenario"></div></div>
+    <div class="choice-grid" id="boss-choices"></div>
+    <div class="feedback-line" id="boss-feedback"></div>
+    <div class="footer-row">
+      <span class="hearts" id="boss-hearts">❤❤❤</span>
+      <span class="pill" id="boss-count"></span>
+    </div>
+  `;
+  const elTimerFill = container.querySelector('#boss-timer-fill');
+  const elTimerNum = container.querySelector('#boss-timer-num');
+  function startTimer(){
+    timeLeft = TIME_LIMIT;
+    updateTimerUI();
+    clearInterval(timerId);
+    timerId = setInterval(()=>{
+      timeLeft = Math.max(0, timeLeft-0.1);
+      updateTimerUI();
+      if(timeLeft<=0){ clearInterval(timerId); answer(-1, null); }
+    }, 100);
+  }
+  function updateTimerUI(){
+    const pct = Math.max(0, timeLeft/TIME_LIMIT*100);
+    elTimerFill.style.width = pct+'%';
+    elTimerFill.classList.toggle('low', timeLeft <= TIME_LIMIT*0.3);
+    elTimerNum.textContent = Math.ceil(timeLeft)+'s';
+  }
+  function renderQ(){
+    const q = seq[idx];
+    container.querySelector('#boss-scenario').textContent = q.prompt;
+    container.querySelector('#boss-count').textContent = `${idx+1} / ${seq.length}`;
+    container.querySelector('#boss-feedback').textContent='';
+    const cg = container.querySelector('#boss-choices');
+    cg.innerHTML='';
+    q.choices.forEach((c,i)=>{
+      const b=document.createElement('button');
+      b.className='choice-btn'; b.textContent=c;
+      b.addEventListener('click', ()=> answer(i,b));
+      cg.appendChild(b);
+    });
+    startTimer();
+  }
+  function answer(i, btnEl){
+    clearInterval(timerId);
+    const q = seq[idx];
+    const timedOut = (i===-1);
+    Array.from(container.querySelectorAll('#boss-choices .choice-btn')).forEach(b=>b.disabled=true);
+    const fb = container.querySelector('#boss-feedback');
+    if(!timedOut && i===q.correctIdx){
+      const frac = timeLeft/TIME_LIMIT;
+      const speedBonus = frac >= 0.6 ? Math.ceil(dmgPerHit*0.4) : 0;
+      if(speedBonus>0) state.fastAnswers++;
+      hp = Math.max(0, hp-dmgPerHit-speedBonus);
+      xp += 10 + Math.round(frac*6);
+      btnEl.classList.add('correct');
+      fb.innerHTML = '✔ 命中！黑洞的引力正在减弱……' + (speedBonus>0? `<span class="bonus-tag">+${speedBonus} 速度加成伤害</span>`:'');
+      fb.className='feedback-line ok';
+    } else {
+      lives--;
+      if(btnEl) btnEl.classList.add('wrong');
+      container.querySelectorAll('#boss-choices .choice-btn')[q.correctIdx].classList.add('correct');
+      fb.textContent = (timedOut? '⏱ 时间到！':'✘ ') + '反被吞噬了一点生命值！正确答案：'+q.choices[q.correctIdx];
+      fb.className='feedback-line bad';
+    }
+    container.querySelector('#boss-hp-fill').style.width = hp+'%';
+    container.querySelector('#boss-hp-text').textContent = hp+'%';
+    container.querySelector('#boss-hearts').textContent = '❤'.repeat(Math.max(0,lives)) + '🖤'.repeat(3-Math.max(0,lives));
+    setTimeout(()=>{
+      const noDamage = lives===3;
+      if(lives<=0){
+        finishBossCb(false, xp, false);
+        return;
+      }
+      if(hp<=0){
+        finishBossCb(true, xp+30, noDamage);
+        return;
+      }
+      idx++;
+      if(idx>=seq.length){
+        finishBossCb(hp<=40, xp + (hp<=40?30:0), noDamage && hp<=40);
+        return;
+      }
+      renderQ();
+    }, 1400);
+  }
+  renderQ();
+}
+</script>
+<!-- watermark: 蔡逸众 · 华仁中学 Chinese High School · 力学指挥中心 v1.0 -->
+</body>
+</html>
