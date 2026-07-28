@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<!-- 蔡逸众 | 华仁中学 Chinese High School | 质量守恒定律·原子计数挑战 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="author" content="蔡逸众 ecchua79 华仁中学 Chinese High School">
+<title>质量守恒 · 原子计数挑战站</title>
+<style>
+:root{
+  --bg-deep:#050914;
+  --bg-panel:#0b1220;
+  --bg-panel2:#111a2e;
+  --cyan:#4ee8ff;
+  --purple:#a26bff;
+  --pink:#ff5ec4;
+  --green:#3dffa0;
+  --red:#ff5470;
+  --amber:#ffcb47;
+  --text:#dfe9ff;
+  --text-dim:#8a9ab8;
+  --border:rgba(78,232,255,0.25);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:radial-gradient(ellipse at top, #0d1830 0%, var(--bg-deep) 55%, #020409 100%);
+  color:var(--text);
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+#bgCanvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;
+}
+.wrap{
+  position:relative;z-index:1;
+  max-width:820px;
+  margin:0 auto;
+  padding:24px 16px 60px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+header{
+  text-align:center;
+  padding:18px 10px 22px;
+}
+header h1{
+  font-size:clamp(22px,5vw,32px);
+  margin:0 0 6px;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--pink));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  letter-spacing:2px;
+  font-weight:800;
+  text-shadow:0 0 30px rgba(78,232,255,0.15);
+}
+header p{
+  color:var(--text-dim);
+  font-size:14px;
+  margin:0;
+  letter-spacing:1px;
+}
+.panel{
+  background:linear-gradient(160deg, var(--bg-panel) 0%, var(--bg-panel2) 100%);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.02) inset, 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(78,232,255,0.06);
+  padding:28px 24px;
+  position:relative;
+  overflow:hidden;
+}
+.panel::before{
+  content:'';
+  position:absolute;top:-2px;left:-2px;right:-2px;
+  height:2px;
+  background:linear-gradient(90deg, transparent, var(--cyan), var(--purple), var(--pink), transparent);
+  opacity:0.6;
+}
+/* ---- Start screen ----峇株吧辖华仁中学蔡逸众制作 */
+#startScreen .rules{
+  background:rgba(78,232,255,0.05);
+  border:1px solid rgba(78,232,255,0.15);
+  border-radius:12px;
+  padding:16px 18px;
+  margin:18px 0 22px;
+  font-size:14.5px;
+  line-height:1.9;
+  color:var(--text);
+}
+#startScreen .rules b{color:var(--cyan);}
+.big-btn{
+  display:block;
+  width:100%;
+  padding:16px;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:#04101a;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  box-shadow:0 8px 24px rgba(78,232,255,0.25);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.big-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(78,232,255,0.35);}
+.big-btn:active{transform:translateY(0);}
+/* ---- Quiz screen ----华仁中学蔡逸众制作 */
+.progress-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+}
+.progress-bar{
+  flex:1;
+  height:8px;
+  background:rgba(255,255,255,0.07);
+  border-radius:6px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  border-radius:6px;
+  transition:width .4s ease;
+}
+.progress-label{
+  font-size:13px;
+  color:var(--text-dim);
+  white-space:nowrap;
+  min-width:64px;
+  text-align:right;
+}
+.score-chip{
+  font-size:13px;
+  color:var(--green);
+  border:1px solid rgba(61,255,160,0.3);
+  background:rgba(61,255,160,0.08);
+  padding:4px 10px;
+  border-radius:20px;
+  white-space:nowrap;
+}
+.equation-box{
+  background:#020509;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:26px 16px;
+  text-align:center;
+  margin-bottom:20px;
+  font-size:clamp(19px,5.2vw,27px);
+  font-weight:700;
+  letter-spacing:0.5px;
+  color:#fff;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.equation-box sub{
+  font-size:0.62em;
+  color:var(--cyan);
+}
+.arrow{color:var(--purple);margin:0 10px;font-weight:400;}
+.question-text{
+  font-size:16.5px;
+  text-align:center;
+  color:var(--amber);
+  margin-bottom:20px;
+  font-weight:600;
+  line-height:1.6;
+}
+.question-text .qformula sub{color:var(--pink);font-size:0.65em;}
+.options-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:8px;
+}
+@media(max-width:480px){.options-grid{grid-template-columns:1fr;}}
+.opt-btn{
+  background:var(--bg-panel2);
+  border:1.5px solid rgba(255,255,255,0.1);
+  color:var(--text);
+  font-size:19px;
+  font-weight:700;
+  padding:16px 10px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:all .15s ease;
+  letter-spacing:1px;
+}
+.opt-btn:hover:not(:disabled){
+  border-color:var(--cyan);
+  background:rgba(78,232,255,0.08);
+  transform:translateY(-1px);
+}
+.opt-btn:disabled{cursor:default;}
+.opt-btn.correct{
+  background:rgba(61,255,160,0.15);
+  border-color:var(--green);
+  color:var(--green);
+  box-shadow:0 0 20px rgba(61,255,160,0.25);
+}
+.opt-btn.wrong{
+  background:rgba(255,84,112,0.15);
+  border-color:var(--red);
+  color:var(--red);
+}
+.opt-btn.dim{opacity:0.35;}
+.feedback{
+  margin-top:18px;
+  padding:16px 18px;
+  border-radius:12px;
+  font-size:14px;
+  line-height:1.9;
+  display:none;
+}
+.feedback.show{display:block;animation:fadeIn .3s ease;}
+.feedback.ok{background:rgba(61,255,160,0.08);border:1px solid rgba(61,255,160,0.3);}
+.feedback.bad{background:rgba(255,84,112,0.08);border:1px solid rgba(255,84,112,0.3);}
+.feedback .fb-title{font-weight:800;font-size:15.5px;margin-bottom:8px;}
+.feedback.ok .fb-title{color:var(--green);}
+.feedback.bad .fb-title{color:var(--red);}
+.feedback .breakdown{color:var(--text-dim);}
+.feedback .breakdown b{color:var(--cyan);}
+.feedback .conserve{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed rgba(255,255,255,0.12);
+  color:var(--purple);
+  font-weight:600;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.next-btn{
+  margin-top:18px;
+  display:none;
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:#04101a;
+  background:linear-gradient(90deg,var(--purple),var(--pink));
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+}
+.next-btn.show{display:block;animation:fadeIn .3s ease;}
+/* ---- End screen ----峇株吧辖蔡逸众制作 */
+#endScreen{display:none;text-align:center;}
+#endScreen .score-big{
+  font-size:56px;
+  font-weight:900;
+  margin:14px 0 4px;
+  background:linear-gradient(90deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#endScreen .score-msg{
+  font-size:16px;color:var(--text-dim);margin-bottom:24px;
+}
+.badge{
+  display:inline-block;
+  padding:10px 22px;
+  border-radius:30px;
+  font-weight:700;
+  font-size:15px;
+  margin-bottom:22px;
+  border:1px solid var(--border);
+}
+.review-list{
+  text-align:left;
+  margin:0 0 24px;
+  max-height:280px;
+  overflow-y:auto;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  padding:6px 4px;
+}
+.review-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 12px;
+  font-size:13.5px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  gap:10px;
+}
+.review-item:last-child{border-bottom:none;}
+.review-item .req{color:var(--text-dim);flex:1;text-align:left;}
+.review-item .rmark{font-weight:800;}
+.review-item.ok .rmark{color:var(--green);}
+.review-item.bad .rmark{color:var(--red);}
+.review-item .rtag{
+  font-size:11px;
+  color:var(--purple);
+  border:1px solid rgba(162,107,255,0.3);
+  background:rgba(162,107,255,0.08);
+  padding:1px 6px;
+  border-radius:10px;
+  margin-right:6px;
+  white-space:nowrap;
+}
+.round-chip{
+  font-size:12px;
+  color:var(--purple);
+  border:1px solid rgba(162,107,255,0.35);
+  background:rgba(162,107,255,0.08);
+  padding:4px 10px;
+  border-radius:20px;
+  white-space:nowrap;
+}
+.blank{
+  display:inline-block;
+  min-width:44px;
+  padding:2px 16px;
+  margin:0 6px;
+  border:2px dashed var(--pink);
+  border-radius:8px;
+  color:var(--pink);
+  background:rgba(255,94,196,0.08);
+  animation:blankPulse 1.6s ease-in-out infinite;
+  vertical-align:middle;
+}
+@keyframes blankPulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
+.opt-btn sub{font-size:0.62em;}
+#roundTransition{display:none;text-align:center;}
+#roundTransition .score-big{
+  font-size:46px;font-weight:900;margin:12px 0 6px;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#roundTransition .rt-msg{color:var(--text-dim);font-size:15px;margin-bottom:22px;line-height:1.8;}
+#roundTransition .rt-msg b{color:var(--cyan);}
+footer.watermark{
+  text-align:center;
+  color:rgba(138,154,184,0.5);
+  font-size:11.5px;
+  padding:26px 10px 6px;
+  letter-spacing:1px;
+}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="wrap">
+  <header>
+    <h1>⚛ 质量守恒 · 原子计数挑战站</h1>
+    <p>算清每一颗原子，才能守住质量守恒定律</p>
+  </header>
+
+  <div id="startScreen" class="panel">
+    <div class="rules">
+      在化学反应中，<b>反应前后原子的种类和总数不变</b>，这就是质量守恒定律。<br>
+      本挑战共 <b>两轮、20 题</b>，从 30 个初中化学配平方程式中抽取：<br>
+      <b>第一轮·原子计数（10题）</b> 问你：<br>
+      · 全部反应物 / 全部生成物的原子总数<br>
+      · 方程式中某一种物质（含系数）的原子总数<br>
+      <b>第二轮·填空挑战（10题）</b>：方程式中会挖空<b>全部或部分</b>的反应物 / 生成物，<br>
+      你要根据质量守恒定律，从几个很接近的化学式选项中选出正确答案。<br>
+      每题选项都很接近，<b>必须仔细计算</b> 才能选对！
+    </div>
+    <button class="big-btn" id="startBtn">开始挑战 →</button>
+  </div>
+
+  <div id="quizScreen" class="panel" style="display:none;">
+    <div class="progress-row">
+      <div class="round-chip" id="roundChip">第一轮</div>
+      <div class="progress-label" id="progressLabel">第 1/10 题</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:10%;"></div></div>
+      <div class="score-chip" id="scoreChip">✓ 0</div>
+    </div>
+    <div class="equation-box" id="equationBox"></div>
+    <div class="question-text" id="questionText"></div>
+    <div class="options-grid" id="optionsGrid"></div>
+    <div class="feedback" id="feedback">
+      <div class="fb-title" id="fbTitle"></div>
+      <div class="breakdown" id="fbBreakdown"></div>
+      <div class="conserve" id="fbConserve"></div>
+    </div>
+    <button class="next-btn" id="nextBtn">下一题 →</button>
+  </div>
+
+  <div id="roundTransition" class="panel">
+    <div class="badge" id="rtBadge" style="color:var(--cyan);border-color:var(--cyan);">第一轮完成</div>
+    <div class="score-big" id="rtScore">0/10</div>
+    <div class="rt-msg" id="rtMsg"></div>
+    <button class="big-btn" id="round2Btn">进入第二轮·填空挑战 →</button>
+  </div>
+
+  <div id="endScreen" class="panel">
+    <div class="badge" id="endBadge"></div>
+    <div class="score-big" id="finalScore">0/10</div>
+    <div class="score-msg" id="finalMsg"></div>
+    <div class="review-list" id="reviewList"></div>
+    <button class="big-btn" id="restartBtn">再来一轮 ↺</button>
+  </div>
+
+  <footer class="watermark">
+    质量守恒 · 原子计数挑战站 | 蔡逸众 ecchua79 · 华仁中学 Chinese High School
+  </footer>
+</div>
+
+<script>
+/* ================= 化学方程式数据库（30个，均已配平）================= */
+const EQUATIONS = [
+  {r:[[2,'H2'],[1,'O2']], p:[[2,'H2O']]},
+  {r:[[3,'Fe'],[2,'O2']], p:[[1,'Fe3O4']]},
+  {r:[[1,'C'],[1,'O2']], p:[[1,'CO2']]},
+  {r:[[1,'S'],[1,'O2']], p:[[1,'SO2']]},
+  {r:[[4,'P'],[5,'O2']], p:[[2,'P2O5']]},
+  {r:[[2,'Mg'],[1,'O2']], p:[[2,'MgO']]},
+  {r:[[2,'Cu'],[1,'O2']], p:[[2,'CuO']]},
+  {r:[[1,'CaCO3']], p:[[1,'CaO'],[1,'CO2']]},
+  {r:[[2,'KMnO4']], p:[[1,'K2MnO4'],[1,'MnO2'],[1,'O2']]},
+  {r:[[2,'KClO3']], p:[[2,'KCl'],[3,'O2']]},
+  {r:[[2,'H2O']], p:[[2,'H2'],[1,'O2']]},
+  {r:[[1,'Fe'],[1,'CuSO4']], p:[[1,'FeSO4'],[1,'Cu']]},
+  {r:[[1,'Zn'],[1,'H2SO4']], p:[[1,'ZnSO4'],[1,'H2']]},
+  {r:[[1,'Fe'],[2,'HCl']], p:[[1,'FeCl2'],[1,'H2']]},
+  {r:[[1,'H2'],[1,'CuO']], p:[[1,'Cu'],[1,'H2O']]},
+  {r:[[1,'CO2'],[1,'C']], p:[[2,'CO']]},
+  {r:[[1,'Fe2O3'],[3,'CO']], p:[[2,'Fe'],[3,'CO2']]},
+  {r:[[1,'NaOH'],[1,'HCl']], p:[[1,'NaCl'],[1,'H2O']]},
+  {r:[[1,'Na2CO3'],[2,'HCl']], p:[[2,'NaCl'],[1,'H2O'],[1,'CO2']]},
+  {r:[[1,'CaCO3'],[2,'HCl']], p:[[1,'CaCl2'],[1,'H2O'],[1,'CO2']]},
+  {r:[[1,'AgNO3'],[1,'NaCl']], p:[[1,'AgCl'],[1,'NaNO3']]},
+  {r:[[1,'BaCl2'],[1,'Na2SO4']], p:[[1,'BaSO4'],[2,'NaCl']]},
+  {r:[[1,'CuSO4'],[2,'NaOH']], p:[[1,'Cu(OH)2'],[1,'Na2SO4']]},
+  {r:[[1,'Mg'],[2,'HCl']], p:[[1,'MgCl2'],[1,'H2']]},
+  {r:[[2,'Al'],[3,'H2SO4']], p:[[1,'Al2(SO4)3'],[3,'H2']]},
+  {r:[[1,'Ca(OH)2'],[1,'CO2']], p:[[1,'CaCO3'],[1,'H2O']]},
+  {r:[[2,'Na'],[2,'H2O']], p:[[2,'NaOH'],[1,'H2']]},
+  {r:[[1,'Fe'],[1,'S']], p:[[1,'FeS']]},
+  {r:[[1,'CH4'],[2,'O2']], p:[[1,'CO2'],[2,'H2O']]},
+  {r:[[1,'C2H5OH'],[3,'O2']], p:[[2,'CO2'],[3,'H2O']]}
+];
+
+/* ================= 化学式解析：计算单个分子式中的原子总数 =================Made by ecchua79 */
+function parseFormula(f){
+  let pos = 0;
+  function parseNum(){
+    let start = pos;
+    while(pos < f.length && /[0-9]/.test(f[pos])) pos++;
+    return pos > start ? parseInt(f.slice(start,pos),10) : 1;
+  }
+  function parseGroup(){
+    let counts = {};
+    while(pos < f.length){
+      const ch = f[pos];
+      if(ch === '('){
+        pos++;
+        const inner = parseGroup();
+        const mult = parseNum();
+        for(const el in inner) counts[el] = (counts[el]||0) + inner[el]*mult;
+      } else if(ch === ')'){
+        pos++;
+        return counts;
+      } else if(/[A-Z]/.test(ch)){
+        let start = pos;
+        pos++;
+        while(pos < f.length && /[a-z]/.test(f[pos])) pos++;
+        const el = f.slice(start,pos);
+        const num = parseNum();
+        counts[el] = (counts[el]||0) + num;
+      } else {
+        pos++;
+      }
+    }
+    return counts;
+  }
+  return parseGroup();
+}
+function atomCount(formula){
+  const counts = parseFormula(formula);
+  return Object.values(counts).reduce((a,b)=>a+b,0);
+}
+
+/* ================= 化学式 → 带下标的 HTML ================峇株吧辖华仁中学蔡逸众制作= */
+function formatFormula(formula, coeff){
+  let html = '';
+  for(let i=0;i<formula.length;i++){
+    const ch = formula[i];
+    if(/[0-9]/.test(ch)) html += '<sub>'+ch+'</sub>';
+    else html += ch;
+  }
+  const prefix = (coeff && coeff !== 1) ? String(coeff) : '';
+  return prefix + html;
+}
+function renderEquationHTML(eq){
+  const rHTML = eq.r.map(([c,f])=>formatFormula(f,c)).join(' + ');
+  const pHTML = eq.p.map(([c,f])=>formatFormula(f,c)).join(' + ');
+  return rHTML + '<span class="arrow">→</span>' + pHTML;
+}
+
+/* ================= 填空题用：全部出现过的化学式 =================峇株吧辖蔡逸众制作 */
+const ALL_FORMULAS = [...new Set(EQUATIONS.flatMap(eq => [...eq.r, ...eq.p].map(([c,f]) => f)))];
+
+/* ================= 工具函数 ================= */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function genOptions(correct){
+  const options = new Set([correct]);
+  let range = 3;
+  let guard = 0;
+  while(options.size < 4 && guard < 200){
+    guard++;
+    const delta = Math.floor(Math.random()*(range*2+1)) - range;
+    const val = correct + delta;
+    if(val > 0 && val !== correct) options.add(val);
+    if(guard % 30 === 0) range++;
+  }
+  return shuffle([...options]);
+}
+
+/* ================= 出题逻辑 ================= */
+function makeQuestion(eq){
+  const types = ['reactants','products','substance'];
+  const type = types[Math.floor(Math.random()*types.length)];
+
+  const rParts = eq.r.map(([c,f])=>({c, f, sub: c*atomCount(f)}));
+  const pParts = eq.p.map(([c,f])=>({c, f, sub: c*atomCount(f)}));
+  const reactTotal = rParts.reduce((s,t)=>s+t.sub,0);
+  const prodTotal = pParts.reduce((s,t)=>s+t.sub,0);
+
+  let correct, questionHTML, breakdownParts, side, pick;
+  if(type === 'reactants'){
+    correct = reactTotal;
+    questionHTML = '这个反应中，<b>全部反应物</b>的原子总数是多少？';
+    breakdownParts = rParts;
+    side = '反应物';
+  } else if(type === 'products'){
+    correct = prodTotal;
+    questionHTML = '这个反应中，<b>全部生成物</b>的原子总数是多少？';
+    breakdownParts = pParts;
+    side = '生成物';
+  } else {
+    const all = [
+      ...rParts.map(t=>({...t, side:'反应物'})),
+      ...pParts.map(t=>({...t, side:'生成物'}))
+    ];
+    pick = all[Math.floor(Math.random()*all.length)];
+    correct = pick.sub;
+    questionHTML = `方程式中的 <span class="qformula">${formatFormula(pick.f, pick.c)}</span>（${pick.side}）含有的原子总数是多少？`;
+    breakdownParts = [pick];
+    side = pick.side;
+  }
+
+  const options = genOptions(correct);
+
+  return {
+    mode: 'count',
+    eq, type, correct, questionHTML, options,
+    breakdownParts, side, reactTotal, prodTotal
+  };
+}
+
+/* ================= 第二轮·填空题：变异生成干扰项 =================峇株吧辖蔡逸众制作 */
+// 变化系数（如 2H2 -> 3H2）
+function mutateCoeff(term){
+  let newC = term.c + (Math.random() < 0.5 ? -1 : 1);
+  if(newC < 1 || newC === term.c) newC = term.c + 1;
+  return {c:newC, f:term.f};
+}
+// 变化化学式内的下标数字（如 H2O -> H3O，O2 -> O3）
+function mutateDigitInFormula(term){
+  const f = term.f;
+  const matches = [...f.matchAll(/\d+/g)];
+  if(matches.length === 0) return mutateCoeff(term);
+  const m = matches[Math.floor(Math.random()*matches.length)];
+  const oldVal = parseInt(m[0],10);
+  let newVal = oldVal + (Math.random() < 0.5 ? -1 : 1);
+  if(newVal < 1 || newVal === oldVal) newVal = oldVal + 1;
+  // 下标为1时按化学式书写习惯省略数字（如 "O1" 应写成 "O"）
+  const newDigits = newVal === 1 ? '' : String(newVal);
+  const newF = f.slice(0,m.index) + newDigits + f.slice(m.index+m[0].length);
+  return {c:term.c, f:newF};
+}
+// 换成另一种含有相同元素、看起来相近的物质（如 CO2 -> CO，SO2 -> SO3）                                                                                                                                                                                        峇株吧辖华仁中学蔡逸众制作
+function mutateSpecies(term){
+  const els = new Set(Object.keys(parseFormula(term.f)));
+  const candidates = ALL_FORMULAS.filter(f=>{
+    if(f === term.f) return false;
+    return Object.keys(parseFormula(f)).some(e=>els.has(e));
+  });
+  if(candidates.length === 0) return mutateDigitInFormula(term);
+  const newF = candidates[Math.floor(Math.random()*candidates.length)];
+  return {c:term.c, f:newF};
+}
+function mutateTerm(term){
+  const methods = [mutateCoeff, mutateDigitInFormula, mutateSpecies];
+  return methods[Math.floor(Math.random()*methods.length)](term);
+}
+// 为单个物质（系数+化学式）生成 count 个互不相同、且不等于正确答案的干扰项峇株吧辖华仁中学蔡逸众制作
+function generateDistractorTerms(term, count){
+  const correctStr = formatFormula(term.f, term.c);
+  const seen = new Set([correctStr]);
+  const results = [];
+  let guard = 0;
+  while(results.length < count && guard < 80){
+    guard++;
+    const mt = mutateTerm(term);
+    const str = formatFormula(mt.f, mt.c);
+    if(seen.has(str)) continue;
+    seen.add(str);
+    results.push(str);
+  }
+  let bump = 2;
+  while(results.length < count){
+    const str = formatFormula(term.f, term.c + bump);
+    if(!seen.has(str)){ seen.add(str); results.push(str); }
+    bump++;
+  }
+  return results;
+}
+// 为一整侧（全部反应物 / 全部生成物）生成 count 个干扰项：每次只改动其中一项峇株吧辖蔡逸众制作
+function generateSideDistractors(sideTerms, count){
+  const correctStr = sideTerms.map(t=>formatFormula(t.f,t.c)).join(' + ');
+  const seen = new Set([correctStr]);
+  const results = [];
+  let guard = 0;
+  while(results.length < count && guard < 120){
+    guard++;
+    const idx = Math.floor(Math.random()*sideTerms.length);
+    const mutated = sideTerms.map((t,i)=> i===idx ? mutateTerm(t) : t);
+    const str = mutated.map(t=>formatFormula(t.f,t.c)).join(' + ');
+    if(seen.has(str)) continue;
+    seen.add(str);
+    results.push(str);
+  }
+  let bump = 2;
+  while(results.length < count){
+    const mutated = sideTerms.map((t,i)=> i===0 ? {c:t.c+bump, f:t.f} : t);
+    const str = mutated.map(t=>formatFormula(t.f,t.c)).join(' + ');
+    if(!seen.has(str)){ seen.add(str); results.push(str); }
+    bump++;
+  }
+  return results;
+}
+// 渲染带方框（空格）的方程式Made by ecchua79                                                                                                                                                                                           峇株吧辖华仁中学蔡逸众制作
+function renderEquationBlankHTML(eq, spec){
+  const blank = '<span class="blank">？</span>';
+  let rHTML, pHTML;
+  if(spec.type === 'all_reactants'){
+    rHTML = blank;
+    pHTML = eq.p.map(([c,f])=>formatFormula(f,c)).join(' + ');
+  } else if(spec.type === 'all_products'){
+    rHTML = eq.r.map(([c,f])=>formatFormula(f,c)).join(' + ');
+    pHTML = blank;
+  } else {
+    if(spec.side === 'r'){
+      rHTML = eq.r.map(([c,f],i)=> i===spec.index ? blank : formatFormula(f,c)).join(' + ');
+      pHTML = eq.p.map(([c,f])=>formatFormula(f,c)).join(' + ');
+    } else {
+      rHTML = eq.r.map(([c,f])=>formatFormula(f,c)).join(' + ');
+      pHTML = eq.p.map(([c,f],i)=> i===spec.index ? blank : formatFormula(f,c)).join(' + ');
+    }
+  }
+  return rHTML + '<span class="arrow">→</span>' + pHTML;
+}
+function makeBlankQuestion(eq){
+  const subTypes = ['all_reactants','all_products','one_substance'];
+  const subType = subTypes[Math.floor(Math.random()*subTypes.length)];
+  let spec, correctStr, distractors, questionHTML;
+
+  if(subType === 'all_reactants'){
+    spec = {type:'all_reactants'};
+    const terms = eq.r.map(([c,f])=>({c,f}));
+    correctStr = terms.map(t=>formatFormula(t.f,t.c)).join(' + ');
+    distractors = generateSideDistractors(terms, 3);
+    questionHTML = '根据质量守恒定律，方框处的<b>全部反应物</b>应该是什么？';
+  } else if(subType === 'all_products'){
+    spec = {type:'all_products'};
+    const terms = eq.p.map(([c,f])=>({c,f}));
+    correctStr = terms.map(t=>formatFormula(t.f,t.c)).join(' + ');
+    distractors = generateSideDistractors(terms, 3);
+    questionHTML = '根据质量守恒定律，方框处的<b>全部生成物</b>应该是什么？';
+  } else {
+    const side = Math.random() < 0.5 ? 'r' : 'p';
+    const terms = side === 'r' ? eq.r : eq.p;
+    const index = Math.floor(Math.random()*terms.length);
+    const [c,f] = terms[index];
+    spec = {type:'one_substance', side, index};
+    correctStr = formatFormula(f,c);
+    distractors = generateDistractorTerms({c,f}, 3);
+    questionHTML = `根据质量守恒定律，方框处缺少的<b>${side==='r'?'反应物':'生成物'}</b>是什么？`;
+  }
+
+  const options = shuffle([correctStr, ...distractors]);
+  const eqHTML = renderEquationBlankHTML(eq, spec);
+
+  return {
+    mode: 'blank',
+    eq, subType, spec, correct: correctStr, options, questionHTML, eqHTML
+  };
+}
+
+/* ================= 游戏状态 ================= */
+let round1Questions = [];
+let round2Questions = [];
+let round = 1;
+let currentIdx = 0;
+let score1 = 0;
+let score2 = 0;
+let answeredCurrent = false;
+let reviewLog = [];
+
+const startScreen = document.getElementById('startScreen');
+const quizScreen = document.getElementById('quizScreen');
+const roundTransition = document.getElementById('roundTransition');
+const endScreen = document.getElementById('endScreen');
+
+document.getElementById('startBtn').addEventListener('click', startQuiz);
+document.getElementById('restartBtn').addEventListener('click', startQuiz);
+document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+document.getElementById('round2Btn').addEventListener('click', startRound2);
+
+function startQuiz(){
+  const shuffled = shuffle(EQUATIONS);
+  round1Questions = shuffled.slice(0,10).map(makeQuestion);
+  round2Questions = shuffled.slice(10,20).map(makeBlankQuestion);
+  round = 1;
+  currentIdx = 0;
+  score1 = 0;
+  score2 = 0;
+  reviewLog = [];
+  startScreen.style.display = 'none';
+  roundTransition.style.display = 'none';
+  endScreen.style.display = 'none';
+  quizScreen.style.display = 'block';
+  renderQuestion();
+}
+
+function currentList(){ return round === 1 ? round1Questions : round2Questions; }
+function currentScore(){ return round === 1 ? score1 : score2; }
+
+function renderQuestion(){
+  answeredCurrent = false;
+  const q = currentList()[currentIdx];
+  document.getElementById('roundChip').textContent = round === 1 ? '第一轮·原子计数' : '第二轮·填空挑战';
+  document.getElementById('progressLabel').textContent = `第 ${currentIdx+1}/10 题`;
+  document.getElementById('progressFill').style.width = ((currentIdx+1)/10*100)+'%';
+  document.getElementById('scoreChip').textContent = `✓ ${currentScore()}`;
+  document.getElementById('equationBox').innerHTML = q.mode === 'blank' ? q.eqHTML : renderEquationHTML(q.eq);
+  document.getElementById('questionText').innerHTML = q.questionHTML;
+
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    if(q.mode === 'blank') btn.innerHTML = opt;
+    else btn.textContent = opt;
+    btn.addEventListener('click', ()=>selectOption(opt, btn));
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('nextBtn').className = 'next-btn';
+}
+
+function selectOption(opt, btn){
+  if(answeredCurrent) return;
+  answeredCurrent = true;
+  const q = currentList()[currentIdx];
+  const isCorrect = opt === q.correct;
+  if(isCorrect){ if(round===1) score1++; else score2++; }
+
+  const allBtns = document.querySelectorAll('.opt-btn');
+  allBtns.forEach(b=>{
+    b.disabled = true;
+    const bVal = q.mode === 'blank' ? b.innerHTML : parseInt(b.textContent,10);
+    if(bVal === q.correct) b.classList.add('correct');
+    else if(b === btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show ' + (isCorrect ? 'ok' : 'bad');
+
+  if(q.mode === 'count'){
+    const breakdownStr = q.breakdownParts.map(t=>{
+      const unitAtoms = atomCount(t.f);
+      return `${formatFormula(t.f, t.c)} = ${t.c}×${unitAtoms} = <b>${t.sub}</b>`;
+    }).join('　+　');
+    const sumLine = q.breakdownParts.length > 1 ? `　→　合计 <b>${q.correct}</b> 个原子` : '';
+    document.getElementById('fbTitle').textContent = isCorrect ? '✔ 回答正确！' : `✘ 回答错误，正确答案是 ${q.correct}`;
+    document.getElementById('fbBreakdown').innerHTML = breakdownStr + sumLine;
+    document.getElementById('fbConserve').textContent =
+      `质量守恒小提示：本反应中反应物原子总数 = 生成物原子总数 = ${q.reactTotal} 个`;
+  } else {
+    document.getElementById('fbTitle').innerHTML = isCorrect ? '✔ 回答正确！' : `✘ 回答错误，正确答案是 ${q.correct}`;
+    document.getElementById('fbBreakdown').innerHTML = `完整配平方程式：${renderEquationHTML(q.eq)}`;
+    document.getElementById('fbConserve').textContent =
+      '质量守恒小提示：方程式两边元素种类和原子个数必须完全相等。';
+  }
+
+  document.getElementById('nextBtn').className = 'next-btn show';
+  document.getElementById('scoreChip').textContent = `✓ ${currentScore()}`;
+
+  reviewLog.push({
+    round,
+    eqText: (q.mode === 'blank' ? renderEquationHTML(q.eq) : renderEquationHTML(q.eq)).replace(/<[^>]+>/g,''),
+    correct: (q.mode === 'blank' ? q.correct.replace(/<[^>]+>/g,'') : q.correct),
+    chosen: (q.mode === 'blank' ? String(opt).replace(/<[^>]+>/g,'') : opt),
+    ok: isCorrect
+  });
+}
+
+function nextQuestion(){
+  if(currentIdx < 9){
+    currentIdx++;
+    renderQuestion();
+  } else if(round === 1){
+    showRoundTransition();
+  } else {
+    showEnd();
+  }
+}
+
+function showRoundTransition(){
+  quizScreen.style.display = 'none';
+  roundTransition.style.display = 'block';
+  document.getElementById('rtScore').textContent = `${score1}/10`;
+  let msg;
+  if(score1 >= 8) msg = '第一轮原子计数完成得很棒！<br>接下来第二轮要挑战<b>填空题</b>：方程式会挖空全部或部分反应物 / 生成物，选项都是相近的化学式，同样需要仔细计算。';
+  else msg = '第一轮完成！<br>接下来第二轮是<b>填空题</b>：方程式会挖空全部或部分反应物 / 生成物，选项都是相近的化学式，要根据质量守恒定律仔细判断。';
+  document.getElementById('rtMsg').innerHTML = msg;
+}
+
+function startRound2(){
+  roundTransition.style.display = 'none';
+  quizScreen.style.display = 'block';
+  round = 2;
+  currentIdx = 0;
+  renderQuestion();
+}
+
+function showEnd(){
+  quizScreen.style.display = 'none';
+  endScreen.style.display = 'block';
+  const total = score1 + score2;
+  document.getElementById('finalScore').textContent = `${total}/20`;
+
+  let badgeText, badgeColor, msg;
+  if(total >= 18){ badgeText='🏆 原子计数大师'; badgeColor='var(--green)'; msg='太棒了！质量守恒定律你已经完全掌握了。'; }
+  else if(total >= 14){ badgeText='⭐ 高手水平'; badgeColor='var(--cyan)'; msg='非常棒，再检查一下算错的题目就能拿满分！'; }
+  else if(total >= 10){ badgeText='📘 基础扎实'; badgeColor='var(--amber)'; msg='不错，继续练习原子计数和配平会更快更准。'; }
+  else { badgeText='🔄 继续加油'; badgeColor='var(--pink)'; msg='多做几轮，注意每种原子的系数和下标都要仔细核对哦。'; }
+
+  const badge = document.getElementById('endBadge');
+  badge.textContent = badgeText;
+  badge.style.color = badgeColor;
+  badge.style.borderColor = badgeColor;
+  document.getElementById('finalMsg').innerHTML = `${msg}<br>第一轮（原子计数）：${score1}/10　·　第二轮（填空挑战）：${score2}/10`;
+
+  const list = document.getElementById('reviewList');
+  list.innerHTML = '';
+  reviewLog.forEach((item,i)=>{
+    const row = document.createElement('div');
+    row.className = 'review-item ' + (item.ok ? 'ok' : 'bad');
+    const tag = item.round === 1 ? '计数' : '填空';
+    row.innerHTML = `<div class="req"><span class="rtag">${tag}</span>${i+1<=10?i+1:i-9}. ${item.eqText}</div><div class="rmark">${item.ok ? '✔ '+item.correct : '✘ 你选 '+item.chosen+' / 正确 '+item.correct}</div>`;
+    list.appendChild(row);
+  });
+}
+
+/* ================= 背景粒子动画（暗色科幻风）=================峇株吧辖华仁中学蔡逸众制作 */
+(function(){
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  function initParticles(){
+    const count = Math.min(60, Math.floor((w*h)/22000));
+    particles = Array.from({length:count}, ()=>({
+      x: Math.random()*w,
+      y: Math.random()*h,
+      r: Math.random()*1.6+0.4,
+      vx: (Math.random()-0.5)*0.25,
+      vy: (Math.random()-0.5)*0.25,
+      hue: Math.random() < 0.5 ? '78,232,255' : '162,107,255'
+    }));
+  }
+  function tick(){
+    ctx.clearRect(0,0,w,h);
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = w; if(p.x > w) p.x = 0;
+      if(p.y < 0) p.y = h; if(p.y > h) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${p.hue},0.5)`;
+      ctx.fill();
+    });
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener('resize', ()=>{ resize(); initParticles(); });
+  resize(); initParticles(); tick();
+})();
+
+/* ================= Watermark (console) ================= */
+console.log('%c质量守恒 · 原子计数挑战站','color:#4ee8ff;font-weight:bold;');
+console.log('蔡逸众 | 华仁中学 Chinese High School');
+</script>
+</body>
+</html>
