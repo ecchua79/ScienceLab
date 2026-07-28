@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<!-- 酸碱中和成盐 - 互动选择题 + 证书生成 | 蔡逸众 | 华仁中学 Chinese High School -->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="author" content="蔡逸众 - Chinese High School">
+<title>酸碱中和成盐 · 选择题挑战站</title>
+<style>
+  :root{
+    --bg-deep:#050814;
+    --bg-panel:#0b1226;
+    --bg-panel2:#0f1830;
+    --cyan:#4be3ff;
+    --purple:#a06bff;
+    --pink:#ff6bd6;
+    --green:#3dffb0;
+    --red:#ff5470;
+    --gold:#ffd166;
+    --text:#dbe8ff;
+    --text-dim:#7f8fc0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg-deep);
+    color:var(--text);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    overflow-x:hidden;
+    position:relative;
+    min-height:100vh;
+  }
+  #starfield{position:fixed;inset:0;z-index:0;}
+  .wrap{
+    position:relative;
+    z-index:2;
+    max-width:760px;
+    margin:0 auto;
+    padding:24px 16px 60px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:20px;
+  }
+  header h1{
+    font-size:clamp(20px,5vw,30px);
+    margin:0 0 6px;
+    letter-spacing:1px;
+    background:linear-gradient(90deg,var(--cyan),var(--purple),var(--pink));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 30px rgba(75,227,255,0.25);
+  }
+  header p{
+    color:var(--text-dim);
+    font-size:13px;
+    margin:0;
+  }
+  .progress-bar{
+    height:8px;
+    border-radius:6px;
+    background:rgba(255,255,255,0.06);
+    overflow:hidden;
+    margin:16px 0 6px;
+    border:1px solid rgba(75,227,255,0.15);
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--cyan),var(--purple));
+    transition:width .35s ease;
+  }
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:18px;
+  }
+  .card{
+    background:linear-gradient(160deg,var(--bg-panel),var(--bg-panel2));
+    border:1px solid rgba(75,227,255,0.18);
+    border-radius:18px;
+    padding:22px 20px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.4), inset 0 0 40px rgba(75,227,255,0.03);
+    min-height:380px;
+    display:flex;
+    flex-direction:column;
+  }
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    padding:3px 10px;
+    border-radius:999px;
+    background:rgba(160,107,255,0.15);
+    border:1px solid rgba(160,107,255,0.4);
+    color:var(--purple);
+    margin-bottom:14px;
+    width:fit-content;
+    letter-spacing:0.5px;
+  }
+  .question-text{
+    font-size:clamp(16px,4.4vw,19px);
+    line-height:1.65;
+    margin-bottom:20px;
+    color:var(--text);
+  }
+  .question-text sub{font-size:0.7em;}
+  .options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:auto;
+  }
+  @media (max-width:520px){
+    .options{grid-template-columns:1fr;}
+  }
+  .opt{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:12px;
+    padding:14px 12px;
+    font-size:15px;
+    color:var(--text);
+    cursor:pointer;
+    text-align:center;
+    transition:all .18s ease;
+    line-height:1.4;
+  }
+  .opt sub{font-size:0.7em;}
+  .opt:hover{
+    border-color:var(--cyan);
+    background:rgba(75,227,255,0.08);
+    transform:translateY(-2px);
+  }
+  .opt.correct{
+    border-color:var(--green);
+    background:rgba(61,255,176,0.15);
+    box-shadow:0 0 20px rgba(61,255,176,0.25);
+  }
+  .opt.wrong{
+    border-color:var(--red);
+    background:rgba(255,84,112,0.15);
+    box-shadow:0 0 20px rgba(255,84,112,0.2);
+  }
+  .opt.disabled{
+    pointer-events:none;
+    opacity:0.55;
+  }
+  .opt.disabled.correct, .opt.disabled.wrong{opacity:1;}
+  .feedback{
+    margin-top:16px;
+    font-size:13.5px;
+    padding:10px 14px;
+    border-radius:10px;
+    display:none;
+    line-height:1.6;
+  }
+  .feedback.show{display:block;}
+  .feedback.ok{background:rgba(61,255,176,0.1);color:var(--green);border:1px solid rgba(61,255,176,0.3);}
+  .feedback.bad{background:rgba(255,84,112,0.1);color:var(--red);border:1px solid rgba(255,84,112,0.3);}
+  .feedback .eq-line{color:var(--text-dim);font-size:12px;margin-top:4px;}
+  .controls{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:18px;
+  }
+  .btn{
+    background:linear-gradient(90deg,var(--cyan),var(--purple));
+    color:#040611;
+    border:none;
+    padding:11px 26px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    letter-spacing:0.5px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(75,227,255,0.3);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  .btn.gold{background:linear-gradient(90deg,var(--gold),#ff9a4d);}
+  .btn.ghost{background:transparent;border:1px solid rgba(75,227,255,0.4);color:var(--cyan);}
+
+  /* 屏幕切换 //峇株吧辖华仁中学蔡逸众制作*/
+  .screen{display:none;}
+  .screen.active{display:flex;flex-direction:column;}
+
+  /* 说明页 */
+  .intro-icon{font-size:44px;text-align:center;margin-bottom:6px;}
+  .intro-list{
+    list-style:none;
+    padding:0;
+    margin:14px 0 22px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .intro-list li{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text);
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .intro-list .num{
+    flex:none;
+    width:22px;height:22px;
+    border-radius:50%;
+    background:linear-gradient(90deg,var(--cyan),var(--purple));
+    color:#040611;
+    font-size:12px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .intro-warn{
+    text-align:center;
+    font-size:12.5px;
+    color:var(--gold);
+    background:rgba(255,209,102,0.08);
+    border:1px solid rgba(255,209,102,0.3);
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:6px;
+  }
+
+  /* 结果 / 证书页 */
+  .result-screen{text-align:center;padding:6px 2px;}
+  .result-screen h2{
+    font-size:24px;
+    margin-bottom:4px;
+    background:linear-gradient(90deg,var(--cyan),var(--pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin:18px 0;
+  }
+  .stat-box{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    padding:12px 6px;
+  }
+  .stat-box .val{font-size:20px;font-weight:700;color:var(--cyan);}
+  .stat-box .lab{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .result-msg{color:var(--text-dim);font-size:14px;margin:10px 0 20px;}
+  .name-input-row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  #playerNameInput{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(75,227,255,0.35);
+    border-radius:10px;
+    padding:11px 14px;
+    color:var(--text);
+    font-size:14px;
+    outline:none;
+    min-width:200px;
+    text-align:center;
+  }
+  #playerNameInput:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(75,227,255,0.3);}
+  #certCanvas{
+    max-width:100%;
+    width:320px;
+    border-radius:14px;
+    margin:10px auto 18px;
+    display:block;
+    box-shadow:0 12px 40px rgba(0,0,0,0.5);
+    border:1px solid rgba(75,227,255,0.25);
+  }
+  .cert-actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom:6px;
+  }
+  footer{
+    text-align:center;
+    margin-top:30px;
+    font-size:11px;
+    color:rgba(127,143,192,0.5);
+    letter-spacing:0.5px;
+  }
+  .hint-title{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .timer-live{color:var(--cyan);font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<!-- 蔡逸众 · 华仁中学 Chinese High School -->
+<canvas id="starfield"></canvas>
+
+<div class="wrap">
+  <header>
+    <h1>⚗️ 酸碱中和成盐 · 选择题挑战站</h1>
+    <p>中和反应 Neutralization Reaction · 共 20 题</p>
+  </header>
+
+  <!-- 说明页 -->
+  <div class="card screen active" id="introScreen">
+    <div class="intro-icon">🧪</div>
+    <ul class="intro-list">
+      <li><span class="num">1</span><span>本测验共 <b>20 题</b>，涵盖「求盐」「求酸碱」「求碱」「求酸」四种题型。</span></li>
+      <li><span class="num">2</span><span>题目与选项会随机以「文字式」或「化学式」出现，两者可能互相交叉。</span></li>
+      <li><span class="num">3</span><span>每题只有一次作答机会，选择后会立即显示正确答案与反应式。</span></li>
+      <li><span class="num">4</span><span>按下「开始作答」后<b>即刻开始计时</b>，请专心完成全部题目。</span></li>
+      <li><span class="num">5</span><span>测验结束后可输入姓名，生成个人证书并下载保存（PNG 格式）。</span></li>
+    </ul>
+    <div class="intro-warn">⏱️ 计时从点击「开始作答」那一刻开始，请准备好后再按！</div>
+    <div class="controls">
+      <button class="btn" id="startBtn">🚀 开始作答</button>
+    </div>
+  </div>
+
+  <!-- 测验页 Made by ecchua79-->
+  <div class="screen" id="quizScreen">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="meta-row">
+      <span id="qCounter">第 1 / 20 题</span>
+      <span>⏱️ <span class="timer-live" id="liveTimer">00:00</span></span>
+      <span id="scoreCounter">得分：0</span>
+    </div>
+
+    <div class="card" id="quizCard">
+      <span class="tag" id="qTag">类型</span>
+      <div class="question-text" id="questionText"></div>
+      <div class="options" id="optionsGrid"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="nextBtn" disabled>下一题 →</button>
+    </div>
+  </div>
+
+  <!-- 结果 / 证书页 -->
+  <div class="card screen" id="resultScreen"></div>
+
+  <footer>
+    酸碱中和成盐选择题 · 蔡逸众 · 华仁中学 Chinese High School
+  </footer>
+</div>
+
+<script>
+console.log("酸碱中和成盐选择题 | Created by 蔡逸众 · Chinese High School 华仁中学");
+
+/* ---------------- 基础数据 ---------------- */
+const ACIDS = [
+  {formula:'HCl', html:'HCl', name:'盐酸'},
+  {formula:'H2SO4', html:'H<sub>2</sub>SO<sub>4</sub>', name:'硫酸'},
+  {formula:'HNO3', html:'HNO<sub>3</sub>', name:'硝酸'},
+];
+const EXTRA_ACID_DISTRACTOR = {formula:'CH3COOH', html:'CH<sub>3</sub>COOH', name:'醋酸'};
+
+const BASES = [
+  {formula:'NaOH', html:'NaOH', name:'氢氧化钠'},
+  {formula:'KOH', html:'KOH', name:'氢氧化钾'},
+  {formula:'Ca(OH)2', html:'Ca(OH)<sub>2</sub>', name:'氢氧化钙'},
+  {formula:'NH3·H2O', html:'NH<sub>3</sub>·H<sub>2</sub>O', name:'氨水'},
+];
+
+const COMBOS = [
+  {acid:'HCl', base:'NaOH', salt:'NaCl', saltHtml:'NaCl', saltName:'氯化钠'},
+  {acid:'HCl', base:'KOH', salt:'KCl', saltHtml:'KCl', saltName:'氯化钾'},
+  {acid:'HCl', base:'Ca(OH)2', salt:'CaCl2', saltHtml:'CaCl<sub>2</sub>', saltName:'氯化钙'},
+  {acid:'HCl', base:'NH3·H2O', salt:'NH4Cl', saltHtml:'NH<sub>4</sub>Cl', saltName:'氯化铵'},
+
+  {acid:'H2SO4', base:'NaOH', salt:'Na2SO4', saltHtml:'Na<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸钠'},
+  {acid:'H2SO4', base:'KOH', salt:'K2SO4', saltHtml:'K<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸钾'},
+  {acid:'H2SO4', base:'Ca(OH)2', salt:'CaSO4', saltHtml:'CaSO<sub>4</sub>', saltName:'硫酸钙'},
+  {acid:'H2SO4', base:'NH3·H2O', salt:'(NH4)2SO4', saltHtml:'(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>', saltName:'硫酸铵'},
+
+  {acid:'HNO3', base:'NaOH', salt:'NaNO3', saltHtml:'NaNO<sub>3</sub>', saltName:'硝酸钠'},
+  {acid:'HNO3', base:'KOH', salt:'KNO3', saltHtml:'KNO<sub>3</sub>', saltName:'硝酸钾'},
+  {acid:'HNO3', base:'Ca(OH)2', salt:'Ca(NO3)2', saltHtml:'Ca(NO<sub>3</sub>)<sub>2</sub>', saltName:'硝酸钙'},
+  {acid:'HNO3', base:'NH3·H2O', salt:'NH4NO3', saltHtml:'NH<sub>4</sub>NO<sub>3</sub>', saltName:'硝酸铵'},
+];
+
+function findAcid(f){ return ACIDS.find(a=>a.formula===f); }
+function findBase(f){ return BASES.find(b=>b.formula===f); }
+COMBOS.forEach(c=>{
+  c.acidObj = findAcid(c.acid);
+  c.baseObj = findBase(c.base);
+});
+
+const TOTAL_Q = 20;
+
+/* ---------------- 工具函数 ---------------- */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function disp(obj, format){ return format==='word' ? obj.name : obj.html; }
+
+function getCloseCombos(correct){
+  const others = COMBOS.filter(c => c.salt !== correct.salt);
+  const close = others.filter(c => c.acid === correct.acid || c.base === correct.base);
+  const far = others.filter(c => c.acid !== correct.acid && c.base !== correct.base);
+  return shuffle(close).concat(shuffle(far));
+}
+
+function explainCombo(combo){
+  return `${combo.acidObj.html} + ${combo.baseObj.html} → ${combo.saltHtml} + H<sub>2</sub>O`
+    + `<div class="eq-line">${combo.acidObj.name} + ${combo.baseObj.name} → ${combo.saltName} + 水</div>`;
+}
+
+function formatTime(ms){
+  const totalSec = Math.floor(ms/1000);
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  const pad = n => String(n).padStart(2,'0');
+  return h>0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+/* ---------------- 生成题目规格池 ---------------- */
+function buildSpecPool(){
+  const specs = [];
+  const types = ['A','B','C1','C2'];
+  const formats = ['word','formula'];
+  COMBOS.forEach(combo=>{
+    types.forEach(type=>{
+      formats.forEach(qFormat=>{
+        formats.forEach(aFormat=>{
+          specs.push({combo, type, qFormat, aFormat});
+        });
+      });
+    });
+  });
+  return shuffle(specs).slice(0, TOTAL_Q);
+}
+
+function makeQuestion(spec){
+  const {combo, type, qFormat, aFormat} = spec;
+  const acidQ = disp(combo.acidObj, qFormat);
+  const baseQ = disp(combo.baseObj, qFormat);
+  const saltQ = qFormat==='word' ? combo.saltName : combo.saltHtml;
+  const tagFmt = `题${qFormat==='word'?'文字式':'化学式'}/答${aFormat==='word'?'文字式':'化学式'}`;
+
+  if(type === 'A'){
+    const questionText = qFormat==='word'
+      ? `${acidQ} 与 ${baseQ} 中和反应后，生成的盐是什么？`
+      : `${acidQ} + ${baseQ} → ___ + H<sub>2</sub>O<br><span class="hint-title">生成的盐（产物）是什么？</span>`;
+    const distractors = getCloseCombos(combo).slice(0,3);
+    const optionCombos = shuffle([combo, ...distractors]);
+    const options = optionCombos.map(c => ({
+      display: aFormat==='word' ? c.saltName : c.saltHtml,
+      isCorrect: c.salt === combo.salt
+    }));
+    return {tag:`求盐 · ${tagFmt}`, questionText, options, explain:explainCombo(combo)};
+  }
+
+  if(type === 'B'){
+    const questionText = qFormat==='word'
+      ? `${saltQ} 是由哪一种酸与哪一种碱中和而成的？`
+      : `${saltQ} 是由哪一种酸与哪一种碱反应生成的？`;
+    const distractors = getCloseCombos(combo).slice(0,3);
+    const optionCombos = shuffle([combo, ...distractors]);
+    const options = optionCombos.map(c => ({
+      display: aFormat==='word' ? `${c.acidObj.name} + ${c.baseObj.name}` : `${c.acidObj.html} + ${c.baseObj.html}`,
+      isCorrect: c.salt === combo.salt
+    }));
+    return {tag:`求酸碱 · ${tagFmt}`, questionText, options, explain:explainCombo(combo)};
+  }
+
+  if(type === 'C1'){
+    const questionText = qFormat==='word'
+      ? `${saltQ} 是由 ${acidQ} 与某种碱中和而成的，该碱是什么？`
+      : `已知 ${saltQ} 是 ${acidQ} 与某碱反应的产物之一，该碱是什么？`;
+    const optionBases = shuffle(BASES);
+    const options = optionBases.map(b => ({
+      display: aFormat==='word' ? b.name : b.html,
+      isCorrect: b.formula === combo.base
+    }));
+    return {tag:`求碱 · ${tagFmt}`, questionText, options, explain:explainCombo(combo)};
+  }
+
+  if(type === 'C2'){
+    const questionText = qFormat==='word'
+      ? `${saltQ} 是由某种酸与 ${baseQ} 中和而成的，该酸是什么？`
+      : `已知 ${saltQ} 是某酸与 ${baseQ} 反应的产物之一，该酸是什么？`;
+    const optionAcids = shuffle([...ACIDS, EXTRA_ACID_DISTRACTOR]);
+    const options = optionAcids.map(a => ({
+      display: aFormat==='word' ? a.name : a.html,
+      isCorrect: a.formula === combo.acid
+    }));
+    return {tag:`求酸 · ${tagFmt}`, questionText, options, explain:explainCombo(combo)};
+  }
+}
+
+/* ---------------- 状态 ---------------- */
+let pool = [];
+let current = 0;
+let score = 0;
+let answered = false;
+let startTime = 0;
+let elapsedMs = 0;
+let timerInterval = null;
+
+const introScreen = document.getElementById('introScreen');
+const quizScreen = document.getElementById('quizScreen');
+const resultScreen = document.getElementById('resultScreen');
+const startBtn = document.getElementById('startBtn');
+
+const qTag = document.getElementById('qTag');
+const questionText = document.getElementById('questionText');
+const optionsGrid = document.getElementById('optionsGrid');
+const feedback = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+const progressFill = document.getElementById('progressFill');
+const qCounter = document.getElementById('qCounter');
+const scoreCounter = document.getElementById('scoreCounter');
+const liveTimer = document.getElementById('liveTimer');
+
+function showScreen(el){
+  [introScreen, quizScreen, resultScreen].forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+startBtn.addEventListener('click', ()=>{
+  startQuiz();
+});
+
+function startQuiz(){
+  pool = buildSpecPool().map(makeQuestion);
+  current = 0;
+  score = 0;
+  answered = false;
+  startTime = Date.now();
+  showScreen(quizScreen);
+  renderQuestion();
+
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    liveTimer.textContent = formatTime(Date.now()-startTime);
+  }, 1000);
+}
+
+function renderQuestion(){
+  answered = false;
+  nextBtn.disabled = true;
+  nextBtn.textContent = current === TOTAL_Q-1 ? '完成测验 →' : '下一题 →';
+  feedback.className = 'feedback';
+  feedback.innerHTML = '';
+
+  const q = pool[current];
+  qTag.textContent = q.tag;
+  questionText.innerHTML = q.questionText;
+
+  progressFill.style.width = `${(current/TOTAL_Q)*100}%`;
+  qCounter.textContent = `第 ${current+1} / ${TOTAL_Q} 题`;
+  scoreCounter.textContent = `得分：${score}`;
+
+  optionsGrid.innerHTML = '';
+  q.options.forEach(opt=>{
+    const div = document.createElement('div');
+    div.className = 'opt';
+    div.innerHTML = opt.display;
+    div.addEventListener('click', ()=> selectOption(div, opt, q));
+    optionsGrid.appendChild(div);
+  });
+}
+
+function selectOption(el, opt, q){
+  if(answered) return;
+  answered = true;
+  nextBtn.disabled = false;
+
+  const allOpts = optionsGrid.querySelectorAll('.opt');
+  allOpts.forEach(o=>o.classList.add('disabled'));
+
+  if(opt.isCorrect){
+    el.classList.add('correct');
+    score++;
+    feedback.className = 'feedback show ok';
+    feedback.innerHTML = `✅ 答对了！ ${q.explain}`;
+  } else {
+    el.classList.add('wrong');
+    allOpts.forEach((o,i)=>{
+      if(q.options[i].isCorrect) o.classList.add('correct');
+    });
+    feedback.className = 'feedback show bad';
+    feedback.innerHTML = `❌ 不对哦，正确反应式：${q.explain}`;
+  }
+  scoreCounter.textContent = `得分：${score}`;
+}
+
+nextBtn.addEventListener('click', ()=>{
+  if(current < TOTAL_Q - 1){
+    current++;
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+});
+
+function finishQuiz(){
+  elapsedMs = Date.now() - startTime;
+  if(timerInterval) clearInterval(timerInterval);
+  progressFill.style.width = '100%';
+  showResult();
+}
+
+/* ---------------- 结果页 / 证书 ---------------- */
+function showResult(){
+  showScreen(resultScreen);
+  const pct = Math.round((score/TOTAL_Q)*100);
+  let msg = '';
+  if(pct === 100) msg = '完美！中和反应完全掌握 🌟';
+  else if(pct >= 80) msg = '非常好！继续保持 💪';
+  else if(pct >= 60) msg = '不错，再复习一下就更棒了！';
+  else msg = '再接再厉，多复习酸碱中和反应哦！';
+
+  resultScreen.innerHTML = `
+    <div class="result-screen">
+      <h2>测验完成！</h2>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="val">${score}/${TOTAL_Q}</div><div class="lab">答对题数</div></div>
+        <div class="stat-box"><div class="val">${pct}%</div><div class="lab">正确率</div></div>
+        <div class="stat-box"><div class="val">${formatTime(elapsedMs)}</div><div class="lab">完成用时</div></div>
+      </div>
+      <div class="result-msg">${msg}</div>
+      <div class="name-input-row">
+        <input type="text" id="playerNameInput" placeholder="请输入姓名以生成证书" maxlength="20">
+        <button class="btn gold" id="genCertBtn">🏆 生成证书</button>
+      </div>
+      <div id="certArea"></div>
+      <div class="controls" style="justify-content:center;">
+        <button class="btn ghost" id="restartBtn">🔄 重新挑战（题目将重新随机）</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('genCertBtn').addEventListener('click', onGenerateCert);
+  document.getElementById('playerNameInput').addEventListener('keydown', e=>{
+    if(e.key === 'Enter') onGenerateCert();
+  });
+  document.getElementById('restartBtn').addEventListener('click', ()=>{
+    showScreen(introScreen);
+  });
+}
+
+function onGenerateCert(){
+  const input = document.getElementById('playerNameInput');
+  const name = input.value.trim();
+  if(!name){
+    input.style.borderColor = 'var(--red)';
+    input.placeholder = '请输入姓名才能生成证书！';
+    input.focus();
+    return;
+  }
+  const pct = Math.round((score/TOTAL_Q)*100);
+  const canvas = drawCertificate(name, score, TOTAL_Q, pct, elapsedMs);
+
+  const nameRow = document.querySelector('.name-input-row');
+  if(nameRow) nameRow.style.display = 'none';
+
+  const certArea = document.getElementById('certArea');
+  certArea.innerHTML = '';
+  certArea.appendChild(canvas);
+
+  const actions = document.createElement('div');
+  actions.className = 'cert-actions';
+  actions.innerHTML = `<button class="btn gold" id="downloadCertBtn">⬇️ 下载证书 PNG</button>`;
+  certArea.appendChild(actions);
+
+  document.getElementById('downloadCertBtn').addEventListener('click', ()=>{
+    const link = document.createElement('a');
+    link.download = `酸碱中和成盐证书_${name}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
+
+/* 绘制直立式（portrait）证书到 canvas，返回 canvas 元素 */
+function drawCertificate(name, correct, total, pct, timeMs){
+  const canvas = document.createElement('canvas');
+  canvas.id = 'certCanvas';
+  const W = 1000, H = 1414; // A4 直立比例，双倍分辨率保证下载清晰
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // 背景渐变
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0, '#070b1c');
+  bg.addColorStop(0.5, '#0b1226');
+  bg.addColorStop(1, '#0d1730');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  // 星点装饰
+  for(let i=0;i<160;i++){
+    const x = Math.random()*W, y = Math.random()*H;
+    const r = Math.random()*1.6+0.3;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(150,200,255,${Math.random()*0.5+0.1})`;
+    ctx.fill();
+  }
+
+  // 外边框（渐变）
+  const borderGrad = ctx.createLinearGradient(0,0,W,H);
+  borderGrad.addColorStop(0,'#4be3ff');
+  borderGrad.addColorStop(0.5,'#a06bff');
+  borderGrad.addColorStop(1,'#ff6bd6');
+  ctx.strokeStyle = borderGrad;
+  ctx.lineWidth = 10;
+  roundRect(ctx, 30, 30, W-60, H-60, 24);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 48, 48, W-96, H-96, 18);
+  ctx.stroke();
+
+  // 顶部徽章（原子图案）
+  const cx = W/2, badgeY = 175;
+  ctx.save();
+  ctx.translate(cx, badgeY);
+  ctx.strokeStyle = 'rgba(75,227,255,0.9)';
+  ctx.lineWidth = 3;
+  for(let a=0;a<3;a++){
+    ctx.save();
+    ctx.rotate((Math.PI/3)*a);
+    ctx.beginPath();
+    ctx.ellipse(0,0,70,26,0,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(0,0,10,0,Math.PI*2);
+  ctx.fillStyle = '#ffd166';
+  ctx.shadowColor = '#ffd166';
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // 标题
+  ctx.textAlign = 'center';
+  const titleGrad = ctx.createLinearGradient(cx-260,0,cx+260,0);
+  titleGrad.addColorStop(0,'#4be3ff');
+  titleGrad.addColorStop(0.5,'#a06bff');
+  titleGrad.addColorStop(1,'#ff6bd6');
+  ctx.fillStyle = titleGrad;
+  ctx.font = '700 52px "Microsoft YaHei","PingFang SC",sans-serif';
+  ctx.fillText('结 业 证 书', cx, 300);
+
+  ctx.fillStyle = 'rgba(219,232,255,0.6)';
+  ctx.font = '400 20px "Microsoft YaHei",sans-serif';
+  ctx.fillText('CERTIFICATE OF COMPLETION', cx, 335);
+
+  ctx.fillStyle = 'rgba(75,227,255,0.5)';
+  ctx.font = '400 17px "Microsoft YaHei",sans-serif';
+  ctx.fillText('酸碱中和成盐 · 选择题挑战站', cx, 385);
+
+  // 分隔线
+  ctx.strokeStyle = 'rgba(160,107,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx-160,415); ctx.lineTo(cx+160,415);
+  ctx.stroke();
+
+  // 兹证明
+  ctx.fillStyle = 'rgba(219,232,255,0.75)';
+  ctx.font = '400 20px "Microsoft YaHei",sans-serif';
+  ctx.fillText('兹 证 明', cx, 475);
+
+  // 姓名
+  ctx.fillStyle = '#ffffff';
+  let nameFontSize = 58;
+  ctx.font = `700 ${nameFontSize}px "Microsoft YaHei","PingFang SC",sans-serif`;
+  while(ctx.measureText(name).width > W-200 && nameFontSize > 28){
+    nameFontSize -= 2;
+    ctx.font = `700 ${nameFontSize}px "Microsoft YaHei","PingFang SC",sans-serif`;
+  }
+  ctx.fillText(name, cx, 550);
+
+  // 姓名下划线装饰
+  const nameWidth = Math.min(ctx.measureText(name).width + 60, W-160);
+  const underGrad = ctx.createLinearGradient(cx-nameWidth/2,0,cx+nameWidth/2,0);
+  underGrad.addColorStop(0,'rgba(75,227,255,0)');
+  underGrad.addColorStop(0.5,'rgba(75,227,255,0.9)');
+  underGrad.addColorStop(1,'rgba(255,107,214,0)');
+  ctx.strokeStyle = underGrad;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx-nameWidth/2, 575); ctx.lineTo(cx+nameWidth/2, 575);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(219,232,255,0.75)';
+  ctx.font = '400 20px "Microsoft YaHei",sans-serif';
+  ctx.fillText('已完成本测验，成绩记录如下：', cx, 625);
+
+  // 成绩卡片区
+  const cardY = 680, cardH = 300, cardW = W-160, cardX = 80;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  roundRect(ctx, cardX, cardY, cardW, cardH, 20);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(75,227,255,0.25)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, cardX, cardY, cardW, cardH, 20);
+  ctx.stroke();
+
+  const stats = [
+    {label:'完成用时', value: formatTime(timeMs), color:'#4be3ff'},
+    {label:'答对题数', value: `${correct} / ${total}`, color:'#3dffb0'},
+    {label:'正确率',   value: `${pct}%`, color:'#ffd166'},
+  ];
+  const colW = cardW/3;
+  stats.forEach((s,i)=>{
+    const scx = cardX + colW*i + colW/2;
+    ctx.fillStyle = s.color;
+    ctx.font = '700 46px "Microsoft YaHei",sans-serif';
+    ctx.fillText(s.value, scx, cardY+140);
+    ctx.fillStyle = 'rgba(219,232,255,0.6)';
+    ctx.font = '400 18px "Microsoft YaHei",sans-serif';
+    ctx.fillText(s.label, scx, cardY+185);
+    if(i<2){
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.moveTo(cardX+colW*(i+1), cardY+40);
+      ctx.lineTo(cardX+colW*(i+1), cardY+cardH-40);
+      ctx.stroke();
+    }
+  });
+
+  // 评语
+  let grade = '';
+  if(pct===100) grade = '★ 完美掌握 Perfect Mastery ★';
+  else if(pct>=80) grade = '★ 表现优异 Excellent ★';
+  else if(pct>=60) grade = '★ 良好 Good Effort ★';
+  else grade = '★ 仍需加油 Keep Practicing ★';
+  ctx.fillStyle = 'rgba(255,209,102,0.9)';
+  ctx.font = '600 22px "Microsoft YaHei",sans-serif';
+  ctx.fillText(grade, cx, cardY+cardH+55);
+
+  // 底部日期与学校水印
+  const dateStr = new Date().toLocaleDateString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit'});
+  ctx.fillStyle = 'rgba(219,232,255,0.5)';
+  ctx.font = '400 17px "Microsoft YaHei",sans-serif';
+  ctx.fillText(`颁发日期：${dateStr}`, cx, H-170);
+
+  // 印章圆圈
+  ctx.save();
+  ctx.translate(W-180, H-190);
+  ctx.rotate(-0.2);
+  ctx.strokeStyle = 'rgba(255,107,214,0.7)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0,0,58,0,Math.PI*2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0,0,48,0,Math.PI*2);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,107,214,0.85)';
+  ctx.font = '700 16px "Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('华仁中学', 0, -4);
+  ctx.font = '400 11px sans-serif';
+  ctx.fillText('CERTIFIED', 0, 14);
+  ctx.restore();
+
+  // 页脚水印
+  ctx.fillStyle = 'rgba(127,143,192,0.55)';
+  ctx.font = '400 14px "Microsoft YaHei",sans-serif';
+  ctx.fillText('华仁中学 Chinese High School · 酸碱中和成盐选择题', cx, H-95);
+  ctx.font = '400 12px sans-serif';
+  ctx.fillStyle = 'rgba(127,143,192,0.4)';
+  ctx.fillText('Created by 蔡逸众', cx, H-70);
+
+  return canvas;
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+/* ---------------- 星空背景（页面全局） ---------------- */
+(function starfield(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let w,h,stars;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const count = Math.floor((w*h)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x: Math.random()*w,
+      y: Math.random()*h,
+      r: Math.random()*1.3 + 0.2,
+      s: Math.random()*0.4 + 0.05,
+      tw: Math.random()*Math.PI*2
+    }));
+  }
+
+  function draw(){
+    ctx.fillStyle = '#050814';
+    ctx.fillRect(0,0,w,h);
+    stars.forEach(st=>{
+      st.tw += 0.02;
+      const alpha = 0.4 + Math.sin(st.tw)*0.4;
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(150,200,255,${Math.max(0,alpha)})`;
+      ctx.fill();
+      st.y += st.s;
+      if(st.y > h) { st.y = 0; st.x = Math.random()*w; }
+    });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+</script>
+
+<!-- Watermark: 蔡逸众 · Chinese High School 华仁中学 -->
+</body>
+</html>
