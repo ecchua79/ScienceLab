@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科学自主练习 · 峇株吧辖华仁中学</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --red: #ff2233; --blue: #0099ff;
+  --green: #00dd88; --green-dark: #007a4a;
+  --gold: #ffcc44;
+  --bg: #0a0a12; --bar-bg: #0d0d1e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg); color: #fff;
+  min-height: 100vh;
+}
+.hidden { display: none !important; }
+
+/* ══════════ 通用顶部标题 ══════════ */
+.site-title {
+  font-family: 'Orbitron', monospace; font-size: 1.9rem; font-weight: 900;
+  letter-spacing: 5px; text-align: center; margin-bottom: 4px;
+  background: linear-gradient(90deg, var(--green), #fff, var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.site-sub { font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 4px; opacity: 0.35; text-align: center; margin-bottom: 6px; }
+.school-tag { font-size: 0.72rem; opacity: 0.4; letter-spacing: 1px; text-align: center; margin-bottom: 28px; }
+
+/* ══════════ 设置页 ══════════ */
+#setup { display: flex; flex-direction: column; align-items: center; padding: 36px 20px 80px; max-width: 960px; margin: 0 auto; }
+
+.step-block { width: 100%; opacity: 0.35; pointer-events: none; transition: opacity 0.3s; margin-bottom: 30px; }
+.step-block.active { opacity: 1; pointer-events: auto; }
+.step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.step-num { font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900; letter-spacing: 2px; color: var(--green); border: 1px solid var(--green); border-radius: 20px; padding: 3px 10px; }
+.step-title { font-size: 0.95rem; font-weight: 700; }
+.step-hint { font-size: 0.68rem; opacity: 0.45; margin-left: auto; }
+
+.mode-row { display: flex; gap: 12px; }
+.mode-btn {
+  flex: 1; background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.12); color: #fff;
+  padding: 16px; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+  font-family: 'Noto Sans SC', sans-serif; text-align: center;
+}
+.mode-btn .m-emoji { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+.mode-btn .m-title { font-weight: 900; font-size: 0.9rem; }
+.mode-btn .m-sub { font-size: 0.68rem; opacity: 0.55; margin-top: 3px; }
+.mode-btn:hover { border-color: rgba(255,255,255,0.3); }
+.mode-btn.selected { border-color: var(--green); background: rgba(0,221,136,0.08); box-shadow: 0 0 0 2px var(--green) inset; }
+
+.grade-title { font-family: 'Orbitron', monospace; font-size: 0.65rem; font-weight: 900; letter-spacing: 3px; margin: 16px 0 10px; }
+.grade-title.jm1 { color: #ff9944; }
+.grade-title.jm2 { color: #44ccff; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.chapter-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 13px 12px; cursor: pointer; position: relative;
+  transition: all 0.15s; overflow: hidden;
+}
+.chapter-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--card-color, #ffffff33); }
+.chapter-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.28); transform: translateY(-2px); }
+.chapter-card.selected { border-color: var(--green); box-shadow: 0 0 0 2px var(--green) inset; }
+.chapter-card.selected::after {
+  content: '✓'; position: absolute; top: 7px; right: 8px; width: 16px; height: 16px;
+  background: var(--green); color: #001; border-radius: 50%; font-size: 0.6rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.chapter-card.locked-out { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
+.c-emoji { font-size: 1.25rem; }
+.c-chapter { font-family: 'Orbitron', monospace; font-size: 0.48rem; letter-spacing: 1.5px; opacity: 0.45; margin-top: 2px; }
+.c-title { font-size: 0.78rem; font-weight: 900; line-height: 1.3; margin-top: 2px; }
+
+.count-row, .role-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.pill-btn {
+  background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.12); color: #fff;
+  padding: 13px 22px; border-radius: 8px; cursor: pointer; font-family: 'Orbitron', monospace;
+  font-size: 0.85rem; font-weight: 900; letter-spacing: 1px; transition: all 0.15s;
+}
+.pill-btn:hover { border-color: rgba(255,255,255,0.35); }
+.pill-btn.selected { border-color: var(--green); background: rgba(0,221,136,0.1); color: var(--green); }
+.fixed-note { font-size: 0.8rem; opacity: 0.6; padding: 12px 0; }
+
+.role-btn { flex: 1; min-width: 160px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px; }
+.role-btn .r-emoji { font-size: 2rem; }
+.role-btn.selected.lion  { border-color: var(--red);  color: var(--red);  background: rgba(255,34,51,0.08); }
+.role-btn.selected.tiger { border-color: var(--blue); color: var(--blue); background: rgba(0,153,255,0.08); }
+
+.name-input {
+  background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); border-radius: 8px;
+  color: #fff; padding: 13px 16px; font-size: 0.9rem; font-family: 'Noto Sans SC', sans-serif;
+  outline: none; width: 100%; max-width: 340px; transition: border-color 0.2s;
+}
+.name-input:focus { border-color: var(--green); }
+.name-input::placeholder { opacity: 0.35; }
+
+#start-btn {
+  margin-top: 10px; background: transparent; border: 2px solid var(--green); color: var(--green);
+  padding: 16px 40px; font-family: 'Orbitron', monospace; font-size: 0.95rem; font-weight: 900;
+  letter-spacing: 3px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+}
+#start-btn:hover:not(:disabled) { background: var(--green); color: #001; box-shadow: 0 0 24px rgba(0,221,136,0.4); }
+#start-btn:disabled { opacity: 0.25; cursor: not-allowed; border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.3); }
+
+footer { font-size: 0.58rem; opacity: 0.18; letter-spacing: 2px; font-family: 'Orbitron', monospace; text-align: center; margin-top: 30px; }
+.back-link { display: inline-block; margin-bottom: 18px; font-size: 0.72rem; opacity: 0.45; color: #fff; text-decoration: none; letter-spacing: 1px; }
+.back-link:hover { opacity: 0.8; }
+
+/* ══════════ 游戏页 ══════════ */
+#game-screen { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#g-topbar { display: flex; align-items: center; gap: 14px; padding: 10px 20px; background: #080810; border-bottom: 1px solid #1a1a30; flex-shrink: 0; flex-wrap: wrap; }
+.g-role { font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+.g-role.lion  { color: var(--red); }
+.g-role.tiger { color: var(--blue); }
+.g-progress { font-family: 'Orbitron', monospace; font-size: 0.75rem; opacity: 0.6; letter-spacing: 1px; }
+.g-score { font-size: 0.8rem; opacity: 0.75; margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.wrong-track { display: flex; gap: 4px; }
+.wdot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); }
+.wdot.filled { background: var(--red); border-color: var(--red); box-shadow: 0 0 6px var(--red); }
+.wdot.filled.danger { animation: dangerPulse 0.7s infinite alternate; }
+@keyframes dangerPulse { from{opacity:1;} to{opacity:0.4;} }
+
+#g-body { flex: 1; overflow-y: auto; padding: 24px 20px 40px; display: flex; justify-content: center; }
+.g-inner { width: 100%; max-width: 640px; }
+.q-num { font-size: 0.62rem; letter-spacing: 2px; opacity: 0.35; margin-bottom: 6px; }
+.q-text { font-size: 1.2rem; line-height: 1.65; font-weight: 700; margin-bottom: 16px; }
+.options { display: flex; flex-direction: column; gap: 8px; }
+.opt-btn {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #ccc;
+  padding: 12px 15px; border-radius: 8px; font-size: 1.10rem; font-family: 'Noto Sans SC', sans-serif;
+  cursor: pointer; text-align: left; transition: all 0.15s; line-height: 1.4;
+}
+.opt-btn:hover:not(:disabled) { background: rgba(0,221,136,0.1); border-color: var(--green); color: #fff; }
+.opt-btn.correct { background: rgba(0,230,100,0.18) !important; border-color: #00dd66 !important; color: #00dd66 !important; }
+.opt-btn.wrong   { background: rgba(255,60,60,0.16) !important;  border-color: #ff4444 !important;  color: #ff6666 !important;  text-decoration: line-through; }
+.opt-btn:disabled { cursor: default; }
+.explanation-box { margin-top: 14px; padding: 13px 16px; border-radius: 8px; font-size: 0.85rem; line-height: 1.6; border: 1px solid rgba(255,200,0,0.3); background: rgba(255,180,0,0.07); color: #ffdd88; }
+.expl-label { font-weight: 900; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 5px; }
+.expl-label.ok  { color: #00dd66; }
+.expl-label.bad { color: #ffcc44; }
+.next-btn {
+  margin-top: 18px; background: transparent; border: 2px solid rgba(255,255,255,0.4); color: #fff;
+  padding: 12px 30px; font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 900;
+  letter-spacing: 2px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+}
+.next-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* 惩罚动画：对方动物正面弹出 */
+.taunt-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 80; }
+.taunt-img { max-height: 46vh; max-width: 70vw; filter: drop-shadow(0 12px 30px rgba(0,0,0,0.7)); animation: tauntPop 1.6s cubic-bezier(.3,.7,.3,1) forwards; }
+@keyframes tauntPop {
+  0%   { transform: scale(0.3); opacity: 0; }
+  18%  { transform: scale(1.15); opacity: 1; }
+  30%  { transform: scale(1); opacity: 1; }
+  80%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+.taunt-flash { position: fixed; inset: 0; background: rgba(255,30,30,0.18); z-index: 79; pointer-events: none; animation: taintFlash 0.5s ease forwards; }
+@keyframes taintFlash { 0%{opacity:1;} 100%{opacity:0;} }
+
+/* ══════════ 证书页 ══════════ */
+#cert-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px; gap: 22px; }
+#certificate {
+  width: 100%; max-width: 560px; background: linear-gradient(160deg, #12121e 0%, #0a0a12 100%);
+  border: 2px solid var(--gold); border-radius: 16px; padding: 40px 36px; position: relative;
+  box-shadow: 0 0 0 6px rgba(255,204,68,0.08), 0 20px 60px rgba(0,0,0,0.6);
+}
+#certificate::before, #certificate::after {
+  content: ''; position: absolute; width: 30px; height: 30px; border: 2px solid var(--gold); opacity: 0.6;
+}
+#certificate::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+#certificate::after  { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+.cert-seal { text-align: center; font-size: 2.4rem; margin-bottom: 6px; }
+.cert-heading { text-align: center; font-family: 'Orbitron', monospace; font-size: 1.3rem; font-weight: 900; letter-spacing: 4px; color: var(--gold); margin-bottom: 2px; }
+.cert-sub { text-align: center; font-size: 0.65rem; letter-spacing: 3px; opacity: 0.4; margin-bottom: 26px; font-family: 'Orbitron', monospace; }
+.cert-name { text-align: center; font-size: 1.5rem; font-weight: 900; margin-bottom: 4px; }
+.cert-line { text-align: center; font-size: 0.85rem; opacity: 0.65; margin-bottom: 22px; }
+.cert-score-wrap { display: flex; justify-content: center; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.cert-score { font-family: 'Orbitron', monospace; font-size: 2.6rem; font-weight: 900; }
+.cert-score-total { font-size: 1rem; opacity: 0.5; }
+.cert-pct { text-align: center; font-family: 'Orbitron', monospace; font-size: 1rem; opacity: 0.7; letter-spacing: 1px; margin-bottom: 16px; }
+.cert-grade { text-align: center; display: inline-block; margin: 0 auto 18px; padding: 6px 20px; border-radius: 20px; font-weight: 900; font-size: 0.85rem; letter-spacing: 2px; }
+.cert-grade-wrap { text-align: center; }
+.cert-grade.excellent { background: rgba(0,221,136,0.15); color: var(--green); border: 1px solid var(--green); }
+.cert-grade.good      { background: rgba(0,153,255,0.15); color: #55bbff; border: 1px solid #55bbff; }
+.cert-grade.effort     { background: rgba(255,150,0,0.15); color: #ffaa44; border: 1px solid #ffaa44; }
+.cert-date { text-align: center; font-size: 0.68rem; opacity: 0.35; letter-spacing: 1px; margin-top: 6px; }
+.cert-footer { text-align: center; font-size: 0.6rem; opacity: 0.3; letter-spacing: 1px; margin-top: 20px; font-family: 'Orbitron', monospace; }
+.cert-early-note { text-align: center; font-size: 0.7rem; color: #ff8888; opacity: 0.8; margin-bottom: 14px; }
+
+.cert-btns { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.cert-btn {
+  background: transparent; border: 2px solid rgba(255,255,255,0.4); color: #fff;
+  padding: 12px 26px; font-family: 'Orbitron', monospace; font-size: 0.78rem; font-weight: 900;
+  letter-spacing: 1.5px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+}
+.cert-btn:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+.cert-btn.primary { border-color: var(--gold); color: var(--gold); }
+.cert-btn.primary:hover { background: var(--gold); color: #001; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ 设置页 ══════════════════ -->
+<div id="setup">
+  <a class="back-link" href="index.html">← 返回主页</a>
+  <div class="site-title">📝 自主练习</div>
+  <div class="site-sub">SOLO PRACTICE · 随机抽题 · 即时解析</div>
+  <div class="school-tag">峇株吧辖华仁中学 · 科学复习自测工具</div>
+
+  <!-- 步骤1：模式 -->
+  <div class="step-block active" id="step-mode">
+    <div class="step-head"><span class="step-num">STEP 1</span><span class="step-title">选择练习方式</span></div>
+    <div class="mode-row">
+      <div class="mode-btn" id="mode-single" onclick="chooseMode('single')">
+        <span class="m-emoji">📖</span><span class="m-title">单章练习</span>
+        <span class="m-sub">选一章，抽 10 / 15 / 20 题</span>
+      </div>
+      <div class="mode-btn" id="mode-mix" onclick="chooseMode('mix')">
+        <span class="m-emoji">🔀</span><span class="m-title">混合练习</span>
+        <span class="m-sub">选 2 章以上，固定抽 20 题</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤2：选章节 -->
+  <div class="step-block" id="step-chapters">
+    <div class="step-head"><span class="step-num">STEP 2</span><span class="step-title">选择章节</span><span class="step-hint" id="chapter-hint"></span></div>
+    <div class="grade-title jm1">初一 · JUNIOR MIDDLE 1</div>
+    <div class="card-grid" id="grid-jm1"></div>
+    <div class="grade-title jm2">初二 · JUNIOR MIDDLE 2</div>
+    <div class="card-grid" id="grid-jm2"></div>
+  </div>
+
+  <!-- 步骤3：题数 -->
+  <div class="step-block" id="step-count">
+    <div class="step-head"><span class="step-num">STEP 3</span><span class="step-title">选择题数</span></div>
+    <div class="count-row" id="count-row">
+      <button class="pill-btn" onclick="chooseCount(10)">10 题</button>
+      <button class="pill-btn" onclick="chooseCount(15)">15 题</button>
+      <button class="pill-btn" onclick="chooseCount(20)">20 题</button>
+    </div>
+    <div class="fixed-note hidden" id="fixed-note">混合练习固定抽取 <b style="color:var(--green)">20</b> 题，题目会从所选章节平均分配。</div>
+  </div>
+
+  <!-- 步骤4：角色 -->
+  <div class="step-block" id="step-role">
+    <div class="step-head"><span class="step-num">STEP 4</span><span class="step-title">选择你的角色</span><span class="step-hint">连续答错会跳出对方的挑衅动画哦</span></div>
+    <div class="role-row">
+      <button class="pill-btn role-btn lion" onclick="chooseRole('lion')"><span class="r-emoji">🦁</span>我是狮子</button>
+      <button class="pill-btn role-btn tiger" onclick="chooseRole('tiger')"><span class="r-emoji">🐯</span>我是老虎</button>
+    </div>
+  </div>
+
+  <!-- 步骤5：姓名 -->
+  <div class="step-block" id="step-name">
+    <div class="step-head"><span class="step-num">STEP 5</span><span class="step-title">输入姓名（用于证书）</span></div>
+    <input class="name-input" id="student-name" placeholder="请输入你的姓名" oninput="validateStart()">
+  </div>
+
+  <button id="start-btn" disabled onclick="startPractice()">▶ 开始挑战</button>
+
+  <footer>© 峇株吧辖华仁中学 · 制作：蔡逸众 · 未经授权请勿转载</footer>
+</div>
+
+<!-- ══════════════════ 游戏页 ══════════════════ -->
+<div id="game-screen" class="hidden">
+  <div id="g-topbar">
+    <div class="g-role" id="g-role-label"></div>
+    <div class="g-progress" id="g-progress"></div>
+    <div class="g-score">
+      <span id="g-correct">✅ 0</span>
+      <div class="wrong-track" id="wrong-track"></div>
+    </div>
+  </div>
+  <div id="g-body">
+    <div class="g-inner">
+      <div class="q-num" id="q-num"></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+      <div id="expl-slot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ 证书页 ══════════════════ -->
+<div id="cert-screen" class="hidden">
+  <div id="certificate">
+    <div class="cert-seal">🏅</div>
+    <div class="cert-heading">练 习 证 书</div>
+    <div class="cert-sub">CERTIFICATE OF PRACTICE</div>
+    <div class="cert-name" id="cert-name"></div>
+    <div class="cert-line" id="cert-chapter"></div>
+    <div class="cert-early-note hidden" id="cert-early-note">⚠ 答错达上限，挑战提前结束</div>
+    <div class="cert-score-wrap">
+      <span class="cert-score" id="cert-score"></span>
+      <span class="cert-score-total" id="cert-score-total"></span>
+    </div>
+    <div class="cert-pct" id="cert-pct"></div>
+    <div class="cert-grade-wrap"><span class="cert-grade" id="cert-grade"></span></div>
+    <div class="cert-date" id="cert-date"></div>
+    <div class="cert-footer">峇株吧辖华仁中学 · 科学复习自测工具 · 制作：蔡逸众</div>
+  </div>
+  <div class="cert-btns">
+    <button class="cert-btn primary" onclick="saveCertificate()">💾 保存证书 PNG</button>
+    <button class="cert-btn" onclick="location.reload()">🔄 再练一次</button>
+    <button class="cert-btn" onclick="location.href='index.html'">🏠 返回主页</button>
+  </div>
+</div>
+
+<div class="taunt-wrap" id="taunt-wrap"></div>
+
+<script>
+//峇株吧辖华仁中学蔡逸众制作 · 自主练习模式 practice.html
+
+/* ── 章节清单（与 index.html 保持一致） ── */
+const CHAPTERS = [
+  {id:'1c1', grade:'jm1', emoji:'🔬', title:'科学导论',        color:'#4488ff'},
+  {id:'1c2', grade:'jm1', emoji:'⚛️', title:'物质与粒子',      color:'#44bbff'},
+  {id:'1c3', grade:'jm1', emoji:'🧬', title:'生物与细胞',      color:'#44ddcc'},
+  {id:'1c4', grade:'jm1', emoji:'🧬', title:'生殖与遗传',      color:'#44ffaa'},
+  {id:'1c5', grade:'jm1', emoji:'🦴', title:'生物的运动',      color:'#00aaff'},
+  {id:'1c6', grade:'jm1', emoji:'🔥', title:'热',              color:'#ff6622'},
+  {id:'1c7', grade:'jm1', emoji:'💡', title:'光',              color:'#ffaa00'},
+  {id:'1c8', grade:'jm1', emoji:'🔊', title:'波与声音',        color:'#ff44aa'},
+  {id:'1c9', grade:'jm1', emoji:'⚡', title:'静电',            color:'#ffdd44'},
+  {id:'2c1', grade:'jm2', emoji:'⚛️', title:'原子结构与元素',  color:'#aa44ff'},
+  {id:'2c2', grade:'jm2', emoji:'⚗️', title:'物质的变化',      color:'#cc44ff'},
+  {id:'2c3', grade:'jm2', emoji:'🧠', title:'神经系统与激素调节', color:'#ff44dd'},
+  {id:'2c4', grade:'jm2', emoji:'🫁', title:'呼吸系统',        color:'#ff4488'},
+  {id:'2c5', grade:'jm2', emoji:'💧', title:'水与溶液',        color:'#44aaff'},
+  {id:'2c6', grade:'jm2', emoji:'🧪', title:'酸、碱与盐',      color:'#44ffdd'},
+  {id:'2c7', grade:'jm2', emoji:'🌬️', title:'空气与气体',      color:'#aaffaa'},
+  {id:'2c8', grade:'jm2', emoji:'🔩', title:'气压和压强',      color:'#ffcc44'},
+  {id:'2c9', grade:'jm2', emoji:'⚙️', title:'简单机械',        color:'#ff8844'},
+];
+
+/* ── 渲染章节卡片 ── */
+function renderChapterGrid() {
+  const gridJm1 = document.getElementById('grid-jm1');
+  const gridJm2 = document.getElementById('grid-jm2');
+  CHAPTERS.forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.dataset.chapter = ch.id;
+    card.dataset.grade = ch.grade;
+    card.style.setProperty('--card-color', ch.color);
+    card.innerHTML =
+      '<div class="c-emoji">' + ch.emoji + '</div>' +
+      '<div class="c-chapter">' + ch.id.toUpperCase() + '</div>' +
+      '<div class="c-title">' + ch.title + '</div>';
+    card.onclick = () => onChapterClick(ch.id, ch.grade, card);
+    (ch.grade === 'jm1' ? gridJm1 : gridJm2).appendChild(card);
+  });
+}
+renderChapterGrid();
+
+/* ── 状态 ── */
+let mode = null;            // 'single' | 'mix'
+let selectedChapters = [];  // 章节 id 数组
+let selectedGrade = null;
+let questionCount = null;   // 单章模式：10/15/20；混合模式固定20
+let role = null;            // 'lion' | 'tiger'
+
+function chooseMode(m) {
+  mode = m;
+  selectedChapters = [];
+  selectedGrade = null;
+  questionCount = mode === 'mix' ? 20 : null;
+  document.getElementById('mode-single').classList.toggle('selected', m === 'single');
+  document.getElementById('mode-mix').classList.toggle('selected', m === 'mix');
+  document.querySelectorAll('.chapter-card').forEach(c => c.classList.remove('selected', 'locked-out'));
+  document.getElementById('chapter-hint').textContent = m === 'single' ? '点击选择 1 章' : '点击选择 2 章或以上（须同一年级）';
+  document.getElementById('count-row').classList.toggle('hidden', m === 'mix');
+  document.getElementById('fixed-note').classList.toggle('hidden', m !== 'mix');
+  document.querySelectorAll('#count-row .pill-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('step-chapters').classList.add('active');
+  document.getElementById('step-count').classList.remove('active');
+  validateStart();
+}
+
+function onChapterClick(chapterId, grade, card) {
+  if (!mode) return;
+  if (mode === 'single') {
+    document.querySelectorAll('.chapter-card.selected').forEach(c => c.classList.remove('selected'));
+    selectedChapters = [chapterId];
+    selectedGrade = grade;
+    card.classList.add('selected');
+    document.getElementById('step-count').classList.add('active');
+  } else {
+    const idx = selectedChapters.indexOf(chapterId);
+    if (idx >= 0) {
+      selectedChapters.splice(idx, 1);
+      card.classList.remove('selected');
+      if (selectedChapters.length === 0) selectedGrade = null;
+    } else {
+      if (selectedGrade && grade !== selectedGrade) return;
+      selectedGrade = grade;
+      selectedChapters.push(chapterId);
+      card.classList.add('selected');
+    }
+    document.querySelectorAll('.chapter-card[data-chapter]').forEach(c => {
+      const other = selectedGrade && c.dataset.grade !== selectedGrade;
+      c.classList.toggle('locked-out', other);
+    });
+    document.getElementById('step-count').classList.add('active');
+  }
+  validateStart();
+}
+
+function chooseCount(n) {
+  questionCount = n;
+  document.querySelectorAll('#count-row .pill-btn').forEach(b => b.classList.toggle('selected', parseInt(b.textContent) === n));
+  document.getElementById('step-role').classList.add('active');
+  validateStart();
+}
+
+function chooseRole(r) {
+  role = r;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('.role-btn.' + r).classList.add('selected');
+  document.getElementById('step-name').classList.add('active');
+  validateStart();
+}
+
+function validateStart() {
+  const nameOk = document.getElementById('student-name').value.trim().length > 0;
+  const chaptersOk = mode === 'single' ? selectedChapters.length === 1 : selectedChapters.length >= 2;
+  const countOk = !!questionCount;
+  const ok = mode && chaptersOk && countOk && role && nameOk;
+  document.getElementById('start-btn').disabled = !ok;
+}
+
+/* ── 加载题库文件（与 game.html 相同的加载方式） ── */
+function extractModule(code) {
+  const runner = new Function(
+    code + '\n;return { CHAPTER_INFO: (typeof CHAPTER_INFO!=="undefined"?CHAPTER_INFO:null), ' +
+    'ALL_QUESTIONS: (typeof ALL_QUESTIONS!=="undefined"?ALL_QUESTIONS:null) };'
+  );
+  return runner();
+}
+async function loadChapterModule(chapterId) {
+  const res = await fetch('questions/' + chapterId + '.js');
+  if (!res.ok) throw new Error('找不到题目文件：questions/' + chapterId + '.js');
+  const code = await res.text();
+  const mod = extractModule(code);
+  if (!mod.ALL_QUESTIONS) throw new Error('questions/' + chapterId + '.js 里没有 ALL_QUESTIONS');
+  return mod;
+}
+function shuffleArr(arr) { return arr.slice().sort(() => Math.random() - 0.5); }
+
+/* 按章节平均分配抽题（混合模式沿用与 game.html 相同的配额算法） */
+function buildQuestionPool(modules, total) {
+  const n = modules.length;
+  if (n === 1) return shuffleArr(modules[0].ALL_QUESTIONS).slice(0, Math.min(total, modules[0].ALL_QUESTIONS.length));
+  const base = Math.floor(total / n);
+  const remainder = total - base * n;
+  let quotas = modules.map((m, i) => Math.min(base + (i < remainder ? 1 : 0), m.ALL_QUESTIONS.length));
+  let shortage = total - quotas.reduce((a, b) => a + b, 0);
+  while (shortage > 0) {
+    let gave = false;
+    for (let i = 0; i < n && shortage > 0; i++) {
+      if (quotas[i] < modules[i].ALL_QUESTIONS.length) { quotas[i]++; shortage--; gave = true; }
+    }
+    if (!gave) break;
+  }
+  const combined = [];
+  modules.forEach((m, i) => combined.push(...shuffleArr(m.ALL_QUESTIONS).slice(0, quotas[i])));
+  return shuffleArr(combined);
+}
+
+/* ── 游戏状态 ── */
+let questions = [];
+let chapterTitles = [];
+let currentIndex = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let wrongStreak = 0;
+const WRONG_LIMIT = 8;
+const STREAK_TAUNT = 3;
+let studentName = '';
+let earlyEnd = false;
+
+async function startPractice() {
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = '加载中...';
+  try {
+    const modules = await Promise.all(selectedChapters.map(loadChapterModule));
+    chapterTitles = modules.map(m => (m.CHAPTER_INFO && m.CHAPTER_INFO.title) || '');
+    questions = buildQuestionPool(modules, questionCount);
+    studentName = document.getElementById('student-name').value.trim();
+    currentIndex = 0; correctCount = 0; wrongCount = 0; wrongStreak = 0; earlyEnd = false;
+    document.getElementById('setup').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    const label = document.getElementById('g-role-label');
+    label.className = 'g-role ' + role;
+    label.textContent = role === 'lion' ? '🦁 你是狮子' : '🐯 你是老虎';
+    renderWrongTrack();
+    renderQuestion();
+  } catch (err) {
+    alert('题目载入失败：' + err.message);
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = '▶ 开始挑战';
+  }
+}
+
+const LABELS = ['A', 'B', 'C', 'D'];
+
+function renderWrongTrack() {
+  const track = document.getElementById('wrong-track');
+  track.innerHTML = '';
+  for (let i = 0; i < WRONG_LIMIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'wdot' + (i < wrongCount ? ' filled' : '') + (i < wrongCount && wrongCount >= 6 ? ' danger' : '');
+    track.appendChild(d);
+  }
+  document.getElementById('g-correct').textContent = '✅ ' + correctCount;
+}
+
+function renderQuestion() {
+  if (currentIndex >= questions.length) { showCertificate(); return; }
+  document.getElementById('g-progress').textContent = '第 ' + (currentIndex + 1) + ' / ' + questions.length + ' 题';
+  document.getElementById('expl-slot').innerHTML = '';
+  const q = questions[currentIndex];
+  document.getElementById('q-num').textContent = '题目 ' + (currentIndex + 1);
+  document.getElementById('q-text').textContent = q.q;
+  const optsEl = document.getElementById('options');
+  optsEl.innerHTML = '';
+  const shuffled = q.opts.map((opt, i) => ({ opt, i })).sort(() => Math.random() - 0.5);
+  shuffled.forEach((item, newIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = LABELS[newIdx] + '. ' + item.opt;
+    btn._origIdx = item.i;
+    btn.onclick = () => handleAnswer(item.i, q, optsEl, btn);
+    optsEl.appendChild(btn);
+  });
+}
+
+function handleAnswer(chosen, q, optsEl, btn) {
+  optsEl.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  const isCorrect = chosen === q.ans;
+  const explSlot = document.getElementById('expl-slot');
+  const box = document.createElement('div');
+  box.className = 'explanation-box';
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    correctCount++;
+    wrongStreak = 0;
+    box.innerHTML = '<div class="expl-label ok">✓ 回答正确</div><div>' + (q.expl || '') + '</div>';
+  } else {
+    btn.classList.add('wrong');
+    optsEl.querySelectorAll('.opt-btn').forEach(b => { if (b._origIdx === q.ans) b.classList.add('correct'); });
+    wrongCount++;
+    wrongStreak++;
+    let correctLabel = '';
+    optsEl.querySelectorAll('.opt-btn').forEach((b, idx) => { if (b._origIdx === q.ans) correctLabel = LABELS[idx]; });
+    box.innerHTML = '<div class="expl-label bad">✗ 正确答案：' + correctLabel + '　' + q.opts[q.ans] + '</div><div>' + (q.expl || '') + '</div>';
+    if (wrongStreak >= STREAK_TAUNT) launchTaunt();
+  }
+  renderWrongTrack();
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'next-btn';
+  if (!isCorrect && wrongCount >= WRONG_LIMIT) {
+    nextBtn.textContent = '📜 查看证书';
+    nextBtn.onclick = () => { earlyEnd = true; showCertificate(); };
+  } else if (currentIndex + 1 >= questions.length) {
+    nextBtn.textContent = '📜 查看证书';
+    nextBtn.onclick = () => { currentIndex++; showCertificate(); };
+  } else {
+    nextBtn.textContent = '下一题 →';
+    nextBtn.onclick = () => { currentIndex++; renderQuestion(); };
+  }
+  box.appendChild(nextBtn);
+  explSlot.appendChild(box);
+  explSlot.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+/* ── 挑衅动画：连续答错触发对方角色正面图 + 音效 ── */
+const TAUNT_ASSETS = {
+  lion:  { img: 'lion(f).png',  sound: new Audio('lion.mp3') },
+  tiger: { img: 'tiger(f).png', sound: new Audio('tiger.wav') }
+};
+Object.values(TAUNT_ASSETS).forEach(a => { a.sound.preload = 'auto'; a.sound.load(); });
+
+function launchTaunt() {
+  const opponent = role === 'lion' ? 'tiger' : 'lion';
+  const asset = TAUNT_ASSETS[opponent];
+  const wrap = document.getElementById('taunt-wrap');
+  const flash = document.createElement('div');
+  flash.className = 'taunt-flash';
+  wrap.appendChild(flash);
+  const img = document.createElement('img');
+  img.src = asset.img;
+  img.className = 'taunt-img';
+  wrap.appendChild(img);
+  asset.sound.currentTime = 0;
+  asset.sound.play().catch(() => {});
+  setTimeout(() => { flash.remove(); }, 500);
+  setTimeout(() => { img.remove(); }, 1700);
+}
+
+/* ── 证书 ── */
+function showCertificate() {
+  document.getElementById('game-screen').classList.add('hidden');
+  const certScreen = document.getElementById('cert-screen');
+  certScreen.classList.remove('hidden');
+  const attempted = currentIndex;
+  const pct = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
+
+  document.getElementById('cert-name').textContent = studentName;
+  const chapterLine = selectedChapters.length === 1
+    ? chapterTitles[0]
+    : '混合练习 · ' + chapterTitles.join('、');
+  document.getElementById('cert-chapter').textContent = chapterLine;
+  document.getElementById('cert-early-note').classList.toggle('hidden', !earlyEnd);
+  document.getElementById('cert-score').textContent = correctCount;
+  document.getElementById('cert-score-total').textContent = '/ ' + attempted + ' 题';
+  document.getElementById('cert-pct').textContent = '正确率 ' + pct + '%';
+
+  const gradeEl = document.getElementById('cert-grade');
+  if (pct >= 90) { gradeEl.textContent = '优秀'; gradeEl.className = 'cert-grade excellent'; }
+  else if (pct >= 70) { gradeEl.textContent = '良好'; gradeEl.className = 'cert-grade good'; }
+  else { gradeEl.textContent = '再接再厉'; gradeEl.className = 'cert-grade effort'; }
+
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  document.getElementById('cert-date').textContent = dateStr;
+}
+
+function saveCertificate() {
+  const el = document.getElementById('certificate');
+  html2canvas(el, { backgroundColor: '#0a0a12', scale: 2 }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = '练习证书_' + studentName + '_' + document.getElementById('cert-date').textContent + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => alert('保存证书失败：' + err.message));
+}
+</script>
+</body>
+</html>
