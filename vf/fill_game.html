@@ -5,34 +5,63 @@
 <title>科学填空大对决</title>
 <style>
   :root{
-    --bg:#0f172a; --gold:#facc15;
+    --bg:#0f172a; --gold:#facc15; --p1:#3b82f6; --p2:#ef4444;
   }
   *{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;}
   body{background:var(--bg);color:#fff;height:100vh;overflow:hidden;}
 
-  /* ---------- 设置界面 ---------- */
-  #setupScreen{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:20px;}
-  #setupScreen h1{font-size:2rem;color:var(--gold);}
+  /* ---------- 设置界面（封面） ---------- */
+  #setupScreen{height:100vh;overflow-y:auto;display:flex;justify-content:center;padding:32px 16px;background:radial-gradient(circle at 30% 15%, #1e3a5f 0%, var(--bg) 55%);}
+  .setupInner{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+  #setupScreen h1{font-size:2.1rem;color:var(--gold);text-align:center;text-shadow:0 2px 14px rgba(250,204,21,.3);}
+  .tagline{color:#94a3b8;font-size:.95rem;margin-top:-10px;text-align:center;}
+  .rulesCard{width:100%;background:rgba(30,41,59,.7);border:1px solid #334155;border-radius:16px;padding:20px 24px;}
+  .rulesCard h2{font-size:1.1rem;color:var(--gold);margin-bottom:10px;}
+  .rulesCard ul{padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:.95rem;line-height:1.5;color:#e2e8f0;}
+  .rulesCard b{color:#facc15;}
+
   .gradeTabs{display:flex;gap:12px;}
-  .gradeTabs button{padding:10px 24px;font-size:1.1rem;border:none;border-radius:8px;background:#1e293b;color:#fff;cursor:pointer;}
+  .gradeTabs button{padding:10px 28px;font-size:1.05rem;border:none;border-radius:999px;background:#1e293b;color:#fff;cursor:pointer;transition:.15s;}
   .gradeTabs button.active{background:var(--gold);color:#0f172a;font-weight:bold;}
-  .chapterGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:720px;}
-  .chapterBtn{padding:16px 8px;border-radius:10px;border:2px solid #334155;background:#1e293b;color:#fff;font-size:1rem;cursor:pointer;transition:.15s;}
-  .chapterBtn:hover{border-color:var(--gold);}
+
+  .chapterGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;width:100%;}
+  .chapterBtn{padding:14px 6px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#fff;font-size:.95rem;cursor:pointer;transition:.15s;}
+  .chapterBtn:hover{border-color:var(--gold);transform:translateY(-2px);}
   .chapterBtn.selected{outline:3px solid var(--gold);}
   .chapterBtn.disabled{opacity:.35;cursor:not-allowed;border-style:dashed;}
-  .chapterBtn.disabled:hover{border-color:#334155;}
-  .chapterBtn small{display:block;font-size:.7rem;color:#94a3b8;margin-top:4px;}
-  #startBtn{padding:14px 40px;font-size:1.3rem;background:var(--gold);color:#0f172a;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
-  #startBtn:disabled{opacity:.4;cursor:not-allowed;}
+  .chapterBtn.disabled:hover{transform:none;border-color:#334155;}
+  .chapterBtn small{display:block;font-size:.68rem;color:#94a3b8;margin-top:4px;}
+
+  #startBtn{padding:16px 48px;font-size:1.3rem;background:var(--gold);color:#0f172a;border:none;border-radius:14px;font-weight:bold;cursor:pointer;box-shadow:0 6px 20px rgba(250,204,21,.35);transition:.15s;}
+  #startBtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+  #startBtn:not(:disabled):hover{transform:translateY(-2px);}
+
+  @media (max-width:600px){
+    .chapterGrid{grid-template-columns:repeat(2,1fr);}
+    #setupScreen h1{font-size:1.6rem;}
+    .rulesCard{padding:16px;}
+    .rulesCard ul{font-size:.88rem;}
+  }
 
   /* ---------- 游戏界面（品字型） ---------- */
   #gameScreen{display:none;height:100vh;flex-direction:column;}
-  #topPanel{flex:1 1 33.33%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;border-bottom:4px solid #334155;}
+  #topPanel{flex:1 1 33.33%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;}
   #scoreBar{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 30px;font-size:1.1rem;font-weight:bold;}
   #scoreBar .s1{color:#60a5fa;} #scoreBar .s2{color:#f87171;}
   #questionText{font-size:1.5rem;line-height:1.6;max-width:900px;}
   #questionMeta{font-size:.9rem;color:#94a3b8;margin-top:10px;}
+  .filledAnswer{color:#4ade80;font-weight:bold;text-decoration:underline;text-underline-offset:4px;}
+
+  /* 品字中线上的进度条：左蓝(玩家1) / 右红(玩家2)，起点在正中间，满10格获胜 */
+  #progressBarWrap{flex:0 0 34px;background:#0f172a;position:relative;z-index:5;}
+  #progressTrack{position:relative;width:100%;height:100%;overflow:hidden;
+    background-image:repeating-linear-gradient(to right, rgba(255,255,255,.18) 0 2px, transparent 2px 5%);}
+  #progressTrack::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fff;opacity:.6;}
+  #progressLeftFill{position:absolute;top:0;bottom:0;right:50%;width:0%;background:linear-gradient(to left,#3b82f6,#1d4ed8);transition:width .35s ease;}
+  #progressRightFill{position:absolute;top:0;bottom:0;left:50%;width:0%;background:linear-gradient(to right,#ef4444,#b91c1c);transition:width .35s ease;}
+  .progressIcon{position:absolute;top:50%;font-size:1.25rem;line-height:1;}
+  #progressLeftFill .progressIcon{left:0;transform:translate(-50%,-50%);}
+  #progressRightFill .progressIcon{right:0;transform:translate(50%,-50%);}
 
   #bottomPanel{flex:2 1 66.66%;display:flex;position:relative;}
   .playerPanel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;position:relative;overflow-y:auto;}
@@ -40,12 +69,12 @@
   #centerDivider{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#334155;}
   #countdownDisplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;color:var(--gold);z-index:10;text-shadow:0 0 20px rgba(0,0,0,.6);}
 
-  .optBtn{width:90%;max-width:340px;padding:12px;font-size:1.05rem;border:none;border-radius:8px;background:#334155;color:#fff;cursor:pointer;transition:.1s;text-align:center;}
+  .optBtn{width:auto;max-width:92%;padding:14px 24px;font-size:1.4rem;font-weight:600;border:none;border-radius:10px;background:#334155;color:#fff;cursor:pointer;transition:transform .12s,background .12s;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .optBtn:hover:not(:disabled){background:#475569;}
   .optBtn.correct{background:#16a34a !important;}
   .optBtn.wrong{background:#991b1b !important;}
   .optBtn:disabled{cursor:not-allowed;}
-  .optionsWrap{display:flex;flex-direction:column;gap:8px;width:100%;align-items:center;}
+  .optionsWrap{display:flex;flex-direction:column;gap:12px;width:100%;align-items:center;padding:0 8px;}
   .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;}
   .feedback.good{color:#4ade80;} .feedback.bad{color:#f87171;}
 
@@ -57,13 +86,29 @@
 <body>
 
 <div id="setupScreen">
-  <h1>科学填空大对决</h1>
-  <div class="gradeTabs">
-    <button id="gradeBtn1" class="active" onclick="selectGrade(1)">初一</button>
-    <button id="gradeBtn2" onclick="selectGrade(2)">初二</button>
+  <div class="setupInner">
+    <h1>🔬 科学填空大对决</h1>
+    <p class="tagline">品字对战 · 抢答制填空复习游戏</p>
+
+    <div class="rulesCard">
+      <h2>🎮 游戏规则</h2>
+      <ul>
+        <li>题目出现后<b>倒数5秒</b>，倒数结束双方才能看到选项</li>
+        <li>两边选项内容相同、位置各自打乱，<b>抢先点对得1分</b></li>
+        <li>点错会被锁定，需等待对手作答；若双方都答错，重新倒数换一批选项，最多重来3轮</li>
+        <li>3轮都无人答对，<b>双方各扣1分</b>，进入下一题</li>
+        <li>双空题的①②各自独立抢答、各得1分，谁先点对算谁的</li>
+        <li>任意一方<b>率先达到10分</b>即获胜，无需等对方分数</li>
+      </ul>
+    </div>
+
+    <div class="gradeTabs">
+      <button id="gradeBtn1" class="active" onclick="selectGrade(1)">初一</button>
+      <button id="gradeBtn2" onclick="selectGrade(2)">初二</button>
+    </div>
+    <div class="chapterGrid" id="chapterGrid"></div>
+    <button id="startBtn" disabled onclick="startGame()">开始游戏</button>
   </div>
-  <div class="chapterGrid" id="chapterGrid"></div>
-  <button id="startBtn" disabled onclick="startGame()">开始游戏</button>
 </div>
 
 <div id="gameScreen">
@@ -74,6 +119,12 @@
       <span class="s2">玩家2：<span id="score2">0</span></span>
     </div>
     <div id="questionText"></div>
+  </div>
+  <div id="progressBarWrap">
+    <div id="progressTrack">
+      <div id="progressLeftFill"><span class="progressIcon">🦂</span></div>
+      <div id="progressRightFill"><span class="progressIcon">🦞</span></div>
+    </div>
   </div>
   <div id="bottomPanel">
     <div id="centerDivider"></div>
@@ -114,6 +165,7 @@ let score1 = 0, score2 = 0;
 let roundAttempt = 1;
 let wrongThisRound = { p1:false, p2:false };
 let doubleState = null;
+let currentDisplayText = ''; // 当前题目文本的显示状态（用于逐步填入正确答案）
 
 /* ================= 章节选择 ================= */
 function selectGrade(g){
@@ -207,7 +259,8 @@ function loadQuestion(){
   roundAttempt = 1;
   wrongThisRound = {p1:false, p2:false};
   const q = gameQuestions[qIndex];
-  document.getElementById('questionText').textContent = q.q;
+  currentDisplayText = q.q;
+  document.getElementById('questionText').innerHTML = currentDisplayText;
   document.getElementById('questionMeta').textContent =
     `第${qIndex+1}/${gameQuestions.length}题 · ${q.type==='single' ? '单空' : '双空'}`;
   document.getElementById('feedback1').textContent='';
@@ -222,6 +275,9 @@ function loadQuestion(){
 }
 
 function runCountdownThenReveal(q){
+  // 清除上一轮残留的“错误！请等待对手作答！”等提示文字
+  showFeedback(1, '', true);
+  showFeedback(2, '', true);
   const cd = document.getElementById('countdownDisplay');
   let n = COUNTDOWN_SECONDS;
   cd.textContent = n;
@@ -272,10 +328,19 @@ function revealOptions(q){
 function renderOptionsForPlayer(player, options, q){
   const wrap = document.getElementById(`opts${player}`);
   wrap.innerHTML='';
+  const aligns = ['flex-start','center','flex-end'];
   options.forEach(opt=>{
     const btn = document.createElement('button');
     btn.className='optBtn';
     btn.textContent = opt;
+    const rotate = (Math.random()*7 - 3.5).toFixed(1);
+    const shiftX = Math.round(Math.random()*26 - 13);
+    const align = aligns[Math.floor(Math.random()*aligns.length)];
+    const origTransform = `rotate(${rotate}deg) translateX(${shiftX}px)`;
+    btn.style.alignSelf = align;
+    btn.style.transform = origTransform;
+    btn.addEventListener('mouseenter', ()=>{ if(!btn.disabled) btn.style.transform='none'; });
+    btn.addEventListener('mouseleave', ()=>{ if(!btn.disabled) btn.style.transform=origTransform; });
     btn.onclick = ()=>handleAnswer(player, opt, btn, q);
     wrap.appendChild(btn);
   });
@@ -298,8 +363,10 @@ function handleSingleAnswer(player, opt, btnEl, q){
     btnEl.classList.add('correct');
     showFeedback(player, '正确！', true);
     disableAllOptions(1); disableAllOptions(2);
+    currentDisplayText = currentDisplayText.replace('___', `<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
     awardPoint(player, 1);
-    setTimeout(nextQuestion, 1200);
+    setTimeout(nextQuestion, 5000);
   } else {
     btnEl.classList.add('wrong'); btnEl.disabled = true;
     showFeedback(player, '错误！请等待对手作答！', false);
@@ -313,12 +380,16 @@ function handleDoubleAnswer(player, opt, btnEl, q){
     doubleState.solved1 = true; doubleState.owner1 = player;
     btnEl.classList.add('correct'); btnEl.disabled = true;
     showFeedback(player, '①正确！', true);
+    currentDisplayText = currentDisplayText.replace('①___', `①<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
     awardPoint(player, 1);
     checkDoubleComplete();
   } else if(!doubleState.solved2 && isCorrectAnswer(opt, q.ans2)){
     doubleState.solved2 = true; doubleState.owner2 = player;
     btnEl.classList.add('correct'); btnEl.disabled = true;
     showFeedback(player, '②正确！', true);
+    currentDisplayText = currentDisplayText.replace('②___', `②<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
     awardPoint(player, 1);
     checkDoubleComplete();
   } else {
@@ -332,7 +403,7 @@ function handleDoubleAnswer(player, opt, btnEl, q){
 function checkDoubleComplete(){
   if(doubleState.solved1 && doubleState.solved2){
     disableAllOptions(1); disableAllOptions(2);
-    setTimeout(nextQuestion, 1200);
+    setTimeout(nextQuestion, 5000);
   }
 }
 
@@ -371,6 +442,14 @@ function awardPoint(player, pts){
 function updateScoreDisplay(){
   document.getElementById('score1').textContent = score1;
   document.getElementById('score2').textContent = score2;
+  updateProgressBar();
+}
+
+function updateProgressBar(){
+  const pct1 = Math.max(0, Math.min(score1, WIN_SCORE)) / WIN_SCORE * 50;
+  const pct2 = Math.max(0, Math.min(score2, WIN_SCORE)) / WIN_SCORE * 50;
+  document.getElementById('progressLeftFill').style.width = pct1 + '%';
+  document.getElementById('progressRightFill').style.width = pct2 + '%';
 }
 
 function nextQuestion(){
