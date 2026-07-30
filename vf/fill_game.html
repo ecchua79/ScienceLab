@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>科学填空大对决</title>
+<style>
+  :root{
+    --bg:#0f172a; --gold:#facc15;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;}
+  body{background:var(--bg);color:#fff;height:100vh;overflow:hidden;}
+
+  /* ---------- 设置界面 ---------- */
+  #setupScreen{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:20px;}
+  #setupScreen h1{font-size:2rem;color:var(--gold);}
+  .gradeTabs{display:flex;gap:12px;}
+  .gradeTabs button{padding:10px 24px;font-size:1.1rem;border:none;border-radius:8px;background:#1e293b;color:#fff;cursor:pointer;}
+  .gradeTabs button.active{background:var(--gold);color:#0f172a;font-weight:bold;}
+  .chapterGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;max-width:720px;}
+  .chapterBtn{padding:16px 8px;border-radius:10px;border:2px solid #334155;background:#1e293b;color:#fff;font-size:1rem;cursor:pointer;transition:.15s;}
+  .chapterBtn:hover{border-color:var(--gold);}
+  .chapterBtn.selected{outline:3px solid var(--gold);}
+  .chapterBtn.disabled{opacity:.35;cursor:not-allowed;border-style:dashed;}
+  .chapterBtn.disabled:hover{border-color:#334155;}
+  .chapterBtn small{display:block;font-size:.7rem;color:#94a3b8;margin-top:4px;}
+  #startBtn{padding:14px 40px;font-size:1.3rem;background:var(--gold);color:#0f172a;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
+  #startBtn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---------- 游戏界面（品字型） ---------- */
+  #gameScreen{display:none;height:100vh;flex-direction:column;}
+  #topPanel{flex:1 1 33.33%;background:#1e293b;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;border-bottom:4px solid #334155;}
+  #scoreBar{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 30px;font-size:1.1rem;font-weight:bold;}
+  #scoreBar .s1{color:#60a5fa;} #scoreBar .s2{color:#f87171;}
+  #questionText{font-size:1.5rem;line-height:1.6;max-width:900px;}
+  #questionMeta{font-size:.9rem;color:#94a3b8;margin-top:10px;}
+
+  #bottomPanel{flex:2 1 66.66%;display:flex;position:relative;}
+  .playerPanel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;position:relative;overflow-y:auto;}
+  #p1Panel{background:#1e3a5f;} #p2Panel{background:#5f1e1e;}
+  #centerDivider{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#334155;}
+  #countdownDisplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;color:var(--gold);z-index:10;text-shadow:0 0 20px rgba(0,0,0,.6);}
+
+  .optBtn{width:90%;max-width:340px;padding:12px;font-size:1.05rem;border:none;border-radius:8px;background:#334155;color:#fff;cursor:pointer;transition:.1s;text-align:center;}
+  .optBtn:hover:not(:disabled){background:#475569;}
+  .optBtn.correct{background:#16a34a !important;}
+  .optBtn.wrong{background:#991b1b !important;}
+  .optBtn:disabled{cursor:not-allowed;}
+  .optionsWrap{display:flex;flex-direction:column;gap:8px;width:100%;align-items:center;}
+  .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;}
+  .feedback.good{color:#4ade80;} .feedback.bad{color:#f87171;}
+
+  #resultScreen{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+  #resultScreen h1{font-size:3rem;color:var(--gold);}
+  #resultScreen button{padding:12px 30px;font-size:1.1rem;background:var(--gold);color:#0f172a;border:none;border-radius:8px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="setupScreen">
+  <h1>科学填空大对决</h1>
+  <div class="gradeTabs">
+    <button id="gradeBtn1" class="active" onclick="selectGrade(1)">初一</button>
+    <button id="gradeBtn2" onclick="selectGrade(2)">初二</button>
+  </div>
+  <div class="chapterGrid" id="chapterGrid"></div>
+  <button id="startBtn" disabled onclick="startGame()">开始游戏</button>
+</div>
+
+<div id="gameScreen">
+  <div id="topPanel">
+    <div id="scoreBar">
+      <span class="s1">玩家1：<span id="score1">0</span></span>
+      <span id="questionMeta"></span>
+      <span class="s2">玩家2：<span id="score2">0</span></span>
+    </div>
+    <div id="questionText"></div>
+  </div>
+  <div id="bottomPanel">
+    <div id="centerDivider"></div>
+    <div id="countdownDisplay"></div>
+    <div class="playerPanel" id="p1Panel">
+      <div class="feedback" id="feedback1"></div>
+      <div class="optionsWrap" id="opts1"></div>
+    </div>
+    <div class="playerPanel" id="p2Panel">
+      <div class="feedback" id="feedback2"></div>
+      <div class="optionsWrap" id="opts2"></div>
+    </div>
+  </div>
+</div>
+
+<div id="resultScreen">
+  <h1 id="resultText"></h1>
+  <button onclick="location.reload()">再来一局</button>
+</div>
+
+<script>
+/* ================= 配置 ================= */
+const CHAPTERS = {
+  1: Array.from({length:10}, (_,i)=>String(i+1).padStart(2,'0')),
+  2: Array.from({length:10}, (_,i)=>String(i+1).padStart(2,'0'))
+};
+const QUESTIONS_PER_STAGE = 15;   // 单空题、双空题各15题
+const WIN_SCORE = 10;             // 先达到10分获胜
+const COUNTDOWN_SECONDS = 5;
+const MAX_ROUNDS_PER_QUESTION = 3;
+
+let currentGrade = 1;
+let chapterCache = {};   // path -> parsed module 或 null(制作中)
+let chapterData = null;
+let gameQuestions = [];
+let qIndex = 0;
+let score1 = 0, score2 = 0;
+let roundAttempt = 1;
+let wrongThisRound = { p1:false, p2:false };
+let doubleState = null;
+
+/* ================= 章节选择 ================= */
+function selectGrade(g){
+  currentGrade = g;
+  document.getElementById('gradeBtn1').classList.toggle('active', g===1);
+  document.getElementById('gradeBtn2').classList.toggle('active', g===2);
+  renderChapterGrid();
+}
+
+function renderChapterGrid(){
+  const grid = document.getElementById('chapterGrid');
+  grid.innerHTML = '';
+  chapterData = null;
+  document.getElementById('startBtn').disabled = true;
+  CHAPTERS[currentGrade].forEach(num=>{
+    const path = `questions/${currentGrade}c${num}_fill.js`;
+    const btn = document.createElement('button');
+    btn.className = 'chapterBtn';
+    btn.innerHTML = `第${parseInt(num)}章<small>检查中...</small>`;
+    grid.appendChild(btn);
+    checkChapterFile(path, btn, currentGrade, num);
+  });
+}
+
+async function checkChapterFile(path, btn, grade, num){
+  if(chapterCache.hasOwnProperty(path)){
+    applyChapterButtonState(path, btn, grade, num);
+    return;
+  }
+  try{
+    const res = await fetch(path);
+    if(!res.ok) throw new Error('not found');
+    const text = await res.text();
+    const mod = extractChapterModule(text);
+    if(!mod.FILL_QUESTIONS || !mod.DOUBLE_QUESTIONS) throw new Error('格式错误');
+    chapterCache[path] = mod;
+  }catch(e){
+    chapterCache[path] = null; // 标记为不可用（制作中）
+  }
+  applyChapterButtonState(path, btn, grade, num);
+}
+
+function applyChapterButtonState(path, btn, grade, num){
+  const mod = chapterCache[path];
+  if(mod === null){
+    btn.classList.add('disabled');
+    btn.innerHTML = `第${parseInt(num)}章<small>正在制作中</small>`;
+    btn.onclick = null;
+  } else {
+    const title = mod.CHAPTER_INFO_FILL && mod.CHAPTER_INFO_FILL.title ? mod.CHAPTER_INFO_FILL.title : '';
+    btn.innerHTML = `第${parseInt(num)}章<small>${title}</small>`;
+    btn.onclick = ()=>selectChapter(path, btn);
+  }
+}
+
+function selectChapter(path, btnEl){
+  chapterData = chapterCache[path];
+  Array.from(document.getElementById('chapterGrid').children).forEach(b=>b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  document.getElementById('startBtn').disabled = false;
+}
+
+// 用 Function 包裹章节文件文本，避免变量污染全局作用域（沿用既有的多文件加载方式）
+function extractChapterModule(jsText){
+  const wrapped = new Function(jsText + `
+    return { CHAPTER_INFO_FILL, TERM_POOL, FILL_QUESTIONS, DOUBLE_QUESTIONS };
+  `);
+  return wrapped();
+}
+
+renderChapterGrid();
+
+/* ================= 开始游戏 ================= */
+function startGame(){
+  if(!chapterData) return;
+  const singles = shuffle([...chapterData.FILL_QUESTIONS]).slice(0, QUESTIONS_PER_STAGE)
+    .map(q=>({type:'single', ...q}));
+  const doubles = shuffle([...chapterData.DOUBLE_QUESTIONS]).slice(0, QUESTIONS_PER_STAGE)
+    .map(q=>({type:'double', ...q}));
+  gameQuestions = [...singles, ...doubles];
+  qIndex = 0; score1 = 0; score2 = 0;
+  updateScoreDisplay();
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('gameScreen').style.display='flex';
+  loadQuestion();
+}
+
+/* ================= 出题流程 ================= */
+function loadQuestion(){
+  if(qIndex >= gameQuestions.length){ return endGame(); }
+  roundAttempt = 1;
+  wrongThisRound = {p1:false, p2:false};
+  const q = gameQuestions[qIndex];
+  document.getElementById('questionText').textContent = q.q;
+  document.getElementById('questionMeta').textContent =
+    `第${qIndex+1}/${gameQuestions.length}题 · ${q.type==='single' ? '单空' : '双空'}`;
+  document.getElementById('feedback1').textContent='';
+  document.getElementById('feedback2').textContent='';
+  document.getElementById('opts1').innerHTML='';
+  document.getElementById('opts2').innerHTML='';
+
+  if(q.type==='double'){
+    doubleState = { solved1:false, solved2:false, owner1:null, owner2:null };
+  }
+  runCountdownThenReveal(q);
+}
+
+function runCountdownThenReveal(q){
+  const cd = document.getElementById('countdownDisplay');
+  let n = COUNTDOWN_SECONDS;
+  cd.textContent = n;
+  cd.style.display='block';
+  document.getElementById('opts1').style.visibility='hidden';
+  document.getElementById('opts2').style.visibility='hidden';
+  const timer = setInterval(()=>{
+    n--;
+    if(n<=0){
+      clearInterval(timer);
+      cd.style.display='none';
+      document.getElementById('opts1').style.visibility='visible';
+      document.getElementById('opts2').style.visibility='visible';
+      revealOptions(q);
+    } else {
+      cd.textContent = n;
+    }
+  },1000);
+}
+
+function normalizeAnsList(ans){ return Array.isArray(ans) ? ans : [ans]; }
+
+function buildOptionList(q){
+  const pool = chapterData.TERM_POOL;
+  let correctAnswers;
+  if(q.type==='single'){
+    correctAnswers = [normalizeAnsList(q.ans)[0]];
+  } else {
+    correctAnswers = [normalizeAnsList(q.ans1)[0], normalizeAnsList(q.ans2)[0]];
+  }
+  let distractorSource;
+  if(q.distractors){
+    distractorSource = shuffle([...q.distractors]);
+  } else {
+    distractorSource = shuffle(pool.filter(t=>!correctAnswers.includes(t)));
+  }
+  const needed = 10 - correctAnswers.length;
+  const chosen = distractorSource.slice(0, needed);
+  return [...correctAnswers, ...chosen];
+}
+
+function revealOptions(q){
+  const baseOptions = buildOptionList(q);
+  renderOptionsForPlayer(1, shuffle([...baseOptions]), q);
+  renderOptionsForPlayer(2, shuffle([...baseOptions]), q);
+}
+
+function renderOptionsForPlayer(player, options, q){
+  const wrap = document.getElementById(`opts${player}`);
+  wrap.innerHTML='';
+  options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='optBtn';
+    btn.textContent = opt;
+    btn.onclick = ()=>handleAnswer(player, opt, btn, q);
+    wrap.appendChild(btn);
+  });
+}
+
+/* ================= 答题判断 ================= */
+function isCorrectAnswer(opt, ansField){ return normalizeAnsList(ansField).includes(opt); }
+
+function handleAnswer(player, opt, btnEl, q){
+  if(q.type==='single') handleSingleAnswer(player, opt, btnEl, q);
+  else handleDoubleAnswer(player, opt, btnEl, q);
+}
+
+function disableAllOptions(player){
+  document.querySelectorAll(`#opts${player} .optBtn`).forEach(b=>b.disabled=true);
+}
+
+function handleSingleAnswer(player, opt, btnEl, q){
+  if(isCorrectAnswer(opt, q.ans)){
+    btnEl.classList.add('correct');
+    showFeedback(player, '正确！', true);
+    disableAllOptions(1); disableAllOptions(2);
+    awardPoint(player, 1);
+    setTimeout(nextQuestion, 1200);
+  } else {
+    btnEl.classList.add('wrong'); btnEl.disabled = true;
+    showFeedback(player, '错误！请等待对手作答！', false);
+    wrongThisRound[player===1?'p1':'p2'] = true;
+    checkBothWrong(q, false);
+  }
+}
+
+function handleDoubleAnswer(player, opt, btnEl, q){
+  if(!doubleState.solved1 && isCorrectAnswer(opt, q.ans1)){
+    doubleState.solved1 = true; doubleState.owner1 = player;
+    btnEl.classList.add('correct'); btnEl.disabled = true;
+    showFeedback(player, '①正确！', true);
+    awardPoint(player, 1);
+    checkDoubleComplete();
+  } else if(!doubleState.solved2 && isCorrectAnswer(opt, q.ans2)){
+    doubleState.solved2 = true; doubleState.owner2 = player;
+    btnEl.classList.add('correct'); btnEl.disabled = true;
+    showFeedback(player, '②正确！', true);
+    awardPoint(player, 1);
+    checkDoubleComplete();
+  } else {
+    btnEl.classList.add('wrong'); btnEl.disabled = true;
+    showFeedback(player, '错误！请等待对手作答！', false);
+    wrongThisRound[player===1?'p1':'p2'] = true;
+    checkBothWrong(q, true);
+  }
+}
+
+function checkDoubleComplete(){
+  if(doubleState.solved1 && doubleState.solved2){
+    disableAllOptions(1); disableAllOptions(2);
+    setTimeout(nextQuestion, 1200);
+  }
+}
+
+function checkBothWrong(q, isDouble){
+  // 双空题：只要还有任一空未解出，双方都错才重来；已解出的空不再触发整题重开
+  if(isDouble && (doubleState.solved1 || doubleState.solved2)) return;
+  if(wrongThisRound.p1 && wrongThisRound.p2){
+    roundAttempt++;
+    if(roundAttempt > MAX_ROUNDS_PER_QUESTION){
+      score1--; score2--;
+      updateScoreDisplay();
+      showFeedback(1,'双方都未答对，各扣1分',false);
+      showFeedback(2,'双方都未答对，各扣1分',false);
+      setTimeout(nextQuestion, 1500);
+    } else {
+      wrongThisRound = {p1:false, p2:false};
+      setTimeout(()=>runCountdownThenReveal(q), 1000);
+    }
+  }
+}
+
+function showFeedback(player, msg, good){
+  const el = document.getElementById(`feedback${player}`);
+  el.textContent = msg;
+  el.className = 'feedback ' + (good ? 'good' : 'bad');
+}
+
+function awardPoint(player, pts){
+  if(player===1) score1 += pts; else score2 += pts;
+  updateScoreDisplay();
+  if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){
+    setTimeout(endGame, 1300);
+  }
+}
+
+function updateScoreDisplay(){
+  document.getElementById('score1').textContent = score1;
+  document.getElementById('score2').textContent = score2;
+}
+
+function nextQuestion(){
+  if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){ return endGame(); }
+  qIndex++;
+  loadQuestion();
+}
+
+function endGame(){
+  document.getElementById('gameScreen').style.display='none';
+  document.getElementById('resultScreen').style.display='flex';
+  let text;
+  if(score1 > score2) text = `🏆 玩家1 获胜！（${score1} : ${score2}）`;
+  else if(score2 > score1) text = `🏆 玩家2 获胜！（${score2} : ${score1}）`;
+  else text = `平局！（${score1} : ${score2}）`;
+  document.getElementById('resultText').textContent = text;
+}
+
+/* ================= 工具函数 ================= */
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+</script>
+</body>
+</html>
