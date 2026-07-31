@@ -1,0 +1,553 @@
+<!-- 峇株吧辖华仁中学 蔡逸众制作 -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>科学填空大对决</title>
+<style>
+  :root{
+    --bg:#0f172a; --gold:#facc15; --p1:#3b82f6; --p2:#ef4444;
+    --abyss:#04121f; --deep:#0a2f45; --mid:#0e5c73; --glow:#2dd4c7; --coral:#ff6f5e; --sand:#f5dfa8; --foam:#dffcff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;}
+  body{background:var(--bg);color:#fff;height:100vh;overflow:hidden;}
+
+  /* ---------- 设置界面（封面·海洋主题） ---------- */
+  #setupScreen{height:100vh;overflow-y:auto;overflow-x:hidden;display:flex;justify-content:center;padding:32px 16px 46px;position:relative;
+    background:
+      radial-gradient(ellipse at 50% -8%, rgba(45,212,199,.20) 0%, transparent 48%),
+      linear-gradient(180deg, var(--deep) 0%, var(--abyss) 55%, #010609 100%);}
+  #setupScreen::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.35;
+    background:repeating-linear-gradient(100deg, rgba(255,255,255,.05) 0 2px, transparent 2px 46px);
+    animation:causticDrift 16s linear infinite;}
+  @keyframes causticDrift{0%{background-position:0 0;}100%{background-position:460px 260px;}}
+  #bubbleField{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;}
+  .bubble{position:absolute;bottom:-10%;border-radius:50%;opacity:0;
+    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(160,240,255,.15) 60%, transparent 72%);
+    animation:bubbleRise linear infinite;}
+  @keyframes bubbleRise{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    8%{opacity:.6;}
+    92%{opacity:.45;}
+    100%{transform:translateY(-118vh) translateX(var(--drift,24px));opacity:0;}
+  }
+  .setupInner{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:20px;position:relative;z-index:2;}
+  #setupScreen h1{font-size:2.2rem;color:var(--foam);text-align:center;letter-spacing:.5px;
+    text-shadow:0 0 18px rgba(45,212,199,.55), 0 2px 10px rgba(0,0,0,.4);}
+  .tagline{color:#8fd8d0;font-size:.95rem;margin-top:-10px;text-align:center;opacity:.85;}
+  .rulesCard{width:100%;background:rgba(9,44,58,.55);border:1px solid rgba(45,212,199,.28);border-radius:20px;padding:20px 24px;
+    backdrop-filter:blur(3px);box-shadow:0 8px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);}
+  .rulesCard h2{font-size:1.1rem;color:var(--glow);margin-bottom:10px;}
+  .rulesCard ul{padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:.95rem;line-height:1.5;color:#dff5f3;}
+  .rulesCard b{color:var(--sand);}
+
+  .gradeTabs{display:flex;gap:12px;}
+  .gradeTabs button{padding:10px 28px;font-size:1.05rem;border:1px solid rgba(45,212,199,.3);border-radius:999px;background:rgba(6,30,42,.6);color:#cdeef0;cursor:pointer;transition:.2s;}
+  .gradeTabs button:hover{border-color:var(--glow);}
+  .gradeTabs button.active{background:linear-gradient(160deg,#2dd4c7,#0e8a86);color:#04211f;font-weight:bold;border-color:transparent;box-shadow:0 4px 16px rgba(45,212,199,.35);}
+
+  .chapterGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;width:100%;}
+  .chapterBtn{padding:14px 6px;border-radius:14px;border:2px solid rgba(45,212,199,.22);background:linear-gradient(160deg, rgba(14,92,115,.45), rgba(6,28,40,.65));color:#eafffd;font-size:.95rem;cursor:pointer;transition:.18s;position:relative;overflow:hidden;}
+  .chapterBtn:hover{border-color:var(--glow);transform:translateY(-3px);box-shadow:0 8px 18px rgba(45,212,199,.25);}
+  .chapterBtn.selected{outline:3px solid var(--coral);border-color:transparent;}
+  .chapterBtn.disabled{opacity:.4;cursor:not-allowed;border-style:dashed;background:rgba(20,30,38,.5);}
+  .chapterBtn.disabled:hover{transform:none;box-shadow:none;border-color:rgba(148,163,184,.25);}
+  .chapterBtn small{display:block;font-size:.68rem;color:#9fd7d2;margin-top:4px;}
+
+  #startBtn{padding:16px 48px;font-size:1.3rem;background:linear-gradient(160deg,#ff8a72,var(--coral));color:#2a0f0a;border:none;border-radius:999px;font-weight:bold;cursor:pointer;
+    box-shadow:0 8px 24px rgba(255,111,94,.4);transition:.18s;position:relative;z-index:2;}
+  #startBtn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;background:#334155;color:#94a3b8;}
+  #startBtn:not(:disabled):hover{transform:translateY(-2px) scale(1.02);box-shadow:0 10px 30px rgba(255,111,94,.55);}
+
+  @media (max-width:600px){
+    .chapterGrid{grid-template-columns:repeat(2,1fr);}
+    #setupScreen h1{font-size:1.6rem;}
+    .rulesCard{padding:16px;}
+    .rulesCard ul{font-size:.88rem;}
+  }
+
+  /* ---------- 游戏界面（品字型） ---------- */
+  #gameScreen{display:none;height:100vh;flex-direction:column;}
+  #topPanel{flex:1 1 33.33%;background:radial-gradient(ellipse at top, #164e63 0%, #0c2a3d 60%, #071b29 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;}
+  #questionCard{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:18px 30px;max-width:900px;backdrop-filter:blur(2px);}
+  #scoreBar{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 30px;font-size:1.1rem;font-weight:bold;}
+  #scoreBar .s1{color:#60a5fa;} #scoreBar .s2{color:#f87171;}
+  #questionText{font-size:2.1rem;line-height:1.65;max-width:900px;font-weight:600;}
+  #questionMeta{font-size:.9rem;color:#94a3b8;margin-top:10px;}
+  .filledAnswer{color:#4ade80;font-weight:bold;text-decoration:underline;text-underline-offset:4px;}
+
+  /* 品字中线上的进度条：左蓝(玩家1) / 右红(玩家2)，起点在正中间，满10格获胜 */
+  #progressBarWrap{flex:0 0 34px;background:#0f172a;position:relative;z-index:5;}
+  #progressTrack{position:relative;width:100%;height:100%;overflow:hidden;
+    background-image:repeating-linear-gradient(to right, rgba(255,255,255,.18) 0 2px, transparent 2px 5%);}
+  #progressTrack::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fff;opacity:.6;}
+  #progressLeftFill{position:absolute;top:0;bottom:0;width:0%;transition:width .35s ease, background .2s;}
+  #progressLeftFill.normal{right:50%;left:auto;background:linear-gradient(to left,#3b82f6,#1d4ed8);opacity:1;}
+  #progressLeftFill.invading{left:50%;right:auto;background:repeating-linear-gradient(45deg,#3b82f6 0 6px,#1d4ed8 6px 12px);opacity:.55;}
+  #progressRightFill{position:absolute;top:0;bottom:0;width:0%;transition:width .35s ease, background .2s;}
+  #progressRightFill.normal{left:50%;right:auto;background:linear-gradient(to right,#ef4444,#b91c1c);opacity:1;}
+  #progressRightFill.invading{right:50%;left:auto;background:repeating-linear-gradient(45deg,#ef4444 0 6px,#b91c1c 6px 12px);opacity:.55;}
+  .progressIcon{position:absolute;top:50%;font-size:1.25rem;line-height:1;}
+  #progressLeftFill.normal .progressIcon{left:0;right:auto;transform:translate(-50%,-50%);}
+  #progressLeftFill.invading .progressIcon{right:0;left:auto;transform:translate(50%,-50%);}
+  #progressRightFill.normal .progressIcon{right:0;left:auto;transform:translate(50%,-50%);}
+  #progressRightFill.invading .progressIcon{left:0;right:auto;transform:translate(-50%,-50%);}
+
+  #bottomPanel{flex:2 1 66.66%;display:flex;position:relative;}
+  .playerPanel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;position:relative;overflow-y:auto;}
+  #p1Panel{background:radial-gradient(ellipse at bottom, #0e3a5f 0%, #071b29 85%);}
+  #p2Panel{background:radial-gradient(ellipse at bottom, #5f1e2c 0%, #290b12 85%);}
+  #centerDivider{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#334155;}
+  #countdownDisplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;color:var(--gold);z-index:10;text-shadow:0 0 20px rgba(0,0,0,.6);}
+
+  .optBtn{width:auto;max-width:92%;padding:18px 30px;font-size:1.7rem;font-weight:700;border:none;border-radius:999px;background:linear-gradient(160deg,#3d5a80,#2a3f5f);color:#fff;cursor:pointer;transition:transform .12s,background .12s;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);}
+  .optBtn:hover:not(:disabled){background:#475569;}
+  .optBtn.correct{background:#16a34a !important;}
+  .optBtn.wrong{background:#991b1b !important;}
+  .optBtn:disabled{cursor:not-allowed;}
+  .optionsWrap{display:flex;flex-direction:column;gap:12px;width:100%;align-items:center;padding:0 8px;}
+  .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;}
+  .feedback.good{color:#4ade80;} .feedback.bad{color:#f87171;}
+
+  #resultScreen{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+  #resultScreen h1{font-size:3rem;color:var(--gold);}
+  #resultScreen button{padding:12px 30px;font-size:1.1rem;background:var(--gold);color:#0f172a;border:none;border-radius:8px;cursor:pointer;}
+
+  #madeByFooter{position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:.65rem;color:#18202f;pointer-events:none;z-index:1;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<div id="setupScreen">
+  <div id="bubbleField"></div>
+  <div class="setupInner">
+    <h1>🐠 科学填空大对决</h1>
+    <p class="tagline">〜 潜入知识海域 · 抢答制填空复习游戏 〜</p>
+
+    <div class="rulesCard">
+      <h2>🧭 游戏规则</h2>
+      <ul>
+        <li>题目出现后<b>倒数5秒</b>，倒数结束双方才能看到选项</li>
+        <li>两边选项内容相同、位置各自打乱，<b>抢先点对得1分</b></li>
+        <li>点错会被锁定，需等待对手作答；若双方都答错，重新倒数换一批选项，最多重来3轮</li>
+        <li>3轮都无人答对，<b>双方各扣1分</b>，进入下一题</li>
+        <li>双空题的①②各自独立抢答、各得1分，谁先点对算谁的</li>
+        <li>任意一方<b>率先达到10分</b>即获胜，无需等对方分数</li>
+      </ul>
+    </div>
+
+    <div class="gradeTabs">
+      <button id="gradeBtn1" class="active" onclick="selectGrade(1)">🏝️ 浅海区・初一</button>
+      <button id="gradeBtn2" onclick="selectGrade(2)">🐋 深海区・初二</button>
+    </div>
+    <div class="chapterGrid" id="chapterGrid"></div>
+    <button id="startBtn" disabled onclick="startGame()">⚓ 起航开始</button>
+  </div>
+</div>
+
+<div id="gameScreen">
+  <div id="topPanel">
+    <div id="scoreBar">
+      <span class="s1">玩家1：<span id="score1">0</span></span>
+      <span id="questionMeta"></span>
+      <span class="s2">玩家2：<span id="score2">0</span></span>
+    </div>
+    <div id="questionCard"><div id="questionText"></div></div>
+  </div>
+  <div id="progressBarWrap">
+    <div id="progressTrack">
+      <div id="progressLeftFill" class="normal"><span class="progressIcon">🦈</span></div>
+      <div id="progressRightFill" class="normal"><span class="progressIcon">🐙</span></div>
+    </div>
+  </div>
+  <div id="bottomPanel">
+    <div id="centerDivider"></div>
+    <div id="countdownDisplay"></div>
+    <div class="playerPanel" id="p1Panel">
+      <div class="feedback" id="feedback1"></div>
+      <div class="optionsWrap" id="opts1"></div>
+    </div>
+    <div class="playerPanel" id="p2Panel">
+      <div class="feedback" id="feedback2"></div>
+      <div class="optionsWrap" id="opts2"></div>
+    </div>
+  </div>
+</div>
+
+<div id="resultScreen">
+  <h1 id="resultText"></h1>
+  <button onclick="location.reload()">再来一局</button>
+</div>
+
+<div id="madeByFooter">峇株吧辖华仁中学 蔡逸众制作</div>
+
+<script>
+/* 峇株吧辖华仁中学 蔡逸众制作 */
+/* ================= 配置 ================= */
+const CHAPTERS = {
+  1: Array.from({length:10}, (_,i)=>String(i+1).padStart(2,'0')),
+  2: Array.from({length:10}, (_,i)=>String(i+1).padStart(2,'0'))
+};
+const QUESTIONS_PER_STAGE = 15;   // 单空题、双空题各15题
+const WIN_SCORE = 10;             // 先达到10分获胜
+const COUNTDOWN_SECONDS = 5;
+const MAX_ROUNDS_PER_QUESTION = 3;
+
+let currentGrade = 1;
+let chapterCache = {};   // path -> parsed module 或 null(制作中)
+let chapterData = null;
+let gameQuestions = [];
+let qIndex = 0;
+let score1 = 0, score2 = 0;
+let roundAttempt = 1;
+let wrongThisRound = { p1:false, p2:false };
+let doubleState = null;
+let currentDisplayText = ''; // 当前题目文本的显示状态（用于逐步填入正确答案）
+
+/* ================= 章节选择 ================= */
+function selectGrade(g){
+  currentGrade = g;
+  document.getElementById('gradeBtn1').classList.toggle('active', g===1);
+  document.getElementById('gradeBtn2').classList.toggle('active', g===2);
+  renderChapterGrid();
+}
+
+function renderChapterGrid(){
+  const grid = document.getElementById('chapterGrid');
+  grid.innerHTML = '';
+  chapterData = null;
+  document.getElementById('startBtn').disabled = true;
+  CHAPTERS[currentGrade].forEach(num=>{
+    const path = `questions/${currentGrade}c${num}_fill.js`;
+    const btn = document.createElement('button');
+    btn.className = 'chapterBtn';
+    btn.innerHTML = `第${parseInt(num)}章<small>检查中...</small>`;
+    grid.appendChild(btn);
+    checkChapterFile(path, btn, currentGrade, num);
+  });
+}
+
+async function checkChapterFile(path, btn, grade, num){
+  if(chapterCache.hasOwnProperty(path)){
+    applyChapterButtonState(path, btn, grade, num);
+    return;
+  }
+  try{
+    const res = await fetch(path);
+    if(!res.ok) throw new Error('not found');
+    const text = await res.text();
+    const mod = extractChapterModule(text);
+    if(!mod.FILL_QUESTIONS || !mod.DOUBLE_QUESTIONS) throw new Error('格式错误');
+    chapterCache[path] = mod;
+  }catch(e){
+    chapterCache[path] = null; // 标记为不可用（制作中）
+  }
+  applyChapterButtonState(path, btn, grade, num);
+}
+
+const SEA_ICONS = ['🐠','🐟','🦑','🐡','🦀','🐢','🦐','🐬','⭐','🐙'];
+
+function applyChapterButtonState(path, btn, grade, num){
+  const mod = chapterCache[path];
+  const icon = SEA_ICONS[(parseInt(num)-1) % SEA_ICONS.length];
+  if(mod === null){
+    btn.classList.add('disabled');
+    btn.innerHTML = `🪨 第${parseInt(num)}章<small>珊瑚礁待探索</small>`;
+    btn.onclick = null;
+  } else {
+    const title = mod.CHAPTER_INFO_FILL && mod.CHAPTER_INFO_FILL.title ? mod.CHAPTER_INFO_FILL.title : '';
+    btn.innerHTML = `${icon} 第${parseInt(num)}章<small>${title}</small>`;
+    btn.onclick = ()=>selectChapter(path, btn);
+  }
+}
+
+function selectChapter(path, btnEl){
+  chapterData = chapterCache[path];
+  Array.from(document.getElementById('chapterGrid').children).forEach(b=>b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  document.getElementById('startBtn').disabled = false;
+}
+
+// 用 Function 包裹章节文件文本，避免变量污染全局作用域（沿用既有的多文件加载方式）
+function extractChapterModule(jsText){
+  const wrapped = new Function(jsText + `
+    return { CHAPTER_INFO_FILL, TERM_POOL, FILL_QUESTIONS, DOUBLE_QUESTIONS };
+  `);
+  return wrapped();
+}
+
+renderChapterGrid();
+generateBubbles();
+
+/* ================= 海洋气泡装饰 ================= */
+function generateBubbles(){
+  const field = document.getElementById('bubbleField');
+  if(!field) return;
+  const COUNT = 22;
+  for(let i=0;i<COUNT;i++){
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = (Math.random()*10 + 4).toFixed(1);
+    const left = (Math.random()*100).toFixed(1);
+    const duration = (Math.random()*10 + 9).toFixed(1);
+    const delay = (Math.random()*18).toFixed(1);
+    const drift = (Math.random()*50 - 25).toFixed(0);
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = left + '%';
+    b.style.setProperty('--drift', drift + 'px');
+    b.style.animationDuration = duration + 's';
+    b.style.animationDelay = '-' + delay + 's';
+    field.appendChild(b);
+  }
+}
+
+/* ================= 开始游戏 ================= */
+function startGame(){
+  if(!chapterData) return;
+  const singles = shuffle([...chapterData.FILL_QUESTIONS]).slice(0, QUESTIONS_PER_STAGE)
+    .map(q=>({type:'single', ...q}));
+  const doubles = shuffle([...chapterData.DOUBLE_QUESTIONS]).slice(0, QUESTIONS_PER_STAGE)
+    .map(q=>({type:'double', ...q}));
+  gameQuestions = [...singles, ...doubles];
+  qIndex = 0; score1 = 0; score2 = 0;
+  updateScoreDisplay();
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('gameScreen').style.display='flex';
+  loadQuestion();
+}
+
+/* ================= 出题流程 ================= */
+function loadQuestion(){
+  if(qIndex >= gameQuestions.length){ return endGame(); }
+  roundAttempt = 1;
+  wrongThisRound = {p1:false, p2:false};
+  const q = gameQuestions[qIndex];
+  currentDisplayText = q.q;
+  document.getElementById('questionText').innerHTML = currentDisplayText;
+  document.getElementById('questionMeta').textContent =
+    `第${qIndex+1}/${gameQuestions.length}题 · ${q.type==='single' ? '单空' : '双空'}`;
+  document.getElementById('feedback1').textContent='';
+  document.getElementById('feedback2').textContent='';
+  document.getElementById('opts1').innerHTML='';
+  document.getElementById('opts2').innerHTML='';
+
+  if(q.type==='double'){
+    doubleState = { solved1:false, solved2:false, owner1:null, owner2:null };
+  }
+  runCountdownThenReveal(q);
+}
+
+function runCountdownThenReveal(q){
+  // 清除上一轮残留的“错误！请等待对手作答！”等提示文字
+  showFeedback(1, '', true);
+  showFeedback(2, '', true);
+  const cd = document.getElementById('countdownDisplay');
+  let n = COUNTDOWN_SECONDS;
+  cd.textContent = n;
+  cd.style.display='block';
+  document.getElementById('opts1').style.visibility='hidden';
+  document.getElementById('opts2').style.visibility='hidden';
+  const timer = setInterval(()=>{
+    n--;
+    if(n<=0){
+      clearInterval(timer);
+      cd.style.display='none';
+      document.getElementById('opts1').style.visibility='visible';
+      document.getElementById('opts2').style.visibility='visible';
+      revealOptions(q);
+    } else {
+      cd.textContent = n;
+    }
+  },1000);
+}
+
+function normalizeAnsList(ans){ return Array.isArray(ans) ? ans : [ans]; }
+
+function buildOptionList(q){
+  const pool = chapterData.TERM_POOL;
+  let correctAnswers;
+  if(q.type==='single'){
+    correctAnswers = [normalizeAnsList(q.ans)[0]];
+  } else {
+    correctAnswers = [normalizeAnsList(q.ans1)[0], normalizeAnsList(q.ans2)[0]];
+  }
+  let distractorSource;
+  if(q.distractors){
+    distractorSource = shuffle([...q.distractors]);
+  } else {
+    distractorSource = shuffle(pool.filter(t=>!correctAnswers.includes(t)));
+  }
+  const needed = 10 - correctAnswers.length;
+  const chosen = distractorSource.slice(0, needed);
+  return [...correctAnswers, ...chosen];
+}
+
+function revealOptions(q){
+  const baseOptions = buildOptionList(q);
+  renderOptionsForPlayer(1, shuffle([...baseOptions]), q);
+  renderOptionsForPlayer(2, shuffle([...baseOptions]), q);
+}
+
+function renderOptionsForPlayer(player, options, q){
+  const wrap = document.getElementById(`opts${player}`);
+  wrap.innerHTML='';
+  const aligns = ['flex-start','center','flex-end'];
+  options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className='optBtn';
+    btn.textContent = opt;
+    const rotate = (Math.random()*7 - 3.5).toFixed(1);
+    const shiftX = Math.round(Math.random()*26 - 13);
+    const align = aligns[Math.floor(Math.random()*aligns.length)];
+    const origTransform = `rotate(${rotate}deg) translateX(${shiftX}px)`;
+    btn.style.alignSelf = align;
+    btn.style.transform = origTransform;
+    btn.addEventListener('mouseenter', ()=>{ if(!btn.disabled) btn.style.transform='none'; });
+    btn.addEventListener('mouseleave', ()=>{ if(!btn.disabled) btn.style.transform=origTransform; });
+    btn.onclick = ()=>handleAnswer(player, opt, btn, q);
+    wrap.appendChild(btn);
+  });
+}
+
+/* ================= 答题判断 ================= */
+function isCorrectAnswer(opt, ansField){ return normalizeAnsList(ansField).includes(opt); }
+
+function handleAnswer(player, opt, btnEl, q){
+  if(q.type==='single') handleSingleAnswer(player, opt, btnEl, q);
+  else handleDoubleAnswer(player, opt, btnEl, q);
+}
+
+function disableAllOptions(player){
+  document.querySelectorAll(`#opts${player} .optBtn`).forEach(b=>b.disabled=true);
+}
+
+function handleSingleAnswer(player, opt, btnEl, q){
+  if(isCorrectAnswer(opt, q.ans)){
+    btnEl.classList.add('correct');
+    showFeedback(player, '正确！', true);
+    disableAllOptions(1); disableAllOptions(2);
+    currentDisplayText = currentDisplayText.replace('___', `<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
+    awardPoint(player, 1);
+    setTimeout(nextQuestion, 3000);
+  } else {
+    btnEl.classList.add('wrong'); btnEl.disabled = true;
+    showFeedback(player, '错误！请等待对手作答！', false);
+    wrongThisRound[player===1?'p1':'p2'] = true;
+    checkBothWrong(q, false);
+  }
+}
+
+function handleDoubleAnswer(player, opt, btnEl, q){
+  if(!doubleState.solved1 && isCorrectAnswer(opt, q.ans1)){
+    doubleState.solved1 = true; doubleState.owner1 = player;
+    btnEl.classList.add('correct'); btnEl.disabled = true;
+    showFeedback(player, '①正确！', true);
+    currentDisplayText = currentDisplayText.replace('①___', `①<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
+    awardPoint(player, 1);
+    checkDoubleComplete();
+  } else if(!doubleState.solved2 && isCorrectAnswer(opt, q.ans2)){
+    doubleState.solved2 = true; doubleState.owner2 = player;
+    btnEl.classList.add('correct'); btnEl.disabled = true;
+    showFeedback(player, '②正确！', true);
+    currentDisplayText = currentDisplayText.replace('②___', `②<span class="filledAnswer">${opt}</span>`);
+    document.getElementById('questionText').innerHTML = currentDisplayText;
+    awardPoint(player, 1);
+    checkDoubleComplete();
+  } else {
+    btnEl.classList.add('wrong'); btnEl.disabled = true;
+    showFeedback(player, '错误！请等待对手作答！', false);
+    wrongThisRound[player===1?'p1':'p2'] = true;
+    checkBothWrong(q, true);
+  }
+}
+
+function checkDoubleComplete(){
+  if(doubleState.solved1 && doubleState.solved2){
+    disableAllOptions(1); disableAllOptions(2);
+    setTimeout(nextQuestion, 3000);
+  }
+}
+
+function checkBothWrong(q, isDouble){
+  // 双空题：只要还有任一空未解出，双方都错才重来；已解出的空不再触发整题重开
+  if(isDouble && (doubleState.solved1 || doubleState.solved2)) return;
+  if(wrongThisRound.p1 && wrongThisRound.p2){
+    roundAttempt++;
+    if(roundAttempt > MAX_ROUNDS_PER_QUESTION){
+      score1--; score2--;
+      updateScoreDisplay();
+      showFeedback(1,'双方都未答对，各扣1分',false);
+      showFeedback(2,'双方都未答对，各扣1分',false);
+      setTimeout(nextQuestion, 1500);
+    } else {
+      wrongThisRound = {p1:false, p2:false};
+      setTimeout(()=>runCountdownThenReveal(q), 1000);
+    }
+  }
+}
+
+function showFeedback(player, msg, good){
+  const el = document.getElementById(`feedback${player}`);
+  el.textContent = msg;
+  el.className = 'feedback ' + (good ? 'good' : 'bad');
+}
+
+function awardPoint(player, pts){
+  if(player===1) score1 += pts; else score2 += pts;
+  updateScoreDisplay();
+  if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){
+    setTimeout(endGame, 1300);
+  }
+}
+
+function updateScoreDisplay(){
+  document.getElementById('score1').textContent = score1;
+  document.getElementById('score2').textContent = score2;
+  updateProgressBar();
+}
+
+function updateProgressBar(){
+  setBar(document.getElementById('progressLeftFill'), score1);
+  setBar(document.getElementById('progressRightFill'), score2);
+}
+
+function setBar(el, score){
+  const magnitude = Math.min(Math.abs(score), WIN_SCORE);
+  const pct = magnitude / WIN_SCORE * 50;
+  const invading = score < 0;
+  el.classList.toggle('invading', invading);
+  el.classList.toggle('normal', !invading);
+  el.style.width = pct + '%';
+}
+
+function nextQuestion(){
+  if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){ return endGame(); }
+  qIndex++;
+  loadQuestion();
+}
+
+function endGame(){
+  document.getElementById('gameScreen').style.display='none';
+  document.getElementById('resultScreen').style.display='flex';
+  let text;
+  if(score1 > score2) text = `🏆 玩家1 获胜！（${score1} : ${score2}）`;
+  else if(score2 > score1) text = `🏆 玩家2 获胜！（${score2} : ${score1}）`;
+  else text = `平局！（${score1} : ${score2}）`;
+  document.getElementById('resultText').textContent = text;
+}
+
+/* ================= 工具函数 ================= */
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+</script>
+</body>
+</html>
