@@ -3,7 +3,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>科学填空大对决</title>
+<title>海洋竞速</title>
 <style>
   :root{
     --bg:#0f172a; --gold:#facc15; --p1:#3b82f6; --p2:#ef4444;
@@ -66,48 +66,62 @@
     .rulesCard ul{font-size:.88rem;}
   }
 
-  /* ---------- 游戏界面（品字型） ---------- */
+  /* ---------- 游戏界面（品字型·海洋竞速） ---------- */
   #gameScreen{display:none;height:100vh;flex-direction:column;}
-  #topPanel{flex:1 1 33.33%;background:radial-gradient(ellipse at top, #164e63 0%, #0c2a3d 60%, #071b29 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;}
-  #questionCard{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:18px 30px;max-width:900px;backdrop-filter:blur(2px);}
-  #scoreBar{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 30px;font-size:1.1rem;font-weight:bold;}
-  #scoreBar .s1{color:#60a5fa;} #scoreBar .s2{color:#f87171;}
-  #questionText{font-size:2.1rem;line-height:1.65;max-width:900px;font-weight:600;}
-  #questionMeta{font-size:.9rem;color:#94a3b8;margin-top:10px;}
-  .filledAnswer{color:#4ade80;font-weight:bold;text-decoration:underline;text-underline-offset:4px;}
 
-  /* 品字中线上的进度条：左蓝(玩家1) / 右红(玩家2)，起点在正中间，满10格获胜 */
-  #progressBarWrap{flex:0 0 34px;background:#0f172a;position:relative;z-index:5;}
-  #progressTrack{position:relative;width:100%;height:100%;overflow:hidden;
-    background-image:repeating-linear-gradient(to right, rgba(255,255,255,.18) 0 2px, transparent 2px 5%);}
-  #progressTrack::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fff;opacity:.6;}
-  #progressLeftFill{position:absolute;top:0;bottom:0;width:0%;transition:width .35s ease, background .2s;}
-  #progressLeftFill.normal{right:50%;left:auto;background:linear-gradient(to left,#3b82f6,#1d4ed8);opacity:1;}
-  #progressLeftFill.invading{left:50%;right:auto;background:repeating-linear-gradient(45deg,#3b82f6 0 6px,#1d4ed8 6px 12px);opacity:.55;}
-  #progressRightFill{position:absolute;top:0;bottom:0;width:0%;transition:width .35s ease, background .2s;}
-  #progressRightFill.normal{left:50%;right:auto;background:linear-gradient(to right,#ef4444,#b91c1c);opacity:1;}
-  #progressRightFill.invading{right:50%;left:auto;background:repeating-linear-gradient(45deg,#ef4444 0 6px,#b91c1c 6px 12px);opacity:.55;}
-  .progressIcon{position:absolute;top:50%;font-size:1.25rem;line-height:1;}
-  #progressLeftFill.normal .progressIcon{left:0;right:auto;transform:translate(-50%,-50%);}
-  #progressLeftFill.invading .progressIcon{right:0;left:auto;transform:translate(50%,-50%);}
-  #progressRightFill.normal .progressIcon{right:0;left:auto;transform:translate(50%,-50%);}
-  #progressRightFill.invading .progressIcon{left:0;right:auto;transform:translate(-50%,-50%);}
+  /* 上层：天空 */
+  #topPanel{flex:1 1 33.33%;background:linear-gradient(180deg, #bfe4ff 0%, #dff2ff 60%, #f3fbff 100%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;overflow:hidden;}
+  #cloudField{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+  .cloud{position:absolute;width:110px;height:36px;border-radius:50px;background:#fff;opacity:.9;
+    box-shadow:28px -13px 0 -4px #fff, 56px 3px 0 -8px #fff, -26px 5px 0 -6px #fff;animation:cloudDrift linear infinite;}
+  @keyframes cloudDrift{0%{transform:translateX(-20vw);}100%{transform:translateX(120vw);}}
+  #questionCard{background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);border-radius:20px;padding:18px 30px;max-width:900px;backdrop-filter:blur(2px);position:relative;z-index:1;box-shadow:0 6px 20px rgba(30,90,130,.15);}
+  #scoreBar{position:absolute;top:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 30px;font-size:1.1rem;font-weight:bold;z-index:1;}
+  #scoreBar .s1{color:#1d4ed8;} #scoreBar .s2{color:#dc2626;}
+  #questionText{font-size:2.1rem;line-height:1.65;max-width:900px;font-weight:600;color:#0b3350;}
+  #questionMeta{font-size:.9rem;color:#5b7d92;margin-top:10px;}
+  .filledAnswer{color:#0e8a63;font-weight:bold;text-decoration:underline;text-underline-offset:4px;}
 
-  #bottomPanel{flex:2 1 66.66%;display:flex;position:relative;}
+  /* 下层：海洋（左右统一色，中间渔网+进度条） */
+  #bottomPanel{flex:2 1 66.66%;display:flex;position:relative;
+    background:radial-gradient(ellipse at 50% 100%, #0e6e82 0%, #0a3a52 55%, #051f2e 100%);}
   .playerPanel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;position:relative;overflow-y:auto;}
-  #p1Panel{background:radial-gradient(ellipse at bottom, #0e3a5f 0%, #071b29 85%);}
-  #p2Panel{background:radial-gradient(ellipse at bottom, #5f1e2c 0%, #290b12 85%);}
-  #centerDivider{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#334155;}
+  #centerNet{flex:0 0 60px;position:relative;display:flex;justify-content:space-between;align-items:stretch;padding:10px 8px;z-index:5;}
+  .netTexture{position:absolute;inset:0;opacity:.55;pointer-events:none;
+    background-image:repeating-linear-gradient(50deg, rgba(255,255,255,.28) 0 2px, transparent 2px 15px),
+                      repeating-linear-gradient(-50deg, rgba(255,255,255,.28) 0 2px, transparent 2px 15px);}
+  .netProgress{position:relative;width:14px;height:100%;border-radius:8px;background:rgba(255,255,255,.14);overflow:visible;box-shadow:inset 0 0 6px rgba(0,0,0,.3);}
+  .netProgress .fill{position:absolute;bottom:0;left:0;right:0;height:0%;border-radius:8px 8px 4px 4px;transition:height .45s ease;}
+  #netFill1{background:linear-gradient(to top,#1d4ed8,#60a5fa);}
+  #netFill2{background:linear-gradient(to top,#b91c1c,#f87171);}
+  .netProgressIcon{position:absolute;left:50%;bottom:0%;transform:translate(-50%,50%);font-size:1.15rem;transition:bottom .45s ease;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));}
   #countdownDisplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;color:var(--gold);z-index:10;text-shadow:0 0 20px rgba(0,0,0,.6);}
 
-  .optBtn{width:auto;max-width:92%;padding:18px 30px;font-size:1.7rem;font-weight:700;border:none;border-radius:999px;background:linear-gradient(160deg,#3d5a80,#2a3f5f);color:#fff;cursor:pointer;transition:transform .12s,background .12s;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);}
-  .optBtn:hover:not(:disabled){background:#475569;}
-  .optBtn.correct{background:#16a34a !important;}
-  .optBtn.wrong{background:#991b1b !important;}
+  /* 气泡答案 */
+  .optionsWrap{display:flex;flex-wrap:wrap;gap:16px;width:100%;align-items:center;justify-content:center;padding:0 8px;}
+  .optBtn{min-width:104px;min-height:104px;padding:12px 20px;border-radius:50%;border:2px solid rgba(255,255,255,.4);
+    background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.55), rgba(255,255,255,.08) 42%, rgba(150,215,255,.22) 75%),
+               linear-gradient(160deg, rgba(60,150,190,.4), rgba(10,55,85,.55));
+    color:#fff;font-size:1.15rem;font-weight:700;cursor:pointer;text-align:center;line-height:1.25;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.3), inset 0 2px 5px rgba(255,255,255,.3);
+    transition:transform .15s, box-shadow .15s, background .15s;
+    animation:bubblePopIn .35s ease-out, bubbleFloat 3.6s ease-in-out .35s infinite;}
+  @keyframes bubblePopIn{0%{transform:scale(.3);opacity:0;}70%{transform:scale(1.1);opacity:1;}100%{transform:scale(1);opacity:1;}}
+  @keyframes bubbleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+  .optBtn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 10px 22px rgba(0,0,0,.35), inset 0 2px 5px rgba(255,255,255,.35);animation-play-state:paused;}
+  .optBtn.correct{background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.6), rgba(22,163,74,.9)) !important;animation:none;}
+  .optBtn.wrong{background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.35), rgba(153,27,27,.9)) !important;animation:none;opacity:.55;}
   .optBtn:disabled{cursor:not-allowed;}
-  .optionsWrap{display:flex;flex-direction:column;gap:12px;width:100%;align-items:center;padding:0 8px;}
-  .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;}
-  .feedback.good{color:#4ade80;} .feedback.bad{color:#f87171;}
+  .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;color:#fff;}
+  .feedback.good{color:#5ee6c8;} .feedback.bad{color:#ff9d94;}
+
+  /* 答对后从海底升到海面的大字气泡 */
+  .correctBubble{position:fixed;left:0;top:0;transform:translate(-50%,0);white-space:nowrap;pointer-events:none;z-index:50;
+    font-size:1.9rem;font-weight:800;color:#04372c;
+    background:radial-gradient(circle at 32% 26%, #fff, #bdf5e6 55%, #6fe0c0 100%);
+    padding:14px 28px;border-radius:999px;box-shadow:0 0 0 4px rgba(255,255,255,.35), 0 8px 20px rgba(0,0,0,.35);}
 
   #resultScreen{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
   #resultScreen h1{font-size:3rem;color:var(--gold);}
@@ -121,7 +135,7 @@
 <div id="setupScreen">
   <div id="bubbleField"></div>
   <div class="setupInner">
-    <h1>🐠 科学填空大对决</h1>
+    <h1>🐠 海洋竞速</h1>
     <p class="tagline">〜 潜入知识海域 · 抢答制填空复习游戏 〜</p>
 
     <div class="rulesCard">
@@ -147,6 +161,7 @@
 
 <div id="gameScreen">
   <div id="topPanel">
+    <div id="cloudField"></div>
     <div id="scoreBar">
       <span class="s1">玩家1：<span id="score1">0</span></span>
       <span id="questionMeta"></span>
@@ -154,18 +169,16 @@
     </div>
     <div id="questionCard"><div id="questionText"></div></div>
   </div>
-  <div id="progressBarWrap">
-    <div id="progressTrack">
-      <div id="progressLeftFill" class="normal"><span class="progressIcon">🦈</span></div>
-      <div id="progressRightFill" class="normal"><span class="progressIcon">🐙</span></div>
-    </div>
-  </div>
   <div id="bottomPanel">
-    <div id="centerDivider"></div>
     <div id="countdownDisplay"></div>
     <div class="playerPanel" id="p1Panel">
       <div class="feedback" id="feedback1"></div>
       <div class="optionsWrap" id="opts1"></div>
+    </div>
+    <div id="centerNet">
+      <div class="netTexture"></div>
+      <div class="netProgress"><div class="fill" id="netFill1"></div><span class="netProgressIcon" id="netIcon1">🦈</span></div>
+      <div class="netProgress"><div class="fill" id="netFill2"></div><span class="netProgressIcon" id="netIcon2">🐙</span></div>
     </div>
     <div class="playerPanel" id="p2Panel">
       <div class="feedback" id="feedback2"></div>
@@ -278,6 +291,7 @@ function extractChapterModule(jsText){
 
 renderChapterGrid();
 generateBubbles();
+generateClouds();
 
 /* ================= 海洋气泡装饰 ================= */
 function generateBubbles(){
@@ -299,6 +313,26 @@ function generateBubbles(){
     b.style.animationDuration = duration + 's';
     b.style.animationDelay = '-' + delay + 's';
     field.appendChild(b);
+  }
+}
+
+/* ================= 天空云朵装饰 ================= */
+function generateClouds(){
+  const field = document.getElementById('cloudField');
+  if(!field) return;
+  const COUNT = 4;
+  for(let i=0;i<COUNT;i++){
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const scale = (Math.random()*.5 + .6).toFixed(2);
+    const top = (Math.random()*60 + 5).toFixed(1);
+    const duration = (Math.random()*20 + 28).toFixed(1);
+    const delay = (Math.random()*30).toFixed(1);
+    c.style.top = top + '%';
+    c.style.transform = `scale(${scale})`;
+    c.style.animationDuration = duration + 's';
+    c.style.animationDelay = '-' + delay + 's';
+    field.appendChild(c);
   }
 }
 
@@ -392,19 +426,15 @@ function revealOptions(q){
 function renderOptionsForPlayer(player, options, q){
   const wrap = document.getElementById(`opts${player}`);
   wrap.innerHTML='';
-  const aligns = ['flex-start','center','flex-end'];
-  options.forEach(opt=>{
+  options.forEach((opt,i)=>{
     const btn = document.createElement('button');
     btn.className='optBtn';
     btn.textContent = opt;
-    const rotate = (Math.random()*7 - 3.5).toFixed(1);
-    const shiftX = Math.round(Math.random()*26 - 13);
-    const align = aligns[Math.floor(Math.random()*aligns.length)];
-    const origTransform = `rotate(${rotate}deg) translateX(${shiftX}px)`;
-    btn.style.alignSelf = align;
-    btn.style.transform = origTransform;
-    btn.addEventListener('mouseenter', ()=>{ if(!btn.disabled) btn.style.transform='none'; });
-    btn.addEventListener('mouseleave', ()=>{ if(!btn.disabled) btn.style.transform=origTransform; });
+    const floatDur = (Math.random()*1.2 + 3.2).toFixed(2);
+    const floatDelay = (Math.random()*2).toFixed(2);
+    const popDelay = (i * 0.05).toFixed(2);
+    btn.style.animationDuration = `.35s, ${floatDur}s`;
+    btn.style.animationDelay = `${popDelay}s, -${floatDelay}s`;
     btn.onclick = ()=>handleAnswer(player, opt, btn, q);
     wrap.appendChild(btn);
   });
@@ -425,7 +455,7 @@ function disableAllOptions(player){
 function handleSingleAnswer(player, opt, btnEl, q){
   if(isCorrectAnswer(opt, q.ans)){
     btnEl.classList.add('correct');
-    showFeedback(player, '正确！', true);
+    spawnCorrectBubble(player, '✅ 正确！');
     disableAllOptions(1); disableAllOptions(2);
     currentDisplayText = currentDisplayText.replace('___', `<span class="filledAnswer">${opt}</span>`);
     document.getElementById('questionText').innerHTML = currentDisplayText;
@@ -443,7 +473,7 @@ function handleDoubleAnswer(player, opt, btnEl, q){
   if(!doubleState.solved1 && isCorrectAnswer(opt, q.ans1)){
     doubleState.solved1 = true; doubleState.owner1 = player;
     btnEl.classList.add('correct'); btnEl.disabled = true;
-    showFeedback(player, '①正确！', true);
+    spawnCorrectBubble(player, '①正确！');
     currentDisplayText = currentDisplayText.replace('①___', `①<span class="filledAnswer">${opt}</span>`);
     document.getElementById('questionText').innerHTML = currentDisplayText;
     awardPoint(player, 1);
@@ -451,7 +481,7 @@ function handleDoubleAnswer(player, opt, btnEl, q){
   } else if(!doubleState.solved2 && isCorrectAnswer(opt, q.ans2)){
     doubleState.solved2 = true; doubleState.owner2 = player;
     btnEl.classList.add('correct'); btnEl.disabled = true;
-    showFeedback(player, '②正确！', true);
+    spawnCorrectBubble(player, '②正确！');
     currentDisplayText = currentDisplayText.replace('②___', `②<span class="filledAnswer">${opt}</span>`);
     document.getElementById('questionText').innerHTML = currentDisplayText;
     awardPoint(player, 1);
@@ -462,6 +492,31 @@ function handleDoubleAnswer(player, opt, btnEl, q){
     wrongThisRound[player===1?'p1':'p2'] = true;
     checkBothWrong(q, true);
   }
+}
+
+/* 答对后：大字气泡从玩家答题区底部升起，3秒后正好抵达海面(topPanel/bottomPanel交界)并消失 */
+function spawnCorrectBubble(player, label){
+  const panel = document.getElementById(`p${player}Panel`);
+  const bottomPanel = document.getElementById('bottomPanel');
+  const panelRect = panel.getBoundingClientRect();
+  const seaSurfaceY = bottomPanel.getBoundingClientRect().top;
+  const startTop = panelRect.bottom - 50;
+  const endTop = seaSurfaceY - 10;
+  const bubble = document.createElement('div');
+  bubble.className = 'correctBubble';
+  bubble.textContent = label;
+  bubble.style.left = (panelRect.left + panelRect.width/2) + 'px';
+  bubble.style.top = startTop + 'px';
+  document.body.appendChild(bubble);
+  const rise = startTop - endTop;
+  const anim = bubble.animate([
+    { transform:'translate(-50%,0) scale(.5)', opacity:0, top:startTop+'px' },
+    { transform:'translate(-46%,0) scale(1.12)', opacity:1, top:(startTop-rise*0.15)+'px', offset:0.12 },
+    { transform:'translate(-54%,0) scale(1)', opacity:1, top:(startTop-rise*0.5)+'px', offset:0.5 },
+    { transform:'translate(-46%,0) scale(1)', opacity:1, top:(startTop-rise*0.85)+'px', offset:0.88 },
+    { transform:'translate(-50%,0) scale(.85)', opacity:0, top:endTop+'px' }
+  ], { duration:3000, easing:'ease-in', fill:'forwards' });
+  anim.onfinish = ()=> bubble.remove();
 }
 
 function checkDoubleComplete(){
@@ -510,17 +565,15 @@ function updateScoreDisplay(){
 }
 
 function updateProgressBar(){
-  setBar(document.getElementById('progressLeftFill'), score1);
-  setBar(document.getElementById('progressRightFill'), score2);
+  setNetBar('netFill1','netIcon1', score1);
+  setNetBar('netFill2','netIcon2', score2);
 }
 
-function setBar(el, score){
-  const magnitude = Math.min(Math.abs(score), WIN_SCORE);
-  const pct = magnitude / WIN_SCORE * 50;
-  const invading = score < 0;
-  el.classList.toggle('invading', invading);
-  el.classList.toggle('normal', !invading);
-  el.style.width = pct + '%';
+function setNetBar(fillId, iconId, score){
+  const clamped = Math.max(0, Math.min(score, WIN_SCORE));
+  const pct = clamped / WIN_SCORE * 100;
+  document.getElementById(fillId).style.height = pct + '%';
+  document.getElementById(iconId).style.bottom = pct + '%';
 }
 
 function nextQuestion(){
