@@ -95,7 +95,10 @@
   .netProgress .fill{position:absolute;bottom:0;left:0;right:0;height:0%;border-radius:8px 8px 4px 4px;transition:height .45s ease;}
   #netFill1{background:linear-gradient(to top,#1d4ed8,#60a5fa);}
   #netFill2{background:linear-gradient(to top,#b91c1c,#f87171);}
-  .netProgressIcon{position:absolute;left:50%;bottom:0%;transform:translate(-50%,50%);font-size:1.15rem;transition:bottom .45s ease;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));}
+  .netProgressIcon{position:absolute;left:50%;bottom:0%;transform:translate(-50%,-50%);font-size:1.3rem;line-height:1;transition:bottom .45s ease;
+    width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(255,255,255,.25) 60%, rgba(255,255,255,.05) 100%);
+    box-shadow:0 2px 6px rgba(0,0,0,.4);}
   #countdownDisplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:6rem;font-weight:bold;color:var(--gold);z-index:10;text-shadow:0 0 20px rgba(0,0,0,.6);}
 
   /* 气泡答案 */
@@ -107,9 +110,14 @@
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 6px 16px rgba(0,0,0,.3), inset 0 2px 5px rgba(255,255,255,.3);
     transition:transform .15s, box-shadow .15s, background .15s;
-    animation:bubblePopIn .35s ease-out, bubbleFloat 3.6s ease-in-out .35s infinite;}
-  @keyframes bubblePopIn{0%{transform:scale(.3);opacity:0;}70%{transform:scale(1.1);opacity:1;}100%{transform:scale(1);opacity:1;}}
-  @keyframes bubbleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+    animation:bubbleDrift 6s ease-in-out infinite;}
+  @keyframes bubbleDrift{
+    0%{transform:translateY(20px) scale(.5);opacity:0;}
+    8%{opacity:1;transform:translateY(10px) scale(1.06);}
+    16%{transform:translateY(4px) scale(1);}
+    88%{opacity:1;transform:translateY(-52px) scale(1);}
+    100%{transform:translateY(-60px) scale(.85);opacity:0;}
+  }
   .optBtn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 10px 22px rgba(0,0,0,.35), inset 0 2px 5px rgba(255,255,255,.35);animation-play-state:paused;}
   .optBtn.correct{background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.6), rgba(22,163,74,.9)) !important;animation:none;}
   .optBtn.wrong{background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.35), rgba(153,27,27,.9)) !important;animation:none;opacity:.55;}
@@ -412,7 +420,7 @@ function buildOptionList(q){
   } else {
     distractorSource = shuffle(pool.filter(t=>!correctAnswers.includes(t)));
   }
-  const needed = 10 - correctAnswers.length;
+  const needed = 9 - correctAnswers.length;
   const chosen = distractorSource.slice(0, needed);
   return [...correctAnswers, ...chosen];
 }
@@ -430,11 +438,10 @@ function renderOptionsForPlayer(player, options, q){
     const btn = document.createElement('button');
     btn.className='optBtn';
     btn.textContent = opt;
-    const floatDur = (Math.random()*1.2 + 3.2).toFixed(2);
-    const floatDelay = (Math.random()*2).toFixed(2);
-    const popDelay = (i * 0.05).toFixed(2);
-    btn.style.animationDuration = `.35s, ${floatDur}s`;
-    btn.style.animationDelay = `${popDelay}s, -${floatDelay}s`;
+    const dur = (Math.random()*2 + 5.5).toFixed(2);
+    const delay = (Math.random()*dur).toFixed(2);
+    btn.style.animationDuration = `${dur}s`;
+    btn.style.animationDelay = `-${delay}s`;
     btn.onclick = ()=>handleAnswer(player, opt, btn, q);
     wrap.appendChild(btn);
   });
