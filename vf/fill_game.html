@@ -3,6 +3,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>海洋竞速</title>
 <style>
   :root{
@@ -123,6 +124,8 @@
   .optBtn.wrong{background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.35), rgba(153,27,27,.9)) !important;animation:none;opacity:.55;}
   .optBtn:disabled{cursor:not-allowed;}
   .feedback{font-size:1.4rem;font-weight:bold;min-height:2rem;color:#fff;}
+  .milestoneFish{position:fixed;height:80px;width:auto;pointer-events:none;z-index:60;
+    filter:drop-shadow(0 6px 12px rgba(0,0,0,.45));}
   .feedback.good{color:#5ee6c8;} .feedback.bad{color:#ff9d94;}
 
   /* 答对后从海底升到海面的大字气泡 */
@@ -560,9 +563,50 @@ function showFeedback(player, msg, good){
 function awardPoint(player, pts){
   if(player===1) score1 += pts; else score2 += pts;
   updateScoreDisplay();
+  const newScore = player===1 ? score1 : score2;
+  if(pts > 0 && (newScore===3 || newScore===6 || newScore===9)){
+    spawnMilestoneFish(player);
+  }
   if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){
     setTimeout(endGame, 1300);
   }
+}
+
+/* 每达到3/6/9分：己方的鱼从本方一侧游向对方一侧 */
+function spawnMilestoneFish(player){
+  const isP1 = player===1; // 玩家1＝飞鱼，从左游到右；玩家2＝旗鱼，从右游到左
+  const src = isP1 ? 'flyingfish.png' : 'sailfish.png';
+  const dir = isP1 ? 1 : -1;
+  const img = document.createElement('img');
+  img.src = src;
+  img.className = 'milestoneFish';
+  img.onerror = ()=> img.remove();
+  const vh = window.innerHeight, vw = window.innerWidth;
+  const startX = dir===1 ? -160 : vw + 160;
+  const endX = dir===1 ? vw + 160 : -160;
+  const baseY = vh * 0.55;
+  const arcHeight = isP1 ? vh * 0.34 : vh * 0.10; // 飞鱼跃得更高，旗鱼贴着海面游
+  img.style.top = baseY + 'px';
+  img.style.left = startX + 'px';
+  document.body.appendChild(img);
+  const travel = endX - startX;
+  const anim = img.animate([
+    { transform:`translate(0px,0px) rotate(${dir*-3}deg)` },
+    { transform:`translate(${travel*0.25}px, -${arcHeight*0.55}px) rotate(${dir*7}deg)`, offset:0.25 },
+    { transform:`translate(${travel*0.5}px, -${arcHeight}px) rotate(${dir*4}deg)`, offset:0.5 },
+    { transform:`translate(${travel*0.75}px, -${arcHeight*0.45}px) rotate(${dir*-6}deg)`, offset:0.75 },
+    { transform:`translate(${travel}px, 0px) rotate(0deg)` }
+  ], { duration:1500, easing:'ease-in-out' });
+  anim.onfinish = ()=> img.remove();
+  playMilestoneSound();
+}
+
+function playMilestoneSound(){
+  try{
+    const audio = new Audio('fastswim.mp3');
+    audio.volume = .85;
+    audio.play().catch(()=>{});
+  }catch(e){}
 }
 
 function updateScoreDisplay(){
