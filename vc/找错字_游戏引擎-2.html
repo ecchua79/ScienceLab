@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  找错字：科学校对社
+  Credit: 蔡逸众 (ecchua79) / 华仁中学 Chinese High School
+  Self-contained single-file HTML game, no external CDN dependencies.
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="author" content="蔡逸众 ecchua79 华仁中学 Chinese High School">
+<title>找错字：科学校对社</title>
+<style>
+  :root{
+    --paper:#efe6d3;
+    --paper-2:#e5d9bf;
+    --paper-shadow:rgba(60,48,30,0.18);
+    --ink:#2c241a;
+    --ink-soft:#5c4d38;
+    --red-pen:#a4342a;
+    --red-pen-2:#7d251d;
+    --stamp-green:#3c6e4f;
+    --gold:#a8823c;
+    --line:#c9b899;
+    --font-display:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+    --font-body:"Noto Serif SC","Songti SC","SimSun",serif;
+    --font-mono:"Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;min-height:100vh;
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:
+      radial-gradient(ellipse at top left, rgba(255,255,255,0.25), transparent 60%),
+      linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+    background-attachment:fixed;
+  }
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    pointer-events:none;
+    opacity:0.5;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, transparent 1px, transparent 2px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.012) 0px, transparent 1px, transparent 2px);
+    z-index:0;
+  }
+  .app{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:20px 16px 60px;}
+
+  /* ---------- shared components ---------- */
+  .stamp-btn{
+    font-family:var(--font-display);
+    font-size:17px;font-weight:700;letter-spacing:2px;
+    padding:12px 28px;
+    background:transparent;
+    border:2.5px solid var(--red-pen);
+    color:var(--red-pen);
+    border-radius:4px;
+    cursor:pointer;
+    transform:rotate(-1deg);
+    transition:transform .15s ease, background .15s ease, color .15s ease;
+  }
+  .stamp-btn:hover{transform:rotate(0deg) scale(1.03);background:var(--red-pen);color:var(--paper);}
+  .stamp-btn:active{transform:rotate(0deg) scale(0.97);}
+  .stamp-btn:disabled{opacity:0.35;cursor:not-allowed;}
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    box-shadow:0 6px 18px var(--paper-shadow), 0 1px 0 rgba(255,255,255,0.5) inset;
+    border-radius:2px;
+    position:relative;
+  }
+  .card::after{
+    content:"";position:absolute;inset:8px;
+    border:1px solid rgba(60,48,30,0.15);
+    pointer-events:none;
+  }
+
+  h1,h2,h3{font-family:var(--font-display);margin:0;}
+
+  /* ---------- COVER SCREEN ---------- */
+  #screen-cover{padding:40px 8px;}
+  .cover-card{padding:36px 28px;text-align:center;}
+  .eyebrow{
+    font-size:13px;letter-spacing:4px;color:var(--ink-soft);
+    text-transform:uppercase;margin-bottom:8px;
+  }
+  .cover-title{font-size:34px;font-weight:900;letter-spacing:4px;color:var(--ink);}
+  .cover-sub{font-size:14px;color:var(--ink-soft);margin-top:6px;letter-spacing:1px;}
+  .chapter-tag{
+    display:inline-block;margin-top:18px;padding:5px 16px;
+    border:1px solid var(--gold);color:var(--gold);
+    font-size:13px;letter-spacing:2px;border-radius:20px;
+  }
+  .rules{
+    text-align:left;margin:26px 0;padding:18px 20px;
+    background:rgba(255,255,255,0.35);
+    border-left:3px solid var(--red-pen);
+    font-size:14.5px;line-height:1.9;color:var(--ink-soft);
+  }
+  .rules b{color:var(--ink);}
+  .name-line{margin:22px 0 28px;}
+  .name-line label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:6px;letter-spacing:1px;}
+  .name-line input{
+    width:100%;font-family:var(--font-body);font-size:17px;
+    padding:8px 4px;border:none;border-bottom:2px solid var(--ink);
+    background:transparent;color:var(--ink);text-align:center;letter-spacing:2px;
+  }
+  .name-line input:focus{outline:none;border-bottom-color:var(--red-pen);}
+  .name-line select{
+    width:100%;font-family:var(--font-body);font-size:16px;
+    padding:8px 4px;border:none;border-bottom:2px solid var(--ink);
+    background:transparent;color:var(--ink);text-align:center;
+    letter-spacing:1px;appearance:none;-webkit-appearance:none;
+  }
+  .name-line select:focus{outline:none;border-bottom-color:var(--red-pen);}
+
+  /* ---------- GAME SCREEN ---------- */
+  #screen-game{display:none;}
+  .toolbar{
+    display:flex;justify-content:space-between;align-items:center;
+    flex-wrap:wrap;gap:10px;
+    padding:12px 16px;margin-bottom:16px;
+    border-bottom:2px double var(--ink-soft);
+  }
+  .toolbar .stat{font-family:var(--font-mono);font-size:13px;color:var(--ink-soft);letter-spacing:0.5px;}
+  .toolbar .stat b{color:var(--ink);font-size:15px;}
+  .toolbar .stat.timer b{color:var(--red-pen);}
+
+  .article-card{padding:34px 26px;margin-bottom:20px;}
+  .article-title{
+    text-align:center;font-size:20px;letter-spacing:3px;margin-bottom:22px;
+    padding-bottom:12px;border-bottom:1px solid var(--line);
+  }
+  .article-text{
+    font-size:17.5px;line-height:2.35;text-align:justify;color:var(--ink);
+  }
+  .kw{
+    cursor:pointer;
+    padding:0 2px;border-bottom:1.5px dashed rgba(92,77,56,0.5);
+    transition:background .12s ease;
+    position:relative;
+  }
+  .kw:hover{background:rgba(168,52,42,0.08);}
+  .kw.locked{cursor:default;}
+  .kw.mark-correct{
+    border-bottom:none;color:var(--stamp-green);font-weight:700;
+    text-decoration:none;
+  }
+  .kw.mark-correct::after{
+    content:"✓";position:absolute;top:-14px;right:-4px;
+    color:var(--stamp-green);font-size:12px;
+  }
+  .kw.mark-wrong{
+    border-bottom:none;color:var(--red-pen);font-weight:700;
+    text-decoration:line-through;text-decoration-color:var(--red-pen);
+  }
+  .kw.mark-wrong::after{
+    content:"✗";position:absolute;top:-14px;right:-6px;
+    color:var(--red-pen);font-size:12px;
+  }
+  .kw.mark-miss::after{
+    content:"（本来就对）";position:absolute;top:-15px;left:0;
+    color:var(--red-pen-2);font-size:10px;white-space:nowrap;
+    font-family:var(--font-mono);
+  }
+
+  .submit-row{text-align:center;margin:24px 0 8px;}
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;z-index:50;
+    background:rgba(30,24,16,0.45);
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--paper);border:1px solid var(--line);
+    border-radius:3px;padding:24px 22px;max-width:400px;width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,0.35);
+  }
+  .modal h3{font-size:15px;color:var(--ink-soft);letter-spacing:1px;margin-bottom:14px;text-align:center;}
+  .modal .options{display:flex;flex-direction:column;gap:10px;}
+  .opt-btn{
+    font-family:var(--font-body);font-size:16px;
+    padding:11px 14px;background:rgba(255,255,255,0.4);
+    border:1px solid var(--line);border-radius:3px;cursor:pointer;
+    color:var(--ink);text-align:left;transition:border-color .12s ease, background .12s ease;
+  }
+  .opt-btn:hover{border-color:var(--red-pen);background:rgba(168,52,42,0.06);}
+
+  /* ---------- RESULT SCREEN ---------- */
+  #screen-result{display:none;padding:20px 4px;}
+  .cert-card{padding:36px 30px;text-align:center;}
+  .cert-seal{
+    width:78px;height:78px;margin:0 auto 14px;
+    border:3px solid var(--red-pen);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--red-pen);font-size:13px;font-weight:900;letter-spacing:1px;
+    transform:rotate(-8deg);line-height:1.3;
+  }
+  .cert-title{font-size:24px;letter-spacing:3px;margin-bottom:4px;}
+  .cert-name{font-size:16px;color:var(--ink-soft);margin-bottom:22px;}
+  .score-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;
+    margin:18px 0 26px;text-align:left;
+  }
+  .score-item{
+    padding:12px 14px;border:1px solid var(--line);
+    background:rgba(255,255,255,0.35);
+  }
+  .score-item .label{font-size:12px;color:var(--ink-soft);letter-spacing:1px;}
+  .score-item .value{font-family:var(--font-mono);font-size:22px;color:var(--ink);margin-top:2px;}
+  .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+
+  footer.watermark{
+    text-align:center;font-size:11px;color:var(--ink-soft);
+    opacity:0.6;margin-top:30px;letter-spacing:1px;
+  }
+
+  @media (max-width:480px){
+    .cover-title{font-size:27px;}
+    .article-text{font-size:16px;line-height:2.2;}
+    .score-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ================= COVER ================= -->
+  <section id="screen-cover">
+    <div class="card cover-card">
+      <div class="eyebrow">科学校对社 · SCIENCE PROOFREADING BUREAU</div>
+      <h1 class="cover-title">找 错 字</h1>
+      <div class="cover-sub">在短文中揪出被悄悄改错的科学用词</div>
+      <div class="chapter-tag" id="chapter-tag-cover">本局校对稿：——</div>
+
+      <div class="rules">
+        <b>校对须知：</b><br>
+        1. 稿件中共有 10 个关键词，其中 <b>5 个</b>已被悄悄改错。<br>
+        2. 点击你怀疑有误的词，从选项中选出<b>正确的说法</b>；答对即视为找出一处错误。<br>
+        3. 若点了「本来就对」的词，将记一次失误，且该词随即锁定不可再点。<br>
+        4. 找完与否皆可自行按「提交校对」结束，未提交前可随时继续检查。
+      </div>
+
+      <div class="name-line">
+        <label for="chapter-select">选择校对稿（章节）</label>
+        <select id="chapter-select"></select>
+      </div>
+
+      <div class="name-line">
+        <label for="student-name">校对员姓名</label>
+        <input type="text" id="student-name" placeholder="请输入姓名" maxlength="20">
+      </div>
+
+      <button class="stamp-btn" id="btn-start">开 始 校 对</button>
+    </div>
+  </section>
+
+  <!-- ================= GAME ================= -->
+  <section id="screen-game">
+    <div class="toolbar">
+      <div class="stat">稿件：<b id="chapter-tag-game">——</b></div>
+      <div class="stat">找到 <b id="stat-found">0</b> / 5</div>
+      <div class="stat">失误 <b id="stat-miss">0</b></div>
+      <div class="stat timer">用时 <b id="stat-timer">00:00</b></div>
+    </div>
+
+    <div class="card article-card">
+      <div class="article-title">科学短文校对稿</div>
+      <div class="article-text" id="article-text"></div>
+    </div>
+
+    <div class="submit-row">
+      <button class="stamp-btn" id="btn-submit">提 交 校 对</button>
+    </div>
+  </section>
+
+  <!-- ================= RESULT ================= -->
+  <section id="screen-result">
+    <div class="card cert-card">
+      <div class="cert-seal">华仁<br>校对<br>认证</div>
+      <div class="cert-title">校 对 成 绩 单</div>
+      <div class="cert-name" id="cert-name">校对员：——</div>
+
+      <div class="score-grid">
+        <div class="score-item"><div class="label">找到错误</div><div class="value" id="res-found">0 / 5</div></div>
+        <div class="score-item"><div class="label">失误次数</div><div class="value" id="res-miss">0</div></div>
+        <div class="score-item"><div class="label">正确率</div><div class="value" id="res-acc">0%</div></div>
+        <div class="score-item"><div class="label">用时</div><div class="value" id="res-time">00:00</div></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="stamp-btn" id="btn-download">下载证书 PNG</button>
+        <button class="stamp-btn" id="btn-retry">再挑战一次</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="watermark">科学校对社 · 蔡逸众 ecchua79 · 华仁中学 Chinese High School</footer>
+</div>
+
+<!-- ================= ANSWER MODAL ================= -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h3>这个词原本应该是……？</h3>
+    <div class="options" id="modal-options"></div>
+  </div>
+</div>
+
+<canvas id="cert-canvas" width="900" height="600" style="display:none;"></canvas>
+
+<!--
+  蔡逸众 ecchua79 华仁中学 Chinese High School
+  找错字：科学校对社 - single-file self-contained teaching game
+-->
+<script>
+(function(){
+"use strict";
+
+/* ======================================================
+   章节列表（每完成一个章节数据文件，把对应那行注释拿掉即可上线）
+   file  : 对应的独立数据文件名（须放在同一资料夹）
+   label : 下拉选单显示的名称
+   ====================================================== */
+const CHAPTER_LIST = [
+  { file: "1c06.js", label: "1c06 · 热传递" },
+  { file: "1c07.js", label: "1c07 · 光的现象" },
+  { file: "1c08.js", label: "1c08 · 波与声音" },
+
+  // ── 初一 Junior Middle 1（尚未制作，做好数据文件后取消注释）──
+  // { file: "1c01.js", label: "1c01 · 科学导论" },
+  // { file: "1c02.js", label: "1c02 · 物质与粒子" },
+  // { file: "1c03.js", label: "1c03 · 生物与细胞" },
+  // { file: "1c04.js", label: "1c04 · 生殖与遗传" },
+  // { file: "1c05.js", label: "1c05 · 生物的运动" },
+  // { file: "1c09.js", label: "1c09 · 静电" },
+
+  // ── 初二 Junior Middle 2（尚未制作，做好数据文件后取消注释）──
+  // { file: "2c01.js", label: "2c01 · 原子结构与元素" },
+  // { file: "2c02.js", label: "2c02 · 物质的变化" },
+  // { file: "2c03.js", label: "2c03 · 神经系统与激素调节" },
+  // { file: "2c04.js", label: "2c04 · 呼吸系统" },
+  // { file: "2c05.js", label: "2c05 · 水与溶液" },
+  // { file: "2c06.js", label: "2c06 · 酸、碱与盐" },
+  // { file: "2c07.js", label: "2c07 · 空气与气体" },
+  // { file: "2c08.js", label: "2c08 · 气压和压强" },
+  // { file: "2c09.js", label: "2c09 · 简单机械" }
+];
+
+let CHAPTER = null;         // 当前载入的章节数据（由 loadChapter 动态设置）
+let PASSAGE = null;         // 本局抽中的段落（来自 CHAPTER.passages）
+const ERROR_COUNT = 5;
+
+/* 从章节的段落列表中随机抽一段，避免与上一局重复（若该章节只有1段则不避讳） */
+function pickPassage(chapter){
+  const passages = chapter.passages;
+  let pool = passages;
+  if(passages.length > 1 && state.lastChapterId === chapter.id && state.lastPassageId){
+    pool = passages.filter(p => p.id !== state.lastPassageId);
+  }
+  const chosen = pool[Math.floor(Math.random()*pool.length)];
+  state.lastPassageId = chosen.id;
+  state.lastChapterId = chapter.id;
+  return chosen;
+}
+
+/* 动态载入章节数据文件，文件内须设置 window.CURRENT_CHAPTER */
+function loadChapter(file){
+  return new Promise((resolve, reject) => {
+    const old = document.getElementById("chapter-script");
+    if(old) old.remove();
+    window.CURRENT_CHAPTER = null;
+
+    const script = document.createElement("script");
+    script.id = "chapter-script";
+    script.src = file;
+    script.onload = () => {
+      if(window.CURRENT_CHAPTER){
+        resolve(window.CURRENT_CHAPTER);
+      } else {
+        reject(new Error("数据文件未设置 window.CURRENT_CHAPTER：" + file));
+      }
+    };
+    script.onerror = () => reject(new Error("找不到章节数据文件：" + file));
+    document.body.appendChild(script);
+  });
+}
+
+/* ======================================================
+   状态
+   ====================================================== */
+let state = {
+  studentName: "",
+  errorWordIds: [],     // 本局被抽中当错误的词 id
+  foundCount: 0,
+  missCount: 0,
+  startTime: 0,
+  timerHandle: null,
+  ended: false,
+  lastPassageId: null,  // 上一局抽中的段落 id（用于避免连续重复）
+  lastChapterId: null
+};
+
+/* ======================================================
+   工具函数
+   ====================================================== */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function pad2(n){ return n<10 ? "0"+n : ""+n; }
+
+function formatTime(ms){
+  const total = Math.floor(ms/1000);
+  const m = Math.floor(total/60);
+  const s = total % 60;
+  return pad2(m)+":"+pad2(s);
+}
+
+/* 简易音效，无需外部音源，使用 Web Audio API */
+let audioCtx = null;
+function beep(kind){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    if(kind === "correct"){
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime+0.12);
+    } else {
+      osc.frequency.value = 180;
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime+0.18);
+    }
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.2);
+    osc.start();
+    osc.stop(audioCtx.currentTime+0.22);
+  }catch(e){ /* 音效非关键功能，静默失败 */ }
+}
+
+/* ======================================================
+   渲染短文
+   ====================================================== */
+function renderArticle(){
+  const container = document.getElementById("article-text");
+  container.innerHTML = "";
+
+  // 按 【词】 切分短文
+  const parts = PASSAGE.article.split(/【([^】]+)】/);
+  // parts 交替为: 普通文本, 关键词, 普通文本, 关键词 ...
+  let kwIndex = 0;
+  parts.forEach((part, i) => {
+    if(i % 2 === 0){
+      if(part) container.appendChild(document.createTextNode(part));
+    } else {
+      const kwData = PASSAGE.keywords[kwIndex];
+      kwIndex++;
+      const span = document.createElement("span");
+      span.className = "kw";
+      span.dataset.id = kwData.id;
+
+      const isPlantedError = state.errorWordIds.includes(kwData.id);
+      if(isPlantedError){
+        // 被抽中的错误词：显示成干扰项（错误说法），而不是原文的正确词
+        const wrongText = shuffle(kwData.distractors)[0];
+        span.textContent = wrongText;
+        span.dataset.shownWrong = wrongText;
+      } else {
+        span.textContent = part;
+      }
+
+      span.addEventListener("click", () => onWordClick(kwData, span));
+      container.appendChild(span);
+    }
+  });
+}
+
+/* ======================================================
+   游戏逻辑
+   ====================================================== */
+function onWordClick(kwData, el){
+  if(state.ended) return;
+  if(el.classList.contains("locked")) return;
+
+  const isPlantedError = state.errorWordIds.includes(kwData.id);
+
+  if(!isPlantedError){
+    // 点了本来就对的词 → 失误，锁定
+    state.missCount++;
+    el.classList.add("locked", "mark-miss");
+    updateStats();
+    beep("wrong");
+    return;
+  }
+
+  // 是被抽中的错误词 → 弹出选项
+  openModal(kwData, el);
+}
+
+function openModal(kwData, el){
+  const backdrop = document.getElementById("modal-backdrop");
+  const optionsWrap = document.getElementById("modal-options");
+  optionsWrap.innerHTML = "";
+
+  const options = shuffle([kwData.correct, ...kwData.distractors]);
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    btn.textContent = opt;
+    btn.addEventListener("click", () => {
+      backdrop.classList.remove("open");
+      handleAnswer(kwData, el, opt === kwData.correct);
+    });
+    optionsWrap.appendChild(btn);
+  });
+
+  backdrop.classList.add("open");
+}
+
+function handleAnswer(kwData, el, isCorrect){
+  el.classList.add("locked");
+  if(isCorrect){
+    el.classList.add("mark-correct");
+    state.foundCount++;
+    beep("correct");
+  } else {
+    el.classList.add("mark-wrong");
+    state.missCount++;
+    beep("wrong");
+  }
+  updateStats();
+
+  if(state.foundCount >= ERROR_COUNT){
+    // 全部找到，仍等待学生自行提交
+  }
+}
+
+function updateStats(){
+  document.getElementById("stat-found").textContent = state.foundCount;
+  document.getElementById("stat-miss").textContent = state.missCount;
+}
+
+function startTimer(){
+  state.startTime = Date.now();
+  state.timerHandle = setInterval(() => {
+    document.getElementById("stat-timer").textContent = formatTime(Date.now()-state.startTime);
+  }, 500);
+}
+
+function stopTimer(){
+  if(state.timerHandle){ clearInterval(state.timerHandle); state.timerHandle = null; }
+}
+
+/* ======================================================
+   画面切换
+   ====================================================== */
+function showScreen(id){
+  ["screen-cover","screen-game","screen-result"].forEach(s => {
+    document.getElementById(s).style.display = (s===id) ? "block" : "none";
+  });
+}
+
+async function startGame(){
+  const nameInput = document.getElementById("student-name");
+  const select = document.getElementById("chapter-select");
+  const btnStart = document.getElementById("btn-start");
+
+  state.studentName = nameInput.value.trim() || "匿名校对员";
+
+  btnStart.disabled = true;
+  btnStart.textContent = "载 入 中 …";
+  try{
+    CHAPTER = await loadChapter(select.value);
+  } catch(err){
+    alert("章节载入失败：" + err.message + "\n请确认该数据文件与游戏文件放在同一资料夹。");
+    btnStart.disabled = false;
+    btnStart.textContent = "开 始 校 对";
+    return;
+  }
+  btnStart.disabled = false;
+  btnStart.textContent = "开 始 校 对";
+
+  // 从本章节的段落列表中随机抽一段（避免与上一局重复）
+  PASSAGE = pickPassage(CHAPTER);
+
+  // 随机抽取 5 个词作为本局错误词
+  const allIds = PASSAGE.keywords.map(k => k.id);
+  state.errorWordIds = shuffle(allIds).slice(0, ERROR_COUNT);
+  state.foundCount = 0;
+  state.missCount = 0;
+  state.ended = false;
+
+  document.getElementById("chapter-tag-game").textContent = CHAPTER.title;
+  renderArticle();
+  updateStats();
+  document.getElementById("stat-timer").textContent = "00:00";
+
+  showScreen("screen-game");
+  startTimer();
+}
+
+function submitGame(){
+  if(state.ended) return;
+
+  if(state.foundCount < ERROR_COUNT){
+    const remaining = ERROR_COUNT - state.foundCount;
+    const ok = window.confirm("还有 "+remaining+" 个错误词未找到，确定要提交校对吗？");
+    if(!ok) return;
+  }
+
+  state.ended = true;
+  stopTimer();
+
+  const elapsed = Date.now() - state.startTime;
+  const totalAttempts = state.foundCount + state.missCount;
+  const accuracy = totalAttempts > 0 ? Math.round((state.foundCount/totalAttempts)*100) : 0;
+
+  document.getElementById("cert-name").textContent = "校对员：" + state.studentName;
+  document.getElementById("res-found").textContent = state.foundCount + " / " + ERROR_COUNT;
+  document.getElementById("res-miss").textContent = state.missCount;
+  document.getElementById("res-acc").textContent = accuracy + "%";
+  document.getElementById("res-time").textContent = formatTime(elapsed);
+
+  state._lastElapsed = elapsed;
+  state._lastAccuracy = accuracy;
+
+  showScreen("screen-result");
+}
+
+/* ======================================================
+   证书 PNG 下载
+   ====================================================== */
+function downloadCertificate(){
+  const canvas = document.getElementById("cert-canvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+
+  // 底色
+  ctx.fillStyle = "#efe6d3";
+  ctx.fillRect(0,0,W,H);
+
+  // 边框
+  ctx.strokeStyle = "#a4342a";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(24,24,W-48,H-48);
+  ctx.strokeStyle = "#2c241a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(38,38,W-76,H-76);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#2c241a";
+
+  ctx.font = "bold 20px 'Noto Serif SC', serif";
+  ctx.fillText("科学校对社 · SCIENCE PROOFREADING BUREAU", W/2, 90);
+
+  ctx.font = "bold 48px 'Noto Serif SC', serif";
+  ctx.fillText("校 对 成 绩 单", W/2, 160);
+
+  ctx.font = "22px 'Noto Serif SC', serif";
+  ctx.fillText("校对稿：" + CHAPTER.title, W/2, 210);
+  ctx.fillText("校对员：" + state.studentName, W/2, 246);
+
+  const lines = [
+    "找到错误：" + state.foundCount + " / " + ERROR_COUNT,
+    "失误次数：" + state.missCount,
+    "正确率：" + state._lastAccuracy + "%",
+    "用时：" + formatTime(state._lastElapsed)
+  ];
+  ctx.font = "26px 'Courier New', monospace";
+  lines.forEach((line, i) => {
+    ctx.fillText(line, W/2, 320 + i*46);
+  });
+
+  // 印章
+  ctx.save();
+  ctx.translate(W-140, H-140);
+  ctx.rotate(-8*Math.PI/180);
+  ctx.strokeStyle = "#a4342a";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0,0,58,0,Math.PI*2);
+  ctx.stroke();
+  ctx.fillStyle = "#a4342a";
+  ctx.font = "bold 16px 'Noto Serif SC', serif";
+  ctx.fillText("华仁中学", 0, -4);
+  ctx.fillText("校对认证", 0, 18);
+  ctx.restore();
+
+  ctx.font = "12px 'Courier New', monospace";
+  ctx.fillStyle = "#5c4d38";
+  ctx.fillText("蔡逸众 ecchua79 · 华仁中学 Chinese High School", W/2, H-50);
+
+  const link = document.createElement("a");
+  link.download = "校对证书_" + state.studentName + ".png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+/* ======================================================
+   初始化
+   ====================================================== */
+function populateChapterSelect(){
+  const select = document.getElementById("chapter-select");
+  select.innerHTML = "";
+  CHAPTER_LIST.forEach(ch => {
+    const opt = document.createElement("option");
+    opt.value = ch.file;
+    opt.textContent = ch.label;
+    select.appendChild(opt);
+  });
+  select.addEventListener("change", () => {
+    const current = CHAPTER_LIST.find(c => c.file === select.value);
+    document.getElementById("chapter-tag-cover").textContent = "本局校对稿：" + (current ? current.label : "——");
+  });
+}
+
+function init(){
+  populateChapterSelect();
+  const first = CHAPTER_LIST[0];
+  document.getElementById("chapter-tag-cover").textContent = "本局校对稿：" + (first ? first.label : "——");
+
+  document.getElementById("btn-start").addEventListener("click", startGame);
+  document.getElementById("btn-submit").addEventListener("click", submitGame);
+  document.getElementById("btn-download").addEventListener("click", downloadCertificate);
+  document.getElementById("btn-retry").addEventListener("click", () => {
+    showScreen("screen-cover");
+  });
+
+  document.getElementById("modal-backdrop").addEventListener("click", (e) => {
+    if(e.target.id === "modal-backdrop") e.target.classList.remove("open");
+  });
+
+  // 移动端视口高度自适应（避免地址栏遮挡）
+  if(window.ResizeObserver){
+    const ro = new ResizeObserver(() => {
+      document.documentElement.style.setProperty("--vh", (window.innerHeight*0.01)+"px");
+    });
+    ro.observe(document.body);
+  }
+
+  showScreen("screen-cover");
+  console.log("找错字：科学校对社 | 蔡逸众 ecchua79 华仁中学 Chinese High School");
+}
+
+document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
