@@ -566,16 +566,25 @@ function awardPoint(player, pts){
   if(player===1) score1 += pts; else score2 += pts;
   updateScoreDisplay();
   const newScore = player===1 ? score1 : score2;
-  if(pts > 0 && (newScore===3 || newScore===6 || newScore===9)){
-    spawnMilestoneFish(player);
+  const milestoneCount = { 3:1, 6:2, 9:5 }[newScore];
+  if(pts > 0 && milestoneCount){
+    spawnMilestoneFish(player, milestoneCount);
   }
   if(score1 >= WIN_SCORE || score2 >= WIN_SCORE){
     setTimeout(endGame, 1300);
   }
 }
 
-/* 每达到3/6/9分：己方的鱼从本方一侧游向对方一侧 */
-function spawnMilestoneFish(player){
+/* 每达到3/6/9分：己方的鱼从本方一侧游向对方一侧；3分1条、6分2条、9分5条，速度快慢各不同 */
+function spawnMilestoneFish(player, count){
+  for(let i=0;i<count;i++){
+    const delay = i * (140 + Math.random()*120);
+    setTimeout(()=> spawnOneFish(player), delay);
+  }
+  playMilestoneSound();
+}
+
+function spawnOneFish(player){
   const isP1 = player===1; // 玩家1＝飞鱼，从左游到右；玩家2＝旗鱼，从右游到左
   const src = isP1 ? 'flyingfish.png' : 'sailfish.png';
   const dir = isP1 ? 1 : -1;
@@ -586,10 +595,14 @@ function spawnMilestoneFish(player){
   const vh = window.innerHeight, vw = window.innerWidth;
   const startX = dir===1 ? -160 : vw + 160;
   const endX = dir===1 ? vw + 160 : -160;
-  const baseY = vh * 0.55;
-  const arcHeight = isP1 ? vh * 0.34 : vh * 0.10; // 飞鱼跃得更高，旗鱼贴着海面游
+  const baseY = vh * (0.42 + Math.random()*0.28); // 每条鱼走不同的"泳道"高度
+  const arcBase = isP1 ? vh * 0.34 : vh * 0.10; // 飞鱼跃得更高，旗鱼贴着海面游
+  const arcHeight = arcBase * (0.75 + Math.random()*0.5);
+  const size = 62 + Math.random()*30; // 大小略有差异，看起来更自然
+  const duration = 1150 + Math.random()*900; // 每条鱼速度不同
   img.style.top = baseY + 'px';
   img.style.left = startX + 'px';
+  img.style.height = size + 'px';
   document.body.appendChild(img);
   const travel = endX - startX;
   const anim = img.animate([
@@ -598,9 +611,8 @@ function spawnMilestoneFish(player){
     { transform:`translate(${travel*0.5}px, -${arcHeight}px) rotate(${dir*4}deg)`, offset:0.5 },
     { transform:`translate(${travel*0.75}px, -${arcHeight*0.45}px) rotate(${dir*-6}deg)`, offset:0.75 },
     { transform:`translate(${travel}px, 0px) rotate(0deg)` }
-  ], { duration:1500, easing:'ease-in-out' });
+  ], { duration, easing:'ease-in-out' });
   anim.onfinish = ()=> img.remove();
-  playMilestoneSound();
 }
 
 function playMilestoneSound(){
