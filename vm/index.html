@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<!--
+  峇株吧辖华仁中学 蔡逸众 制作
+  Batu Pahat Chinese High School
+  未经许可请勿移除本水印信息。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="蔡逸众 · 峇株吧辖华仁中学">
+<meta name="generator" content="峇株吧辖华仁中学蔡逸众制作">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>电路配对 · 名词配对题</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e17;
+    --bg-panel:#0f1522;
+    --circuit:#1e2b38;
+    --circuit-bright:#2c4256;
+    --p1:#ffb648;
+    --p1-dim:#5c4726;
+    --p2:#45e0ff;
+    --p2-dim:#1f4652;
+    --perfect:#fff6d8;
+    --miss:#ff4d4d;
+    --text:#e8edf2;
+    --muted:#5f6d7d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:'Noto Sans SC', sans-serif;
+    overflow:hidden; user-select:none;
+  }
+  .mono{font-family:'Orbitron', sans-serif;}
+
+  /* ---------- background circuit texture ---------- */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(var(--circuit) 1px, transparent 1px),
+      linear-gradient(90deg, var(--circuit) 1px, transparent 1px);
+    background-size:40px 40px;
+    opacity:0.25;
+  }
+
+  #app{position:relative; z-index:1; height:100vh; display:flex; flex-direction:column;}
+
+  /* ---------- top bar ---------- */
+  #topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; background:var(--bg-panel);
+    border-bottom:1px solid var(--circuit-bright);
+  }
+  .score-block{display:flex; flex-direction:column; align-items:center; min-width:70px;}
+  .score-block .label{font-size:11px; color:var(--muted); letter-spacing:1px;}
+  .score-block .value{font-size:22px; font-weight:700;}
+  #p1score .value{color:var(--p1); text-shadow:0 0 8px var(--p1);}
+  #p2score .value{color:var(--p2); text-shadow:0 0 8px var(--p2);}
+  #roundinfo{text-align:center; font-size:13px; color:var(--muted);}
+  #roundinfo .title{font-size:15px; color:var(--text); font-weight:600; margin-top:2px;}
+
+  /* ---------- main play area ---------- */
+  #playfield{
+    flex:1; display:grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap:8px; padding:8px 10px; min-height:0;
+  }
+  .side-col{
+    display:flex; flex-direction:column; gap:8px; min-height:0;
+    overflow-y:auto;
+  }
+  .exp-card{
+    background:var(--bg-panel);
+    border:1px solid var(--circuit-bright);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:13px; line-height:1.4;
+    cursor:pointer;
+    touch-action:manipulation;
+    transition: transform .15s, box-shadow .2s, border-color .2s, background .2s;
+    position:relative;
+  }
+  #leftcol .exp-card:active{transform:scale(0.97);}
+  #rightcol .exp-card:active{transform:scale(0.97);}
+  .exp-card.correct-flash{
+    animation: flashCorrect .6s ease;
+  }
+  .exp-card.wrong-flash{
+    animation: flashWrong .5s ease;
+  }
+  #leftcol .exp-card.correct-flash{ border-color:var(--p1); box-shadow:0 0 18px var(--p1); background:#26200f;}
+  #rightcol .exp-card.correct-flash{ border-color:var(--p2); box-shadow:0 0 18px var(--p2); background:#0f2429;}
+  @keyframes flashCorrect{
+    0%{transform:scale(1);}
+    30%{transform:scale(1.05);}
+    100%{transform:scale(1);}
+  }
+  @keyframes flashWrong{
+    0%, 100%{transform:translateX(0);}
+    25%{transform:translateX(-6px);}
+    75%{transform:translateX(6px);}
+  }
+  .exp-card.wrong-flash{border-color:var(--miss); box-shadow:0 0 14px var(--miss);}
+
+  /* ---------- middle column ---------- */
+  #midcol{position:relative; display:flex; flex-direction:column; min-height:0;}
+  #roundgate{
+    position:absolute; left:0; right:0; top:44px; bottom:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(10,14,23,0.62);
+    z-index:5;
+  }
+  #roundgate.hidden{display:none;}
+  #beat-indicator{
+    display:flex; justify-content:center; align-items:center;
+    gap:10px; padding:6px 0 10px;
+  }
+  .beat-dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--circuit-bright);
+    transition: background .1s, box-shadow .1s, transform .1s;
+  }
+  .beat-dot.active{
+    background:var(--perfect);
+    box-shadow:0 0 10px var(--perfect);
+    transform:scale(1.3);
+  }
+  #bulb{
+    width:34px; height:34px; border-radius:50%;
+    background:radial-gradient(circle, #33210a, #1a1409);
+    border:2px solid var(--circuit-bright);
+    margin:0 6px;
+    transition: all .15s;
+  }
+  #bulb.lit{
+    background:radial-gradient(circle, #fff6d8, #ffb648);
+    box-shadow:0 0 30px 10px rgba(255,182,72,0.7);
+    border-color:var(--perfect);
+  }
+  #termgrid{
+    position:relative; flex:1; min-height:220px;
+  }
+  .term-card{
+    position:absolute; width:calc(50% - 6px); height:56px;
+    background:var(--bg-panel);
+    border:1px solid var(--circuit-bright);
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:600;
+    text-align:center; padding:4px;
+    transition: left .3s cubic-bezier(.4,0,.2,1), top .3s cubic-bezier(.4,0,.2,1),
+                background .15s, box-shadow .15s, border-color .15s;
+  }
+  .term-card.highlighted{
+    background: linear-gradient(135deg, #3a2a10, #1a1409);
+    border-color: var(--perfect);
+    box-shadow:0 0 25px rgba(255,246,216,0.6);
+    color: var(--perfect);
+  }
+
+  /* ---------- energy bars ---------- */
+  #energybar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 16px 14px; gap:16px;
+  }
+  .energy-row{display:flex; gap:3px; flex:1;}
+  .energy-row.right{flex-direction:row-reverse;}
+  .energy-seg{
+    flex:1; height:8px; border-radius:2px;
+    background:var(--circuit);
+    transition: background .3s, box-shadow .3s;
+  }
+  .energy-seg.lit-p1{background:var(--p1); box-shadow:0 0 6px var(--p1);}
+  .energy-seg.lit-p2{background:var(--p2); box-shadow:0 0 6px var(--p2);}
+
+  /* ---------- overlays ---------- */
+  #overlay{
+    position:fixed; inset:0; z-index:10;
+    background:rgba(10,14,23,0.94);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; gap:16px;
+  }
+  #overlay.hidden{display:none;}
+  #overlay h1{font-family:'Orbitron',sans-serif; font-size:26px; margin:0; color:var(--perfect); text-shadow:0 0 14px var(--perfect);}
+  #overlay p{color:var(--muted); font-size:14px; max-width:320px; line-height:1.6;}
+  .btn{
+    font-family:'Orbitron', sans-serif;
+    background:var(--p1); color:#1a1409; border:none;
+    padding:12px 28px; border-radius:8px; font-size:15px; font-weight:700;
+    cursor:pointer; box-shadow:0 0 16px rgba(255,182,72,0.5);
+  }
+  .btn:active{transform:scale(0.96);}
+
+  #chapterSelectWrap{display:flex; flex-direction:column; gap:4px; align-items:center;}
+  #chapterSelect{
+    font-family:'Noto Sans SC', sans-serif;
+    background:var(--bg-panel); color:var(--text);
+    border:1px solid var(--circuit-bright); border-radius:6px;
+    padding:8px 14px; font-size:14px; min-width:200px;
+  }
+
+  .watermark{
+    font-size:10px;
+    color:var(--circuit-bright);
+    letter-spacing:1px;
+    user-select:none;
+    pointer-events:none;
+  }
+  #cover-watermark{ margin-top:6px; }
+  #game-watermark{
+    text-align:center;
+    padding:2px 0 4px;
+  }
+
+  .fx-label{
+    position:fixed; z-index:20; font-family:'Orbitron',sans-serif; font-weight:900;
+    font-size:16px; pointer-events:none;
+    animation: floatUp .6s ease forwards;
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0); opacity:1;}
+    100%{transform:translateY(-40px); opacity:0;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <div class="score-block" id="p1score">
+      <div class="label mono">P1</div>
+      <div class="value mono" id="p1val">0</div>
+    </div>
+    <div id="roundinfo">
+      <div class="mono" id="roundlabel">第 1 / 5 轮</div>
+      <div class="title" id="groupname">光的传播</div>
+    </div>
+    <div class="score-block" id="p2score">
+      <div class="label mono">P2</div>
+      <div class="value mono" id="p2val">0</div>
+    </div>
+  </div>
+
+  <div id="playfield">
+    <div class="side-col" id="leftcol"></div>
+    <div id="midcol">
+      <div id="beat-indicator">
+        <div class="beat-dot" data-beat="1"></div>
+        <div class="beat-dot" data-beat="2"></div>
+        <div class="beat-dot" data-beat="3"></div>
+        <div id="bulb"></div>
+      </div>
+      <div id="termgrid"></div>
+      <div id="roundgate" class="hidden">
+        <button class="btn" id="roundstartbtn">开始本轮</button>
+      </div>
+    </div>
+    <div class="side-col" id="rightcol"></div>
+  </div>
+
+  <div id="energybar">
+    <div class="energy-row" id="p1energy"></div>
+    <div class="energy-row right" id="p2energy"></div>
+  </div>
+
+  <div id="game-watermark" class="watermark">峇株吧辖华仁中学 蔡逸众 制作</div>
+
+</div>
+
+<div id="overlay">
+  <h1 class="mono">电路配对</h1>
+  <p>屏幕分左右两侧，各自记住自己那一侧解释卡的位置。<br>
+     中间词语卡会跟着节拍换位，第 4 拍谁亮起就赶紧点对应解释卡！<br>
+     卡得越准分数越高，答错或漏答电路能量会倒退。</p>
+  <div id="chapterSelectWrap">
+    <label class="mono" for="chapterSelect" style="font-size:12px; color:var(--muted);">选择章节</label>
+    <select id="chapterSelect"></select>
+  </div>
+  <button class="btn" id="startbtn">开始游戏</button>
+  <div id="cover-watermark" class="watermark">峇株吧辖华仁中学 蔡逸众 制作</div>
+</div>
+
+<script>
+// ============================================
+// 章节文件清单：以后新增章节配对题，只要把文件名加进这个数组即可，
+// 不需要再改其他代码。文件与本 index.html 放在同一目录下。
+// ============================================
+const CHAPTER_FILES = [
+  '1c07_match.js',
+  // '1c06_match.js',   // 以后做好了就取消注释加进来
+];
+
+let CHAPTER_INFO = null;
+let MATCH_GROUPS = null;
+
+// 用 Function 构造函数包裹执行章节文件内容，
+// 避免多个章节文件之间的变量互相污染全局作用域（沿用你现有游戏的加载方式）。
+async function loadChapterFile(filename){
+  const res = await fetch(`./${filename}`);
+  const code = await res.text();
+  const runner = new Function(code + '\nreturn { CHAPTER_INFO, MATCH_GROUPS };');
+  return runner();
+}
+
+async function populateChapterSelect(){
+  const select = el('chapterSelect');
+  select.innerHTML = '';
+  for(const filename of CHAPTER_FILES){
+    try{
+      const data = await loadChapterFile(filename);
+      const opt = document.createElement('option');
+      opt.value = filename;
+      opt.textContent = data.CHAPTER_INFO.title;
+      select.appendChild(opt);
+    } catch(err){
+      console.error(`加载章节文件失败: ${filename}`, err);
+    }
+  }
+}
+
+// ============================================
+// 游戏参数
+// ============================================
+const BEAT_MS = 800;          // 一拍的时长
+const CYCLES_PER_ROUND = 4;   // 每轮 4 个 4拍小节
+const MIN_TERMS = 6, MAX_TERMS = 8;
+const START_ENERGY = 10;
+const POINTS = { perfect: 30, good: 15, late: 5, miss: 0 };
+const TIER_WINDOW = { perfect: 250, good: 500, late: BEAT_MS };
+
+// ============================================
+// 状态
+// ============================================
+let state = {
+  roundIndex: 0,
+  cycleIndex: 0,
+  beatInCycle: 0,          // 1..4
+  roundPairs: [],          // 当前轮使用的 pair 列表
+  leftOrder: [],           // 左侧解释卡显示顺序（pair对象数组，固定一轮）
+  rightOrder: [],
+  termOrder: [],           // 中间词语卡当前顺序（pair对象数组，随拍变化）
+  highlightedId: null,
+  highlightTime: 0,
+  leftAnswered: true,
+  rightAnswered: true,
+  p1Score: 0,
+  p2Score: 0,
+  p1Energy: START_ENERGY,
+  p2Energy: START_ENERGY,
+  beatTimer: null,
+  running: false,
+};
+
+const el = id => document.getElementById(id);
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function pickRoundPairs(group){
+  let pairs = group.pairs;
+  if(pairs.length <= MAX_TERMS) return shuffle(pairs);
+  const n = Math.min(MAX_TERMS, Math.max(MIN_TERMS, pairs.length));
+  return shuffle(pairs).slice(0, n);
+}
+
+// ============================================
+// 初始化一轮
+// ============================================
+function startRound(){
+  const group = MATCH_GROUPS[state.roundIndex];
+  state.roundPairs = pickRoundPairs(group);
+  state.leftOrder = shuffle(state.roundPairs);
+  state.rightOrder = shuffle(state.roundPairs);
+  state.termOrder = shuffle(state.roundPairs);
+  state.cycleIndex = 0;
+  state.beatInCycle = 0;
+
+  el('roundlabel').textContent = `第 ${state.roundIndex+1} / ${MATCH_GROUPS.length} 轮`;
+  el('groupname').textContent = group.groupName;
+
+  renderSideCol('leftcol', state.leftOrder);
+  renderSideCol('rightcol', state.rightOrder);
+  renderTermGrid(true);
+  renderEnergy();
+  updateBeatDots(0);
+  el('bulb').classList.remove('lit');
+
+  // 每一轮准备好后，画面保持静止，等玩家点"开始本轮"才开始跳动
+  el('roundgate').classList.remove('hidden');
+}
+
+function beginRoundPlay(){
+  el('roundgate').classList.add('hidden');
+  if(state.beatTimer) clearInterval(state.beatTimer);
+  state.beatTimer = setInterval(tick, BEAT_MS);
+}
+
+function renderSideCol(colId, order){
+  const col = el(colId);
+  col.innerHTML = '';
+  order.forEach(pair => {
+    const card = document.createElement('div');
+    card.className = 'exp-card';
+    card.dataset.id = pair.id;
+    card.textContent = pair.definition;
+    // 用 pointerdown 而不是 click：click 事件在两指几乎同时按下时，
+    // 部分移动端浏览器会将其识别为"双指手势"而吞掉其中一边甚至两边的触发。
+    // pointerdown 按触点(pointerId)独立派发，不会互相干扰。
+    card.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handleClick(colId === 'leftcol' ? 'left' : 'right', pair.id, card);
+    });
+    col.appendChild(card);
+  });
+}
+
+function renderTermGrid(instant){
+  const grid = el('termgrid');
+  const n = state.termOrder.length;
+  const cols = 2;
+  const rows = Math.ceil(n / cols);
+  const rect = grid.getBoundingClientRect();
+  const cellW = rect.width / cols;
+  const cellH = Math.max(56, (rect.height) / rows);
+
+  // 注意：不能只用"卡片数量是否变化"来判断要不要重建——
+  // 不同分组可能刚好词语数相同（如第2、3组都是7个），
+  // 数量相同但内容(id)不同，若不重建就会用旧卡片去找新id，导致 querySelector 返回 null。
+  // 所以强制用 instant 标记来控制重建，只有"新一轮开局"才重建。
+  if(instant){
+    grid.innerHTML = '';
+    state.termOrder.forEach(pair => {
+      const card = document.createElement('div');
+      card.className = 'term-card';
+      card.dataset.id = pair.id;
+      card.textContent = pair.term;
+      grid.appendChild(card);
+    });
+  }
+
+  state.termOrder.forEach((pair, idx) => {
+    const card = grid.querySelector(`.term-card[data-id="${pair.id}"]`);
+    if(!card) return; // 安全防护，理论上重建后必定存在
+    const col = idx % cols, row = Math.floor(idx / cols);
+    if(instant){
+      card.style.transition = 'none';
+    } else {
+      card.style.transition = '';
+    }
+    card.style.left = `${col * cellW + 3}px`;
+    card.style.top = `${row * cellH + 3}px`;
+    card.classList.remove('highlighted');
+    if(instant){
+      requestAnimationFrame(()=>{ card.style.transition=''; });
+    }
+  });
+}
+
+function renderEnergy(){
+  ['p1energy','p2energy'].forEach((id, pIdx) => {
+    const row = el(id);
+    row.innerHTML = '';
+    const energy = pIdx === 0 ? state.p1Energy : state.p2Energy;
+    for(let i=0;i<START_ENERGY;i++){
+      const seg = document.createElement('div');
+      seg.className = 'energy-seg' + (i < energy ? (pIdx===0?' lit-p1':' lit-p2') : '');
+      row.appendChild(seg);
+    }
+  });
+}
+
+// ============================================
+// 节拍循环
+// ============================================
+function tick(){
+  state.beatInCycle++;
+  if(state.beatInCycle > 4){
+    state.beatInCycle = 1;
+    state.cycleIndex++;
+    if(state.cycleIndex >= CYCLES_PER_ROUND){
+      nextRoundOrEnd();
+      return;
+    }
+  }
+
+  updateBeatDots(state.beatInCycle);
+
+  if(state.beatInCycle < 4){
+    // 换位拍
+    state.termOrder = shuffle(state.termOrder);
+    renderTermGrid(false);
+    el('bulb').classList.remove('lit');
+  } else {
+    // 结算上一次未答的分数（若有）先处理，再开新一轮亮灯
+    evaluateMissesIfAny();
+    doHighlightBeat();
+  }
+}
+
+function updateBeatDots(beat){
+  document.querySelectorAll('.beat-dot').forEach(dot => {
+    dot.classList.toggle('active', Number(dot.dataset.beat) === beat);
+  });
+}
+
+function doHighlightBeat(){
+  const pick = state.termOrder[Math.floor(Math.random()*state.termOrder.length)];
+  state.highlightedId = pick.id;
+  state.highlightTime = performance.now();
+  state.leftAnswered = false;
+  state.rightAnswered = false;
+
+  const card = el('termgrid').querySelector(`.term-card[data-id="${pick.id}"]`);
+  if(card) card.classList.add('highlighted');
+  el('bulb').classList.add('lit');
+}
+
+function evaluateMissesIfAny(){
+  // 若上一次亮灯后，某一侧没有作答，判 miss
+  if(state.highlightedId === null) return;
+  if(!state.leftAnswered){
+    applyResult('left', 'miss');
+  }
+  if(!state.rightAnswered){
+    applyResult('right', 'miss');
+  }
+}
+
+function nextRoundOrEnd(){
+  if(state.beatTimer){ clearInterval(state.beatTimer); state.beatTimer = null; }
+  state.roundIndex++;
+  if(state.roundIndex >= MATCH_GROUPS.length){
+    endGame();
+  } else {
+    startRound(); // 准备下一轮数据 + 显示"开始本轮"按钮，等待玩家点击
+  }
+}
+
+// ============================================
+// 点击判定
+// ============================================
+function handleClick(side, pairId, cardEl){
+  if(state.highlightedId === null) return;
+  if(side === 'left' && state.leftAnswered) return;
+  if(side === 'right' && state.rightAnswered) return;
+
+  const isCorrect = pairId === state.highlightedId;
+  if(!isCorrect){
+    applyResult(side, 'wrong', cardEl);
+    return;
+  }
+  const dt = performance.now() - state.highlightTime;
+  let tier;
+  if(dt <= TIER_WINDOW.perfect) tier = 'perfect';
+  else if(dt <= TIER_WINDOW.good) tier = 'good';
+  else tier = 'late';
+
+  applyResult(side, tier, cardEl);
+}
+
+function applyResult(side, tier, cardEl){
+  if(side === 'left') state.leftAnswered = true;
+  else state.rightAnswered = true;
+
+  const points = POINTS[tier] || 0;
+  const isMissOrWrong = (tier === 'miss' || tier === 'wrong');
+
+  if(side === 'left'){
+    state.p1Score += points;
+    if(isMissOrWrong) state.p1Energy = Math.max(0, state.p1Energy - 1);
+  } else {
+    state.p2Score += points;
+    if(isMissOrWrong) state.p2Energy = Math.max(0, state.p2Energy - 1);
+  }
+
+  el('p1val').textContent = state.p1Score;
+  el('p2val').textContent = state.p2Score;
+  renderEnergy();
+
+  if(cardEl){
+    cardEl.classList.remove('correct-flash','wrong-flash');
+    void cardEl.offsetWidth;
+    cardEl.classList.add(isMissOrWrong ? 'wrong-flash' : 'correct-flash');
+  }
+
+  if(!isMissOrWrong){
+    showFxLabel(tier, side);
+  }
+}
+
+function showFxLabel(tier, side){
+  const label = {perfect:'PERFECT!', good:'GOOD', late:'LATE'}[tier];
+  const color = {perfect:'var(--perfect)', good: side==='left'?'var(--p1)':'var(--p2)', late:'var(--muted)'}[tier];
+  const fx = document.createElement('div');
+  fx.className = 'fx-label';
+  fx.textContent = label;
+  fx.style.color = color;
+  fx.style.left = side === 'left' ? '20%' : '75%';
+  fx.style.top = '45%';
+  document.body.appendChild(fx);
+  setTimeout(()=>fx.remove(), 650);
+}
+
+// ============================================
+// 结束
+// ============================================
+function endGame(){
+  clearInterval(state.beatTimer);
+  state.running = false;
+  const overlay = el('overlay');
+  overlay.classList.remove('hidden');
+  overlay.innerHTML = `
+    <h1 class="mono">游戏结束！</h1>
+    <p style="font-size:20px; color:var(--text);">
+      P1: <span style="color:var(--p1)">${state.p1Score}</span> 分　|　
+      P2: <span style="color:var(--p2)">${state.p2Score}</span> 分
+    </p>
+    <p>${state.p1Score === state.p2Score ? '平局！势均力敌～' : (state.p1Score > state.p2Score ? 'P1 获胜！' : 'P2 获胜！')}</p>
+    <button class="btn" id="restartbtn">再玩一次</button>
+    <div class="watermark">峇株吧辖华仁中学 蔡逸众 制作</div>
+  `;
+  el('restartbtn').addEventListener('click', () => location.reload());
+}
+
+// ============================================
+// 启动
+// ============================================
+async function startGame(){
+  const filename = el('chapterSelect').value;
+  const startbtn = el('startbtn');
+  startbtn.disabled = true;
+  startbtn.textContent = '加载中…';
+  try{
+    const data = await loadChapterFile(filename);
+    CHAPTER_INFO = data.CHAPTER_INFO;
+    MATCH_GROUPS = data.MATCH_GROUPS;
+  } catch(err){
+    console.error('加载章节数据失败', err);
+    startbtn.disabled = false;
+    startbtn.textContent = '开始游戏';
+    alert('章节数据加载失败，请检查文件是否与 index.html 放在同一目录。');
+    return;
+  }
+
+  el('overlay').classList.add('hidden');
+  state.roundIndex = 0;
+  state.p1Score = 0; state.p2Score = 0;
+  state.p1Energy = START_ENERGY; state.p2Energy = START_ENERGY;
+  state.running = true;
+  startRound(); // 只准备第一轮画面，静止等待玩家点"开始本轮"
+}
+
+el('startbtn').addEventListener('click', startGame);
+el('roundstartbtn').addEventListener('pointerdown', (e) => { e.preventDefault(); beginRoundPlay(); });
+window.addEventListener('resize', () => { if(state.running) renderTermGrid(true); });
+
+// 页面加载后先填充章节下拉选单
+populateChapterSelect();
+</script>
+</body>
+</html>
