@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   峇株吧辖华仁中学 蔡逸众 制作
-  Chinese High School
+  Chinese High School 
   未经许可请勿移除本水印信息。
 -->
 <html lang="zh-CN">
@@ -400,6 +400,7 @@ function startRound(){
 }
 
 function beginRoundPlay(){
+  getAudioCtx();
   el('roundgate').classList.add('hidden');
   if(state.beatTimer) clearInterval(state.beatTimer);
   state.beatTimer = setInterval(tick, BEAT_MS);
@@ -482,6 +483,53 @@ function renderEnergy(){
 // ============================================
 // 节拍循环
 // ============================================
+// ============================================
+// 音效（用 Web Audio API 直接生成音调，不依赖外部音频文件）
+// ============================================
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// 前三拍：简短的"嘀"声
+function playTickSound(){
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = 520;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.1);
+}
+
+// 第四拍（亮灯拍）：上扬双音"叮！"，比前三拍更亮更长，制造特别感
+function playHighlightSound(){
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  [880, 1320].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    const start = now + i * 0.04;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.22, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.4);
+  });
+}
+
 function tick(){
   state.beatInCycle++;
   if(state.beatInCycle > 4){
@@ -497,11 +545,13 @@ function tick(){
 
   if(state.beatInCycle < 4){
     // 换位拍
+    playTickSound();
     state.termOrder = shuffle(state.termOrder);
     renderTermGrid(false);
     el('bulb').classList.remove('lit');
   } else {
     // 结算上一次未答的分数（若有）先处理，再开新一轮亮灯
+    playHighlightSound();
     evaluateMissesIfAny();
     doHighlightBeat();
   }
@@ -636,6 +686,7 @@ function endGame(){
 // 启动
 // ============================================
 async function startGame(){
+  getAudioCtx(); // 用户手势触发，提前解锁音频（浏览器autoplay限制）
   const filename = el('chapterSelect').value;
   const startbtn = el('startbtn');
   startbtn.disabled = true;
