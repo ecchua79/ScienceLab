@@ -539,7 +539,9 @@ function buildOptionList(q){
   if(q.type==='single'){
     correctAnswers = [normalizeAnsList(q.ans)[0]];
   } else {
-    correctAnswers = [normalizeAnsList(q.ans1)[0], normalizeAnsList(q.ans2)[0]];
+    correctAnswers = [];
+    if(!doubleState || !doubleState.solved1) correctAnswers.push(normalizeAnsList(q.ans1)[0]);
+    if(!doubleState || !doubleState.solved2) correctAnswers.push(normalizeAnsList(q.ans2)[0]);
   }
   let distractorSource;
   if(q.distractors){
@@ -714,15 +716,19 @@ function checkDoubleComplete(){
 }
 
 function checkBothWrong(q, isDouble){
-  // 双空题：只要还有任一空未解出，双方都错才重来；已解出的空不再触发整题重开
-  if(isDouble && (doubleState.solved1 || doubleState.solved2)) return;
   if(wrongThisRound.p1 && wrongThisRound.p2){
     roundAttempt++;
     if(roundAttempt > MAX_ROUNDS_PER_QUESTION){
-      score1--; score2--;
-      updateScoreDisplay();
-      showFeedback(1,'双方都未答对，各扣1分',false);
-      showFeedback(2,'双方都未答对，各扣1分',false);
+      const partiallySolved = isDouble && doubleState && (doubleState.solved1 || doubleState.solved2);
+      if(!partiallySolved){
+        score1--; score2--;
+        updateScoreDisplay();
+        showFeedback(1,'双方都未答对，各扣1分',false);
+        showFeedback(2,'双方都未答对，各扣1分',false);
+      } else {
+        showFeedback(1,'剩余空位无人答对，进入下一题',false);
+        showFeedback(2,'剩余空位无人答对，进入下一题',false);
+      }
       setTimeout(nextQuestion, 1500);
     } else {
       wrongThisRound = {p1:false, p2:false};
