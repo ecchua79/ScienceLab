@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科学对决 · 章节选择</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root { --red: #ff2233; --blue: #0099ff; --bg: #0a0a12; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg); color: #fff;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 40px 20px 60px;
+}
+.site-title {
+  font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900;
+  letter-spacing: 6px; text-align: center; margin-bottom: 6px;
+  background: linear-gradient(90deg, var(--red), #fff, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.site-sub { font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 4px; opacity: 0.35; text-align: center; margin-bottom: 10px; }
+.school-tag { font-size: 0.72rem; opacity: 0.4; letter-spacing: 1px; text-align: center; margin-bottom: 36px; }
+
+.grade-section { width: 100%; max-width: 900px; margin-bottom: 36px; }
+.grade-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.grade-title { font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900; letter-spacing: 3px; white-space: nowrap; }
+.grade-title.jm1 { color: #ff9944; }
+.grade-title.jm2 { color: #44ccff; }
+.grade-divider { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent); }
+
+.card-track {
+  display: flex; gap: 14px; overflow-x: auto; overflow-y: visible;
+  padding: 6px 4px 16px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+}
+.card-track::-webkit-scrollbar { height: 4px; }
+.card-track::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 2px; }
+.card-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+.chapter-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 18px 16px; text-decoration: none; color: #fff;
+  display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+  transition: all 0.2s; position: relative; overflow: hidden;
+  flex-shrink: 0; width: 165px;
+}
+.chapter-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--card-color, #ffffff33); }
+.chapter-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.28); transform: translateY(-4px); box-shadow: 0 10px 28px rgba(0,0,0,0.5); }
+.chapter-card.soon { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+.soon-badge { position: absolute; top: 9px; right: 9px; font-size: 0.52rem; letter-spacing: 1px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 3px; padding: 2px 5px; opacity: 0.7; }
+.card-emoji  { font-size: 1.5rem; }
+.card-chapter { font-family: 'Orbitron', monospace; font-size: 0.55rem; letter-spacing: 2px; opacity: 0.45; }
+.card-title   { font-size: 0.88rem; font-weight: 900; line-height: 1.3; }
+.card-subtitle { font-size: 0.65rem; opacity: 0.5; line-height: 1.4; }
+.card-count { margin-top: 4px; font-size: 0.6rem; opacity: 0.35; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
+
+.section-label { font-family: 'Orbitron', monospace; font-size: 0.65rem; letter-spacing: 3px; opacity: 0.4; text-transform: uppercase; width: 100%; max-width: 900px; margin-bottom: 14px; border-left: 2px solid rgba(255,255,255,0.2); padding-left: 10px; }
+.howto { width: 100%; max-width: 900px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 22px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin-bottom: 40px; }
+.howto-item { display: flex; gap: 10px; align-items: flex-start; }
+.howto-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.howto-text { font-size: 0.78rem; line-height: 1.6; opacity: 0.7; }
+.howto-text b { color: #fff; opacity: 1; }
+footer { font-size: 0.58rem; opacity: 0.18; letter-spacing: 2px; font-family: 'Orbitron', monospace; text-align: center; margin-top: auto; padding-top: 20px; }
+
+/* ══ 混合复习模式 ══ */
+.mix-toggle-row { width: 100%; max-width: 900px; display: flex; justify-content: flex-end; margin-bottom: 18px; }
+#mix-toggle-btn {
+  font-family: 'Orbitron', monospace; font-size: 0.65rem; letter-spacing: 1.5px; font-weight: 700;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  padding: 9px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s;
+}
+#mix-toggle-btn:hover { background: rgba(255,255,255,0.1); }
+#mix-toggle-btn.active { background: linear-gradient(90deg, var(--red), var(--blue)); border-color: transparent; }
+.chapter-card.selected { border-color: #00dd88 !important; box-shadow: 0 0 0 2px #00dd88 inset, 0 8px 22px rgba(0,220,130,0.25); }
+.chapter-card.selected::after {
+  content: '✓'; position: absolute; top: 8px; right: 9px; width: 18px; height: 18px;
+  background: #00dd88; color: #001; border-radius: 50%; font-size: 0.68rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.chapter-card.locked-out { opacity: 0.22; pointer-events: none; filter: grayscale(1); }
+#mix-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+  background: #0d0d1e; border-top: 1px solid rgba(255,255,255,0.15);
+  padding: 14px 20px; display: none; align-items: center; justify-content: center; gap: 18px;
+  flex-wrap: wrap; box-shadow: 0 -6px 24px rgba(0,0,0,0.4);
+}
+#mix-bar.show { display: flex; }
+#mix-bar .mix-info { font-size: 0.8rem; opacity: 0.75; }
+#mix-bar .mix-info b { color: #00dd88; font-size: 1rem; }
+#mix-clear-btn, #mix-start-btn {
+  font-family: 'Orbitron', monospace; font-size: 0.72rem; font-weight: 900; letter-spacing: 1.5px;
+  padding: 10px 22px; border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 2px solid;
+}
+#mix-clear-btn { background: transparent; border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.6); }
+#mix-clear-btn:hover { border-color: #fff; color: #fff; }
+#mix-start-btn { background: transparent; border-color: #00dd88; color: #00dd88; }
+#mix-start-btn:hover:not(:disabled) { background: #00dd88; color: #001; }
+#mix-start-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.3); }
+body.mix-bar-open { padding-bottom: 90px; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="site-title">🦁 狮虎对决 🐯</div>
+<div class="site-sub">SCIENCE BATTLE · 狮队 VS 虎队</div>
+<div class="school-tag">峇株吧辖华仁中学 · 科学复习对战游戏</div>
+
+<div class="mix-toggle-row">
+  <button id="mix-toggle-btn" onclick="toggleMixMode()">🔀 混合模式：关闭</button>
+</div>
+
+<!-- ══ 初一 ══ -->
+<div class="grade-section" id="jm1-section">
+  <div class="grade-header">
+    <div class="grade-title jm1">初一 · JUNIOR MIDDLE 1</div>
+    <div class="grade-divider"></div>
+  </div>
+  <div class="card-track" id="jm1-track"></div>
+</div>
+
+<!-- ══ 初二 ══ -->
+<div class="grade-section" id="jm2-section">
+  <div class="grade-header">
+    <div class="grade-title jm2">初二 · JUNIOR MIDDLE 2</div>
+    <div class="grade-divider"></div>
+  </div>
+  <div class="card-track" id="jm2-track"></div>
+</div>
+
+<!-- ══ HOW TO PLAY ══ -->
+<div class="section-label">玩法简介 · HOW TO PLAY</div>
+<div class="howto">
+  <div class="howto-item">
+    <div class="howto-icon">🦁🐯</div>
+    <div class="howto-text"><b>狮队 vs 虎队</b><br>左右各自作答，两队同时进行，互不影响。</div>
+  </div>
+  <div class="howto-item">
+    <div class="howto-icon">⚔️</div>
+    <div class="howto-text"><b>领先5分获胜</b><br>没有总分上限，可以打到21:16，越战越激烈！</div>
+  </div>
+  <div class="howto-item">
+    <div class="howto-icon">✅</div>
+    <div class="howto-text"><b>答对</b><br>己方血条冲击波推进，立刻换下一题。</div>
+  </div>
+  <div class="howto-item">
+    <div class="howto-icon">❌</div>
+    <div class="howto-text"><b>答错</b><br>显示解析，<b>停留10秒</b>惩罚才能继续作答。</div>
+  </div>
+  <div class="howto-item">
+    <div class="howto-icon">⚠️</div>
+    <div class="howto-text"><b>警告机制</b><br>分差超过3分，落后方闪烁警告，血条脉冲示警！</div>
+  </div>
+  <div class="howto-item">
+    <div class="howto-icon">🎉</div>
+    <div class="howto-text"><b>输入姓名</b><br>开始前可输入队员名字，胜利时专属祝贺画面！</div>
+  </div>
+</div>
+
+<footer>
+  © 峇株吧辖华仁中学 · 制作：蔡逸众 · 未经授权请勿转载
+</footer>
+
+<div id="mix-bar">
+  <div class="mix-info">已选 <b id="mix-count">0</b> 章 · 至少选 2 章才能开始（同一份卷子共 100 题）</div>
+  <button id="mix-clear-btn" onclick="clearSelection()">✕ 清空</button>
+  <button id="mix-start-btn" onclick="startMixQuiz()" disabled>▶ 开始混合测验</button>
+</div>
+
+<script>
+// ============================================================
+//  峇株吧辖华仁中学蔡逸众制作
+//  科学题目章节总目录
+//  Made by ecchua79
+// ============================================================
+
+const CHAPTER_INDEX = {
+
+  grade1: {
+    label: '初一科学',
+    chapters: [
+      {
+        file:     '1c1.js',
+        id:       'ch1_intro',
+        chapter:  '第1章',
+        title:    '什么是科学',
+        subtitle: '科学态度 · 实验室安全 · 测量单位',
+        emoji:    '🔬',
+        color:    '#2266aa',
+        available: true,
+      },
+      {
+        file:     '1c2.js',
+        id:       'ch2_matter',
+        chapter:  '第2章',
+        title:    '物质的基础',
+        subtitle: '粒子理论 · 物态变化 · 扩散与布朗运动',
+        emoji:    '⚛️',
+        color:    '#7733cc',
+        available: true,
+      },
+      {
+        file:     '1c3.js',
+        id:       'ch3_cells',
+        chapter:  '第3章',
+        title:    '生命的基础',
+        subtitle: '生命现象 · 细胞结构 · 组织与器官',
+        emoji:    '🧬',
+        color:    '#228855',
+        available: true,
+      },
+      {
+        file:     '1c4.js',
+        id:       'ch4_reproduction',
+        chapter:  '第4章',
+        title:    '生殖',
+        subtitle: '有性生殖 · 植物生殖 · 染色体与DNA',
+        emoji:    '🧬',
+        color:    '#cc3366',
+        available: true,
+      },
+      {
+        file:     '1c5.js',
+        id:       'ch5_movement',
+        chapter:  '第5章',
+        title:    '生物的运动',
+        subtitle: '骨骼系统 · 肌肉系统 · 屈性运动',
+        emoji:    '🦴',
+        color:    '#3388cc',
+        available: true,
+      },
+      {
+        file:     '1c6.js',
+        id:       'ch6_heat',
+        chapter:  '第6章',
+        title:    '热',
+        subtitle: '热能 · 热传递 · 热膨胀',
+        emoji:    '🔥',
+        color:    '#ff6622',
+        available: false,
+      },
+      {
+        file:     '1c7.js',
+        id:       'ch7_light',
+        chapter:  '第7章',
+        title:    '光的现象',
+        subtitle: '光的传播 · 反射与折射 · 色散',
+        emoji:    '💡',
+        color:    '#ffaa00',
+        available: false,
+      },
+      {
+        file:     '1c8.js',
+        id:       'ch8_sound',
+        chapter:  '第8章',
+        title:    '声音的现象',
+        subtitle: '波的传播 · 声音特性 · 噪音控制',
+        emoji:    '🔊',
+        color:    '#0099cc',
+        available: true,
+      },
+      {
+        file:     '1c9.js',
+        id:       'ch9_static',
+        chapter:  '第9章',
+        title:    '静电',
+        subtitle: '静电产生 · 电荷性质 · 应用与防治',
+        emoji:    '⚡',
+        color:    '#cc6600',
+        available: true,
+      },
+      {
+        file:     '1c10.js',
+        id:       'ch10_perception',
+        chapter:  '第10章',
+        title:    '感知',
+        subtitle: '感觉器官 · 视觉听觉 · 感知综合',
+        emoji:    '👁️',
+        color:    '#aa44aa',
+        available: false,
+      },
+      {
+        file:     '1c11.js',
+        id:       'ch11_force',
+        chapter:  '第11章',
+        title:    '力',
+        subtitle: '力的概念 · 胡克定律 · 重力与摩擦力',
+        emoji:    '💪',
+        color:    '#cc4400',
+        available: true,
+      },
+      {
+        file:     '1c12.js',
+        id:       'ch12_motion',
+        chapter:  '第12章',
+        title:    '物体的运动',
+        subtitle: '速度 · 加速度 · 运动图像',
+        emoji:    '🏃',
+        color:    '#447700',
+        available: false,
+      },
+      {
+        file:     '1c13.js',
+        id:       'ch13_solar',
+        chapter:  '第13章',
+        title:    '太阳系',
+        subtitle: '行星 · 卫星 · 太阳系结构',
+        emoji:    '☀️',
+        color:    '#dd9900',
+        available: false,
+      },
+      {
+        file:     '1c14.js',
+        id:       'ch14_moon',
+        chapter:  '第14章',
+        title:    '地月运动',
+        subtitle: '月相 · 潮汐 · 日食月食',
+        emoji:    '🌙',
+        color:    '#556688',
+        available: false,
+      },
+    ],
+  },
+
+  grade2: {
+    label: '初二科学',
+    chapters: [
+      {
+        file:     '2c1.js',
+        id:       'ch1_science2',
+        chapter:  '第1章',
+        title:    '科学与物质',
+        subtitle: '',
+        emoji:    '🔬',
+        color:    '#2266aa',
+        available: false,
+      },
+      {
+        file:     '2c2.js',
+        id:       'ch2_changes',
+        chapter:  '第2章',
+        title:    '化学反应',
+        subtitle: '物理变化 · 化学变化 · 质量守恒',
+        emoji:    '⚗️',
+        color:    '#9933cc',
+        available: true,
+      },
+      {
+        file:     '2c3.js',
+        id:       'ch3_nervous',
+        chapter:  '第3章',
+        title:    '协调与恒定',
+        subtitle: '神经系统 · 反射弧 · 内分泌腺',
+        emoji:    '🧠',
+        color:    '#5544bb',
+        available: true,
+      },
+      {
+        file:     '2c4.js',
+        id:       'ch4_respiratory',
+        chapter:  '第4章',
+        title:    '呼吸',
+        subtitle: '呼吸道 · 气体交换 · 呼吸作用',
+        emoji:    '🫁',
+        color:    '#dd4444',
+        available: true,
+      },
+      {
+        file:     '2c5.js',
+        id:       'ch5_water',
+        chapter:  '第5章',
+        title:    '水和溶液',
+        subtitle: '水的性质 · 溶液与浓度 · 水处理',
+        emoji:    '💧',
+        color:    '#1188cc',
+        available: true,
+      },
+      {
+        file:     '2c6.js',
+        id:       'ch6_acid_base',
+        chapter:  '第6章',
+        title:    '酸和碱',
+        subtitle: '酸碱性质 · pH值 · 中和反应',
+        emoji:    '🧪',
+        color:    '#33aa55',
+        available: true,
+      },
+      {
+        file:     '2c7.js',
+        id:       'ch7_air',
+        chapter:  '第7章',
+        title:    '气体',
+        subtitle: '空气成分 · 气体性质 · 环境保护',
+        emoji:    '🌬️',
+        color:    '#44aadd',
+        available: true,
+      },
+      {
+        file:     '2c8.js',
+        id:       'ch8_pressure',
+        chapter:  '第8章',
+        title:    '气压和压强',
+        subtitle: '压强概念 · 液体压强 · 大气压强',
+        emoji:    '🔩',
+        color:    '#886633',
+        available: true,
+      },
+      {
+        file:     '2c9.js',
+        id:       'ch9_machines',
+        chapter:  '第9章',
+        title:    '简单机械',
+        subtitle: '杠杆 · 滑轮 · 斜面与轮轴',
+        emoji:    '⚙️',
+        color:    '#557755',
+        available: true,
+      },
+      {
+        file:     '2c10.js',
+        id:       'ch10_energy',
+        chapter:  '第10章',
+        title:    '能量、功和功率',
+        subtitle: '机械能 · 能量守恒 · 功与功率',
+        emoji:    '⚡',
+        color:    '#ee8800',
+        available: true,
+      },
+      {
+        file:     '2c11.js',
+        id:       'ch11_ecology',
+        chapter:  '第11章',
+        title:    '生态系统和生物多样性',
+        subtitle: '生态系统 · 生物多样性 · 自然选择',
+        emoji:    '🌿',
+        color:    '#33aa44',
+        available: true,
+      },
+      {
+        file:     '2c12.js',
+        id:       'ch12_universe',
+        chapter:  '第12章',
+        title:    '天体和宇宙',
+        subtitle: '天体系统 · 恒星演化 · 宇宙起源',
+        emoji:    '🌌',
+        color:    '#223388',
+        available: true,
+      },
+    ],
+  },
+
+};
+
+// ============================================================
+//  动态渲染章节卡片
+// ============================================================
+
+function getChapterId(file) {
+  if (!file) return null;
+  return file.replace('.js', '');
+}
+
+function renderChapters() {
+  const gradeMap = { grade1: 'jm1', grade2: 'jm2' };
+
+  for (const [gradeKey, gradeData] of Object.entries(CHAPTER_INDEX)) {
+    const trackId = gradeMap[gradeKey] + '-track';
+    const track = document.getElementById(trackId);
+    if (!track) continue;
+
+    track.innerHTML = '';
+
+    for (const ch of gradeData.chapters) {
+      const chapterId = getChapterId(ch.file);
+      const isAvailable = ch.available && chapterId;
+
+      if (isAvailable) {
+        const card = document.createElement('a');
+        card.className = 'chapter-card';
+        card.dataset.chapter = chapterId;
+        card.dataset.grade = gradeMap[gradeKey];
+        card.style.setProperty('--card-color', ch.color);
+        card.href = './game.html?chapter=' + chapterId;
+        card.onclick = function(e) { onCardClick(e, this); };
+        card.innerHTML = `
+          <div class="card-emoji">${ch.emoji}</div>
+          <div class="card-chapter">CHAPTER ${ch.chapter.replace('第','').replace('章','')}</div>
+          <div class="card-title">${ch.title}</div>
+          <div class="card-subtitle">${ch.subtitle}</div>
+          <div class="card-count">50 题</div>
+        `;
+        track.appendChild(card);
+      } else {
+        const card = document.createElement('div');
+        card.className = 'chapter-card soon';
+        card.style.setProperty('--card-color', ch.color);
+        card.innerHTML = `
+          <span class="soon-badge">即将推出</span>
+          <div class="card-emoji">${ch.emoji}</div>
+          <div class="card-chapter">CHAPTER ${ch.chapter.replace('第','').replace('章','')}</div>
+          <div class="card-title">${ch.title}</div>
+          <div class="card-subtitle">${ch.subtitle || '题目尚未加入'}</div>
+          <div class="card-count">— 题</div>
+        `;
+        track.appendChild(card);
+      }
+    }
+  }
+}
+
+// 页面加载完成后渲染
+renderChapters();
+
+// ============================================================
+//  混合复习模式
+// ============================================================
+let mixMode = false;
+let selectedChapters = [];
+let selectedGrade = null;
+
+function toggleMixMode() {
+  mixMode = !mixMode;
+  const btn = document.getElementById('mix-toggle-btn');
+  btn.classList.toggle('active', mixMode);
+  btn.textContent = mixMode ? '🔀 混合模式：开启' : '🔀 混合模式：关闭';
+  document.getElementById('mix-bar').classList.toggle('show', mixMode);
+  document.body.classList.toggle('mix-bar-open', mixMode);
+  if (!mixMode) clearSelection();
+  updateCardLocks();
+}
+
+function updateCardLocks() {
+  document.querySelectorAll('.chapter-card[data-chapter]').forEach(card => {
+    const isOtherGrade = mixMode && selectedGrade && card.dataset.grade !== selectedGrade;
+    card.classList.toggle('locked-out', isOtherGrade);
+  });
+}
+
+function onCardClick(e, card) {
+  if (!mixMode) return;
+  e.preventDefault();
+  const chapterId = card.dataset.chapter;
+  const grade = card.dataset.grade;
+  const idx = selectedChapters.indexOf(chapterId);
+  if (idx >= 0) {
+    selectedChapters.splice(idx, 1);
+    card.classList.remove('selected');
+    if (selectedChapters.length === 0) selectedGrade = null;
+  } else {
+    if (selectedGrade && grade !== selectedGrade) return;
+    selectedGrade = grade;
+    selectedChapters.push(chapterId);
+    card.classList.add('selected');
+  }
+  updateCardLocks();
+  updateMixBar();
+}
+
+function updateMixBar() {
+  document.getElementById('mix-count').textContent = selectedChapters.length;
+  document.getElementById('mix-start-btn').disabled = selectedChapters.length < 2;
+}
+
+function clearSelection() {
+  selectedChapters = [];
+  selectedGrade = null;
+  document.querySelectorAll('.chapter-card.selected').forEach(c => c.classList.remove('selected'));
+  updateCardLocks();
+  updateMixBar();
+}
+
+function startMixQuiz() {
+  if (selectedChapters.length < 2) return;
+  window.location.href = './game.html?mix=' + selectedChapters.join(',');
+}
+</script>
+
+</body>
+</html>
