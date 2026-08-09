@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>火星逆行 3D 模拟器 (含地心说与日心说)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050508; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', sans-serif; touch-action: none; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .collapsible-content {
+            max-height: 500px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease;
+        }
+        .collapsed .collapsible-content {
+            max-height: 0 !important;
+            opacity: 0 !important;
+            margin: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="select-none">
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="relative z-10 flex flex-col justify-between h-screen p-2 sm:p-4 pointer-events-none">
+        
+        <!-- Header Zone -->
+        <header class="flex flex-col sm:flex-row justify-between items-start gap-2">
+            <!-- Title Panel -->
+            <div id="panel-title" class="glass-panel p-3 rounded-xl pointer-events-auto max-w-sm sm:max-w-md shadow-2xl w-full sm:w-auto">
+                <div class="flex justify-between items-center cursor-pointer sm:cursor-default" onclick="togglePanel('panel-title')">
+                    <h1 class="text-sm sm:text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-red-400 to-amber-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-planet-ringed text-amber-400"></i>火星逆行 3D 模拟器
+                    </h1>
+                    <button class="text-gray-400 hover:text-white sm:hidden p-1 focus:outline-none">
+                        <i class="fa-solid fa-chevron-up transition-transform duration-300 icon-toggle"></i>
+                    </button>
+                </div>
+                <div class="collapsible-content mt-2 text-[11px] sm:text-xs text-gray-300 leading-relaxed" id="view-description">
+                    【日心说视角】太阳居于中心，内侧的地球以更快的速度超越外侧的火星，产生视逆行现象。
+                </div>
+            </div>
+
+            <!-- View Controls -->
+            <div class="glass-panel p-1.5 rounded-xl pointer-events-auto flex items-center gap-1 shadow-lg self-end sm:self-start flex-wrap">
+                <button id="btn-heliocentric" onclick="switchView('heliocentric')" class="px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-black shadow-md flex items-center gap-1">
+                    <i class="fa-solid fa-sun"></i><span>日心视角</span>
+                </button>
+                <button id="btn-geocentric-ptolemy" onclick="switchView('ptolemy')" class="px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-earth-americas"></i><span>地心视角</span>
+                </button>
+                <button id="btn-geocentric-sky" onclick="switchView('geocentric')" class="px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-eye"></i><span>地球视角</span>
+                </button>
+                <button id="btn-pip" onclick="togglePIP()" class="px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all border-l border-gray-700 ml-0.5 flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-split-up-and-left"></i><span>画中画</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Subtle attribution line -->
+        <div class="w-full text-center pointer-events-none" style="font-size:0.55rem; color:rgba(56,189,248,0.18); margin-top:2px; letter-spacing:0.5px;">
+            峇株吧辖华仁中学蔡逸众制作
+        </div>
+
+        <!-- Look-around Hint (shown in geocentric sky view) -->
+        <div id="look-hint" class="hidden opacity-0 fixed left-1/2 -translate-x-1/2 top-16 sm:top-20 z-20 glass-panel px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] text-cyan-200 pointer-events-none shadow-lg transition-opacity duration-500">
+            <i class="fa-solid fa-hand-pointer"></i> 拖动屏幕，环视星空四周
+        </div>
+
+        <!-- Retrograde Explanation Card -->
+        <div id="explain-card" class="hidden opacity-0 translate-y-2 fixed left-1/2 -translate-x-1/2 bottom-24 sm:bottom-28 z-30 glass-panel rounded-xl p-3 sm:p-4 w-[85vw] max-w-xs sm:max-w-sm pointer-events-auto shadow-2xl border border-amber-500/30 transition-all duration-500">
+            <div class="flex justify-between items-start gap-2">
+                <div id="explain-title" class="flex items-center gap-1.5 text-amber-300 font-bold text-xs sm:text-sm">
+                    <i class="fa-solid fa-circle-question"></i> 为什么会逆行？
+                </div>
+                <button onclick="hideExplanationCard()" class="text-gray-400 hover:text-white text-xs p-1 -mt-1 -mr-1 focus:outline-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p id="explain-text" class="mt-1.5 text-[11px] sm:text-xs text-gray-300 leading-relaxed"></p>
+        </div>
+
+        <!-- Status Banner -->
+        <div class="self-center glass-panel px-4 py-1.5 rounded-full pointer-events-auto flex items-center gap-2 sm:gap-4 text-[11px] sm:text-xs shadow-xl my-auto">
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+                <span class="hidden xs:inline">地球周期:</span><strong class="text-blue-400">1.0年</strong>
+            </div>
+            <div class="h-3 w-px bg-gray-600"></div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                <span class="hidden xs:inline">火星周期:</span><strong class="text-red-400">1.88年</strong>
+            </div>
+            <div class="h-3 w-px bg-gray-600"></div>
+            <div>
+                <span id="status-text" class="font-bold text-amber-400">正常顺行</span>
+            </div>
+        </div>
+
+        <!-- Footer Zone -->
+        <footer class="flex flex-col sm:flex-row justify-between items-end gap-2">
+            <!-- Legend Panel -->
+            <div id="panel-legend" class="glass-panel p-3 rounded-xl pointer-events-auto w-full sm:w-64 text-[11px] sm:text-xs shadow-xl order-2 sm:order-1 collapsed">
+                <div class="font-bold text-amber-300 flex justify-between items-center cursor-pointer" onclick="togglePanel('panel-legend')">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> 图例说明</span>
+                    <button class="text-gray-400 hover:text-white p-0.5 focus:outline-none">
+                        <i class="fa-solid fa-chevron-down transition-transform duration-300 icon-toggle"></i>
+                    </button>
+                </div>
+                <div class="collapsible-content mt-2 space-y-1 text-gray-300">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 flex-shrink-0"></span> 太阳 (黄)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-400 flex-shrink-0"></span> 地球 (蓝)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0"></span> 火星 (红)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 flex-shrink-0"></span> 火星相对轨迹 (青色)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div id="panel-controls" class="glass-panel p-3 rounded-xl pointer-events-auto flex flex-col gap-2.5 w-full sm:w-80 shadow-2xl order-1 sm:order-2">
+                <div class="flex items-center justify-between">
+                    <div class="font-bold text-gray-200 text-xs flex items-center gap-1 cursor-pointer" onclick="togglePanel('panel-controls')">
+                        <i class="fa-solid fa-sliders text-amber-400"></i> 控制面板
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="toggleSightline()" id="btn-line" class="bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded text-[11px] transition-all">
+                            视线:开
+                        </button>
+                        <button onclick="resetSimulation()" class="bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded text-[11px] transition-all">
+                            重置
+                        </button>
+                        <button class="text-gray-400 hover:text-white p-1 ml-1 focus:outline-none sm:hidden" onclick="togglePanel('panel-controls')">
+                            <i class="fa-solid fa-chevron-up transition-transform duration-300 icon-toggle"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="collapsible-content space-y-2.5 pt-1">
+                    <div class="flex items-center justify-between gap-2">
+                        <button id="btn-play" onclick="togglePlay()" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all shadow-md flex-1">
+                            <i class="fa-solid fa-pause" id="play-icon"></i> <span id="play-text">暂停</span>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between text-[11px] text-gray-400">
+                            <span>演播速度:</span>
+                            <span id="speed-val" class="text-amber-400 font-mono">1.0x</span>
+                        </div>
+                        <input type="range" id="speed-slider" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- PIP Overlay Container -->
+    <div id="pip-container" class="hidden absolute top-14 right-2 sm:right-4 w-44 sm:w-72 h-28 sm:h-48 border border-amber-500/50 rounded-xl overflow-hidden shadow-2xl z-20 pointer-events-auto glass-panel">
+        <div id="pip-canvas-holder" class="w-full h-full"></div>
+        <div class="absolute top-1 left-1.5 z-30 bg-black/70 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] text-amber-300 font-mono pointer-events-none" id="pip-label">
+            地球视角 (画中画)
+        </div>
+        <button onclick="togglePIP()" class="absolute top-1 right-1.5 z-30 bg-black/70 hover:bg-red-500/80 text-gray-300 hover:text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors focus:outline-none" title="关闭画中画">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <!-- Main Logic -->
+    <script>
+        // --- Astronomical Setup Parameters ---
+        const ORBIT_EARTH = 12;
+        const ORBIT_MARS = 18;
+        const PERIOD_EARTH = 10;
+        const PERIOD_MARS = 18.8;
+        const SPHERE_RADIUS = 50;
+
+        // --- Global State ---
+        let scene, mainCamera, mainRenderer;
+        let pipCamera, pipRenderer, isPIPActive = false;
+        let controls;
+        let isPlaying = true;
+        let timeSpeed = 1.0;
+        let simTime = 0;
+        // 峇株吧辖华仁中学蔡逸众制作
+        let currentView = 'heliocentric'; // 'heliocentric', 'ptolemy', 'geocentric'
+        let showSightline = true;
+
+        // --- Astronomical Objects ---
+        let sun, earth, mars, celestialSphere;
+        let earthOrbitLine, marsOrbitLine;
+        let sightLine;
+        let trajectoryMesh, trajectoryGeometry;
+        const maxTrajectoryPoints = 1500;
+        let trajectoryPoints = [];
+
+        let previousAngleDifference = 0;
+
+        // --- Geocentric Sky Look-around State (Feature 1) ---
+        let geoLookYaw = 0;
+        let geoLookPitch = 0;
+        let isDraggingLook = false;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+        let lookHintTimeout = null;
+
+        // --- Retrograde Explanation State (Feature 2) ---
+        let lastRetrogradeStatus = null;
+        let explainTimeout = null;
+
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const icon = panel.querySelector('.icon-toggle');
+            panel.classList.toggle('collapsed');
+            if (icon) {
+                icon.style.transform = panel.classList.contains('collapsed') ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Main Scene Setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050508, 0.003);
+
+            // 2. Main Camera
+            mainCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            mainCamera.position.set(0, 35, 45);
+
+        // 峇株吧辖蔡逸众制作
+            // 3. Main Renderer
+            mainRenderer = new THREE.WebGLRenderer({ antialias: true });
+            mainRenderer.setSize(window.innerWidth, window.innerHeight);
+            mainRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(mainRenderer.domElement);
+
+            // 4. PIP Renderer
+            const pipHolder = document.getElementById('pip-canvas-holder');
+            pipCamera = new THREE.PerspectiveCamera(60, pipHolder.clientWidth / pipHolder.clientHeight, 0.1, 1000);
+            pipRenderer = new THREE.WebGLRenderer({ antialias: true });
+            pipRenderer.setSize(pipHolder.clientWidth, pipHolder.clientHeight);
+            pipRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            pipHolder.appendChild(pipRenderer.domElement);
+
+            // 5. Controls
+            controls = new THREE.OrbitControls(mainCamera, mainRenderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 150;
+            controls.minDistance = 5;
+
+            // 6. Lighting
+            const ambientLight = new THREE.AmbientLight(0x333344, 1.5);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.PointLight(0xffffff, 2.5, 300);
+            scene.add(sunLight);
+
+            // 7. Build Objects
+            buildStarfield();
+            buildCelestialSphere();
+            buildSun();
+            buildPlanets();
+            buildOrbits();
+            buildSightline();
+            buildTrajectoryLine();
+
+            window.addEventListener('resize', onWindowResize);
+            initLookControls();
+
+            updateCameraView();
+            animate();
+        }
+
+        // --- Touch/Mouse Drag Look-around for Geocentric Sky View (Feature 1) ---
+        // 华仁中学蔡逸众制作
+        function initLookControls() {
+            const dom = mainRenderer.domElement;
+
+            dom.addEventListener('pointerdown', (e) => {
+                if (currentView !== 'geocentric') return;
+                isDraggingLook = true;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
+                hideLookHint();
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDraggingLook) return;
+                const dx = e.clientX - lastPointerX;
+                const dy = e.clientY - lastPointerY;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
+
+                geoLookYaw -= dx * 0.005;
+                geoLookPitch = THREE.MathUtils.clamp(geoLookPitch - dy * 0.005, -1.3, 1.3);
+            });
+
+            window.addEventListener('pointerup', () => { isDraggingLook = false; });
+            window.addEventListener('pointercancel', () => { isDraggingLook = false; });
+        }
+
+        function resetGeoLook() {
+            geoLookYaw = 0;
+            geoLookPitch = 0;
+        }
+
+        // Computes a look target offset by the user's drag-derived yaw/pitch
+        function getGeoLookTarget(baseDir, origin) {
+            const spherical = new THREE.Spherical().setFromVector3(baseDir);
+            spherical.theta += geoLookYaw;
+            spherical.phi = THREE.MathUtils.clamp(spherical.phi + geoLookPitch, 0.05, Math.PI - 0.05);
+            const dir = new THREE.Vector3().setFromSpherical(spherical);
+            return new THREE.Vector3().addVectors(origin, dir.multiplyScalar(20));
+        }
+
+        function showLookHint() {
+            const hint = document.getElementById('look-hint');
+            hint.classList.remove('hidden');
+            requestAnimationFrame(() => hint.classList.remove('opacity-0'));
+            clearTimeout(lookHintTimeout);
+        // Made by ecchua79
+            lookHintTimeout = setTimeout(hideLookHint, 5000);
+        }
+
+        function hideLookHint() {
+            const hint = document.getElementById('look-hint');
+            hint.classList.add('opacity-0');
+            clearTimeout(lookHintTimeout);
+            setTimeout(() => hint.classList.add('hidden'), 500);
+        }
+
+        function buildStarfield() {
+            const starsGeo = new THREE.BufferGeometry();
+            const count = 2000;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                const r = 200 + Math.random() * 200;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+
+                const c = new THREE.Color().setHSL(Math.random() * 0.2 + 0.5, 0.5, Math.random() * 0.5 + 0.5);
+                colors[i * 3] = c.r;
+                colors[i * 3 + 1] = c.g;
+                colors[i * 3 + 2] = c.b;
+            }
+
+            starsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starsGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const starsMat = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.8 });
+            const starField = new THREE.Points(starsGeo, starsMat);
+            scene.add(starField);
+        }
+
+        function buildCelestialSphere() {
+            const sphereGeo = new THREE.SphereGeometry(SPHERE_RADIUS, 32, 16);
+            const sphereMat = new THREE.MeshBasicMaterial({
+                color: 0x1e293b,
+                wireframe: true,
+                transparent: true,
+        // 峇株吧辖华仁中学蔡逸众制作
+                opacity: 0.12
+            });
+            celestialSphere = new THREE.Mesh(sphereGeo, sphereMat);
+            scene.add(celestialSphere);
+
+            const ringGeo = new THREE.BufferGeometry();
+            const ringPts = [];
+            for(let i=0; i<=120; i++){
+                const a = (i/120) * Math.PI * 2;
+                ringPts.push(new THREE.Vector3(Math.cos(a)*SPHERE_RADIUS, 0, Math.sin(a)*SPHERE_RADIUS));
+            }
+            ringGeo.setFromPoints(ringPts);
+            const ringMat = new THREE.LineDashedMaterial({ color: 0x475569, dashSize: 1, gapSize: 1 });
+            const ring = new THREE.Line(ringGeo, ringMat);
+            ring.computeLineDistances();
+            scene.add(ring);
+        }
+
+        function buildSun() {
+            const sunGeo = new THREE.SphereGeometry(2.5, 32, 32);
+            const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+            sun = new THREE.Mesh(sunGeo, sunMat);
+
+            const glowGeo = new THREE.SphereGeometry(3.2, 32, 32);
+            const glowMat = new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 0.35 });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            sun.add(glow);
+
+            scene.add(sun);
+        }
+
+        function buildPlanets() {
+            const earthGeo = new THREE.SphereGeometry(0.8, 32, 32);
+            const earthMat = new THREE.MeshStandardMaterial({ color: 0x2b82c9, roughness: 0.6 });
+            earth = new THREE.Mesh(earthGeo, earthMat);
+            scene.add(earth);
+
+            const marsGeo = new THREE.SphereGeometry(0.6, 32, 32);
+            const marsMat = new THREE.MeshStandardMaterial({ color: 0xe04e39, roughness: 0.7 });
+            mars = new THREE.Mesh(marsGeo, marsMat);
+            scene.add(mars);
+        }
+
+        function buildOrbits() {
+            const createOrbit = (radius, color) => {
+        // 峇株吧辖蔡逸众制作
+                const pts = [];
+                const segs = 128;
+                for (let i = 0; i <= segs; i++) {
+                    const theta = (i / segs) * Math.PI * 2;
+                    pts.push(new THREE.Vector3(Math.cos(theta) * radius, 0, Math.sin(theta) * radius));
+                }
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+                return new THREE.Line(geo, mat);
+            };
+
+            earthOrbitLine = createOrbit(ORBIT_EARTH, 0x3b82f6);
+            marsOrbitLine = createOrbit(ORBIT_MARS, 0xef4444);
+
+            scene.add(earthOrbitLine);
+            scene.add(marsOrbitLine);
+        }
+
+        function buildSightline() {
+            const sightGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            const sightMat = new THREE.LineDashedMaterial({
+                color: 0xfacc15,
+                dashSize: 0.8,
+                gapSize: 0.4,
+                transparent: true,
+                opacity: 0.7
+            });
+            sightLine = new THREE.Line(sightGeo, sightMat);
+            scene.add(sightLine);
+        }
+
+        function buildTrajectoryLine() {
+            trajectoryGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(maxTrajectoryPoints * 3);
+            trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const trajectoryMaterial = new THREE.LineBasicMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.95
+            });
+
+            trajectoryMesh = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
+            scene.add(trajectoryMesh);
+        }
+        // 华仁中学蔡逸众制作
+
+        // --- Controls & UI ---
+
+        function switchView(view) {
+            currentView = view;
+            const btnHelio = document.getElementById('btn-heliocentric');
+            const btnPtolemy = document.getElementById('btn-geocentric-ptolemy');
+            const btnGeo = document.getElementById('btn-geocentric-sky');
+            const desc = document.getElementById('view-description');
+
+            // Reset buttons
+            btnHelio.className = "px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1";
+            btnPtolemy.className = "px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1";
+            btnGeo.className = "px-2 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1";
+
+            resetSimulation();
+
+            if (view === 'heliocentric') {
+                btnHelio.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-black shadow-md flex items-center gap-1";
+                desc.innerText = "【日心说视角】太阳固定于中心。地球与火星绕日运行，内轨快、外轨慢，通过相对超越形成逆行错觉。";
+                document.getElementById('pip-label').innerText = "地心视角 (画中画)";
+            } else if (view === 'ptolemy') {
+                btnPtolemy.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-black shadow-md flex items-center gap-1";
+                desc.innerText = "【地心说视角/托勒密】以静止的地球为中心看宇宙，火星绕着均轮与本轮旋转，描绘出古天文学中优美的逆行花瓣线。";
+                document.getElementById('pip-label').innerText = "日心视角 (画中画)";
+            } else {
+                btnGeo.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-black shadow-md flex items-center gap-1";
+                desc.innerText = "【地球表视视角】站在地球表面向天空看去，直观观察火星在天球星空背景下的退行视轨迹。";
+                document.getElementById('pip-label').innerText = "日心视角 (画中画)";
+            }
+
+            updateCameraView();
+
+            resetGeoLook();
+            if (view === 'geocentric') {
+                showLookHint();
+            } else {
+                hideLookHint();
+            }
+        }
+
+        function updateCameraView() {
+            if (currentView === 'heliocentric' || currentView === 'ptolemy') {
+                controls.enabled = true;
+                mainCamera.position.set(0, 35, 45);
+        // Made by ecchua79
+                controls.target.set(0, 0, 0);
+            } else if (currentView === 'geocentric') {
+                controls.enabled = false;
+            }
+        }
+
+        function togglePIP() {
+            isPIPActive = !isPIPActive;
+            const pipContainer = document.getElementById('pip-container');
+            const btnPIP = document.getElementById('btn-pip');
+
+            if (isPIPActive) {
+                pipContainer.classList.remove('hidden');
+                btnPIP.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/50');
+                onWindowResize();
+            } else {
+                pipContainer.classList.add('hidden');
+                btnPIP.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/50');
+            }
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('play-icon').className = isPlaying ? "fa-solid fa-pause" : "fa-solid fa-play";
+            document.getElementById('play-text').innerText = isPlaying ? "暂停" : "继续";
+        }
+
+        function updateSpeed(val) {
+            timeSpeed = parseFloat(val);
+            document.getElementById('speed-val').innerText = timeSpeed.toFixed(1) + 'x';
+        }
+
+        function resetSimulation() {
+            simTime = 0;
+            trajectoryPoints = [];
+            trajectoryGeometry.setDrawRange(0, 0);
+            trajectoryGeometry.attributes.position.needsUpdate = true;
+            lastRetrogradeStatus = null;
+            hideExplanationCard();
+        }
+
+        function toggleSightline() {
+            showSightline = !showSightline;
+            sightLine.visible = showSightline;
+            document.getElementById('btn-line').innerText = showSightline ? "视线:开" : "视线:关";
+        // 峇株吧辖华仁中学蔡逸众制作
+        }
+
+        // --- Core Physics & Calculations ---
+
+        function updatePhysics(delta) {
+            if (isPlaying) {
+                simTime += delta * 0.5 * timeSpeed;
+            }
+
+            const angleEarth = (simTime / PERIOD_EARTH) * Math.PI * 2;
+            const angleMars = (simTime / PERIOD_MARS) * Math.PI * 2;
+
+            // Absolute Heliocentric Coordinates
+            const helioEarth = new THREE.Vector3(Math.cos(angleEarth) * ORBIT_EARTH, 0, Math.sin(angleEarth) * ORBIT_EARTH);
+            const helioMars = new THREE.Vector3(Math.cos(angleMars) * ORBIT_MARS, 0, Math.sin(angleMars) * ORBIT_MARS);
+            const helioSun = new THREE.Vector3(0, 0, 0);
+
+            if (currentView === 'ptolemy') {
+                // Ptolemaic/Geocentric View: Shift entire universe so Earth is always at origin (0,0,0)
+                earth.position.set(0, 0, 0);
+                sun.position.subVectors(helioSun, helioEarth);
+                mars.position.subVectors(helioMars, helioEarth);
+
+                // Hide standard heliocentric orbit lines in Ptolemy mode
+                earthOrbitLine.visible = false;
+                marsOrbitLine.visible = false;
+            } else {
+                // Heliocentric or Sky Geocentric View
+                earth.position.copy(helioEarth);
+                mars.position.copy(helioMars);
+                sun.position.copy(helioSun);
+
+                earthOrbitLine.visible = true;
+                marsOrbitLine.visible = true;
+            }
+
+            earth.rotation.y += 0.02;
+            mars.rotation.y += 0.015;
+
+            // Compute Trajectory and Sightlines
+            let projectedPos;
+
+            if (currentView === 'ptolemy') {
+                // In Ptolemy view, the relative position of Mars itself IS the epicycle/deferent trajectory
+                projectedPos = mars.position.clone();
+        // 峇株吧辖蔡逸众制作
+                if (showSightline) {
+                    const sightPositions = sightLine.geometry.attributes.position;
+                    sightPositions.setXYZ(0, earth.position.x, earth.position.y, earth.position.z);
+                    sightPositions.setXYZ(1, mars.position.x, mars.position.y, mars.position.z);
+                    sightPositions.needsUpdate = true;
+                    sightLine.computeLineDistances();
+                }
+            } else {
+                // In Heliocentric or Earth-Sky view, project Mars onto distant celestial sphere
+                const dir = new THREE.Vector3().subVectors(mars.position, earth.position).normalize();
+                projectedPos = new THREE.Vector3().addVectors(earth.position, dir.clone().multiplyScalar(SPHERE_RADIUS * 1.5));
+
+                if (showSightline) {
+                    const sightPositions = sightLine.geometry.attributes.position;
+                    sightPositions.setXYZ(0, earth.position.x, earth.position.y, earth.position.z);
+                    sightPositions.setXYZ(1, projectedPos.x, projectedPos.y, projectedPos.z);
+                    sightPositions.needsUpdate = true;
+                    sightLine.computeLineDistances();
+                }
+            }
+
+            // Record Trajectory
+            if (isPlaying) {
+                if (trajectoryPoints.length === 0 || 
+                    projectedPos.distanceTo(trajectoryPoints[trajectoryPoints.length - 1]) > 0.2) {
+                    
+                    trajectoryPoints.push(projectedPos.clone());
+                    if (trajectoryPoints.length > maxTrajectoryPoints) {
+                        trajectoryPoints.shift();
+                    }
+
+                    const posAttr = trajectoryGeometry.attributes.position;
+                    for (let i = 0; i < trajectoryPoints.length; i++) {
+                        posAttr.setXYZ(i, trajectoryPoints[i].x, trajectoryPoints[i].y, trajectoryPoints[i].z);
+                    }
+                    trajectoryGeometry.setDrawRange(0, trajectoryPoints.length);
+                    posAttr.needsUpdate = true;
+                }
+            }
+
+            // Retrograde Detection
+            const currentAngleDifference = Math.atan2(helioMars.z - helioEarth.z, helioMars.x - helioEarth.x);
+            let angularRate = currentAngleDifference - previousAngleDifference;
+            
+            if (angularRate > Math.PI) angularRate -= Math.PI * 2;
+        // 华仁中学蔡逸众制作
+            if (angularRate < -Math.PI) angularRate += Math.PI * 2;
+
+            previousAngleDifference = currentAngleDifference;
+
+            const statusElem = document.getElementById('status-text');
+            const dist = helioEarth.distanceTo(helioMars);
+
+            let newStatus;
+            if (dist < (ORBIT_MARS - ORBIT_EARTH + 2.5) && angularRate < 0) {
+                statusElem.innerText = "逆行中 (Retrograde)";
+                statusElem.className = "font-bold text-red-500 animate-pulse";
+                newStatus = 'retrograde';
+            } else {
+                statusElem.innerText = "正常顺行 (Direct)";
+                statusElem.className = "font-bold text-emerald-400";
+                newStatus = 'direct';
+            }
+
+            // Auto-popup teaching explanation on status transition (Feature 2)
+            if (isPlaying) {
+                if (lastRetrogradeStatus !== null && newStatus !== lastRetrogradeStatus) {
+                    showExplanationCard(newStatus);
+                }
+                lastRetrogradeStatus = newStatus;
+            }
+        }
+
+        // --- Teaching Explanation Card (Feature 2) ---
+        function showExplanationCard(status) {
+            const card = document.getElementById('explain-card');
+            const title = document.getElementById('explain-title');
+            const text = document.getElementById('explain-text');
+
+            if (status === 'retrograde') {
+                title.innerHTML = '<i class="fa-solid fa-circle-question"></i> 为什么火星在"倒退"？';
+                if (currentView === 'ptolemy') {
+                    text.innerText = "在地心说模型中，火星一边沿本轮转动，一边随均轮绕地球运行。当本轮转到内侧时，火星在天空中的移动方向会短暂反转，画出逆行的花瓣形轨迹。";
+                } else {
+                    text.innerText = "地球公转速度比火星快，此刻正从内侧轨道追上并超越火星，就像跑内圈的选手超越跑外圈的选手一样。地球与火星的连线方向短暂反转，于是火星在星空背景上看起来向西“倒退”，这就是视运动逆行。";
+                }
+            } else {
+                title.innerHTML = '<i class="fa-solid fa-check-circle"></i> 恢复顺行';
+                if (currentView === 'ptolemy') {
+                    text.innerText = "火星在本轮上转出了内侧区域，连线角度的变化重新转为正常方向，逆行花瓣暂告一段落，恢复顺行。";
+                } else {
+        // Made by ecchua79
+                    text.innerText = "地球已经超越火星较远，两者连线角度的变化重新转为正常方向，火星在星空背景上恢复向东运行，即“顺行”。";
+                }
+            }
+
+            card.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                card.classList.remove('opacity-0', 'translate-y-2');
+            });
+
+            clearTimeout(explainTimeout);
+            explainTimeout = setTimeout(hideExplanationCard, 9000);
+        }
+
+        function hideExplanationCard() {
+            const card = document.getElementById('explain-card');
+            card.classList.add('opacity-0', 'translate-y-2');
+            clearTimeout(explainTimeout);
+            setTimeout(() => card.classList.add('hidden'), 500);
+        }
+
+        function updateCameras() {
+            const sightDir = new THREE.Vector3().subVectors(mars.position, earth.position).normalize();
+            const geocentricLookTarget = getGeoLookTarget(sightDir, earth.position);
+
+            // Main Camera Update
+            if (currentView === 'geocentric') {
+                mainCamera.position.copy(earth.position);
+                mainCamera.position.y += 0.2;
+                mainCamera.lookAt(geocentricLookTarget);
+            } else {
+                controls.update();
+            }
+
+            // PIP Camera Update
+            if (isPIPActive) {
+                if (currentView === 'heliocentric') {
+                    // PIP shows Geocentric Sky View
+                    pipCamera.position.copy(earth.position);
+                    pipCamera.position.y += 0.2;
+                    pipCamera.lookAt(geocentricLookTarget);
+                } else {
+                    // PIP shows Heliocentric Top-down View
+                    pipCamera.position.set(0, 45, 0);
+                    pipCamera.lookAt(0, 0, 0);
+                }
+            }
+        }
+
+        function onWindowResize() {
+            mainCamera.aspect = window.innerWidth / window.innerHeight;
+            mainCamera.updateProjectionMatrix();
+            mainRenderer.setSize(window.innerWidth, window.innerHeight);
+
+            if (isPIPActive) {
+                const pipHolder = document.getElementById('pip-canvas-holder');
+                pipCamera.aspect = pipHolder.clientWidth / pipHolder.clientHeight;
+                pipCamera.updateProjectionMatrix();
+                pipRenderer.setSize(pipHolder.clientWidth, pipHolder.clientHeight);
+            }
+        }
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            updatePhysics(delta);
+            updateCameras();
+
+            mainRenderer.render(scene, mainCamera);
+
+            if (isPIPActive) {
+                pipRenderer.render(scene, pipCamera);
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
