@@ -291,9 +291,9 @@
 // ============================================
 const CHAPTER_FILES = [
   '1c07_match.js',
-  '1c08_match.js',   
-  '1c09_match.js',   
-  // 以后做好了就取消注释加进来
+  '1c08_match.js',
+  '1c09_match.js',
+  // 以后新增章节配对题，把文件名加到这里就行
 ];
 
 let CHAPTER_INFO = null;
@@ -339,7 +339,7 @@ const TIER_WINDOW = { perfect: 250, good: 500, late: BEAT_MS };
 // ============================================
 let state = {
   roundIndex: 0,
-  cycleIndex: 0,
+  highlightCount: 0,      // 本轮已经开出过几次亮灯（而不是"过了几个4拍小节"）
   beatInCycle: 0,          // 1..4
   roundPairs: [],          // 当前轮使用的 pair 列表
   leftOrder: [],           // 左侧解释卡显示顺序（pair对象数组，固定一轮）
@@ -384,8 +384,11 @@ function startRound(){
   state.leftOrder = shuffle(state.roundPairs);
   state.rightOrder = shuffle(state.roundPairs);
   state.termOrder = shuffle(state.roundPairs);
-  state.cycleIndex = 0;
+  state.highlightCount = 0;
   state.beatInCycle = 0;
+  state.highlightedId = null;
+  state.leftAnswered = true;
+  state.rightAnswered = true;
 
   el('roundlabel').textContent = `第 ${state.roundIndex+1} / ${MATCH_GROUPS.length} 轮`;
   el('groupname').textContent = group.groupName;
@@ -536,11 +539,6 @@ function tick(){
   state.beatInCycle++;
   if(state.beatInCycle > 4){
     state.beatInCycle = 1;
-    state.cycleIndex++;
-    if(state.cycleIndex >= CYCLES_PER_ROUND){
-      nextRoundOrEnd();
-      return;
-    }
   }
 
   updateBeatDots(state.beatInCycle);
@@ -552,10 +550,20 @@ function tick(){
     renderTermGrid(false);
     el('bulb').classList.remove('lit');
   } else {
-    // 结算上一次未答的分数（若有）先处理，再开新一轮亮灯
-    playHighlightSound();
+    // 第4拍：先结算"上一次亮灯"的分数（含miss判定，给足3拍缓冲后才判）
     evaluateMissesIfAny();
+
+    // 判断这一轮的4次亮灯是否已经全部开完（包括刚结算的这一次）
+    // 这样最后一次亮灯也能享有跟前3次一样的完整3拍反应时间，
+    // 不会因为轮次切换检查提前触发而被"抢跑"跳过
+    if(state.highlightCount >= CYCLES_PER_ROUND){
+      nextRoundOrEnd();
+      return;
+    }
+
+    playHighlightSound();
     doHighlightBeat();
+    state.highlightCount++;
   }
 }
 
