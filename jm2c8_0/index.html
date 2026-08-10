@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>第8章 气压和压强 | 科学实验室</title>
+<!--峇株吧辖华仁中学蔡逸众制作-->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -48,7 +49,6 @@ h1,h2,h3,.orb{font-family:'Orbitron','Noto Sans SC',sans-serif;}
 }
 .navbtn:hover,.navbtn.active{background:rgba(35,234,255,0.18);color:var(--cyan);border-color:var(--cyan);}
 
-/* 峇株吧辖华仁中学蔡逸众制作 */
 /* ---------- LAYOUT ---------- */
 .wrap{max-width:980px;margin:0 auto;padding:18px 14px 80px;}
 section{margin-bottom:26px;}
@@ -174,13 +174,11 @@ footer{text-align:center;padding:30px 10px;color:var(--text-dim);font-size:11.5p
       <input type="range" id="trenchDepth" min="0" max="10928" value="0" step="20">
       <div class="readout">
         <div class="chip">当前压强<span class="v" id="trenchPressure">101300 Pa</span></div>
-        <!-- 峇株吧辖蔡逸众制作 -->
         <div class="chip">相当于<span class="v" id="trenchCompare">海平面大气压</span></div>
       </div>
     </div>
     <p style="margin-top:14px;">马里亚纳海沟"挑战者深渊"深约 <b>10898–10928 m</b>，那里的压强约为 <b>111,650,000 Pa</b>，相当于 <b>50架巨型客机</b> 的重量压在你身上！2012年导演<b>詹姆斯·卡梅隆</b>独自驾驶"深海挑战者"潜水器抵达这个地球最深处。拖动上方滑块，体验压强随深度狂飙的感觉！</p>
   </div>
-  <div style="text-align:center;font-size:0.55rem;color:rgba(56,189,248,0.18);margin-top:6px;user-select:none;">峇株吧辖华仁中学蔡逸众制作</div>
 </section>
 
 <!-- 8.1 -->
@@ -320,7 +318,6 @@ footer{text-align:center;padding:30px 10px;color:var(--text-dim);font-size:11.5p
 
     <div class="think-box">
       <div class="qhead">📝 学习检测</div>
-      <!-- 华仁中学蔡逸众制作 -->
       1. 为什么水坝的截面需要设计成上窄下宽？<br>
       2. 在什么情况下，U形管两端的水位同高？
       <br><button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('show')">查看答案</button>
@@ -489,10 +486,12 @@ footer{text-align:center;padding:30px 10px;color:var(--text-dim);font-size:11.5p
 </div>
 
 <footer>
-  峇株吧辖华仁中学 · 初二科学 第8章 气压和压强 互动实验室
+  峇株吧辖华仁中学 · 初二科学 第8章 气压和压强 互动实验室<br>
+  Made by ecchua79 ｜ 峇株吧辖蔡逸众制作 ｜ 华仁中学蔡逸众制作
 </footer>
 
 <script>
+/* 峇株吧辖华仁中学蔡逸众制作 */
 /* ============ 背景星空 ============ */
 (function(){
   const c=document.getElementById('bgstars'); const ctx=c.getContext('2d');
@@ -521,7 +520,6 @@ document.querySelectorAll('.navbtn').forEach(b=>{
 const navObserver=new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
     const btn=document.querySelector(`.navbtn[data-t="${e.target.id}"]`);
-    // Made by ecchua79
     if(btn){ if(e.isIntersecting) btn.classList.add('active'); else btn.classList.remove('active'); }
   });
 },{rootMargin:'-40% 0px -50% 0px'});
@@ -529,23 +527,77 @@ const navObserver=new IntersectionObserver((entries)=>{
   const el=document.getElementById(id); if(el) navObserver.observe(el);
 });
 
-/* ============ helper: hi-dpi canvas setup ============ */
-function setupCanvas(cv){
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=cv.clientWidth||cv.parentElement.clientWidth;
-  const cssH=parseInt(cv.getAttribute('height'));
-  const needW=Math.max(1,Math.round(w*dpr)), needH=Math.max(1,Math.round(cssH*dpr));
-  const ctx=cv.getContext('2d');
-  // 只有尺寸真正变化时才重建画布显存(首次加载/窗口resize)，
-  // 避免每次滑块 input 事件都触发昂贵的画布重建，
-  // 在移动端反复重建会耗尽GPU显存导致画布崩溃(白框+哭脸图标)
-  if(cv.width!==needW || cv.height!==needH){
-    cv.width=needW; cv.height=needH;
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  return {ctx, w, h:cssH};
+/* ============ Canvas management (mobile-safe) ============
+   Problem: pre-initialising off-screen canvases on mobile
+   gives clientWidth=0, so the buffer defaults to 600px but
+   CSS width:100% renders it at ~360px → browser squashes
+   the buffer → circles become flat ellipses.
+
+   Solution:
+   • registerCV()  — just registers; NO immediate init.
+   • initCanvas()  — reads cv.clientWidth (actual rendered px).
+                     Only sets style.height (not style.width —
+                     CSS width:100% already handles that).
+   • getCV()       — lazy-inits on first call; re-inits if
+                     displayed width changed by >10px.
+   • IntersectionObserver — re-inits every canvas the moment
+                     it scrolls into the viewport.
+   • Debounced resize — re-inits all visible canvases.
+   ========================================================= */
+const _cvCache = new WeakMap();
+const _allCV   = [];
+
+function initCanvas(cv) {
+  const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+  /* Use actual rendered width; fall back to parent width.
+     Never touch style.width — CSS width:100% owns that.    */
+  let logW = cv.clientWidth || (cv.parentElement ? cv.parentElement.clientWidth : 0) || 0;
+  if (logW < 10) return _cvCache.get(cv) || null; // not in DOM yet — skip
+  const logH = parseInt(cv.getAttribute('height')) || 200;
+
+  cv.width  = Math.round(logW * dpr);
+  cv.height = Math.round(logH * dpr);
+  cv.style.height = logH + 'px'; // override intrinsic height set by cv.height
+
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  const state = {ctx, w: logW, h: logH};
+  _cvCache.set(cv, state);
+  return state;
 }
-function glowText(ctx,txt,x,y,color,size){
+
+function getCV(cv) {
+  const cw = cv.clientWidth;
+  const cached = _cvCache.get(cv);
+  /* Re-init if: never inited, or width shifted by >10px     */
+  if (!cached || (cw > 0 && Math.abs(cw - cached.w) > 10)) {
+    return initCanvas(cv) || cached || {ctx: cv.getContext('2d'), w: 300, h: 200};
+  }
+  return cached;
+}
+
+function setupCanvas(cv) { return getCV(cv); }
+
+/* IntersectionObserver: init a canvas the moment it enters
+   the viewport, so clientWidth is always real.             */
+const _io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) initCanvas(e.target); });
+}, {threshold: 0.05});
+
+function registerCV(cv) {
+  if (!_allCV.includes(cv)) { _allCV.push(cv); _io.observe(cv); }
+}
+
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    _allCV.forEach(cv => { if (cv.clientWidth > 0) initCanvas(cv); });
+  }, 150);
+});
+
+function glowText(ctx, txt, x, y, color, size) {
   ctx.font=`700 ${size}px Orbitron, sans-serif`;
   ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=12;
   ctx.textAlign='center';
@@ -602,8 +654,8 @@ function stepParticles(ps,speedMul){
     document.getElementById('trenchPressure').textContent=Math.round(pa).toLocaleString()+' Pa';
     document.getElementById('trenchCompare').textContent= frac<0.02?'海平面大气压':(frac<0.3?'约'+(pa/101300).toFixed(1)+'倍标准大气压':'接近50架客机重量');
   }
+  registerCV(cv);
   depthSlider.addEventListener('input',draw);
-  window.addEventListener('resize',draw);
   draw();
 })();
 
@@ -612,7 +664,6 @@ function stepParticles(ps,speedMul){
    ========================================================= */
 (function(){
   const cv=document.getElementById('pencilCanvas');
-  // 峇株吧辖华仁中学蔡逸众制作
   const fS=document.getElementById('pencilF'), aS=document.getElementById('pencilA');
   function draw(){
     const {ctx,w,h}=setupCanvas(cv);
@@ -639,8 +690,9 @@ function stepParticles(ps,speedMul){
     ctx.restore();
     glowText(ctx,'p = F/A',w/2,26,'#b14eff',14);
   }
+  registerCV(cv);
   fS.addEventListener('input',draw); aS.addEventListener('input',draw);
-  window.addEventListener('resize',draw); draw();
+  draw();
 })();
 
 /* =========================================================
@@ -673,8 +725,9 @@ function stepParticles(ps,speedMul){
     ctx.beginPath(); ctx.moveTo(w/2,by-30); ctx.lineTo(w/2,by-2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(w/2-7,by-12); ctx.lineTo(w/2,by-2); ctx.lineTo(w/2+7,by-12); ctx.stroke();
   }
+  registerCV(cv);
   fS.addEventListener('input',draw); aS.addEventListener('input',draw);
-  window.addEventListener('resize',draw); draw();
+  draw();
 })();
 
 function setKnife(sharp){
@@ -703,10 +756,8 @@ function drawKnife(sharp){
   ctx.restore();
   ctx.strokeStyle='#ff4f8b'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(w*0.5,h*0.1); ctx.lineTo(w*0.5,h*0.42); ctx.stroke();
-  // 峇株吧辖蔡逸众制作
 }
-window.addEventListener('resize',()=>drawKnife(document.getElementById('knifeSharp').classList.contains('on')));
-setKnife(true);
+registerCV(document.getElementById('knifeCanvas')); setKnife(true);
 
 /* =========================================================
    Pressure gauge (U-tube)
@@ -715,9 +766,11 @@ setKnife(true);
   const cv=document.getElementById('gaugeCanvas');
   const pS=document.getElementById('gaugeP');
   let t=0;
+  registerCV(cv);
   function loop(){
     t+=0.06;
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#070b16'; ctx.fillRect(0,0,w,h);
     const p=parseFloat(pS.value);
     document.getElementById('gaugePLbl').textContent=p;
@@ -764,9 +817,11 @@ setKnife(true);
   const cv=document.getElementById('diveCanvas');
   const dS=document.getElementById('diveDepth');
   const particles=makeParticles(40);
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
     const depth=parseFloat(dS.value);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#031018'; ctx.fillRect(0,0,w,h);
     const grad=ctx.createLinearGradient(0,0,0,h);
     grad.addColorStop(0,'rgba(35,150,234,0.25)'); grad.addColorStop(1,'rgba(0,30,60,0.6)');
@@ -784,7 +839,6 @@ setKnife(true);
     document.getElementById('divePressure').textContent=Math.round(101300+depth*9800)+' Pa';
     requestAnimationFrame(loop);
   }
-  // 华仁中学蔡逸众制作
   loop();
 })();
 
@@ -813,7 +867,7 @@ function drawDir(){
   }
   glowText(ctx,'同一深度，四个方向读数相同！',w/2,h-16,'#23eaff',12);
 }
-window.addEventListener('resize',drawDir); drawDir();
+registerCV(document.getElementById('dirCanvas')); drawDir();
 
 /* =========================================================
    Density compare
@@ -843,7 +897,7 @@ function drawDensity(){
   ctx.fillRect(rx-8,baseY-50-diff/2,16,50+diff/2);
   glowText(ctx,'高度差≈'+diff+'px',w*0.72,h*0.94,'#ffb800',12);
 }
-drawDensity(); window.addEventListener('resize',drawDensity);
+registerCV(document.getElementById('densityCanvas')); drawDensity();
 
 /* =========================================================
    Ship draft / buoyancy
@@ -865,7 +919,6 @@ function drawShip(){
   const waterY=h*0.55; // sea level — always the same height
   const shiftPx = shipWater==='fresh'? h*0.07 : -h*0.07; // freshwater: ship sits lower (sinks deeper); seawater: ship sits higher
   const hullTopY=hullTopY0+shiftPx, hullBotY=hullBotY0+shiftPx;
-  // Made by ecchua79
   const color = shipWater==='fresh'? 'rgba(35,150,234,0.55)':'rgba(40,200,160,0.55)';
   // hull (constant shape/size, just translated up or down)
   ctx.fillStyle='#cfd8e6';
@@ -884,7 +937,7 @@ function drawShip(){
   document.getElementById('buoyVal').textContent = shipWater==='fresh'? '较小':'较大（海水密度更大）';
   glowText(ctx,shipWater==='fresh'?'淡水':'海水',w*0.5,h*0.94,'#ffe6a8',13);
 }
-drawShip(); window.addEventListener('resize',drawShip);
+registerCV(document.getElementById('shipCanvas')); drawShip();
 
 /* =========================================================
    Altitude atmospheric pressure
@@ -893,9 +946,11 @@ drawShip(); window.addEventListener('resize',drawShip);
   const cv=document.getElementById('altCanvas');
   const aS=document.getElementById('altSlider');
   const particles=makeParticles(50);
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
     const alt=parseFloat(aS.value);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#020816'; ctx.fillRect(0,0,w,h);
     const grad=ctx.createLinearGradient(0,0,0,h);
     grad.addColorStop(0,'rgba(177,78,255,0.25)'); grad.addColorStop(1,'rgba(35,234,255,0.12)');
@@ -946,7 +1001,6 @@ drawShip(); window.addEventListener('resize',drawShip);
     // tube
     const tubeX=w*0.5, tubeTop=h*0.08, tubeBottom=troughY;
     ctx.strokeStyle='#7fa6b8'; ctx.lineWidth=3;
-    // 峇株吧辖华仁中学蔡逸众制作
     ctx.strokeRect(tubeX-14,tubeTop,28,tubeBottom-tubeTop);
     // mercury column height proportional
     const maxH=tubeBottom-tubeTop-20;
@@ -956,7 +1010,8 @@ drawShip(); window.addEventListener('resize',drawShip);
     glowText(ctx,'真空',tubeX,tubeTop+18,'#23eaff',11);
     glowText(ctx,mmHg+' mmHg',tubeX,tubeTop-6,'#ffb800',13);
   }
-  tS.addEventListener('input',draw); window.addEventListener('resize',draw); draw();
+  registerCV(cv);
+  tS.addEventListener('input',draw); draw();
 })();
 
 /* =========================================================
@@ -966,8 +1021,10 @@ drawShip(); window.addEventListener('resize',drawShip);
   const cv=document.getElementById('volCanvas');
   const vS=document.getElementById('volSlider');
   const particles=makeParticles(26);
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#070b16'; ctx.fillRect(0,0,w,h);
     const volPct=parseFloat(vS.value);
     const r=10+volPct*0.55;
@@ -998,8 +1055,10 @@ drawShip(); window.addEventListener('resize',drawShip);
   const cv=document.getElementById('tempCanvas');
   const tS=document.getElementById('tempSlider');
   const particles=makeParticles(28);
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#070b16'; ctx.fillRect(0,0,w,h);
     const temp=parseFloat(tS.value);
     document.getElementById('tempLbl').textContent=temp+' ℃';
@@ -1025,7 +1084,6 @@ drawShip(); window.addEventListener('resize',drawShip);
   loop();
 })();
 
-// 峇株吧辖蔡逸众制作
 /* =========================================================
    Straw + Suction cup + Boiling point
    ========================================================= */
@@ -1033,8 +1091,10 @@ let sipping=false, sipT=0;
 document.getElementById('sipBtn').addEventListener('click',()=>{sipping=true; sipT=0;});
 (function(){
   const cv=document.getElementById('strawCanvas');
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#070b16'; ctx.fillRect(0,0,w,h);
     // box
     const bx=w*0.3, by=h*0.45, bw=w*0.4, bh=h*0.5;
@@ -1063,8 +1123,10 @@ let pressingSuction=false, pressT=0;
 document.getElementById('pressBtn').addEventListener('click',()=>{pressingSuction=true; pressT=0;});
 (function(){
   const cv=document.getElementById('suctionCanvas');
+  registerCV(cv);
   function loop(){
-    const {ctx,w,h}=setupCanvas(cv);
+    const {ctx,w,h}=getCV(cv);
+    ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#070b16'; ctx.fillRect(0,0,w,h);
     const floorY=h*0.78;
     ctx.fillStyle='#1a2436'; ctx.fillRect(0,floorY,w,h*0.22);
@@ -1108,14 +1170,14 @@ document.getElementById('pressBtn').addEventListener('click',()=>{pressingSuctio
     }
     ctx.strokeStyle='#23eaff'; ctx.lineWidth=2.5; ctx.stroke();
     // current point
-    // 华仁中学蔡逸众制作
     const cx=w*0.1+(pct/100)*w*0.8;
     const cy=h*0.85-((boil-60)/90)*h*0.7;
     ctx.beginPath(); ctx.arc(cx,cy,6,0,6.283); ctx.fillStyle='#ffb800'; ctx.shadowColor='#ffb800'; ctx.shadowBlur=14; ctx.fill(); ctx.shadowBlur=0;
     glowText(ctx,'气压 →',w*0.5,h*0.96,'#7fa6b8',11);
     ctx.save(); ctx.translate(w*0.05,h*0.5); ctx.rotate(-Math.PI/2); glowText(ctx,'沸点℃',0,0,'#7fa6b8',11); ctx.restore();
   }
-  bS.addEventListener('input',draw); window.addEventListener('resize',draw); draw();
+  registerCV(cv);
+  bS.addEventListener('input',draw); draw();
 })();
 
 /* =========================================================
@@ -1189,7 +1251,6 @@ document.getElementById('retryQuiz').addEventListener('click',()=>{
   document.getElementById('certWrap').style.display='none';
   document.getElementById('quiz').scrollIntoView({behavior:'smooth'});
 });
-// Made by ecchua79
 
 /* Certificate */
 document.getElementById('genCert').addEventListener('click',()=>{
@@ -1220,7 +1281,7 @@ document.getElementById('genCert').addEventListener('click',()=>{
   ctx.fillStyle='rgba(127,166,184,0.7)'; ctx.font='12px "Noto Sans SC"';
   ctx.fillText('峇株吧辖华仁中学 · 初二科学 · 气压和压强',cv.width/2,560);
   ctx.fillStyle='rgba(127,166,184,0.4)'; ctx.font='9px "Noto Sans SC"';
-  ctx.fillText('峇株吧辖华仁中学蔡逸众制作 ｜ Made by ecchua79',cv.width/2,600);
+  ctx.fillText('峇株吧辖华仁中学蔡逸众制作',cv.width/2,600);
   document.getElementById('certWrap').style.display='block';
   document.getElementById('certWrap').scrollIntoView({behavior:'smooth'});
 });
