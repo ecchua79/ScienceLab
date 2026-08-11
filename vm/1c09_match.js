@@ -14,8 +14,8 @@ const MATCH_GROUPS = [
     groupName: '静电与电荷（陷阱：正电/负电荷）',
     pairs: [
       { id: 'i1a', term: '静电', definition: '聚集在物体表面上处于静止状态的电荷' },
-      { id: 'i1b', term: '正电', definition: '自然界两种电荷之一，被科学家标记为正电' },
-      { id: 'i1c', term: '负电荷', definition: '自然界两种电荷之一，被科学家标记为负电荷' },
+      { id: 'i1b', term: '正电荷', definition: '自然界两种电荷之一，被科学家标记为+' },
+      { id: 'i1c', term: '负电荷', definition: '自然界两种电荷之一，被科学家标记为-' },
     ]
   },
   {
