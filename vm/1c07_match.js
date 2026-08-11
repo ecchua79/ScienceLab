@@ -13,8 +13,8 @@ const MATCH_GROUPS = [
   {
     groupName: '光的传播',
     pairs: [
-      { id: 'g1a', term: '光', definition: '一种具有一些有趣特点的能量形式' },
-      { id: 'g1b', term: '光速', definition: '真空中的光速（符号为c）每秒大约前进300,000公里' },
+      { id: 'g1a', term: '光', definition: '一种能量的形式' },
+      { id: 'g1b', term: '光速', definition: '真空中的光每秒大约前进300,000公里' },
       { id: 'g1c', term: '光线', definition: '通常用一条带有箭头的直线表示光的传播路线和方向' },
       { id: 'g1d', term: '影子', definition: '当有些光线被物体阻挡而其他光线继续沿直线传播时形成的黑暗区域' },
     ]
@@ -49,13 +49,13 @@ const MATCH_GROUPS = [
       { id: 'g4a', term: '折射角', definition: '折射线与法线之间的夹角' },
       { id: 'g4b', term: '光疏介质', definition: '在这种介质中，光传播得较快' },
       { id: 'g4c', term: '光密介质', definition: '在这种介质中，光传播得较慢' },
-      { id: 'g4d', term: '视深度', definition: '折射使水中的物体看起来比实际高' },
+      { id: 'g4d', term: '视深度', definition: '折射使水中的物体看起来比实际离水面更接近' },
       { id: 'g4e', term: '实际深度', definition: '物体在液体中真实的物理深度' },
       { id: 'g4f', term: '凸透镜', definition: '中间厚、两边薄，可以汇聚光线的透镜' },
       { id: 'g4g', term: '凹透镜', definition: '中间薄、两边厚，可以发散光线的透镜' },
-      { id: 'g4h', term: '临界角', definition: '当入射角增大到折射角达到90°时的入射角' },
+      { id: 'g4h', term: '临界角', definition: '当折射角达到90°时的入射角' },
       { id: 'g4i', term: '全反射', definition: '入射角超过临界角时，折射线完全消失，光线全部被反射回原介质的现象' },
-      { id: 'g4j', term: '光导纤维（光纤）', definition: '利用了光的内部全反射原理来导光的装置' },
+      { id: 'g4j', term: '光导纤维', definition: '利用了光的内部全反射原理来导光的装置' },
     ]
   },
   {
