@@ -496,6 +496,8 @@ body {
 .elec-btn.btn-neg:hover     { border-color: var(--accent-blue); background: rgba(56,189,248,0.08); }
 .elec-btn.btn-pos:hover     { border-color: var(--accent-gold); background: rgba(245,158,11,0.08); }
 .elec-btn.btn-rst:hover     { border-color: var(--accent-green); background: rgba(52,211,153,0.08); }
+.elec-btn.btn-finger { border-color: rgba(167,139,250,0.4); }
+.elec-btn.btn-finger:hover { border-color: var(--accent-purple); background: rgba(167,139,250,0.08); color: var(--accent-purple); }
 
 .elec-status {
   background: var(--bg-panel);
@@ -1661,11 +1663,12 @@ strong { color: var(--text-primary); font-weight: 600; }
     <!-- Controls -->
     <div class="elec-controls">
       <h3>互动：用不同物体接触金属球</h3>
-      <p style="font-size:0.82rem;color:var(--text-muted);">每次点击累积一次效果，最多3次达到最大。异种电荷接触则中和。</p>
+      <p style="font-size:0.82rem;color:var(--text-muted);">每次点击累积一次效果，最多3次达到最大。异种电荷接触则中和。<br>👆 用手指（导体）接触可接地放电，使金属箔闭合。</p>
       <button class="elec-btn btn-neutral" onclick="elecTouch('neutral')">🔲 不带电物体接触</button>
       <button class="elec-btn btn-neg"     onclick="elecTouch('negative')">➖ 带<strong>负电</strong>物体接触（电子转入）</button>
       <button class="elec-btn btn-pos"     onclick="elecTouch('positive')">➕ 带<strong>正电</strong>物体接触（电子转出）</button>
       <button class="elec-btn btn-rst"     onclick="elecTouch('reset')">🔄 重置验电器</button>
+      <button class="elec-btn btn-finger" onclick="elecTouch('finger')">👆 用手指接触金属球（接地放电）</button>
       <div class="elec-status" id="elec-status">验电器处于初始状态，金属箔自然下垂，不带电。</div>
     </div>
   </div>
@@ -2775,6 +2778,29 @@ window.addEventListener('scroll', ()=>{
       setTimeout(()=>{ objC.style.opacity='0'; objS.style.opacity='0'; objE.innerHTML=''; }, 650);
       return;
     }
+    if(type==='finger') {
+      // Show a finger-like object (skin-toned)
+      obj.style.transform = 'translate(160,28)';
+      objC.style.opacity = '1';
+      objC.setAttribute('fill','#d97a6a');
+      objS.style.opacity = '1';
+      objS.textContent = '±';
+      objE.innerHTML = '';
+      // Animate electrons flowing through finger (tiny dots moving upward then fading)
+      setTimeout(()=>{
+        ese1.style.transform='translate(-14px,-58px)'; ese1.style.opacity='0.15';
+        ese2.style.transform='translate(14px,-58px)';  ese2.style.opacity='0.15';
+        ese3.style.transform='translate(0,-52px)';     ese3.style.opacity='0.15';
+      }, 350);
+      if(animTimer) clearTimeout(animTimer);
+      animTimer = setTimeout(()=>{
+        obj.style.transform = 'translate(160,-60)';
+        setTimeout(()=>{ objC.style.opacity='0'; objS.style.opacity='0'; objE.innerHTML='';
+          [ese1,ese2,ese3].forEach(e=>{ e.style.transform='translate(0,0)'; e.style.opacity='1'; });
+        }, 650);
+      }, 2000);
+      return;
+    }
     // Bring object down to touch sphere
     obj.style.transform = 'translate(160,28)'; // sphere center is at y=88, object r=26, so touch at y=62 → translate y=62-0=62... pivot is at 0,0 in obj space
     objC.style.opacity = '1';
@@ -2833,6 +2859,31 @@ window.addEventListener('scroll', ()=>{
       [ese1,ese2,ese3].forEach(e=>{ e.style.transform='translate(0,0)'; e.style.opacity='1'; });
       statusEl.innerHTML = '已重置：验电器不带电，金属箔自然下垂。';
       statusEl.style.borderColor = 'rgba(52,211,153,0.4)';
+      return;
+    }
+
+    if(type === 'finger') {
+      // Grounding: conductor contact → charges flow to earth → foil closes
+      const prevCharge = charge;
+      if(prevCharge === 0) {
+        showObject('finger');
+        statusEl.innerHTML = '手指（导体）接触金属球：验电器本来<strong>不带电</strong>，手指接触也<strong>没有变化</strong>，金属箔保持闭合。';
+        statusEl.style.borderColor = 'rgba(148,163,184,0.4)';
+        return;
+      }
+      charge = 0;
+      setFoilAngle(0);
+      showObject('finger');
+      // Reset all electrons
+      [efl1,efl2,efr1,efr2,efl1t,efl2t,efr1t,efr2t].forEach(e=>{
+        e.style.opacity='1'; e.style.transform='translate(0,0)';
+      });
+      posChg.style.opacity='0';
+      [ese1,ese2,ese3].forEach(e=>{ e.style.transform='translate(0,0)'; e.style.opacity='1'; });
+      const sign = prevCharge < 0 ? '负电' : '正电';
+      const where = prevCharge < 0 ? '多余的电子经由手指流入大地' : '大地的电子经由手指流入验电器补充';
+      statusEl.innerHTML = `手指（导体）接触金属球：验电器原本带<strong>${sign}</strong>，${where}，电荷完全中和。<br>金属箔因<strong>失去同种电荷</strong>而<strong style="color:#34d399">完全闭合</strong>！这就是「接地放电」。`;
+      statusEl.style.borderColor = 'rgba(167,139,250,0.5)';
       return;
     }
 
