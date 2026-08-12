@@ -1179,36 +1179,6 @@ window.CURRENT_CHAPTER = {
         },
         {
           "id": 8,
-          "type": "A",
-          "correct": "基本单位",
-          "distractors": [
-            "导出单位",
-            "辅助单位",
-            "临时单位"
-          ]
-        },
-        {
-          "id": 9,
-          "type": "A",
-          "correct": "空格",
-          "distractors": [
-            "连写",
-            "逗号",
-            "句号"
-          ]
-        },
-        {
-          "id": 10,
-          "type": "A",
-          "correct": "词头",
-          "distractors": [
-            "后缀",
-            "符号",
-            "指数"
-          ]
-        },
-        {
-          "id": 11,
           "type": "B",
           "correct": "7",
           "distractors": [
@@ -1218,7 +1188,27 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 12,
+          "id": 9,
+          "type": "A",
+          "correct": "基本单位",
+          "distractors": [
+            "导出单位",
+            "辅助单位",
+            "临时单位"
+          ]
+        },
+        {
+          "id": 10,
+          "type": "A",
+          "correct": "空格",
+          "distractors": [
+            "连写",
+            "逗号",
+            "句号"
+          ]
+        },
+        {
+          "id": 11,
           "type": "B",
           "correct": "1250 kg",
           "distractors": [
@@ -1228,7 +1218,7 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 13,
+          "id": 12,
           "type": "B",
           "correct": "48 s",
           "distractors": [
@@ -1238,13 +1228,23 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 14,
+          "id": 13,
           "type": "B",
           "correct": "350 m",
           "distractors": [
             "350 km",
             "35 m",
             "350 s"
+          ]
+        },
+        {
+          "id": 14,
+          "type": "A",
+          "correct": "词头",
+          "distractors": [
+            "后缀",
+            "符号",
+            "指数"
           ]
         },
         {
@@ -1285,96 +1285,6 @@ window.CURRENT_CHAPTER = {
         },
         {
           "id": 3,
-          "type": "A",
-          "correct": "需求",
-          "distractors": [
-            "喜好",
-            "习惯",
-            "兴趣"
-          ]
-        },
-        {
-          "id": 4,
-          "type": "A",
-          "correct": "直径",
-          "distractors": [
-            "半径",
-            "周长",
-            "弧长"
-          ]
-        },
-        {
-          "id": 5,
-          "type": "A",
-          "correct": "表面",
-          "distractors": [
-            "内部",
-            "体积",
-            "核心"
-          ]
-        },
-        {
-          "id": 6,
-          "type": "A",
-          "correct": "平方米（m²）",
-          "distractors": [
-            "平方米（m²）",
-            "平方厘米（cm²）",
-            "平方千米（km²）"
-          ]
-        },
-        {
-          "id": 7,
-          "type": "A",
-          "correct": "占空间",
-          "distractors": [
-            "占质量",
-            "占面积",
-            "占时间"
-          ]
-        },
-        {
-          "id": 8,
-          "type": "A",
-          "correct": "立方米（m³）",
-          "distractors": [
-            "平方米（m²）",
-            "立方厘米（cm³）",
-            "立方千米（km³）"
-          ]
-        },
-        {
-          "id": 9,
-          "type": "A",
-          "correct": "液体",
-          "distractors": [
-            "固体",
-            "气体",
-            "晶体"
-          ]
-        },
-        {
-          "id": 10,
-          "type": "A",
-          "correct": "排水法",
-          "distractors": [
-            "称重法",
-            "刻度法",
-            "比较法"
-          ]
-        },
-        {
-          "id": 11,
-          "type": "A",
-          "correct": "方格纸",
-          "distractors": [
-            "白纸",
-            "坐标纸",
-            "滤纸"
-          ]
-        },
-        {
-          "id": 12,
           "type": "B",
           "correct": "1000 m",
           "distractors": [
@@ -1384,7 +1294,77 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 13,
+          "id": 4,
+          "type": "A",
+          "correct": "需求",
+          "distractors": [
+            "喜好",
+            "习惯",
+            "兴趣"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "A",
+          "correct": "直径",
+          "distractors": [
+            "半径",
+            "周长",
+            "弧长"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "A",
+          "correct": "表面",
+          "distractors": [
+            "内部",
+            "体积",
+            "核心"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "A",
+          "correct": "平方米（m²）",
+          "distractors": [
+            "平方米（m²）",
+            "平方厘米（cm²）",
+            "平方千米（km²）"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "A",
+          "correct": "占空间",
+          "distractors": [
+            "占质量",
+            "占面积",
+            "占时间"
+          ]
+        },
+        {
+          "id": 9,
+          "type": "A",
+          "correct": "立方米（m³）",
+          "distractors": [
+            "平方米（m²）",
+            "立方厘米（cm³）",
+            "立方千米（km³）"
+          ]
+        },
+        {
+          "id": 10,
+          "type": "A",
+          "correct": "液体",
+          "distractors": [
+            "固体",
+            "气体",
+            "晶体"
+          ]
+        },
+        {
+          "id": 11,
           "type": "B",
           "correct": "1000 L",
           "distractors": [
@@ -1394,7 +1374,7 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 14,
+          "id": 12,
           "type": "B",
           "correct": "1 mL",
           "distractors": [
@@ -1404,13 +1384,33 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 15,
+          "id": 13,
           "type": "B",
           "correct": "1 cm³",
           "distractors": [
             "1 m³",
             "10 cm³",
             "1 m²"
+          ]
+        },
+        {
+          "id": 14,
+          "type": "A",
+          "correct": "排水法",
+          "distractors": [
+            "称重法",
+            "刻度法",
+            "比较法"
+          ]
+        },
+        {
+          "id": 15,
+          "type": "A",
+          "correct": "方格纸",
+          "distractors": [
+            "白纸",
+            "坐标纸",
+            "滤纸"
           ]
         }
       ]
@@ -1481,46 +1481,6 @@ window.CURRENT_CHAPTER = {
         },
         {
           "id": 7,
-          "type": "A",
-          "correct": "冷热",
-          "distractors": [
-            "明暗",
-            "快慢",
-            "轻重"
-          ]
-        },
-        {
-          "id": 8,
-          "type": "A",
-          "correct": "范围",
-          "distractors": [
-            "定点",
-            "极值",
-            "常数"
-          ]
-        },
-        {
-          "id": 9,
-          "type": "A",
-          "correct": "方法",
-          "distractors": [
-            "直觉",
-            "臆测",
-            "猜测"
-          ]
-        },
-        {
-          "id": 10,
-          "type": "A",
-          "correct": "准确",
-          "distractors": [
-            "粗略",
-            "错误",
-            "随意"
-          ]
-        },
-        {
-          "id": 11,
           "type": "B",
           "correct": "60 s",
           "distractors": [
@@ -1530,7 +1490,7 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 12,
+          "id": 8,
           "type": "B",
           "correct": "3600 s",
           "distractors": [
@@ -1540,7 +1500,17 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 13,
+          "id": 9,
+          "type": "A",
+          "correct": "冷热",
+          "distractors": [
+            "明暗",
+            "快慢",
+            "轻重"
+          ]
+        },
+        {
+          "id": 10,
           "type": "B",
           "correct": "37℃",
           "distractors": [
@@ -1551,7 +1521,7 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 14,
+          "id": 11,
           "type": "B",
           "correct": "-273.15℃",
           "distractors": [
@@ -1562,13 +1532,43 @@ window.CURRENT_CHAPTER = {
           ]
         },
         {
-          "id": 15,
+          "id": 12,
           "type": "B",
           "correct": "42℃",
           "distractors": [
             "37℃",
             "35℃",
             "42 K"
+          ]
+        },
+        {
+          "id": 13,
+          "type": "A",
+          "correct": "范围",
+          "distractors": [
+            "定点",
+            "极值",
+            "常数"
+          ]
+        },
+        {
+          "id": 14,
+          "type": "A",
+          "correct": "方法",
+          "distractors": [
+            "直觉",
+            "臆测",
+            "猜测"
+          ]
+        },
+        {
+          "id": 15,
+          "type": "A",
+          "correct": "准确",
+          "distractors": [
+            "粗略",
+            "错误",
+            "随意"
           ]
         }
       ]
