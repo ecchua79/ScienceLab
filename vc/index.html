@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <!--
   校对对决：红笔 VS 蓝笔
-  Credit: 蔡逸众 (ecchua79) / 华仁中学 Chinese High School
+  Credit: 蔡逸众 / 华仁中学 Chinese High School
   Self-contained single-file HTML game, no external CDN dependencies.
   Local dual-player (same device, split screen), shared game board, no networking.
 -->
@@ -226,6 +226,17 @@
   }
   #next-passage-bar.show{display:block;}
 
+  /* ── 阅读锁定倒数条 ── */
+  #reading-lock-bar{
+    display:none;position:fixed;left:0;right:0;top:0;z-index:56;
+    background:var(--ink);color:var(--paper);
+    padding:9px 16px;text-align:center;font-family:var(--font-display);
+    font-size:14px;letter-spacing:1px;box-shadow:0 4px 14px rgba(0,0,0,0.3);
+  }
+  #reading-lock-bar.show{display:block;}
+  #reading-lock-bar b{font-family:var(--font-mono);font-size:16px;color:#ffd27a;}
+  .duel-article.reading-lock .kw{cursor:default;opacity:0.9;}
+
   footer.watermark{text-align:center;font-size:10.5px;color:var(--ink-soft);opacity:0.6;margin-top:24px;letter-spacing:1px;}
 
   @media (max-width:640px){
@@ -250,6 +261,7 @@
 </style>
 </head>
 <body>
+<div id="reading-lock-bar">📖 请先阅读文章 · 还剩 <b id="reading-countdown">10</b> 秒后才能作答</div>
 <div id="app">
 
   <!-- ================= COVER ================= -->
@@ -377,18 +389,9 @@
 "use strict";
 
 const CHAPTER_LIST = [
-   { file: "1c01.js", label: "1c01 · 什么是科学" },
   { file: "1c06.js", label: "1c06 · 热传递" },
   { file: "1c07.js", label: "1c07 · 光的现象" },
-  { file: "1c08.js", label: "1c08 · 波与声音" },
-   { file: "2c08.js", label: "2c08 · 气压和压强" },
-   { file: "2c09.js", label: "2c09 · 简单机械" },
-   { file: "2c10.js", label: "2c10 · 能量、功和功率" },
-   { file: "2c11.js", label: "2c11 · 生态系统和生物多样性" },
-   { file: "2c12.js", label: "2c12 · 天体和宇宙" }
-//   { file: "2c08.js", label: "1c08 · 波与声音" }
- //  { file: "2c08.js", label: "1c08 · 波与声音" }
-  
+  { file: "1c08.js", label: "1c08 · 波与声音" }
 ];
 
 const ERROR_COUNT = 5;
@@ -406,6 +409,8 @@ let state = {
   claimedBy: null,       // 当前正被作答的词 id -> side（防止双方同时抢）
   wordFailedBy: {},      // 词id -> 已经答错过一次的那一方（用于让另一方补救）
   milestonesShown: { red: {}, blue: {} },  // 已触发过的盖章节点（5/10/14），避免重复播放
+  readingLock: false,     // 新段落出现后的10秒只读期，锁定期间不能作答
+  readingTimerHandle: null,
   lastPassageId: null,
   ended: false
 };
@@ -524,11 +529,42 @@ function getWordEl(id, side){
   return document.querySelector('.kw[data-id="'+id+'"][data-side="'+side+'"]');
 }
 
+/* 新段落出现后，锁定10秒不能作答，让双方先读完 */
+const READING_LOCK_SECONDS = 10;
+function startReadingLock(){
+  if(state.readingTimerHandle) clearInterval(state.readingTimerHandle);
+  state.readingLock = true;
+
+  document.querySelectorAll(".duel-article").forEach(el => el.classList.add("reading-lock"));
+  const bar = document.getElementById("reading-lock-bar");
+  const countdownEl = document.getElementById("reading-countdown");
+  let secondsLeft = READING_LOCK_SECONDS;
+  countdownEl.textContent = secondsLeft;
+  bar.classList.add("show");
+
+  state.readingTimerHandle = setInterval(() => {
+    secondsLeft--;
+    if(secondsLeft <= 0){
+      clearInterval(state.readingTimerHandle);
+      state.readingTimerHandle = null;
+      state.readingLock = false;
+      bar.classList.remove("show");
+      document.querySelectorAll(".duel-article").forEach(el => el.classList.remove("reading-lock"));
+      return;
+    }
+    countdownEl.textContent = secondsLeft;
+  }, 1000);
+}
+
 /* ======================================================
    点击逻辑
    ====================================================== */
 function onWordClick(kwData, side){
   if(state.ended) return;
+  if(state.readingLock){
+    showToast(side, "请先阅读文章！");
+    return;
+  }
   const myEl = getWordEl(kwData.id, side);
   if(myEl.classList.contains("locked")) return;
 
@@ -586,8 +622,12 @@ function resolveWord(kwData, side, isCorrect){
       el.textContent = kwData.correct;
     });
     state.score[side]++;
-    beep("correct");
-    checkMilestone(side);
+    const isMilestone = MILESTONES.includes(state.score[side]) && !state.milestonesShown[side][state.score[side]];
+    if(isMilestone){
+      checkMilestone(side); // 里程碑：只播 chop.mp3，不叠加合成音
+    } else {
+      beep("correct");
+    }
     settleWord();
     if(state.score[side] >= WIN_SCORE){
       endGame(side);
@@ -631,6 +671,26 @@ function checkMilestone(side){
   }
 }
 
+let milestoneAudio = null;
+function initMilestoneAudio(){
+  milestoneAudio = new Audio("chop.mp3");
+  milestoneAudio.preload = "auto";
+  milestoneAudio.volume = 1.0;
+  milestoneAudio.addEventListener("error", () => {
+    console.warn("chop.mp3 载入失败，请确认它跟游戏文件在同一个资料夹");
+  });
+  milestoneAudio.load();
+}
+function playMilestoneSound(){
+  try{
+    if(!milestoneAudio) initMilestoneAudio();
+    milestoneAudio.currentTime = 0;
+    milestoneAudio.play().catch((err) => {
+      console.warn("chop.mp3 播放失败：", err);
+    });
+  }catch(e){}
+}
+
 function showStamp(side, count){
   const overlay = document.getElementById("stamp-" + side);
   const mark = document.getElementById("stamp-mark-" + side);
@@ -639,7 +699,7 @@ function showStamp(side, count){
   // 强制重新触发动画
   void overlay.offsetWidth;
   overlay.classList.add("play");
-  beep("correct");
+  playMilestoneSound();
 }
 
 function checkPassageDone(){
@@ -668,6 +728,7 @@ function nextPassage(){
   state.claimedBy = null;
   state.wordFailedBy = {};
   renderBoard();
+  startReadingLock();
 }
 
 /* ======================================================
@@ -727,6 +788,7 @@ async function startGame(){
   state.resolvedCount = 0;
   state.wordFailedBy = {};
   renderBoard();
+  startReadingLock();
   document.getElementById("next-passage-bar").classList.remove("show");
 
   showScreen("screen-game");
@@ -740,6 +802,8 @@ function calcFinalScore(side){
 function endGame(winnerSide){
   state.ended = true;
   document.getElementById("next-passage-bar").classList.remove("show");
+  document.getElementById("reading-lock-bar").classList.remove("show");
+  if(state.readingTimerHandle){ clearInterval(state.readingTimerHandle); state.readingTimerHandle = null; }
   const loserSide = winnerSide === "red" ? "blue" : "red";
   const winColor = winnerSide === "red" ? "#a4342a" : "#2b5a9e";
   const winEmoji = winnerSide === "red" ? "🔴" : "🔵";
@@ -767,6 +831,7 @@ function endGame(winnerSide){
 
 function init(){
   populateChapterSelect();
+  initMilestoneAudio();
 
   document.getElementById("btn-start").addEventListener("click", startGame);
   document.getElementById("btn-retry").addEventListener("click", () => showScreen("screen-cover"));
