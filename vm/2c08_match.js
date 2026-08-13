@@ -33,7 +33,7 @@ const MATCH_GROUPS = [
     pairs: [
       { id: 'p2a', term: '液体压强', definition: '液体与其接触的物体之间产生的，由于液体粒子之间的相互碰撞和推动所致。' },
       { id: 'p2b', term: '物体的深度', definition: '物体在液体中时，其与水平面的距离。' },
-      { id: 'p2c', term: '密度', definition: '在液体中，每单位质量的体积。' },
+      { id: 'p2c', term: '密度', definition: '在液体中，每单位体积的质量。' },
       { id: 'p2d', term: '浮力', definition: '液体对物体向上的推力，它来自物体上、下表面受到的压强差。' },
       { id: 'p2e', term: '水封', definition: 'U形管内的水柱在压强作用下保持平衡，能够有效隔绝室内和下水道之间的空气流通，阻止臭气回流。' },
       { id: 'p2f', term: '吃水深度', definition: '轮船沉入水中的深度；在海水中的会比在淡水中的浅。' },
