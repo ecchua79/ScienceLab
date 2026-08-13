@@ -338,11 +338,12 @@
         <div class="controls">
             <button onclick="zoomTo(0)" class="active" id="btn-0">1. 地月系</button>
             <button onclick="zoomTo(1)" id="btn-1">2. 太阳系</button>
-            <button onclick="zoomTo(2)" id="btn-2">3. 银河系</button>
-            <button onclick="zoomTo(3)" id="btn-3">4. 本星系群</button>
-            <button onclick="zoomTo(4)" id="btn-4">5. 室女座超星系团</button>
-            <button onclick="zoomTo(5)" id="btn-5">6. 拉尼亚凯亚超星系团</button>
-            <button onclick="zoomTo(6)" id="btn-6">7. 可观测宇宙</button>
+            <button onclick="zoomTo(2)" id="btn-2">3. 柯伊伯带</button>
+            <button onclick="zoomTo(3)" id="btn-3">4. 银河系</button>
+            <button onclick="zoomTo(4)" id="btn-4">5. 本星系群</button>
+            <button onclick="zoomTo(5)" id="btn-5">6. 室女座超星系团</button>
+            <button onclick="zoomTo(6)" id="btn-6">7. 拉尼亚凯亚超星系团</button>
+            <button onclick="zoomTo(7)" id="btn-7">8. 可观测宇宙</button>
         </div>
     </div>
 
@@ -373,7 +374,15 @@
                 data: "☀️ 日地距离(1 AU) 1.5亿 km ≈ 8.3 光分　·　海王星轨道半径约 30 AU",
                 target: worldPositions.solarSystem,
                 offset: new THREE.Vector3(0, 50, 150),
-                visibleRange: [30, 800]
+                visibleRange: [30, 260]
+            },
+            {
+                title: "柯伊伯带",
+                desc: "海王星轨道外侧一圈由无数冰质小天体组成的环带，冥王星、阋神星等矮行星都藏身其中。它是太阳系形成时残留的原始物质，也是许多短周期彗星的故乡。",
+                data: "❄️ 半径约 30–50 AU　·　代表天体：冥王星、阋神星　·　1992年首次证实其存在",
+                target: worldPositions.solarSystem,
+                offset: new THREE.Vector3(0, 120, 360),
+                visibleRange: [260, 790]
             },
             {
                 title: "银河系",
@@ -780,6 +789,46 @@
                     group.earthMarker = earthMarker;
                 }
             });
+
+            // 柯伊伯带：海王星轨道(75)外侧一圈稀疏的冰质小天体带，
+            // 直接作为太阳系group的一部分，天然共用同一套显隐/缩放联动逻辑，
+            // 不需要额外的嵌套追踪，因为它本来就是以太阳为中心的太阳系结构
+            const kuiperCount = 2200;
+            const kuiperGeo = new THREE.BufferGeometry();
+            const kuiperPos = new Float32Array(kuiperCount * 3);
+            const kuiperColors = new Float32Array(kuiperCount * 3);
+            const kuiperColorBase = new THREE.Color(0x9fb8cc); // 冰质天体的清冷蓝灰色
+
+            for (let i = 0; i < kuiperCount; i++) {
+                const r = 150 + Math.random() * 70; // 半径150-220，环带宽度模拟真实柯伊伯带的厚度
+                const theta = Math.random() * Math.PI * 2;
+                const yScatter = (Math.random() - 0.5) * 14; // 带一点垂直方向的弥散，不是薄薄一条线
+
+                kuiperPos[i * 3] = Math.cos(theta) * r;
+                kuiperPos[i * 3 + 1] = yScatter;
+                kuiperPos[i * 3 + 2] = Math.sin(theta) * r;
+
+                const c = kuiperColorBase.clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.35);
+                kuiperColors[i * 3] = c.r;
+                kuiperColors[i * 3 + 1] = c.g;
+                kuiperColors[i * 3 + 2] = c.b;
+            }
+
+            kuiperGeo.setAttribute('position', new THREE.BufferAttribute(kuiperPos, 3));
+            kuiperGeo.setAttribute('color', new THREE.BufferAttribute(kuiperColors, 3));
+
+            const kuiperMat = new THREE.PointsMaterial({
+                size: 1.4,
+                map: particleTexture, // 锐利点纹理，呼应"无数颗小天体"而非发光气体云的质感
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0
+            });
+            kuiperMat.userData = { maxOpacity: 0.75 }; // 亮度略收敛，不与行星/太阳本体抢视觉重心
+
+            group.add(new THREE.Points(kuiperGeo, kuiperMat));
 
             scene.add(group);
             groups.push(group);
@@ -1294,31 +1343,36 @@
                     targetOpacities[1] = 1.0; 
                     targetOpacities[2] = 0.65; 
                     break;
-                case 2: // 银河系
+                case 2: // 柯伊伯带(与太阳系共用同一个group，只是相机退远看整个冰带)
+                    targetOpacities[0] = 0.02;
+                    targetOpacities[1] = 1.0; 
+                    targetOpacities[2] = 0.55; 
+                    break;
+                case 3: // 银河系
                     targetOpacities[1] = 0.1; 
                     targetOpacities[2] = 1.0; 
                     targetOpacities[3] = 0.2; 
                     targetSolarSystemScale = 0.12;
                     break;
-                case 3: // 本星系群
+                case 4: // 本星系群
                     targetOpacities[2] = 0.15; 
                     targetOpacities[3] = 1.0;  
                     targetOpacities[4] = 0.3;  
                     targetSolarSystemScale = 0.12; // 已完全透明看不见，缩放值不影响视觉，但保持一致避免下次切回银河系时突兀跳变
                     break;
-                case 4: // 室女座超星系团
+                case 5: // 室女座超星系团
                     targetOpacities[3] = 0.1;
                     targetOpacities[4] = 1.0;
                     targetOpacities[5] = 0.35; 
                     targetSolarSystemScale = 0.12;
                     break;
-                case 5: // 拉尼亚凯亚超星系团
+                case 6: // 拉尼亚凯亚超星系团
                     targetOpacities[4] = 0.2;  // 室女座作为其中一叶继续可见
                     targetOpacities[5] = 1.0;
                     targetOpacities[6] = 0.3;
                     targetSolarSystemScale = 0.12;
                     break;
-                case 6: // 可观测宇宙
+                case 7: // 可观测宇宙
                     targetOpacities[5] = 0.1;
                     targetOpacities[6] = 1.0; 
                     targetSolarSystemScale = 0.12;
@@ -1349,11 +1403,11 @@
                 });
 
                 if (index === 2 && group.sunMarker) {
-                    group.sunMarker.visible = (currentScaleIndex === 2);
+                    group.sunMarker.visible = (currentScaleIndex === 3);
                     group.sunMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
                 if (index === 1 && group.earthMarker) {
-                    group.earthMarker.visible = (currentScaleIndex === 1);
+                    group.earthMarker.visible = (currentScaleIndex === 1 || currentScaleIndex === 2);
                     group.earthMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
                 if (index === 0) {
@@ -1364,11 +1418,11 @@
                     if (group.moon) group.moon.material.depthWrite = earthMoonOpaque;
                 }
                 if (index === 3 && group.mwMarker) {
-                    group.mwMarker.visible = (currentScaleIndex === 3);
+                    group.mwMarker.visible = (currentScaleIndex === 4);
                     group.mwMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
                 if (index === 5 && group.virgoMarker) {
-                    group.virgoMarker.visible = (currentScaleIndex === 5);
+                    group.virgoMarker.visible = (currentScaleIndex === 6);
                     group.virgoMarker.material.opacity = group.currentOpacity * (0.55 + Math.sin(markerPulseTime * 4) * 0.35);
                 }
             });
@@ -1438,12 +1492,16 @@
             const startTarget = controls.target.clone();
             const flightObj = { progress: 0 };
 
-            // 渐显/渐隐其余各天体系统组
-            scales.forEach((scale, i) => {
-                const group = groups[i];
+            // 尺度索引 -> 对应的主要group索引；柯伊伯带(scale=2)复用太阳系group(1)，不单独占一个group，
+            // 所以scales数组和groups数组从这里开始下标不再一一对应，必须用显式映射，不能再直接scales[i]==groups[i]
+            const scaleToGroupIndex = [0, 1, 1, 2, 3, 4, 5, 6];
+            const targetGroupIndex = scaleToGroupIndex[index];
+
+            // 渐显/渐隐各天体系统组（直接遍历groups本身，不再假设与scales下标对齐）
+            groups.forEach((group, gi) => {
                 if (!group) return;
                 
-                const finalOpacity = (i === index || (index <= 1 && i === 2)) ? 1 : 0;
+                const finalOpacity = (gi === targetGroupIndex || (index <= 2 && gi === 2)) ? 1 : 0;
                 gsap.to(group, {
                     currentOpacity: finalOpacity,
                     duration: 2.2,
@@ -1458,33 +1516,33 @@
                                 child.visible = child.material.opacity > 0.01;
                             }
                         });
-                        if (i === 2 && group.sunMarker) {
-                            group.sunMarker.visible = (index === 2);
+                        if (gi === 2 && group.sunMarker) {
+                            group.sunMarker.visible = (index === 3);
                             group.sunMarker.material.opacity = group.currentOpacity * 0.8;
                         }
-                        if (i === 1 && group.earthMarker) {
-                            group.earthMarker.visible = (index === 1);
+                        if (gi === 1 && group.earthMarker) {
+                            group.earthMarker.visible = (index === 1 || index === 2);
                             group.earthMarker.material.opacity = group.currentOpacity * 0.8;
                         }
-                        if (i === 0) {
+                        if (gi === 0) {
                             const earthMoonOpaque = group.currentOpacity > 0.5;
                             if (group.earthMesh) group.earthMesh.material.depthWrite = earthMoonOpaque;
                             if (group.moon) group.moon.material.depthWrite = earthMoonOpaque;
                         }
-                        if (i === 3 && group.mwMarker) {
-                            group.mwMarker.visible = (index === 3);
+                        if (gi === 3 && group.mwMarker) {
+                            group.mwMarker.visible = (index === 4);
                             group.mwMarker.material.opacity = group.currentOpacity * 0.8;
                         }
-                        if (i === 5 && group.virgoMarker) {
-                            group.virgoMarker.visible = (index === 5);
+                        if (gi === 5 && group.virgoMarker) {
+                            group.virgoMarker.visible = (index === 6);
                             group.virgoMarker.material.opacity = group.currentOpacity * 0.8;
                         }
                     }
                 });
 
-                // 太阳系group的缩放过渡：切到银河系视角时缩小到12%，其余(地月系/太阳系)视角恢复原尺寸
-                if (i === 1) {
-                    const finalScale = (index <= 1) ? 1.0 : 0.12;
+                // 太阳系group的缩放过渡：地月系/太阳系/柯伊伯带三档保持原尺寸，银河系及以上缩小到12%
+                if (gi === 1) {
+                    const finalScale = (index <= 2) ? 1.0 : 0.12;
                     if (group.currentScale === undefined) group.currentScale = 1.0;
                     gsap.to(group, {
                         currentScale: finalScale,
