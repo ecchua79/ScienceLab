@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恒星光谱分类与温度</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            background-color: #050510; /* 深邃的太空背景色 */
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 50vh; /* 占据上半部分屏幕 */
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .star-label {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+        /* 峇株吧辖蔡逸众制作 */
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        /* 简单的表格样式美化 */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background-color: #1a1a2e;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:hover {
+            background-color: #16213e;
+        }
+        .info-panel {
+            background: linear-gradient(180deg, #050510 0%, #0f172a 100%);
+        }
+        
+        /* OBAFGKM 颜色类 (用于表格文字或背景点缀) */
+        .color-o { color: #9bb0ff; }
+        .color-b { color: #aabfff; }
+        .color-a { color: #cad7ff; }
+        .color-f { color: #f8f7ff; }
+        .color-g { color: #fff4ea; }
+        .color-k { color: #ffd2a1; }
+        .color-m { color: #ffcc6f; }
+
+    </style>
+    <!-- Made by ecchua79 -->
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="flex flex-col h-screen">
+
+        <div style="position:absolute;bottom:3px;right:5px;font-size:9px;color:#0a0a18;z-index:50;pointer-events:none;opacity:0.55;">峇株吧辖华仁中学蔡逸众制作</div>
+    <!-- 3D 场景容器 -->
+    <div id="canvas-container" class="relative shadow-2xl z-10">
+        <!-- Labels 会由 JS 动态添加在这里 -->
+    </div>
+
+    <!-- 信息面板与表格 -->
+    <div class="info-panel flex-1 overflow-y-auto p-6 md:p-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-20">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-yellow-200 mb-2">恒星光谱分类 (OBAFGKM)</h1>
+            <p class="text-gray-400 mb-8 max-w-3xl leading-relaxed">
+                上方展示了按哈佛光谱分类法排列的主序星模型。从左至右（O 到 M），恒星的表面温度逐渐降低，颜色由蓝转红，亮度也随之减弱。光晕的强度直观地反映了它们的相对发光能力。
+            </p>
+
+            <div class="overflow-x-auto bg-gray-900/50 rounded-xl border border-gray-700 shadow-xl backdrop-blur-sm">
+                <table class="w-full text-sm lg:text-base">
+                    <thead>
+                        <tr>
+                            <th>光谱型</th>
+                            <th>颜色</th>
+                            <th>表面温度 (K)</th>
+                            <th>质量 (太阳 = 1)</th>
+                            <th>半径 (太阳 = 1)</th>
+                            <th>光度 (太阳 = 1)</th>
+                            <th>代表恒星</th>
+                        </tr>
+                    </thead>
+                    <tbody id="star-table-body">
+                        <!-- 表格内容将由 JS 填充以保持数据一致性 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-6 text-sm text-gray-500 italic">
+                * 注：上方的 3D 模型大小未严格按照真实比例缩放（否则 O 型星将巨大无比，M 型星将微不可见），主要用于展示颜色、相对亮度和光谱型顺序。光晕效果近似表示其光度差异。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 恒星数据定义 (OBAFGKM)
+        const starData = [
+            { class: 'O', colorHex: 0x9bb0ff, cssColor: '#9bb0ff', tempRange: '≥ 30,000', tempAvg: 35000, mass: '≥ 16', radius: '≥ 6.6', luminosity: '≥ 30,000', example: '参宿一 (Alnitak)', descColor: '蓝', glowIntensity: 3.5, glowSize: 2.5, scale: 1.8 },
+            { class: 'B', colorHex: 0xaabfff, cssColor: '#aabfff', tempRange: '10,000 - 30,000', tempAvg: 20000, mass: '2.1 - 16', radius: '1.8 - 6.6', luminosity: '25 - 30,000', example: '参宿七 (Rigel), 角宿一', descColor: '蓝白', glowIntensity: 2.8, glowSize: 2.0, scale: 1.5 },
+            { class: 'A', colorHex: 0xcad7ff, cssColor: '#cad7ff', tempRange: '7,500 - 10,000', tempAvg: 8500, mass: '1.4 - 2.1', radius: '1.4 - 1.8', luminosity: '5 - 25', example: '天狼星 (Sirius), 织女星', descColor: '白', glowIntensity: 2.2, glowSize: 1.6, scale: 1.3 },
+            { class: 'F', colorHex: 0xf8f7ff, cssColor: '#f8f7ff', tempRange: '6,000 - 7,500', tempAvg: 6500, mass: '1.04 - 1.4', radius: '1.15 - 1.4', luminosity: '1.5 - 5', example: '南河三 (Procyon)', descColor: '黄白', glowIntensity: 1.8, glowSize: 1.4, scale: 1.1 },
+            { class: 'G', colorHex: 0xfff4ea, cssColor: '#fff4ea', tempRange: '5,200 - 6,000', tempAvg: 5700, mass: '0.8 - 1.04', radius: '0.96 - 1.15', luminosity: '0.6 - 1.5', example: '太阳 (Sun)', descColor: '黄', glowIntensity: 1.5, glowSize: 1.2, scale: 1.0 },
+            { class: 'K', colorHex: 0xffd2a1, cssColor: '#ffd2a1', tempRange: '3,700 - 5,200', tempAvg: 4500, mass: '0.45 - 0.8', radius: '0.7 - 0.96', luminosity: '0.08 - 0.6', example: '大角星 (Arcturus)', descColor: '橙', glowIntensity: 1.2, glowSize: 1.05, scale: 0.8 },
+            { class: 'M', colorHex: 0xffcc6f, cssColor: '#ffcc6f', tempRange: '≤ 3,700', tempAvg: 3000, mass: '≤ 0.45', radius: '≤ 0.7', luminosity: '≤ 0.08', example: '比邻星 (Proxima Centauri)', descColor: '红', glowIntensity: 0.8, glowSize: 0.9, scale: 0.6 }
+        ];
+
+        // 填充表格
+        // 峇株吧辖蔡逸众制作
+        function populateTable() {
+            const tbody = document.getElementById('star-table-body');
+            starData.forEach(star => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-lg" style="color: ${star.cssColor}; text-shadow: 0 0 8px ${star.cssColor}88;">${star.class} 型</td>
+                    <td class="flex items-center gap-2">
+                        <span class="inline-block w-4 h-4 rounded-full" style="background-color: ${star.cssColor}; box-shadow: 0 0 5px ${star.cssColor};"></span>
+                        ${star.descColor}
+                    </td>
+                    <td>${star.tempRange}</td>
+                    <td>${star.mass}</td>
+                    <td>${star.radius}</td>
+                    <td>${star.luminosity}</td>
+                    <td class="text-gray-300">${star.example}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Three.js 场景设置
+        let scene, camera, renderer;
+        let starMeshes = [];
+        let labels = [];
+        const container = document.getElementById('canvas-container');
+
+        function init3D() {
+            // 场景
+            scene = new THREE.Scene();
+
+            // 相机
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+        // Made by ecchua79
+            camera.position.z = 25;
+            camera.position.y = 2; // 稍微俯视
+
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // 开启色调映射让高光更自然
+        // 峇株吧辖华仁中学蔡逸众制作
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // 环境光 (暗弱，为了不影响自发光效果)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+            scene.add(ambientLight);
+
+            createStars();
+            createBackgroundStars();
+
+            // 监听窗口调整
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // 创建 OBAFGKM 恒星
+        function createStars() {
+            const numStars = starData.length;
+            const spacing = 5; // 恒星之间的间距
+            const startX = -((numStars - 1) * spacing) / 2; // 居中排列
+
+            // 使用相同的球体几何体，通过 scale 调整大小
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+
+            starData.forEach((data, index) => {
+                const posX = startX + index * spacing;
+                
+                // 1. 恒星本体 (使用 MeshStandardMaterial 结合 emissive 产生自发光感觉)
+                const material = new THREE.MeshStandardMaterial({
+                    color: data.colorHex,
+                    emissive: data.colorHex,
+                    emissiveIntensity: 0.8, // 基础发光
+                    roughness: 0.4,
+                    metalness: 0.1,
+                });
+                const star = new THREE.Mesh(geometry, material);
+                star.position.set(posX, 0, 0);
+                star.scale.setScalar(data.scale);
+                
+                // 添加自转相关的自定义属性
+                star.userData = {
+                    rotationSpeedY: 0.005 + Math.random() * 0.01,
+                    rotationSpeedX: (Math.random() - 0.5) * 0.002
+                };
+
+                // 2. 添加点光源使其真正照亮周围(或产生光晕感)
+                const pointLight = new THREE.PointLight(data.colorHex, data.glowIntensity * 2, 10);
+                star.add(pointLight);
+
+                // 3. 简单的光晕效果 (Sprite)
+                // 创建径向渐变纹理
+        // 峇株吧辖蔡逸众制作
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const context = canvas.getContext('2d');
+                const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+                
+                // O型星光晕更刺眼，M型更柔和
+                const hexStr = '#' + data.colorHex.toString(16).padStart(6, '0');
+                gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                gradient.addColorStop(0.2, `${hexStr}`);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, 128, 128);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture, 
+                    color: data.colorHex,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    opacity: 0.8 + (data.glowIntensity * 0.1) // 越亮的星星光晕越不透明
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                // 光晕大小
+                const glowBaseSize = 3;
+                sprite.scale.set(glowBaseSize * data.glowSize * data.scale, glowBaseSize * data.glowSize * data.scale, 1);
+                star.add(sprite);
+
+                // 添加到场景和数组
+                scene.add(star);
+                starMeshes.push(star);
+        // Made by ecchua79
+
+                // 4. 创建 HTML 标签
+                createLabel(data.class, star);
+            });
+        }
+
+        // 创建简单的 HTML 标签用于显示 OBAFGKM
+        function createLabel(text, targetObject) {
+            const label = document.createElement('div');
+            label.className = 'star-label';
+        // 峇株吧辖华仁中学蔡逸众制作
+            label.textContent = text;
+            label.style.color = `#${targetObject.material.color.getHexString()}`;
+            container.appendChild(label);
+            labels.push({ element: label, target: targetObject });
+        }
+
+        // 创建背景星空
+        function createBackgroundStars() {
+            const starsGeometry = new THREE.BufferGeometry();
+            const count = 1500;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const color = new THREE.Color();
+
+            for(let i = 0; i < count; i++) {
+                // 随机位置 (远离中心)
+                positions[i*3] = (Math.random() - 0.5) * 200;
+                positions[i*3+1] = (Math.random() - 0.5) * 200;
+                positions[i*3+2] = (Math.random() - 0.5) * 100 - 50; // 放在后面
+
+                // 随机星星颜色偏向蓝白到黄
+                const type = Math.random();
+                if (type > 0.9) color.setHex(0x9bb0ff); // 蓝
+                else if (type > 0.5) color.setHex(0xffffff); // 白
+                else if (type > 0.2) color.setHex(0xfff4ea); // 黄
+                else color.setHex(0xffd2a1); // 橙
+
+                // 随机亮度 (通过调暗颜色)
+                const intensity = Math.random() * 0.8 + 0.2;
+                colors[i*3] = color.r * intensity;
+                colors[i*3+1] = color.g * intensity;
+                colors[i*3+2] = color.b * intensity;
+            }
+
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const starsMaterial = new THREE.PointsMaterial({
+                size: 0.2,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+
+            const starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+        }
+
+        // 更新标签位置 (3D 坐标转 2D 屏幕坐标)
+        function updateLabels() {
+        // 峇株吧辖蔡逸众制作
+            const canvasBounds = container.getBoundingClientRect();
+            
+            labels.forEach(lbl => {
+                // 获取星星中心稍微偏下的位置
+                const pos = new THREE.Vector3();
+                lbl.target.getWorldPosition(pos);
+                pos.y -= (lbl.target.scale.y * 1.5 + 0.5); // 根据星星缩放调整标签 Y 轴偏移
+
+                pos.project(camera);
+
+                // 转换到屏幕 CSS 坐标
+                const x = (pos.x * .5 + .5) * canvasBounds.width;
+                const y = (pos.y * -.5 + .5) * canvasBounds.height;
+
+                // 如果在相机后方则隐藏
+                if (pos.z > 1) {
+                    lbl.element.style.display = 'none';
+                } else {
+                    lbl.element.style.display = 'block';
+                    lbl.element.style.left = `${x}px`;
+                    lbl.element.style.top = `${y}px`;
+                }
+            });
+        }
+
+        // 窗口缩放处理
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+        // Made by ecchua79
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            updateLabels(); // 缩放时立即更新标签以防止滞后
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 恒星自转
+            starMeshes.forEach(star => {
+                star.rotation.y += star.userData.rotationSpeedY;
+                star.rotation.x += star.userData.rotationSpeedX;
+        // 峇株吧辖华仁中学蔡逸众制作
+                
+                // 让光晕(Sprite)稍微带点脉动效果，增加生动感
+                const time = Date.now() * 0.001;
+                const sprite = star.children.find(child => child.type === 'Sprite');
+                if (sprite) {
+                    const baseScale = sprite.scale.x / (1 + Math.sin(time * 0) * 0.05); // 假设之前的波动幅度是0.05
+                    // 使用 userData 存储一个随机的相位偏移，让星星闪烁不同步
+                    if(!sprite.userData.phaseOffset) sprite.userData.phaseOffset = Math.random() * Math.PI * 2;
+                    const scaleFactor = 1 + Math.sin(time * 2 + sprite.userData.phaseOffset) * 0.03;
+                    
+                    // 重置到一个基础大小再缩放，避免持续变大或变小。
+                    // 为了简化，我们假设光晕的 x 和 y 缩放是一致的
+                    const originalScaleX = star.userData.originalGlowScaleX || sprite.scale.x;
+                    if(!star.userData.originalGlowScaleX) star.userData.originalGlowScaleX = sprite.scale.x;
+                    
+                    sprite.scale.set(originalScaleX * scaleFactor, originalScaleX * scaleFactor, 1);
+                }
+            });
+
+            renderer.render(scene, camera);
+            updateLabels();
+        }
+
+        // 初始化
+        window.onload = function() {
+            populateTable();
+            init3D();
+            animate();
+        };
+
+    </script>
+</body>
+</html>
