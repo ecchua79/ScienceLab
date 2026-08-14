@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>地球绕日公转 3D光影效果</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #0b0c10; color: #c5c6c7;
+            /* //华仁中学蔡逸众制作 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden;
+        }
+        h2 { margin-top: 15px; margin-bottom: 5px; color: #66fcf1; letter-spacing: 2px; }
+        #canvas-container {
+            position: relative; width: 800px; height: 600px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+            /* //Made by ecchua79 */
+            border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.8); margin-bottom: 15px;
+        }
+        svg { width: 100%; height: 100%; }
+        .controls {
+            background: #1f2833; padding: 15px 30px; border-radius: 8px;
+            display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+        button {
+            background: #45a29e; color: #fff; border: none; padding: 10px 20px;
+            /* //峇株吧辖华仁中学蔡逸众制作 */
+            border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s;
+        }
+        button:hover { background: #66fcf1; color: #0b0c10; }
+        .slider-container { display: flex; flex-direction: column; align-items: center; width: 400px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        .date-display { font-size: 18px; font-weight: bold; color: #66fcf1; min-width: 150px; text-align: center; }
+        /* //峇株吧辖蔡逸众制作 */
+        
+        .orbit { fill: none; stroke: #45a29e; stroke-width: 1.5; stroke-dasharray: 6, 6; opacity: 0.5; }
+        .label { font-size: 13px; font-weight: bold; fill: #c5c6c7; pointer-events: none; }
+        .point-marker { fill: #fff; }
+    </style>
+</head>
+<body>
+
+    <h2>地球公转与3D光影四季变化</h2>
+
+    <div id="canvas-container">
+        <svg viewBox="0 0 800 600" id="main-svg">
+            <defs>
+                <!-- 太阳发光效果 -->
+                <radialGradient id="sun-glow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#fff5cc" stop-opacity="1" />
+                    <stop offset="30%" stop-color="#ffcc00" stop-opacity="0.9" />
+                    <stop offset="60%" stop-color="#ff6600" stop-opacity="0.6" />
+                    <stop offset="100%" stop-color="#ff0000" stop-opacity="0" />
+                </radialGradient>
+                
+                <!-- 地球表面图案 -->
+                <pattern id="earth-texture" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <rect width="40" height="40" fill="#1e88e5" />
+                    <path d="M 0,10 C 10,-5 25,15 35,5 C 45,-5 45,25 35,35 C 20,45 10,25 0,35 Z" fill="#4caf50" opacity="0.85"/>
+                    <circle cx="10" cy="8" r="3" fill="#8bc34a" />
+                    <circle cx="30" cy="30" r="4" fill="#8bc34a" />
+                </pattern>
+            </defs>
+
+            <!-- 星空背景 -->
+            <g id="stars"></g>
+
+            <!-- 轨道层 (永远在底层) -->
+            <g id="orbit-layer">
+                <!-- 椭圆中心: 400,300。太阳稍微偏右模拟椭圆焦点 -->
+                <ellipse class="orbit" cx="400" cy="300" rx="280" ry="140" />
+
+                <!-- 冬至: 右侧 -->
+                <circle cx="680" cy="300" r="4" class="point-marker"/>
+                <text x="680" y="320" class="label" text-anchor="middle">冬至 (12/21)</text>
+
+                <!-- 春分: 顶部 (因为改为了逆时针) -->
+                <circle cx="400" cy="160" r="4" class="point-marker"/>
+                <text x="400" y="150" class="label" text-anchor="middle">春分 (3/21)</text>
+
+                <!-- 夏至: 左侧 -->
+                <circle cx="120" cy="300" r="4" class="point-marker"/>
+                <text x="120" y="320" class="label" text-anchor="middle">夏至 (6/21)</text>
+
+                <!-- 秋分: 底部 -->
+                <circle cx="400" cy="440" r="4" class="point-marker"/>
+                <text x="400" y="460" class="label" text-anchor="middle">秋分 (9/23)</text>
+
+                <!-- 近日点: 右上方 (约1月3日) -->
+                <circle cx="673" cy="269" r="3" fill="#ff5722"/>
+                <text x="695" y="265" class="label" fill="#ff5722">近日点 (1/3)</text>
+
+                <!-- 远日点: 左下方 (约7月4日) -->
+                <circle cx="127" cy="331" r="3" fill="#03a9f4"/>
+                <text x="80" y="345" class="label" fill="#03a9f4">远日点 (7/4)</text>
+            </g>
+
+            <!-- 后景层 (地球在太阳后面时放入此处) -->
+            <g id="layer-back"></g>
+
+            <!-- 太阳层 (居中) -->
+            <g id="sun-layer">
+                <circle cx="430" cy="300" r="55" fill="url(#sun-glow)" />
+                <circle cx="430" cy="300" r="22" fill="#ffeb3b" />
+            </g>
+
+            <!-- 前景层 (地球在太阳前面时放入此处) -->
+            <g id="layer-front">
+                <!-- 地球系统 -->
+                <g id="earth-system">
+                    <!-- 地球本体 + 地轴倾斜 23.5 度 -->
+                    <g transform="rotate(23.5)">
+                        <!-- 地轴 -->
+                        <line x1="0" y1="-32" x2="0" y2="32" stroke="#fff" stroke-width="1.5" opacity="0.8"/>
+                        <line x1="0" y1="-32" x2="0" y2="-22" stroke="#ffeb3b" stroke-width="2"/> <!-- 北极指示 -->
+                        <!-- 基础发光层 -->
+                        <circle cx="0" cy="0" r="21" fill="none" stroke="#64b5f6" stroke-width="2" opacity="0.4"/>
+                        <!-- 地球表面 -->
+                        <circle cx="0" cy="0" r="20" fill="url(#earth-texture)" />
+                    </g>
+
+                    <!-- 3D 昼夜阴影层 (动态变形模拟月相效果) -->
+                    <g id="night-shadow-group">
+                        <path id="night-shadow" fill="rgba(0,0,0,0.78)" />
+                    </g>
+                </g>
+            </g>
+        </svg>
+    </div>
+    <div style="font-size:0.55rem; color:rgba(56,189,248,0.18); text-align:center; margin:-8px 0 10px 0; user-select:none;">峇株吧辖华仁中学蔡逸众制作</div>
+
+    <div class="controls">
+        <button id="play-btn">暂停 (Pause)</button>
+        <div class="slider-container">
+            <input type="range" id="time-slider" min="0" max="365" step="0.1" value="0">
+            <div style="font-size:12px; margin-top:5px; color:#aaa; width:100%; display:flex; justify-content:space-between;">
+                <span>冬至</span><span>春分</span><span>夏至</span><span>秋分</span><span>冬至</span>
+            </div>
+        </div>
+        <div class="date-display" id="date-display">12月21日</div>
+    </div>
+
+    <script>
+        // 生成星空
+        const starsGroup = document.getElementById('stars');
+        for (let i = 0; i < 150; i++) {
+            let star = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            //峇株吧辖华仁中学蔡逸众制作
+            star.setAttribute('cx', Math.random() * 800);
+            star.setAttribute('cy', Math.random() * 600);
+            star.setAttribute('r', Math.random() * 1.5 + 0.5);
+            star.setAttribute('fill', '#ffffff');
+            star.setAttribute('opacity', Math.random() * 0.8 + 0.2);
+            //峇株吧辖蔡逸众制作
+            starsGroup.appendChild(star);
+        }
+
+        const earthSystem = document.getElementById('earth-system');
+        const nightShadowGroup = document.getElementById('night-shadow-group');
+        const nightShadow = document.getElementById('night-shadow');
+        //华仁中学蔡逸众制作
+        const earthTexture = document.getElementById('earth-texture');
+        const layerFront = document.getElementById('layer-front');
+        const layerBack = document.getElementById('layer-back');
+        const timeSlider = document.getElementById('time-slider');
+        const dateDisplay = document.getElementById('date-display');
+        //Made by ecchua79
+        const playBtn = document.getElementById('play-btn');
+
+        // 轨道几何参数
+        const cx = 400, cy = 300;
+        const rx = 280, ry = 140;
+        const sunX = 430, sunY = 300; // 太阳在右侧焦点附近
+        const daysInYear = 365.25;
+
+        let isPlaying = true;
+        let day = 0; // 0对应冬至 (位于画面最右侧)
+
+        function updateDateDisplay(d) {
+            let baseDate = new Date(2023, 11, 21);
+            baseDate.setDate(baseDate.getDate() + Math.floor(d));
+            let month = baseDate.getMonth() + 1;
+            let date = baseDate.getDate();
+            
+            let term = "";
+            let dMod = d % 365.25;
+            if (dMod < 2 || dMod > 364) term = " (冬至)";
+            else if (dMod > 89 && dMod < 93) term = " (春分)";
+            else if (dMod > 180 && dMod < 184) term = " (夏至)";
+            else if (dMod > 272 && dMod < 276) term = " (秋分)";
+            else if (dMod > 11 && dMod < 15) term = " (近日点)";
+            else if (dMod > 193 && dMod < 197) term = " (远日点)";
+
+            dateDisplay.textContent = `${month}月${date}日${term}`;
+        }
+
+        function updateEarth() {
+            // 1. 公转计算 (西向东/逆时针)
+            // angle 增加时，sin为负，使其先往上(春分)走
+            let angle = (day / daysInYear) * Math.PI * 2;
+            let x = cx + rx * Math.cos(angle);
+            let y = cy - ry * Math.sin(angle); 
+            earthSystem.setAttribute("transform", `translate(${x}, ${y})`);
+
+            // 2. 动态 Z-index 层级处理 (前后景遮挡)
+            // 当地球 y < sunY (在上半区) 时，地球在太阳"后方"，放入背景层
+            if (y < sunY && earthSystem.parentNode !== layerBack) {
+                layerBack.appendChild(earthSystem);
+            } 
+            // 当地球 y > sunY (在下半区) 时，地球在太阳"前方"，放入前景层
+            else if (y >= sunY && earthSystem.parentNode !== layerFront) {
+                layerFront.appendChild(earthSystem);
+            }
+
+            // 3. 3D 光影盈亏逻辑 (Phase Logic)
+            // 计算从太阳指向地球的二维平面角度
+            let phi = Math.atan2(y - sunY, x - sunX);
+            // 基础旋转：使阴影始终在背光面
+            nightShadowGroup.setAttribute("transform", `rotate(${phi * 180 / Math.PI})`);
+
+            // 计算透视深度 (Depth) 实现"月相"盈亏
+            // depth 范围从 -1(在后方最远处) 到 1(在前方最近处)
+            let depth = (y - cy) / ry;
+            depth = Math.max(-1, Math.min(1, depth)); // 钳制边界
+
+            // sweep: 画弧的方向，用于决定晨昏圈是向左凸出还是向右凸出
+            let sweep = depth > 0 ? 1 : 0; 
+            // 晨昏线椭圆的X轴半径，取决于地球处于前后的深度
+            let rxTerm = 20 * Math.abs(depth);
+            if (rxTerm < 0.01) rxTerm = 0.01; // 防止SVG渲染错误
+            //峇株吧辖华仁中学蔡逸众制作
+
+            // 画出动态阴影遮罩
+            // 外圈是一半标准的半圆，内圈是随着 depth 动态变形的椭圆晨昏线
+            let pathD = `M 0,-20 A 20,20 0 0,1 0,20 A ${rxTerm},20 0 0,${sweep} 0,-20 Z`;
+            nightShadow.setAttribute("d", pathD);
+
+            // 4. 地球自转 (西向东)
+            // Texture 的 x 值不断增加，视觉上大陆板块从左往右移动
+            let rotationX = (day * 15) % 40; 
+            //峇株吧辖蔡逸众制作
+            earthTexture.setAttribute("x", rotationX);
+
+            // 更新 UI
+            updateDateDisplay(day);
+            if(isPlaying) timeSlider.value = day % 365;
+        }
+
+        function animate() {
+            //华仁中学蔡逸众制作
+            if (isPlaying) {
+                day += 0.35; // 控制动画速度
+                if (day >= daysInYear) day -= daysInYear;
+                updateEarth();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // 交互事件
+        playBtn.addEventListener('click', () => {
+            //Made by ecchua79
+            isPlaying = !isPlaying;
+            playBtn.textContent = isPlaying ? "暂停 (Pause)" : "播放 (Play)";
+            playBtn.style.background = isPlaying ? "#45a29e" : "#ff5722";
+        });
+
+        timeSlider.addEventListener('input', (e) => {
+            day = parseFloat(e.target.value);
+            updateEarth();
+        });
+
+        updateEarth();
+        animate();
+    </script>
+</body>
+</html>
