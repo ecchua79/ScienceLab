@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地球公转与四季变化 3D 模拟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #ui-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 30px;
+        }
+        .timeline-container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 40px;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            position: absolute;
+            top: 20px;
+            left: 0;
+            z-index: 2;
+            margin: 0;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+            border: 2px solid white;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .timeline-marker {
+            position: absolute;
+            top: -5px;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            color: #94a3b8;
+            z-index: 1;
+        }
+        .timeline-marker .tick {
+            width: 2px;
+            height: 10px;
+            background-color: #94a3b8;
+            margin-top: 4px;
+        }
+        .timeline-marker.active {
+            color: #60a5fa;
+            font-weight: bold;
+        }
+        .timeline-marker.active .tick {
+            background-color: #60a5fa;
+            box-shadow: 0 0 5px #60a5fa;
+        }
+        
+        /* 3D Scene Labels Overlay */
+        #labels-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .scene-label {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #e2e8f0;
+            white-space: nowrap;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .scene-label.highlight {
+            border-color: #3b82f6;
+            color: #fff;
+            opacity: 1;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .date-display {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f8fafc;
+            min-width: 150px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    
+    <div id="labels-container">
+        <!-- 3D labels will be injected here via JS -->
+    </div>
+
+    <div id="attribution-mark" style="position:fixed; top:6px; right:10px; z-index:10; font-size:0.55rem; color:rgba(56,189,248,0.18); pointer-events:none; user-select:none;">峇株吧辖华仁中学蔡逸众制作</div>
+
+    <div id="ui-container">
+        <div class="controls-row">
+            <button id="play-pause-btn" class="btn">暂停 (Pause)</button>
+            <div class="text-sm text-gray-400">滑动查看不同节气，拖动屏幕旋转视角</div>
+            <div id="date-display" class="date-display">第 0 天</div>
+        </div>
+        
+        <div class="timeline-container">
+            <!-- Markers injected via JS to ensure exact alignment -->
+            <div id="timeline-markers"></div>
+            <input type="range" id="time-slider" min="0" max="365" step="0.5" value="0">
+        </div>
+    </div>
+
+    <script>
+        // Constants & Orbital Parameters
+        const DAYS_IN_YEAR = 365;
+        const ORBIT_A = 25; // Semi-major axis
+        const ORBIT_E = 0.2; // Exaggerated eccentricity for visibility
+        // Calculated semi-latus rectum: p = a*(1-e^2)
+        const ORBIT_P = ORBIT_A * (1 - Math.pow(ORBIT_E, 2)); 
+        const PERIHELION_DAY = 3; // Jan 3
+        
+        // Key Dates (Day of year approx)
+        const KEY_DAYS = [
+            { day: 3, name: "近日点", desc: "Perihelion" },
+            { day: 80, name: "春分", desc: "Vernal Equinox" },
+            { day: 172, name: "夏至", desc: "Summer Solstice" },
+            { day: 185, name: "远日点", desc: "Aphelion" },
+            { day: 266, name: "秋分", desc: "Autumnal Equinox" },
+            { day: 355, name: "冬至", desc: "Winter Solstice" }
+        ];
+
+        //峇株吧辖华仁中学蔡逸众制作
+
+        // State variables
+        let currentDay = 355; // Start at Winter Solstice
+        let isPlaying = true;
+        let animationSpeed = 0.2;
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        
+        // Add subtle background stars
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({color: 0xffffff, size: 0.1, transparent: true, opacity: 0.6});
+        const starsVertices = [];
+        for(let i=0; i<2000; i++) {
+            const x = THREE.MathUtils.randFloatSpread(400);
+            const y = THREE.MathUtils.randFloatSpread(400);
+            const z = THREE.MathUtils.randFloatSpread(400);
+            starsVertices.push(x, y, z);
+        }
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        //峇株吧辖蔡逸众制作
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 30, 45);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x222233, 1.5); // Very dim blue-ish ambient for the dark side
+        scene.add(ambientLight);
+
+        // The Sun acts as the main PointLight
+        const sunLight = new THREE.PointLight(0xfff2cc, 3.2, 400, 1.5);
+        scene.add(sunLight);
+        // A soft warm rim light to enhance the "shining" feel
+        const sunRimLight = new THREE.PointLight(0xffaa33, 1.2, 200);
+        scene.add(sunRimLight);
+
+        //华仁中学蔡逸众制作
+
+        // Objects
+        // 1. The Sun (bright glowing core)
+        const sunGeometry = new THREE.SphereGeometry(3, 48, 48);
+        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xfff4b0 });
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        scene.add(sun);
+
+        // Sun Glow/Halo (inner solid halo, kept for depth)
+        const sunGlowGeom = new THREE.SphereGeometry(3.4, 32, 32);
+        const sunGlowMat = new THREE.MeshBasicMaterial({ color: 0xffcc55, transparent: true, opacity: 0.35 });
+        const sunGlow = new THREE.Mesh(sunGlowGeom, sunGlowMat);
+        scene.add(sunGlow);
+
+        //Made by ecchua79
+        // Radial-gradient glow sprite: gives the Sun a real "point light" bloom look
+        // that always faces the camera, without needing a full post-processing bloom pass.
+        function createSunGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            gradient.addColorStop(0.0, 'rgba(255,255,235,1)');
+            gradient.addColorStop(0.15, 'rgba(255,240,180,0.9)');
+            gradient.addColorStop(0.4, 'rgba(255,190,90,0.35)');
+            gradient.addColorStop(0.7, 'rgba(255,140,40,0.12)');
+            gradient.addColorStop(1.0, 'rgba(255,120,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 256, 256);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const sunGlowSpriteMat = new THREE.SpriteMaterial({
+            map: createSunGlowTexture(),
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const sunGlowSprite = new THREE.Sprite(sunGlowSpriteMat);
+        sunGlowSprite.scale.set(18, 18, 1);
+        scene.add(sunGlowSprite);
+
+        // A second, tighter bright flare for a sharp "twinkle" at the very center
+        const sunFlareMat = new THREE.SpriteMaterial({
+            map: createSunGlowTexture(),
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            opacity: 0.9
+        });
+        const sunFlare = new THREE.Sprite(sunFlareMat);
+        sunFlare.scale.set(7, 7, 1);
+        scene.add(sunFlare);
+
+        //峇株吧辖华仁中学蔡逸众制作
+        // Procedural Texture for Earth to give it a "Basic Color Scheme" without external assets
+        function createEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Ocean background
+            ctx.fillStyle = '#1e3a8a'; 
+            ctx.fillRect(0, 0, 1024, 512);
+            
+            // Random green landmasses
+            ctx.fillStyle = '#166534';
+            for(let i=0; i<40; i++) {
+                ctx.beginPath();
+                const x = Math.random() * 1024;
+                const y = Math.random() * 512;
+                const r = 20 + Math.random() * 60;
+                // Add some irregularity
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 2. The Earth Group (Handles tilt and orbit position)
+        const earthGroup = new THREE.Group();
+        scene.add(earthGroup);
+
+        // Axial Tilt: 23.5 degrees. 
+        // We tilt around Z axis. Negative angle tilts North Pole (local +Y) towards positive X.
+        // At Winter Solstice, Earth is on positive X axis, so North Pole points away from Sun (Origin). This is accurate.
+        const EARTH_TILT = -23.5 * Math.PI / 180;
+        earthGroup.rotation.z = EARTH_TILT;
+
+        //峇株吧辖蔡逸众制作
+        // Earth Mesh (Handles daily rotation)
+        const earthRadius = 1.2;
+        const earthGeometry = new THREE.SphereGeometry(earthRadius, 32, 32);
+        const earthMaterial = new THREE.MeshStandardMaterial({ 
+            map: createEarthTexture(),
+            roughness: 0.7,
+            metalness: 0.1
+        });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        earthGroup.add(earth);
+
+        // Visual Axis Line
+        const axisMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 });
+        const axisGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -earthRadius * 1.8, 0),
+            new THREE.Vector3(0, earthRadius * 1.8, 0)
+        ]);
+        const axisLine = new THREE.Line(axisGeometry, axisMaterial);
+        earthGroup.add(axisLine);
+
+        //华仁中学蔡逸众制作
+        // 3. Orbit Path
+        const orbitPoints = [];
+        const orbitSegments = 128;
+        // Function to calculate exact coordinate based on day (0-365)
+        function getOrbitPosition(day) {
+            // Map day to angle. Ensure Winter Solstice (Day 355) maps exactly to Angle 0 (Positive X axis)
+            const angle = ((day + 10) / DAYS_IN_YEAR) * Math.PI * 2;
+            const perihelionAngle = ((PERIHELION_DAY + 10) / DAYS_IN_YEAR) * Math.PI * 2;
+            
+            // Polar equation of ellipse relative to focus (Sun)
+            const r = ORBIT_P / (1 + ORBIT_E * Math.cos(angle - perihelionAngle));
+            
+            // XZ plane coordinates (Negative Z for counter-clockwise West-to-East rotation)
+            const x = r * Math.cos(angle);
+            const z = -r * Math.sin(angle);
+            return new THREE.Vector3(x, 0, z);
+        }
+
+        for (let i = 0; i <= orbitSegments; i++) {
+            const day = (i / orbitSegments) * DAYS_IN_YEAR;
+            orbitPoints.push(getOrbitPosition(day));
+        }
+        const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+        const orbitLineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
+        const orbitPath = new THREE.Line(orbitGeometry, orbitLineMat);
+        scene.add(orbitPath);
+
+        //Made by ecchua79
+        // 4. Markers for Solstices, Equinoxes, Apsides
+        const markerGroups = [];
+        const labelsContainer = document.getElementById('labels-container');
+        
+        KEY_DAYS.forEach(kd => {
+            const pos = getOrbitPosition(kd.day);
+            
+            // 3D Sphere Marker
+            const mGeom = new THREE.SphereGeometry(0.3, 16, 16);
+            const mMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+            const mMesh = new THREE.Mesh(mGeom, mMat);
+            mMesh.position.copy(pos);
+            scene.add(mMesh);
+            
+            // 2D CSS Label
+            const labelEl = document.createElement('div');
+            labelEl.className = 'scene-label';
+            labelEl.innerHTML = `${kd.name}`;
+            labelsContainer.appendChild(labelEl);
+            
+            markerGroups.push({ day: kd.day, mesh: mMesh, label: labelEl, data: kd });
+        });
+
+        // Setup Timeline UI Markers
+        const timelineMarkersContainer = document.getElementById('timeline-markers');
+        KEY_DAYS.forEach(kd => {
+            const percentage = (kd.day / DAYS_IN_YEAR) * 100;
+            const tMarker = document.createElement('div');
+            tMarker.className = 'timeline-marker';
+            tMarker.style.left = `${percentage}%`;
+            tMarker.innerHTML = `<span>${kd.name}</span><div class="tick"></div>`;
+            tMarker.id = `ui-marker-${kd.day}`;
+            timelineMarkersContainer.appendChild(tMarker);
+        });
+
+        //峇株吧辖华仁中学蔡逸众制作
+        // UI Interaction
+        const slider = document.getElementById('time-slider');
+        const playBtn = document.getElementById('play-pause-btn');
+        const dateDisplay = document.getElementById('date-display');
+
+        slider.addEventListener('input', (e) => {
+            currentDay = parseFloat(e.target.value);
+            updateSceneForCurrentDay();
+        });
+
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playBtn.innerText = isPlaying ? "暂停 (Pause)" : "播放 (Play)";
+        });
+
+        //峇株吧辖蔡逸众制作
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function updateSceneForCurrentDay() {
+            // Update Earth Position
+            const pos = getOrbitPosition(currentDay);
+            earthGroup.position.copy(pos);
+            
+            // Earth Rotation (Spinning West to East / counter-clockwise)
+            // We continuously spin it based on time to show rotation
+            // Actual earth spins 365 times, we just rotate it proportionally for visual effect
+            earth.rotation.y = (currentDay * Math.PI * 4); // 2 full rotations per day in simulation for visibility
+
+            // Update UI
+            slider.value = currentDay;
+            dateDisplay.innerText = `第 ${Math.floor(currentDay)} 天`;
+
+            // Highlight active labels if close to a key date
+            let closestDist = 999;
+            let closestMarkerDay = null;
+
+            markerGroups.forEach(mg => {
+                // Shortest distance accounting for year wrap-around
+                let dist = Math.abs(currentDay - mg.day);
+                if (dist > DAYS_IN_YEAR / 2) dist = DAYS_IN_YEAR - dist;
+                
+                if (dist < 10) { // Within 10 days highlight
+                    mg.label.classList.add('highlight');
+                    document.getElementById(`ui-marker-${mg.day}`).classList.add('active');
+                } else {
+                    mg.label.classList.remove('highlight');
+                    document.getElementById(`ui-marker-${mg.day}`).classList.remove('active');
+                }
+            });
+        }
+
+        //华仁中学蔡逸众制作
+        // Project 3D positions to 2D CSS
+        function updateLabels() {
+            markerGroups.forEach(mg => {
+                const vector = mg.mesh.position.clone();
+                // Offset label slightly above the marker
+                vector.y += 1.5;
+                vector.project(camera);
+
+                // Convert to CSS coordinates
+                const x = (vector.x * .5 + .5) * window.innerWidth;
+                const y = (vector.y * -.5 + .5) * window.innerHeight;
+
+                // Hide if behind camera
+                if(vector.z > 1) {
+                    mg.label.style.display = 'none';
+                } else {
+                    mg.label.style.display = 'block';
+                    mg.label.style.left = `${x}px`;
+                    mg.label.style.top = `${y}px`;
+                }
+            });
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isPlaying) {
+                currentDay += animationSpeed;
+                if (currentDay >= DAYS_IN_YEAR) currentDay -= DAYS_IN_YEAR;
+                updateSceneForCurrentDay();
+            }
+
+            // Gentle pulsing glow so the Sun feels like it's actively shining
+            const t = performance.now() * 0.0015;
+            const pulse = 1 + Math.sin(t) * 0.05;
+            sunGlowSprite.scale.set(18 * pulse, 18 * pulse, 1);
+            sunFlare.scale.set(7 * (1 + Math.sin(t * 1.7) * 0.08), 7 * (1 + Math.sin(t * 1.7) * 0.08), 1);
+
+            controls.update();
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        //Made by ecchua79
+        // Init scene and start loop
+        updateSceneForCurrentDay();
+        animate();
+
+    </script>
+</body>
+</html>
