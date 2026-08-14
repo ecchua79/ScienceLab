@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华仁中学E化系统 - 抽人轮盘</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s infinite ease-in-out;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* 防盗版平铺水印层：覆盖全页，不影响点击 */
+        .watermark-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            pointer-events: none;
+            opacity: 0.9;
+            background-repeat: repeat;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='460' height='340'><text x='10' y='40' font-size='13' fill='white' fill-opacity='0.035' font-family='sans-serif' transform='rotate(-22 10 40)'>峇株吧辖华仁中学蔡逸众制作</text><text x='230' y='110' font-size='13' fill='white' fill-opacity='0.035' font-family='sans-serif' transform='rotate(-22 230 110)'>Made by ecchua79</text><text x='40' y='190' font-size='13' fill='white' fill-opacity='0.035' font-family='sans-serif' transform='rotate(-22 40 190)'>华仁中学蔡逸众制作</text><text x='250' y='270' font-size='13' fill='white' fill-opacity='0.035' font-family='sans-serif' transform='rotate(-22 250 270)'>峇株吧辖蔡逸众制作</text></svg>");
+        }
+        footer.site-footer {
+            position: relative;
+            z-index: 30;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+    <!-- 防盗版水印层（平铺，不遮挡操作） -->
+    <div class="watermark-layer"></div>
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur px-4 md:px-6 py-3.5 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center gap-2.5">
+            <div class="p-2 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                <i data-lucide="disc" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-base md:text-lg font-bold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                    华仁中学E化系统 - 智能轮盘
+                </h1>
+                <p class="text-[10px] md:text-xs text-slate-400">自动完美解析表格中文及多字英文姓名</p>
+            </div>
+        </div>
+        <div>
+            <span id="nameCountBadge" class="px-2.5 py-1 bg-indigo-950 text-indigo-300 border border-indigo-800/50 rounded-full text-xs font-medium">
+                当前: 0 人
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Left Panel: Controls & Import (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Quick Import Box -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-semibold text-xs md:text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i> 学校网页粘贴/导入
+                    </h2>
+                    <button id="clearBtn" class="text-xs text-slate-400 hover:text-rose-400 transition">清空输入</button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="pasteBtn" class="flex-1 py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95">
+                        <i data-lucide="clipboard-check" class="w-4 h-4"></i> 点击一键粘贴并智能整理
+                    </button>
+                    <button id="shuffleBtn" class="py-2.5 px-3 bg-purple-600/80 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-lg shadow-purple-600/20 active:scale-95 border border-purple-400/30" title="随机打乱名字顺序">
+                        <i data-lucide="shuffle" class="w-4 h-4"></i> 打乱
+                    </button>
+                </div>
+
+                <!-- Name Display Format Selector -->
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                    <span class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                        <i data-lucide="eye" class="w-3.5 h-3.5 text-purple-400"></i> 显示样式设定:
+                    </span>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button id="fmtFull" class="fmt-btn py-1 px-2 rounded-lg text-[11px] font-medium border border-indigo-500 bg-indigo-600/20 text-indigo-200">
+                            中文 / 英文
+                        </button>
+                        <button id="fmtZh" class="fmt-btn py-1 px-2 rounded-lg text-[11px] font-medium border border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800">
+                            仅中文
+                        </button>
+                        <button id="fmtEn" class="fmt-btn py-1 px-2 rounded-lg text-[11px] font-medium border border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800">
+                            仅英文
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea (Manual Edit) -->
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>网页原文本 / 最终名单预览:</span>
+                        <span id="parseStatus" class="text-emerald-400 text-[11px] font-medium"></span>
+                    </div>
+                    <textarea id="nameInput" rows="6" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition resize-none font-mono leading-relaxed" placeholder="直接全选复制学校网页粘贴进来即可..."></textarea>
+                </div>
+            </div>
+
+            <!-- Draw Rules -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+                <h2 class="font-semibold text-xs md:text-sm text-slate-200 flex items-center gap-2">
+                    <i data-lucide="settings-2" class="w-4 h-4 text-indigo-400"></i> 抽取模式设置
+                </h2>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="modeSingle" class="mode-btn py-2.5 px-3 rounded-xl border border-indigo-500 bg-indigo-600/20 text-indigo-200 text-xs font-semibold flex items-center justify-center gap-2 transition">
+                        <i data-lucide="user" class="w-4 h-4"></i> 抽取 1 人
+                    </button>
+                    <button id="modeDouble" class="mode-btn py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold flex items-center justify-center gap-2 transition hover:bg-slate-800">
+                        <i data-lucide="users" class="w-4 h-4"></i> 抽取 2 人
+                    </button>
+                </div>
+
+                <label class="flex items-center justify-between p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl cursor-pointer hover:bg-slate-800/40 transition">
+                    <span class="text-xs text-slate-300 flex items-center gap-2">
+                        <i data-lucide="user-x" class="w-4 h-4 text-amber-400"></i> 抽中后从名单中剔除
+                    </span>
+                    <input type="checkbox" id="removeOnWin" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                </label>
+            </div>
+
+            <!-- Winner Log -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1 flex flex-col min-h-[140px]">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="font-semibold text-xs text-slate-200 flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-indigo-400"></i> 抽取历史
+                    </h2>
+                    <button id="clearHistoryBtn" class="text-[10px] text-slate-500 hover:text-slate-300">清空历史</button>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto max-h-[150px] space-y-1.5 pr-1 font-mono text-xs text-slate-300">
+                    <p class="text-slate-500 text-center py-4 text-[11px]">暂无中奖记录</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Panel: Canvas Wheel & Display (7 cols) -->
+        <section class="lg:col-span-7 bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden min-h-[480px]">
+            
+            <!-- Wheel Container -->
+            <div class="relative flex items-center justify-center my-auto w-full max-w-[420px] aspect-square">
+                <!-- Top Pointer -->
+                <div class="absolute -top-3 z-20 w-8 h-10 text-rose-500 drop-shadow-[0_4px_12px_rgba(244,63,94,0.7)]">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" transform="rotate(180 12 12)" />
+                    </svg>
+                </div>
+
+                <!-- Canvas Wheel -->
+                <div class="p-2.5 bg-slate-950 rounded-full border-4 border-slate-800/80 shadow-[0_0_60px_rgba(99,102,241,0.2)] w-full h-full flex items-center justify-center">
+                    <canvas id="wheelCanvas" width="450" height="450" class="w-full h-full rounded-full transition-transform duration-1000 ease-out"></canvas>
+                </div>
+            </div>
+
+            <!-- Spin Control Button -->
+            <div class="mt-6 z-10 w-full max-w-xs">
+                <button id="spinBtn" class="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold text-base md:text-lg rounded-2xl shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transform active:scale-95 transition-all duration-200 flex items-center justify-center gap-2.5 border border-white/20 animate-pulse-subtle">
+                    <i data-lucide="play" class="w-5 h-5 fill-current"></i> 开始幸运抽取
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer border-t border-slate-800 bg-slate-900/60 backdrop-blur px-4 py-3 text-center">
+        <p class="text-[10px] text-slate-600 mt-1 leading-relaxed">
+          峇株吧辖蔡逸众制作　·　未经授权禁止转载或商用
+        </p>
+    </footer>
+
+    <!-- Winner Result Modal Popup -->
+    <div id="winnerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-indigo-500/40 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl shadow-indigo-500/20 transform scale-90 transition-all duration-300 glass-card" id="modalCard">
+            <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-rose-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-rose-500/30 mb-3 animate-bounce">
+                <i data-lucide="trophy" class="w-7 h-7 text-white"></i>
+            </div>
+            <h3 class="text-xs font-semibold text-indigo-300 tracking-wider uppercase mb-1">恭喜中奖者</h3>
+            
+            <div id="winnerDisplay" class="py-3 my-1 flex flex-col gap-2 items-center justify-center">
+                <!-- Winner names -->
+            </div>
+
+            <button id="closeModalBtn" class="mt-3 w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm shadow-lg shadow-indigo-600/30 transition active:scale-95">
+                确定并继续
+            </button>
+        </div>
+    </div>
+
+    <!-- Web Audio API Sound Generator -->
+    <script>
+        class SoundEffects {
+            constructor() { this.ctx = null; }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTick() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.03);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.03);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.03);
+            }
+            playWin() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, index) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.2, now + index * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.3);
+                });
+            }
+        }
+        const sfx = new SoundEffects();
+    </script>
+
+    <!-- Main Logic -->
+    <script>
+        // State
+        let parsedStudents = []; // Objects: { raw: '', zh: '', en: '' }
+        let displayMode = 'full'; // 'full', 'zh', 'en'
+        let drawMode = 1; // 1 or 2
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        const sectorColors = [
+            '#6366f1', '#8b5cf6', '#ec4899', '#3b82f6', 
+            '#10b981', '#f59e0b', '#06b6d4', '#d946ef'
+        ];
+
+        // DOM Elements
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const nameInput = document.getElementById('nameInput');
+        const nameCountBadge = document.getElementById('nameCountBadge');
+        const parseStatus = document.getElementById('parseStatus');
+        const spinBtn = document.getElementById('spinBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const modeSingle = document.getElementById('modeSingle');
+        const modeDouble = document.getElementById('modeDouble');
+        const removeOnWin = document.getElementById('removeOnWin');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const winnerModal = document.getElementById('winnerModal');
+        const winnerDisplay = document.getElementById('winnerDisplay');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const fmtFull = document.getElementById('fmtFull');
+        const fmtZh = document.getElementById('fmtZh');
+        const fmtEn = document.getElementById('fmtEn');
+
+        lucide.createIcons();
+
+        // Sample Data based on Chinese High School E-system
+        const sampleData = `1 26131 余胤丞 / DESMOND YER
+2 26182 俞宏浩 / EE HONG HAO
+3 26168 刘伽悦 / EUNICE LAU JIA YUE
+4 25078 刘奕呈 / LIU YI CHEN
+5 26098 吴宇彤 / EMILY GOO YU TONG`;
+
+        nameInput.value = sampleData;
+
+        // Custom Parser for School E-System Table
+        function parseSchoolTableText(text) {
+            if (!text) return [];
+
+            let cleanedText = text
+                .replace(/班级列表\(class\).*/g, '')
+                .replace(/刷新此页/g, '')
+                .replace(/Complete success.*/g, '')
+                .replace(/第四节/g, '')
+                .replace(/点名/g, '')
+                .replace(/座号/g, '')
+                .replace(/学号/g, '')
+                .replace(/中文名\s*\/\s*英文名/g, '');
+
+            const results = [];
+            
+            const reCombined = /([\u4e00-\u9fa5]{2,6})\s*[\/|\s]\s*([A-Za-z\s]{2,40})/g;
+            
+            let match;
+            while ((match = reCombined.exec(cleanedText)) !== null) {
+                const zh = match[1].trim();
+                let en = match[2].replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                en = en.replace(/\s+(座号|学号|点名|Complete).*$/i, '');
+
+                if (zh && en && en.length >= 2) {
+                    results.push({
+                        zh: zh,
+                        en: en,
+                        full: `${zh} / ${en}`
+                    });
+                }
+            }
+
+            if (results.length === 0) {
+                const lines = cleanedText.split('\n');
+                lines.forEach(line => {
+                    let clean = line.replace(/^[0-9_\-\.\s\t]+/, '').trim();
+                    if (clean.length >= 2 && !clean.includes('Complete')) {
+                        if (clean.includes('/')) {
+                            const parts = clean.split('/');
+                            const zh = parts[0].trim();
+                            const en = parts[1].trim();
+                            results.push({ zh: zh, en: en, full: `${zh} / ${en}` });
+                        } else {
+                            results.push({ zh: clean, en: clean, full: clean });
+                        }
+                    }
+                });
+            }
+
+            const uniqueResults = [];
+            const seen = new Set();
+            results.forEach(item => {
+                if (!seen.has(item.full)) {
+                    seen.add(item.full);
+                    uniqueResults.push(item);
+                }
+            });
+
+            return uniqueResults;
+        }
+
+        // Fisher-Yates Shuffle Algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function shuffleNames() {
+            if (parsedStudents.length <= 1) return;
+            parsedStudents = shuffleArray(parsedStudents);
+            // Update Text Area display order
+            nameInput.value = parsedStudents.map(s => s.full).join('\n');
+            drawWheel();
+            
+            parseStatus.innerText = '已随机打乱名单顺序！';
+            setTimeout(() => parseStatus.innerText = '', 2500);
+        }
+
+        function getActiveNames() {
+            return parsedStudents.map(s => {
+                if (displayMode === 'zh') return s.zh;
+                if (displayMode === 'en') return s.en;
+                return s.full;
+            });
+        }
+
+        function updateNamesFromInput() {
+            parsedStudents = parseSchoolTableText(nameInput.value);
+            nameCountBadge.innerText = `当前: ${parsedStudents.length} 人`;
+            drawWheel();
+        }
+
+        // Draw Canvas Wheel
+        function drawWheel() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 12;
+
+            ctx.clearRect(0, 0, width, height);
+            const activeNames = getActiveNames();
+
+            if (activeNames.length === 0) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#0f172a';
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('请粘贴学校页面表格内容', centerX, centerY);
+                return;
+            }
+
+            const arcSize = (2 * Math.PI) / activeNames.length;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation);
+
+            for (let i = 0; i < activeNames.length; i++) {
+                const angle = i * arcSize;
+                
+                // Draw Sector
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, angle, angle + arcSize);
+                ctx.fillStyle = sectorColors[i % sectorColors.length];
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Text
+                ctx.save();
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 4;
+                
+                let displayName = activeNames[i];
+                if (displayName.length > 20) displayName = displayName.substring(0, 18) + '..';
+
+                const fontSize = Math.max(11, Math.min(18, 260 / activeNames.length));
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                
+                ctx.fillText(displayName, radius - 20, 0);
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            // Center Pin
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 28, 0, 2 * Math.PI);
+            ctx.fillStyle = '#020617';
+            ctx.fill();
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = '#a855f7';
+            ctx.fill();
+        }
+
+        // Spin Engine
+        function spinWheel() {
+            const activeNames = getActiveNames();
+            if (isSpinning) return;
+            if (activeNames.length === 0) {
+                alert('请先粘贴学校表格名单！');
+                return;
+            }
+            if (drawMode === 2 && activeNames.length < 2) {
+                alert('抽取2人模式需要至少2个学生名额！');
+                return;
+            }
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            sfx.init();
+
+            // Select Winners
+            const winnerIndices = [];
+            const firstIdx = Math.floor(Math.random() * activeNames.length);
+            winnerIndices.push(firstIdx);
+
+            if (drawMode === 2) {
+                let secondIdx;
+                do {
+                    secondIdx = Math.floor(Math.random() * activeNames.length);
+                } while (secondIdx === firstIdx);
+                winnerIndices.push(secondIdx);
+            }
+
+            const arcSize = (2 * Math.PI) / activeNames.length;
+            const primaryWinnerIdx = winnerIndices[0];
+            const winnerSectorCenter = primaryWinnerIdx * arcSize + arcSize / 2;
+            
+            const targetPointerAngle = 1.5 * Math.PI; 
+            let targetAngle = targetPointerAngle - winnerSectorCenter;
+
+            const extraRounds = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+            const normalizedCurrent = currentRotation % (2 * Math.PI);
+            const totalRotationGoal = currentRotation + (extraRounds + (targetAngle - normalizedCurrent));
+
+            const startRotation = currentRotation;
+            const startTime = performance.now();
+            const duration = 4500;
+
+            let lastSectorIndex = -1;
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                
+                currentRotation = startRotation + (totalRotationGoal - startRotation) * easeOut;
+                drawWheel();
+
+                const normalizedAngle = (1.5 * Math.PI - (currentRotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+                const currentSectorIndex = Math.floor(normalizedAngle / arcSize);
+                
+                if (currentSectorIndex !== lastSectorIndex) {
+                    sfx.playTick();
+                    lastSectorIndex = currentSectorIndex;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                    const winningNames = winnerIndices.map(idx => activeNames[idx]);
+                    showWinnerModal(winningNames);
+                    addHistoryRecord(winningNames);
+
+                    // Remove winners if option checked
+                    if (removeOnWin.checked) {
+                        parsedStudents = parsedStudents.filter((_, idx) => !winnerIndices.includes(idx));
+                        nameInput.value = parsedStudents.map(s => s.full).join('\n');
+                        nameCountBadge.innerText = `当前: ${parsedStudents.length} 人`;
+                        setTimeout(() => drawWheel(), 500);
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Winner Modal & Effects
+        function showWinnerModal(winningNames) {
+            sfx.playWin();
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+            winnerDisplay.innerHTML = winningNames.map(name => `
+                <div class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-indigo-300 py-1">
+                    ${name}
+                </div>
+            `).join('');
+
+            winnerModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('modalCard').classList.remove('scale-90');
+            document.getElementById('modalCard').classList.add('scale-100');
+        }
+
+        function closeModal() {
+            winnerModal.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('modalCard').classList.remove('scale-100');
+            document.getElementById('modalCard').classList.add('scale-90');
+        }
+
+        function addHistoryRecord(winningNames) {
+            const timeStr = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800 text-xs';
+            item.innerHTML = `
+                <span class="text-indigo-300 font-semibold">${winningNames.join(' & ')}</span>
+                <span class="text-[10px] text-slate-500">${timeStr}</span>
+            `;
+            if (historyList.querySelector('p')) {
+                historyList.innerHTML = '';
+            }
+            historyList.prepend(item);
+        }
+
+        // Clipboard One-Click Read & Clean
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    nameInput.value = text;
+                    updateNamesFromInput();
+                    parseStatus.innerText = `成功智能提取 ${parsedStudents.length} 人名单！`;
+                    setTimeout(() => parseStatus.innerText = '', 3500);
+                } else {
+                    alert('剪贴板为空！请先在学校页面复制列表');
+                }
+            } catch (err) {
+                alert('无法访问剪贴板，请直接在下方文本框手动粘贴（Ctrl+V / 长按粘贴）。');
+            }
+        });
+
+        // Event Listeners
+        shuffleBtn.addEventListener('click', shuffleNames);
+        nameInput.addEventListener('input', updateNamesFromInput);
+        
+        clearBtn.addEventListener('click', () => {
+            nameInput.value = '';
+            updateNamesFromInput();
+        });
+
+        clearHistoryBtn.addEventListener('click', () => {
+            historyList.innerHTML = '<p class="text-slate-500 text-center py-4 text-[11px]">暂无中奖记录</p>';
+        });
+
+        // Format Switchers
+        function setFormatBtnStyle(activeBtn) {
+            [fmtFull, fmtZh, fmtEn].forEach(btn => {
+                btn.className = 'fmt-btn py-1 px-2 rounded-lg text-[11px] font-medium border border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800';
+            });
+            activeBtn.className = 'fmt-btn py-1 px-2 rounded-lg text-[11px] font-medium border border-indigo-500 bg-indigo-600/20 text-indigo-200';
+        }
+
+        fmtFull.addEventListener('click', () => { displayMode = 'full'; setFormatBtnStyle(fmtFull); drawWheel(); });
+        fmtZh.addEventListener('click', () => { displayMode = 'zh'; setFormatBtnStyle(fmtZh); drawWheel(); });
+        fmtEn.addEventListener('click', () => { displayMode = 'en'; setFormatBtnStyle(fmtEn); drawWheel(); });
+
+        // Draw Modes
+        modeSingle.addEventListener('click', () => {
+            drawMode = 1;
+            modeSingle.className = 'mode-btn py-2.5 px-3 rounded-xl border border-indigo-500 bg-indigo-600/20 text-indigo-200 text-xs font-semibold flex items-center justify-center gap-2 transition';
+            modeDouble.className = 'mode-btn py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold flex items-center justify-center gap-2 transition hover:bg-slate-800';
+        });
+
+        modeDouble.addEventListener('click', () => {
+            drawMode = 2;
+            modeDouble.className = 'mode-btn py-2.5 px-3 rounded-xl border border-indigo-500 bg-indigo-600/20 text-indigo-200 text-xs font-semibold flex items-center justify-center gap-2 transition';
+            modeSingle.className = 'mode-btn py-2.5 px-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold flex items-center justify-center gap-2 transition hover:bg-slate-800';
+        });
+
+        spinBtn.addEventListener('click', spinWheel);
+        closeModalBtn.addEventListener('click', closeModal);
+        winnerModal.addEventListener('click', (e) => {
+            if (e.target === winnerModal) closeModal();
+        });
+
+        // Initial Exec
+        updateNamesFromInput();
+    </script>
+</body>
+</html>
