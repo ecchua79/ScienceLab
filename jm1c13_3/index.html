@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 太阳剖面结构模型</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #050508; 
+            color: #fff; 
+            font-family: system-ui, -apple-system, sans-serif;
+            touch-action: none;
+        }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        /* Custom Scrollbar for Info Panel */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 150, 50, 0.5); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 150, 50, 0.8); }
+
+        .glass-panel {
+            background: rgba(15, 17, 26, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 180, 100, 0.18);
+        }
+
+        .layer-btn.active {
+            border-color: #f97316;
+            background-color: rgba(249, 115, 22, 0.25);
+            color: #ffedd5;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+        }
+
+        /* Collapsible Smooth Transition */
+        .panel-content {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 1000px;
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .panel-content.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            pointer-events: none;
+        }
+
+        /* Responsive orientation adjustments */
+        @media (orientation: portrait) {
+            .main-dashboard {
+                flex-direction: column-reverse;
+                align-items: stretch;
+            }
+            .info-panel-container {
+                max-height: 35vh;
+            }
+            .controls-panel-container {
+                max-height: 40vh;
+            }
+        }
+
+        @media (orientation: landscape) {
+            .main-dashboard {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+            .info-panel-container {
+                max-height: 70vh;
+            }
+            .controls-panel-container {
+                max-height: 70vh;
+            }
+        }
+    </style>
+</head>
+<body class="select-none">
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="relative z-10 pointer-events-none w-full h-full flex flex-col justify-between p-3 sm:p-5">
+        
+        <!-- Header -->
+        <header class="pointer-events-auto flex items-center justify-between glass-panel p-3 sm:p-4 rounded-xl w-full md:max-w-xl mx-auto md:mx-0 shadow-lg">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <i class="fa-solid fa-sun text-orange-500 text-xl sm:text-2xl animate-pulse"></i>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200">
+                        太阳 3D 剖面结构
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-gray-400">可交互切面分层展示</p>
+                </div>
+            </div>
+            <button id="btn-toggle-cut" class="pointer-events-auto px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 active:scale-95 text-white text-xs font-semibold rounded-lg shadow-lg transition duration-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-scissors"></i> 
+                <span id="cut-text">展开剖面</span>
+            </button>
+        </header>
+
+        <div class="text-center pointer-events-none">
+            <span class="text-[0.55rem]" style="color: rgba(56,189,248,0.18);">峇株吧辖华仁中学蔡逸众制作</span>
+        </div>
+
+        <!-- Main Interactive Dashboard (Adaptive for Portrait & Landscape) -->
+        <div class="main-dashboard pointer-events-none flex w-full gap-3 my-auto pt-2 pb-2">
+            
+            <!-- Left Side: Layer Selector Panel -->
+            <div class="pointer-events-auto controls-panel-container glass-panel rounded-xl w-full sm:w-64 flex flex-col shadow-2xl transition-all">
+                <!-- Panel Header with Collapse Button -->
+                <div class="p-3 flex items-center justify-between border-b border-white/10 cursor-pointer select-none" id="toggle-layer-panel">
+                    <div class="text-xs font-semibold text-orange-400 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>层级选择</span>
+                    </div>
+                    <button class="text-gray-400 hover:text-white text-xs p-1 focus:outline-none" aria-label="收起或展开层级面板">
+                        <i id="layer-panel-arrow" class="fa-solid fa-chevron-up transition-transform duration-300"></i>
+                    </button>
+                </div>
+
+                <!-- Panel Content -->
+                <div id="layer-panel-body" class="panel-content p-3 flex flex-col gap-1.5 overflow-y-auto">
+                    <button class="layer-btn active text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="all">
+                        <span><i class="fa-solid fa-globe text-amber-400 mr-2"></i>全部层级 (完整)</span>
+                        <i class="fa-solid fa-check text-[10px] opacity-70"></i>
+                    </button>
+
+                    <div class="h-px bg-white/10 my-0.5"></div>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="0">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-2"></i>1. 核反应区</span>
+                        <span class="text-[10px] text-gray-400">0-0.25R</span>
+                    </button>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="1">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2"></i>2. 辐射区</span>
+                        <span class="text-[10px] text-gray-400">0.25-0.7R</span>
+                    </button>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="2">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-2"></i>3. 对流区</span>
+                        <span class="text-[10px] text-gray-400">0.7-1.0R</span>
+                    </button>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="3">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-amber-300 mr-2"></i>4. 光球层</span>
+                        <span class="text-[10px] text-gray-400">表面</span>
+                    </button>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="4">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-rose-400 mr-2"></i>5. 色球层</span>
+                        <span class="text-[10px] text-gray-400">大气中层</span>
+                    </button>
+
+                    <button class="layer-btn text-left px-3 py-1.5 rounded-lg text-xs text-gray-300 hover:bg-white/10 transition border border-transparent flex items-center justify-between" data-layer="5">
+                        <span><span class="inline-block w-2 h-2 rounded-full bg-slate-100 mr-2"></i>6. 日冕</span>
+                        <span class="text-[10px] text-gray-400">珍珠白大光环</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side: Layer Information Panel -->
+            <div class="pointer-events-auto info-panel-container glass-panel rounded-xl w-full sm:w-80 md:w-96 flex flex-col shadow-2xl transition-all">
+                <!-- Panel Header with Collapse Button -->
+                <div class="p-3 flex items-center justify-between border-b border-white/10 cursor-pointer select-none" id="toggle-info-panel">
+                    <div class="flex items-center gap-2">
+                        <div id="info-icon" class="w-6 h-6 rounded bg-orange-500/20 text-orange-400 flex items-center justify-center text-xs font-bold">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div>
+                            <h2 id="info-title" class="text-sm font-bold text-orange-300">太阳概览</h2>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white text-xs p-1 focus:outline-none" aria-label="收起或展开详细说明面板">
+                        <i id="info-panel-arrow" class="fa-solid fa-chevron-up transition-transform duration-300"></i>
+                    </button>
+                </div>
+
+                <!-- Panel Content Body -->
+                <div id="info-panel-body" class="panel-content p-4 overflow-y-auto">
+                    <div id="info-content" class="space-y-2.5 text-xs text-gray-300 leading-relaxed">
+                        <!-- Dynamic Content Inserted Here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer / Controls Hint -->
+        <footer class="pointer-events-auto flex justify-between items-center text-[10px] sm:text-[11px] text-gray-400 glass-panel px-3 py-1.5 rounded-lg w-full">
+            <div class="flex gap-3 sm:gap-4 overflow-x-auto whitespace-nowrap">
+                <span><i class="fa-solid fa-hand-pointer mr-1 text-orange-400"></i>单指/左键拖拽旋转</span>
+                <span><i class="fa-solid fa-magnifying-glass-plus mr-1 text-orange-400"></i>双指/滚轮缩放</span>
+                <span class="hidden sm:inline"><i class="fa-solid fa-arrows-up-down-left-right mr-1 text-orange-400"></i>双指/右键平移</span>
+            </div>
+            <div class="text-gray-500 hidden md:block whitespace-nowrap">Three.js 交互引擎</div>
+        </footer>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Layer Scientific Information Data
+        const layersData = [
+            {
+                name: "1. 核反应区 (Core)",
+                enName: "The Core",
+                color: "#ff2200",
+                radiusRange: "0 ~ 0.25 R (0 - 17.5万公里)",
+                temp: "15,000,000 ℃ (1500万度)",
+                density: "约 150 g/cm³ (水的150倍)",
+                desc: "太阳核心引擎。在极高压与高温下，持续进行<b>氢核聚变反应</b>（每秒将约6亿吨氢转化为氦），释放出太阳几乎所有的能量。",
+                features: ["能量唯一产生源", "极端高温高压物理学", "产生γ射线能量"]
+            },
+            {
+                name: "2. 辐射区 (Radiative Zone)",
+                enName: "Radiative Zone",
+                color: "#ff6600",
+                // 峇株吧辖华仁中学蔡逸众制作
+                radiusRange: "0.25 ~ 0.70 R (17.5万 - 49万公里)",
+                temp: "7,000,000 ℃ ~ 2,000,000 ℃",
+                density: "从 20 g/cm³ 降至 0.2 g/cm³",
+                desc: "包裹核心的致密区。能量传递极其缓慢，光子在极度稠密的电离气体中经历无数次吸收与重新辐射，穿越此区需要数万至数十万年。",
+                features: ["能量传递方式：电磁辐射", "光子漫长散射过程", "无剧烈等离子体对流"]
+            },
+            {
+                name: "3. 对流区 (Convective Zone)",
+                enName: "Convective Zone",
+                color: "#ffcc00",
+                radiusRange: "0.70 ~ 1.00 R (49万 - 69.6万公里)",
+                temp: "2,000,000 ℃ ~ 5,700 ℃",
+                density: "极度稀薄",
+                desc: "太阳内部最外层。等离子体不透明度增加，热物质上升、冷物质下沉，形成巨大的<b>热对流循环</b>，驱动太阳磁场的产生。",
+                features: ["能量传递方式：热对流", "表面形成米粒组织", "发电机效应生成太阳磁场"]
+            },
+            {
+                name: "4. 光球层 (Photosphere)",
+                enName: "Photosphere",
+                color: "#fff0aa",
+                radiusRange: "厚度约 500 公里 (可见表面)",
+                temp: "5,500 ℃ ~ 6,000 ℃",
+                density: "约 10⁻⁷ g/cm³",
+                desc: "太阳大气的最内层，也是我们肉眼能直接观察到的黄白色太阳表面。绝大部分可见光均由此层发出。",
+                features: ["<b>太阳黑子</b>：磁场强抑对流形成的低温区", "<b>米粒组织</b>：对流泡顶部结构", "大部分可见光辐射窗口"]
+            },
+            {
+                name: "5. 色球层 (Chromosphere)",
+                enName: "Chromosphere",
+                color: "#ff3366",
+                radiusRange: "光球上方 500 ~ 2,000 公里",
+                temp: "4,500 ℃ 升至 20,000 ℃",
+                density: "极其稀薄",
+                desc: "透明气体层，平时被光球强光掩盖，日全食时呈现玫瑰红色。在此区域温度不降反升，发生“温度反转”。",
+                features: ["<b>耀斑</b>：剧烈磁能爆发", "<b>日珥</b>：延伸入太空的喷射气环", "<b>针状物</b>：高温气体喷泉"]
+            },
+            {
+                name: "6. 日冕 (Corona)",
+                enName: "The Corona",
+                color: "#f8fafc",
+                radiusRange: "延伸至数百万公里",
+                temp: "1,000,000 ℃ ~ 3,000,000 ℃",
+                density: "近乎真空",
+                desc: "太阳大气的最外层，呈璀璨的<b>珍珠白/银白色光芒</b>。气体极其稀薄但温度奇迹般高达数百万度（日冕加热之谜）。",
+                features: ["<b>珍珠白色柔和光晕</b>：呈现流线型辐射质感", "<b>日冕物质抛射 (CME)</b>", "<b>太阳风</b>：带电粒子流向外扩散"]
+            }
+        ];
+
+        // System Variables
+        let scene, camera, renderer, controls;
+        // 峇株吧辖蔡逸众制作
+        let layerGroup = new THREE.Group();
+        let particleSystem;
+        let layersMeshes = [];
+        let isCutOpen = false;
+        let selectedLayerIndex = "all";
+
+        // Radii scale relative to solar radius R = 10
+        const layerScales = [
+            { inner: 0, outer: 2.5 },      // Core
+            { inner: 2.5, outer: 7.0 },    // Radiative
+            { inner: 7.0, outer: 10.0 },   // Convective
+            { inner: 10.0, outer: 10.2 },  // Photosphere
+            { inner: 10.2, outer: 10.8 },  // Chromosphere
+            { inner: 10.8, outer: 15.5 }   // Corona
+        ];
+
+        // Initialize 3D Scene
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050508, 0.012);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            adjustCameraPosition();
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 90;
+            controls.minDistance = 6;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xfffaed, 2.2, 100);
+            scene.add(pointLight);
+
+            // Build Sun & Space
+            // 华仁中学蔡逸众制作
+            scene.add(layerGroup);
+            createSunLayers();
+            createSpaceBackground();
+
+            // Setup Mobile & Desktop Interactions
+            window.addEventListener('resize', onWindowResize);
+            setupUIEvents();
+            setupCollapsiblePanels();
+
+            // Initial UI Update
+            updateInfoPanel("all");
+
+            // Check viewport orientation on load to optimize UI
+            autoFoldPanelsOnSmallScreens();
+
+            // Animation Loop
+            animate();
+        }
+
+        function adjustCameraPosition() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            if (isPortrait) {
+                camera.position.set(28, 22, 38);
+            } else {
+                camera.position.set(22, 16, 28);
+            }
+        }
+
+        // Texture Helper
+        function createNoiseTexture(colorBase, colorAccent, density = 1) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = colorBase;
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 20000 * density; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const radius = Math.random() * 2 + 0.5;
+                ctx.fillStyle = colorAccent;
+                ctx.globalAlpha = Math.random() * 0.4;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            // Made by ecchua79
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        // Corona Pearl White Texture Creation
+        function createCoronaTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Pearl White Glow Gradient
+            const grad = ctx.createRadialGradient(256, 256, 10, 256, 256, 256);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+            grad.addColorStop(0.3, 'rgba(240, 245, 255, 0.6)');
+            grad.addColorStop(0.7, 'rgba(220, 235, 255, 0.25)');
+            grad.addColorStop(1, 'rgba(200, 220, 255, 0.0)');
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Add fine streamer rays
+            for (let i = 0; i < 360; i += 2) {
+                const angle = (i * Math.PI) / 180;
+                const len = 150 + Math.random() * 100;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = Math.random() * 3 + 1;
+                ctx.beginPath();
+                ctx.moveTo(256, 256);
+                ctx.lineTo(256 + Math.cos(angle) * len, 256 + Math.sin(angle) * len);
+                ctx.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        // Create Sun Structure Layers
+        function createSunLayers() {
+            // 峇株吧辖华仁中学蔡逸众制作
+            const colors = [
+                0xff2200, // Core
+                0xff6600, // Radiative
+                0xffbb00, // Convective
+                0xfff2a3, // Photosphere
+                0xff3366, // Chromosphere
+                0xf8fafc  // Corona (Pearl White)
+            ];
+
+            layerScales.forEach((scale, index) => {
+                const group = new THREE.Group();
+                group.name = `layer_${index}`;
+
+                const isCorona = index === 5;
+                const isSurface = index === 3;
+
+                const geometry = new THREE.SphereGeometry(
+                    scale.outer,
+                    64,
+                    64,
+                    0,
+                    Math.PI * 2,
+                    0,
+                    Math.PI
+                );
+
+                let material;
+
+                if (isCorona) {
+                    // Pearl White Corona Material
+                    const coronaTex = createCoronaTexture();
+                    material = new THREE.MeshBasicMaterial({
+                        map: coronaTex,
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.65,
+                        side: THREE.DoubleSide,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                } else if (isSurface) {
+                    const tex = createNoiseTexture('#e6a100', '#ffffff', 2);
+                    material = new THREE.MeshStandardMaterial({
+                        map: tex,
+                        color: colors[index],
+                        roughness: 0.8,
+                        emissive: 0xff6600,
+                        emissiveIntensity: 0.3,
+                        side: THREE.DoubleSide
+                    });
+                } else {
+                    const tex = createNoiseTexture(
+                        '#' + new THREE.Color(colors[index]).getHexString(),
+                        '#ffffff',
+                        index === 0 ? 3 : 1
+                    // 峇株吧辖蔡逸众制作
+                    );
+
+                    material = new THREE.MeshStandardMaterial({
+                        map: tex,
+                        color: colors[index],
+                        roughness: 0.5,
+                        metalness: 0.1,
+                        emissive: colors[index],
+                        emissiveIntensity: 0.2 + (5 - index) * 0.05,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.95
+                    });
+                }
+
+                const mesh = new THREE.Mesh(geometry, material);
+                group.add(mesh);
+
+                // Cut-Face Flat Surfaces (Complete 360-degree Seal Walls for both sides)
+                const capGroup = new THREE.Group();
+                capGroup.name = "capGroup";
+                
+                if (scale.inner >= 0) {
+                    // Create Ring Slice for Sector Cut Wall 1 (X-Z / Y-Z cut planes)
+                    const ringGeo = new THREE.RingGeometry(scale.inner, scale.outer, 32);
+                    const capMat = new THREE.MeshStandardMaterial({
+                        color: colors[index],
+                        side: THREE.DoubleSide,
+                        roughness: 0.4,
+                        emissive: colors[index],
+                        emissiveIntensity: index === 5 ? 0.1 : 0.3,
+                        transparent: index === 5,
+                        opacity: index === 5 ? 0.4 : 1.0
+                    });
+
+                    // Start cut face (0 radians plane - Right/Front face)
+                    const capStart = new THREE.Mesh(ringGeo, capMat);
+                    capStart.rotation.x = Math.PI / 2;
+                    capGroup.add(capStart);
+
+                    // End cut face (1.5 * PI radians plane - Left/Back face)
+                    const capEnd = new THREE.Mesh(ringGeo, capMat);
+                    capEnd.rotation.y = Math.PI / 2;
+                    capGroup.add(capEnd);
+                }
+                capGroup.visible = false;
+                group.add(capGroup);
+
+                layerGroup.add(group);
+                layersMeshes.push({
+                    // 华仁中学蔡逸众制作
+                    group: group,
+                    mesh: mesh,
+                    capGroup: capGroup,
+                    scale: scale,
+                    color: colors[index]
+                });
+            });
+        }
+
+        // Particle Background
+        function createSpaceBackground() {
+            const count = 1200;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 180;
+                positions[i + 1] = (Math.random() - 0.5) * 180;
+                positions[i + 2] = (Math.random() - 0.5) * 180;
+
+                colors[i] = 0.85 + Math.random() * 0.15;
+                colors[i + 1] = 0.85 + Math.random() * 0.15;
+                colors[i + 2] = 0.9 + Math.random() * 0.1;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.6,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+        }
+
+        // Toggle Cut-Open Cross-Section View
+        function toggleCutOpen(forceState = null) {
+            isCutOpen = forceState !== null ? forceState : !isCutOpen;
+
+            document.getElementById('cut-text').innerText = isCutOpen ? "还原球体" : "展开剖面";
+
+            layersMeshes.forEach((item) => {
+                item.mesh.geometry.dispose();
+
+                // Cut open 90 degrees (keep 270 degrees = 1.5 * PI)
+                // Made by ecchua79
+                const thetaLength = isCutOpen ? Math.PI * 1.5 : Math.PI * 2;
+                item.mesh.geometry = new THREE.SphereGeometry(
+                    item.scale.outer,
+                    64,
+                    64,
+                    0,
+                    thetaLength,
+                    0,
+                    Math.PI
+                );
+
+                item.capGroup.visible = isCutOpen;
+            });
+        }
+
+        // Update Layer Visibility
+        function filterLayer(selectedIndex) {
+            selectedLayerIndex = selectedIndex;
+
+            layersMeshes.forEach((item, i) => {
+                if (selectedIndex === "all") {
+                    item.group.visible = true;
+                    item.mesh.material.transparent = i === 5;
+                    item.mesh.material.opacity = i === 5 ? 0.65 : 0.95;
+                } else {
+                    const layerIdx = parseInt(selectedIndex);
+                    if (i === layerIdx) {
+                        item.group.visible = true;
+                        item.mesh.material.transparent = i === 5;
+                        item.mesh.material.opacity = 1.0;
+                    } else if (i < layerIdx) {
+                        item.group.visible = true;
+                        item.mesh.material.transparent = true;
+                        item.mesh.material.opacity = 0.25;
+                    } else {
+                        item.group.visible = false;
+                    }
+                }
+            });
+
+            // 峇株吧辖华仁中学蔡逸众制作
+            if (selectedIndex !== "all" && !isCutOpen) {
+                toggleCutOpen(true);
+            }
+
+            updateInfoPanel(selectedIndex);
+        }
+
+        // Update Information Panel Text
+        function updateInfoPanel(index) {
+            const titleEl = document.getElementById('info-title');
+            const contentEl = document.getElementById('info-content');
+            const iconEl = document.getElementById('info-icon');
+
+            if (index === "all") {
+                titleEl.innerText = "太阳整体结构概览";
+                iconEl.style.color = "#f97316";
+                iconEl.style.backgroundColor = "rgba(249, 115, 22, 0.2)";
+
+                contentEl.innerHTML = `
+                    <p>太阳是一个巨大的高温等离子体火球。从核心至最外层日冕，主要划分为 <b>6 个层级</b>。</p>
+                    <div class="bg-white/5 p-2.5 rounded-lg border border-white/10 space-y-1 my-2">
+                        <div class="flex justify-between"><span>平均半径:</span> <span class="text-orange-300 font-medium">69.6 万公里</span></div>
+                        <div class="flex justify-between"><span>质量:</span> <span class="text-orange-300 font-medium">1.989×10³⁰ kg</span></div>
+                        <div class="flex justify-between"><span>表面重力:</span> <span class="text-orange-300 font-medium">274 m/s² (28g)</span></div>
+                    </div>
+                    <p class="text-[11px] text-gray-400">💡 提示：点击层级按钮可单独查看特定层，或展开“剖面”观察两边切开封口的内部原理。</p>
+                `;
+            } else {
+                const data = layersData[parseInt(index)];
+                titleEl.innerText = data.name;
+                iconEl.style.color = data.color === '#f8fafc' ? '#e2e8f0' : data.color;
+                iconEl.style.backgroundColor = `${data.color === '#f8fafc' ? '#ffffff' : data.color}33`;
+
+                let featuresHTML = data.features.map(f => `<li class="flex items-start gap-1.5"><i class="fa-solid fa-angle-right text-orange-400 mt-0.5 text-[10px]"></i><span>${f}</span></li>`).join('');
+
+                contentEl.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2 my-1">
+                        <div class="bg-white/5 p-2 rounded border border-white/5">
+                            <span class="text-[10px] text-gray-400 block">厚度/范围</span>
+                            <span class="text-xs text-amber-200 font-medium">${data.radiusRange}</span>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded border border-white/5">
+                            <span class="text-[10px] text-gray-400 block">典型温度</span>
+                            <span class="text-xs text-red-300 font-medium">${data.temp}</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs leading-relaxed text-gray-200">${data.desc}</p>
+                    
+                    <div class="mt-2">
+                        <span class="text-xs font-semibold text-orange-300 block mb-1">关键物理特征：</span>
+                        <ul class="space-y-1 text-xs text-gray-300">
+                            ${featuresHTML}
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+
+        // Setup Collapsible UI Panels Logic
+        function setupCollapsiblePanels() {
+            // Layer Control Panel Toggle
+            const toggleLayerBtn = document.getElementById('toggle-layer-panel');
+            const layerBody = document.getElementById('layer-panel-body');
+            const layerArrow = document.getElementById('layer-panel-arrow');
+
+            toggleLayerBtn.addEventListener('click', () => {
+                const isCollapsed = layerBody.classList.toggle('collapsed');
+                layerArrow.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+                    // 峇株吧辖蔡逸众制作
+
+            // Info Panel Toggle
+            const toggleInfoBtn = document.getElementById('toggle-info-panel');
+            const infoBody = document.getElementById('info-panel-body');
+            const infoArrow = document.getElementById('info-panel-arrow');
+
+            toggleInfoBtn.addEventListener('click', () => {
+                const isCollapsed = infoBody.classList.toggle('collapsed');
+                infoArrow.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+        }
+
+        // Automatically collapse info/layer panels on very small screens to avoid blocking 3D view
+        function autoFoldPanelsOnSmallScreens() {
+            if (window.innerWidth < 640 && window.innerHeight < 700) {
+                const layerBody = document.getElementById('layer-panel-body');
+                const layerArrow = document.getElementById('layer-panel-arrow');
+                layerBody.classList.add('collapsed');
+                layerArrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Event Setup
+        function setupUIEvents() {
+            // Cut Toggle Button
+            document.getElementById('btn-toggle-cut').addEventListener('click', () => toggleCutOpen());
+
+            // Layer Selector Buttons
+            const layerBtns = document.querySelectorAll('.layer-btn');
+            layerBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    layerBtns.forEach(b => {
+                        b.classList.remove('active');
+                        const checkIcon = b.querySelector('.fa-check');
+                        if (checkIcon) checkIcon.remove();
+                    });
+
+                    const targetBtn = e.currentTarget;
+                    targetBtn.classList.add('active');
+
+                    // 华仁中学蔡逸众制作
+                    // Add check icon
+                    const checkMark = document.createElement('i');
+                    checkMark.className = 'fa-solid fa-check text-[10px] opacity-70';
+                    targetBtn.appendChild(checkMark);
+
+                    const layerIdx = targetBtn.getAttribute('data-layer');
+                    filterLayer(layerIdx);
+
+                    // On small screens, auto-expand info panel when layer selected
+                    if (window.innerWidth < 640) {
+                        const infoBody = document.getElementById('info-panel-body');
+                        const infoArrow = document.getElementById('info-panel-arrow');
+                        if (infoBody.classList.contains('collapsed')) {
+                            infoBody.classList.remove('collapsed');
+                            infoArrow.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                });
+            });
+        }
+
+        // Resize & Orientation Handle
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            adjustCameraPosition();
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Self rotation
+            layerGroup.rotation.y += 0.0012;
+
+            if (particleSystem) {
+                particleSystem.rotation.y -= 0.0002;
+            }
+
+            // Made by ecchua79
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Run Init
+        window.onload = init;
+    </script>
+</body>
+</html>
