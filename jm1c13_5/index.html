@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>太阳3D动态模型</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: #fff; }
+  #canvas-container { position: fixed; inset: 0; }
+  
+  .top-bar {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100;
+    background: rgba(20, 10, 5, 0.6); backdrop-filter: blur(10px);
+    padding: 8px 12px; border-radius: 30px;
+    border: 1px solid rgba(255, 140, 60, 0.3);
+    box-shadow: 0 4px 20px rgba(255, 100, 30, 0.2);
+  }
+  .ctrl-btn {
+    background: rgba(255, 140, 60, 0.15); color: #ffcc99;
+    border: 1px solid rgba(255, 140, 60, 0.4);
+    padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    font-size: 13px; transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ctrl-btn:hover { background: rgba(255, 140, 60, 0.35); color: #fff; }
+  .ctrl-btn.active { background: rgba(255, 140, 60, 0.6); color: #fff; }
+  
+  .info-panel {
+    position: fixed; top: 70px; right: 12px;
+    width: 300px; max-width: calc(100vw - 24px);
+    background: rgba(15, 8, 4, 0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 140, 60, 0.3);
+    border-radius: 14px; z-index: 90;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    transition: transform 0.35s ease, opacity 0.3s ease;
+    max-height: calc(100vh - 90px);
+    display: flex; flex-direction: column;
+  }
+  .info-panel.collapsed { transform: translateX(calc(100% + 20px)); opacity: 0; pointer-events: none; }
+  
+  .panel-header {
+    padding: 12px 16px; border-bottom: 1px solid rgba(255, 140, 60, 0.2);
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255, 100, 30, 0.1);
+    border-radius: 14px 14px 0 0;
+  }
+  .panel-header h3 { font-size: 15px; color: #ffcc99; font-weight: 600; }
+  .panel-close {
+    background: transparent; border: none; color: #ff9966;
+    cursor: pointer; font-size: 20px; line-height: 1;
+    padding: 0 4px; transition: color 0.2s;
+  }
+  .panel-close:hover { color: #fff; }
+  
+  .panel-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-thumb { background: rgba(255, 140, 60, 0.4); border-radius: 2px; }
+  
+  .struct-item {
+    margin-bottom: 14px; padding: 10px 12px;
+    background: rgba(255, 140, 60, 0.06);
+    border-left: 3px solid; border-radius: 6px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .struct-item:hover { background: rgba(255, 140, 60, 0.15); }
+  .struct-item h4 { font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .struct-item p { font-size: 12px; color: #ccaa88; line-height: 1.5; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  
+  .item-sun { border-color: #ffaa33; }
+  .item-sun h4 { color: #ffcc66; }
+  .item-sun .dot { background: radial-gradient(circle, #ffcc66, #ff6600); }
+  
+  .item-spot { border-color: #331100; }
+  .item-spot h4 { color: #ff8855; }
+  .item-spot .dot { background: radial-gradient(circle, #552200, #000); box-shadow: 0 0 4px #ff4400; }
+  
+  .item-flare { border-color: #ffff88; }
+  .item-flare h4 { color: #ffff99; }
+  .item-flare .dot { background: radial-gradient(circle, #fff, #ffaa00); box-shadow: 0 0 6px #ffcc00; }
+  
+  .item-prom { border-color: #ff4488; }
+  .item-prom h4 { color: #ff88aa; }
+  .item-prom .dot { background: radial-gradient(circle, #ff6699, #aa2255); box-shadow: 0 0 6px #ff4488; }
+  
+  .item-cme { border-color: #ff6633; }
+  .item-cme h4 { color: #ffaa77; }
+  .item-cme .dot { background: radial-gradient(circle, #ffaa55, #cc3300); box-shadow: 0 0 6px #ff6633; }
+  
+  .toggle-btn {
+    position: fixed; top: 70px; right: 12px;
+    background: rgba(15, 8, 4, 0.85); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 140, 60, 0.4);
+    color: #ffcc99; padding: 8px 14px; border-radius: 20px;
+    cursor: pointer; font-size: 13px; z-index: 80;
+    transition: opacity 0.3s; opacity: 0; pointer-events: none;
+  }
+  .toggle-btn.show { opacity: 1; pointer-events: auto; }
+  .toggle-btn:hover { background: rgba(255, 100, 30, 0.3); }
+  
+  .hint {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; color: rgba(255, 200, 150, 0.6);
+    background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 15px;
+    pointer-events: none; z-index: 50;
+  }
+  
+  .loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #000; z-index: 1000; color: #ffcc99; font-size: 16px;
+    transition: opacity 0.5s;
+  }
+  .loading.hide { opacity: 0; pointer-events: none; }
+  
+  @media (max-width: 600px), (orientation: portrait) {
+    .info-panel { width: calc(100vw - 24px); top: auto; bottom: 12px; right: 12px; max-height: 50vh; }
+    .info-panel.collapsed { transform: translateY(calc(100% + 20px)); }
+    .toggle-btn { top: auto; bottom: 12px; right: 12px; }
+    .top-bar { padding: 6px 10px; gap: 6px; }
+    .ctrl-btn { padding: 5px 10px; font-size: 12px; }
+    .hint { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">正在加载太阳模型...</div>
+
+<div id="canvas-container"></div>
+
+<div class="top-bar">
+  <button class="ctrl-btn active" id="playBtn">⏸ 暂停</button>
+  <button class="ctrl-btn" id="resetBtn">🔄 重置视角</button>
+  <button class="ctrl-btn" id="togglePanel">📖 说明</button>
+</div>
+
+<button class="toggle-btn" id="showPanelBtn">📖 展开说明</button>
+
+<div class="info-panel" id="infoPanel">
+  <div class="panel-header">
+    <h3>☀️ 太阳结构说明</h3>
+    <button class="panel-close" id="closePanel">×</button>
+  </div>
+  <div class="panel-body">
+    <div class="struct-item item-sun" data-target="sun">
+      <h4><span class="dot"></span>太阳本体</h4>
+      <p>太阳是一颗G型主序星，表面温度约5778K。表面呈现颗粒状结构（米粒组织），由对流运动形成。</p>
+    </div>
+    <div class="struct-item item-spot" data-target="spot">
+      <h4><span class="dot"></span>太阳黑子</h4>
+      <p>太阳表面温度较低（约4000K）的区域，由强磁场抑制对流形成。通常成对出现，是太阳活动的重要标志。</p>
+    </div>
+    <div class="struct-item item-flare" data-target="flare">
+      <h4><span class="dot"></span>太阳耀斑</h4>
+      <p>太阳大气中剧烈的能量释放现象，短时间内释放巨大能量，伴随强烈的电磁辐射和高能粒子喷射。</p>
+    </div>
+    <div class="struct-item item-prom" data-target="prominence">
+      <h4><span class="dot"></span>日珥</h4>
+      <p>从太阳表面延伸出的巨大等离子体环状结构，由磁场束缚，可持续数天至数周，温度约8000K。</p>
+    </div>
+    <div class="struct-item item-cme" data-target="cme">
+      <h4><span class="dot"></span>日冕物质抛射(CME)</h4>
+      <p>太阳向外抛射的大规模等离子体和磁场结构，速度可达每秒数千公里，到达地球可能引发地磁暴。</p>
+    </div>
+  </div>
+</div>
+
+<div class="hint">🖱️ 拖拽旋转 · 滚轮缩放 · 点击说明项聚焦结构</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 8, 35);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 15;
+controls.maxDistance = 120;
+controls.rotateSpeed = 0.6;
+
+// 星空背景
+function createStarField() {
+  const geo = new THREE.BufferGeometry();
+  const count = 3000;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 400 + Math.random() * 400;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+    const c = 0.5 + Math.random() * 0.5;
+    colors[i*3] = c; colors[i*3+1] = c; colors[i*3+2] = c + Math.random() * 0.2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.8 });
+  return new THREE.Points(geo, mat);
+}
+scene.add(createStarField());
+
+// 太阳本体
+const sunVertexShader = `
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  varying vec2 vUv;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vPosition = position;
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const sunFragmentShader = `
+  uniform float uTime;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  varying vec2 vUv;
+  
+  vec3 hash3(vec3 p) {
+    p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
+             dot(p, vec3(269.5, 183.3, 246.1)),
+             dot(p, vec3(113.5, 271.9, 124.6)));
+    return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+  }
+  
+  float noise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(dot(hash3(i + vec3(0,0,0)), f - vec3(0,0,0)),
+                       dot(hash3(i + vec3(1,0,0)), f - vec3(1,0,0)), u.x),
+                   mix(dot(hash3(i + vec3(0,1,0)), f - vec3(0,1,0)),
+                       dot(hash3(i + vec3(1,1,0)), f - vec3(1,1,0)), u.x), u.y),
+               mix(mix(dot(hash3(i + vec3(0,0,1)), f - vec3(0,0,1)),
+                       dot(hash3(i + vec3(1,0,1)), f - vec3(1,0,1)), u.x),
+                   mix(dot(hash3(i + vec3(0,1,1)), f - vec3(0,1,1)),
+                       dot(hash3(i + vec3(1,1,1)), f - vec3(1,1,1)), u.x), u.y), u.z);
+  }
+  
+  float fbm(vec3 p) {
+    float v = 0.0;
+    float a = 0.5;
+    for (int i = 0; i < 5; i++) {
+      v += a * noise(p);
+      p *= 2.0;
+      a *= 0.5;
+    }
+    return v;
+  }
+  
+  void main() {
+    vec3 p = vPosition * 0.4;
+    float n = fbm(p + uTime * 0.08);
+    float n2 = fbm(p * 2.0 - uTime * 0.12);
+    
+    vec3 col1 = vec3(1.0, 0.85, 0.4);
+    vec3 col2 = vec3(1.0, 0.5, 0.15);
+    vec3 col3 = vec3(0.85, 0.2, 0.05);
+    
+    float t = n * 0.5 + 0.5;
+    vec3 color = mix(col2, col1, smoothstep(0.3, 0.8, t));
+    color = mix(color, col3, smoothstep(0.5, 0.9, n2 * 0.5 + 0.5) * 0.5);
+    
+    float granules = fbm(p * 4.0 + uTime * 0.05);
+    color += vec3(0.15, 0.08, 0.02) * smoothstep(-0.2, 0.3, granules);
+    
+    // 临边昏暗（limb darkening）：边缘视线穿过更冷的外层气体，应变暗变红，而非变亮
+    float fresnel = 1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0)));
+    float limb = pow(fresnel, 1.6);
+    color = mix(color, color * vec3(0.5, 0.28, 0.18), limb * 0.85);
+    
+    gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+const sunMaterial = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: sunVertexShader,
+  fragmentShader: sunFragmentShader
+});
+
+const sun = new THREE.Mesh(new THREE.SphereGeometry(10, 96, 96), sunMaterial);
+scene.add(sun);
+
+// 日冕
+const coronaVertexShader = `
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const coronaFragmentShader = `
+  uniform float uTime;
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  void main() {
+    float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+    vec3 color = mix(vec3(1.0, 0.6, 0.2), vec3(1.0, 0.3, 0.05), intensity);
+    float flicker = 0.9 + 0.1 * sin(uTime * 2.0 + vWorldPos.y * 0.5);
+    gl_FragColor = vec4(color * intensity * 1.5 * flicker, intensity * 0.7);
+  }
+`;
+
+const coronaMaterial = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: coronaVertexShader,
+  fragmentShader: coronaFragmentShader,
+  side: THREE.BackSide,
+  blending: THREE.AdditiveBlending,
+  transparent: true,
+  depthWrite: false
+});
+
+const corona = new THREE.Mesh(new THREE.SphereGeometry(13, 64, 64), coronaMaterial);
+scene.add(corona);
+
+const outerGlow = new THREE.Mesh(
+  new THREE.SphereGeometry(16, 32, 32),
+  new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: coronaVertexShader,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.55 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+        gl_FragColor = vec4(1.0, 0.5, 0.15, intensity * 0.4);
+      }
+    `,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  })
+);
+scene.add(outerGlow);
+
+// ============ 太阳黑子（增强版） ============
+const sunspots = [];
+function createSunspot(theta, phi, size) {
+  const group = new THREE.Group();
+  
+  // 黑子主体 - 使用更大的圆盘，更深的颜色，外围亮环
+  const spotGeo = new THREE.CircleGeometry(size, 48);
+  const spotMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec2 vUv;
+      uniform float uTime;
+      void main() {
+        vec2 center = vUv - 0.5;
+        float dist = length(center);
+        
+        // 本影（中心极黑）
+        float umbra = smoothstep(0.28, 0.0, dist);
+        // 半影（中间暗区）
+        float penumbra = smoothstep(0.48, 0.15, dist);
+        // 外围亮环（光斑边缘的亮线，增强对比）
+        float brightRing = smoothstep(0.55, 0.48, dist) * smoothstep(0.42, 0.48, dist);
+        
+        // 颜色：本影接近纯黑，半影深褐
+        vec3 umbraColor = vec3(0.02, 0.005, 0.0);
+        vec3 penumbraColor = vec3(0.15, 0.05, 0.01);
+        vec3 brightColor = vec3(1.2, 0.7, 0.25);
+        
+        vec3 color = mix(penumbraColor, umbraColor, umbra);
+        color = mix(color, brightColor, brightRing * 0.8);
+        
+        // 整体透明度：从半影边缘向外淡出
+        float alpha = penumbra * 0.95;
+        
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false
+  });
+  const spot = new THREE.Mesh(spotGeo, spotMat);
+  
+  // 放置到球面
+  const r = 10.08;
+  const pos = new THREE.Vector3(
+    r * Math.sin(phi) * Math.cos(theta),
+    r * Math.cos(phi),
+    r * Math.sin(phi) * Math.sin(theta)
+  );
+  spot.position.copy(pos);
+  spot.lookAt(0, 0, 0);
+  spot.rotateZ(Math.random() * Math.PI * 2);
+  
+  group.add(spot);
+  group.userData = { type: 'spot', baseTheta: theta, basePhi: phi, size: size };
+  sunspots.push(group);
+  sun.add(group); // 挂到太阳本体上，随太阳自转
+  return group;
+}
+
+// 创建黑子对 - 尺寸增大，更明显
+createSunspot(0.8, 1.2, 2.0);
+createSunspot(1.05, 1.25, 1.5);
+createSunspot(2.5, 1.8, 2.4);
+createSunspot(2.8, 1.75, 1.7);
+createSunspot(4.5, 1.0, 2.2);
+createSunspot(4.8, 1.05, 1.4);
+
+// ============ 耀斑 ============
+const flares = [];
+function createFlare(theta, phi) {
+  const group = new THREE.Group();
+  
+  const coreGeo = new THREE.SphereGeometry(0.6, 16, 16);
+  const coreMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.8 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.5);
+        vec3 color = mix(vec3(1.0, 1.0, 0.8), vec3(1.0, 0.7, 0.2), intensity);
+        float pulse = 0.7 + 0.3 * sin(uTime * 8.0);
+        gl_FragColor = vec4(color * 2.0 * pulse, 1.0);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  
+  const particleCount = 200;
+  const particleGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const velocities = new Float32Array(particleCount * 3);
+  const lifetimes = new Float32Array(particleCount);
+  const sizes = new Float32Array(particleCount);
+  
+  for (let i = 0; i < particleCount; i++) {
+    positions[i*3] = 0; positions[i*3+1] = 0; positions[i*3+2] = 0;
+    const dir = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.8,
+      1.0 + Math.random() * 0.5,
+      (Math.random() - 0.5) * 0.8
+    ).normalize();
+    velocities[i*3] = dir.x * (0.05 + Math.random() * 0.1);
+    velocities[i*3+1] = dir.y * (0.05 + Math.random() * 0.1);
+    velocities[i*3+2] = dir.z * (0.05 + Math.random() * 0.1);
+    lifetimes[i] = Math.random();
+    sizes[i] = 0.2 + Math.random() * 0.4;
+  }
+  
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  particleGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  particleGeo.setAttribute('aLife', new THREE.BufferAttribute(lifetimes, 1));
+  
+  const particleMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float aSize;
+      attribute float aLife;
+      varying float vLife;
+      void main() {
+        vLife = aLife;
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * (200.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: `
+      varying float vLife;
+      void main() {
+        vec2 center = gl_PointCoord - 0.5;
+        float dist = length(center);
+        if (dist > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.0, dist) * vLife;
+        vec3 color = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 1.0, 0.7), vLife);
+        gl_FragColor = vec4(color * 2.0, alpha);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  
+  const particles = new THREE.Points(particleGeo, particleMat);
+  
+  const r = 10.2;
+  const pos = new THREE.Vector3(
+    r * Math.sin(phi) * Math.cos(theta),
+    r * Math.cos(phi),
+    r * Math.sin(phi) * Math.sin(theta)
+  );
+  group.position.copy(pos);
+  group.lookAt(0, 0, 0);
+  group.rotateX(Math.PI);
+  
+  core.position.set(0, 0, 0);
+  particles.position.set(0, 0, 0);
+  
+  group.add(core);
+  group.add(particles);
+  
+  group.userData = {
+    type: 'flare',
+    core: core,
+    particles: particles,
+    velocities: velocities,
+    positions: positions,
+    lifetimes: lifetimes,
+    baseTheta: theta,
+    basePhi: phi
+  };
+  
+  flares.push(group);
+  sun.add(group); // 挂到太阳本体上，随太阳自转
+  return group;
+}
+
+createFlare(1.8, 0.9);
+createFlare(3.8, 1.4);
+createFlare(5.5, 0.7);
+
+// ============ 日珥（冒出→生长→喷发甩出→消退的生命周期） ============
+const prominences = [];
+
+// 根据当前生长/喷发进度构建日珥弧线的曲线控制点
+function buildProminencePoints(height, span) {
+  const points = [];
+  const segments = 40;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = (t - 0.5) * span;
+    const h = Math.sin(t * Math.PI) * height;
+    const r = 10 + h;
+    points.push(new THREE.Vector3(
+      Math.sin(angle) * r,
+      Math.cos(angle) * r,
+      0
+    ));
+  }
+  return points;
+}
+
+function createProminence(theta, phi, maxHeight, maxSpan, maxTubeRadius) {
+  const group = new THREE.Group();
+  
+  const promMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uOpacity: { value: 0 } },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPos;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uOpacity;
+      varying vec3 vNormal;
+      varying vec3 vPos;
+      void main() {
+        float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.2);
+        vec3 color = mix(vec3(1.0, 0.3, 0.5), vec3(1.0, 0.6, 0.3), intensity);
+        float flow = sin(vPos.x * 2.0 + vPos.y * 2.0 - uTime * 1.5) * 0.5 + 0.5;
+        color += vec3(0.2, 0.1, 0.1) * flow;
+        gl_FragColor = vec4(color * 1.5, 0.85 * uOpacity);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  
+  // 初始极小的占位几何体，第一帧会被 rebuildProminenceGeometry 替换
+  let curve = new THREE.CatmullRomCurve3(buildProminencePoints(0.05, maxSpan * 0.2));
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 36, 0.01, 8, false), promMat);
+  group.add(tube);
+  
+  // 日珥等离子体粒子（贴着弧线飘动）
+  const pCount = 150;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(pCount * 3);
+  const pSize = new Float32Array(pCount);
+  const pPhase = new Float32Array(pCount);
+  
+  for (let i = 0; i < pCount; i++) {
+    pPos[i*3] = 0; pPos[i*3+1] = 10; pPos[i*3+2] = 0;
+    pSize[i] = 0.15 + Math.random() * 0.3;
+    pPhase[i] = Math.random() * Math.PI * 2;
+  }
+  
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  pGeo.setAttribute('aSize', new THREE.BufferAttribute(pSize, 1));
+  pGeo.setAttribute('aPhase', new THREE.BufferAttribute(pPhase, 1));
+  
+  const pMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uOpacity: { value: 0 } },
+    vertexShader: `
+      attribute float aSize;
+      attribute float aPhase;
+      varying float vPhase;
+      uniform float uTime;
+      void main() {
+        vPhase = aPhase;
+        vec3 pos = position;
+        pos += normal * sin(uTime * 2.0 + aPhase) * 0.1;
+        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = aSize * (150.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: `
+      uniform float uOpacity;
+      varying float vPhase;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.0, d);
+        vec3 color = vec3(1.0, 0.5, 0.7);
+        gl_FragColor = vec4(color * 1.5, alpha * 0.7 * uOpacity);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  
+  const pPoints = new THREE.Points(pGeo, pMat);
+  group.add(pPoints);
+  
+  // 喷发瞬间从弧顶甩出的粒子（平时数量为0/隐藏，喷发时被点燃）
+  const burstCount = 120;
+  const burstGeo = new THREE.BufferGeometry();
+  const burstPos = new Float32Array(burstCount * 3);
+  const burstLife = new Float32Array(burstCount);
+  burstGeo.setAttribute('position', new THREE.BufferAttribute(burstPos, 3));
+  burstGeo.setAttribute('aLife', new THREE.BufferAttribute(burstLife, 1));
+  
+  const burstMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float aLife;
+      varying float vLife;
+      void main() {
+        vLife = aLife;
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = (0.35 + vLife * 0.3) * (220.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: `
+      varying float vLife;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.0, d) * clamp(vLife, 0.0, 1.0);
+        vec3 color = mix(vec3(1.0, 0.3, 0.4), vec3(1.0, 0.85, 0.5), clamp(vLife, 0.0, 1.0));
+        gl_FragColor = vec4(color * 1.8, alpha);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  
+  const burstPoints = new THREE.Points(burstGeo, burstMat);
+  group.add(burstPoints);
+  
+  // 定位到太阳表面 - 使用球面坐标旋转
+  group.position.set(0, 0, 0);
+  group.rotation.order = 'YXZ';
+  group.rotation.y = theta;
+  group.rotation.x = phi - Math.PI / 2;
+  
+  group.userData = {
+    type: 'prominence',
+    tube, promMat, pPoints, pGeo, pMat,
+    burstPoints, burstGeo,
+    burstPos, burstVel: new Float32Array(burstCount * 3), burstLife,
+    maxHeight, maxSpan, maxTubeRadius,
+    theta, phi,
+    curve: curve,
+    phase: 'growing',
+    // 每个日珥错开起始时间，避免所有日珥同步冒出
+    phaseTime: Math.random() * 2,
+    durations: {
+      growing: 4 + Math.random() * 2,
+      active: 3 + Math.random() * 2,
+      erupting: 1.4,
+      cooldown: 2.5 + Math.random() * 2.5
+    }
+  };
+  
+  prominences.push(group);
+  sun.add(group); // 挂到太阳本体上，随太阳自转
+  return group;
+}
+
+// 三个日珥分散在不同位置，最大尺寸不同（用作生长目标值，而非固定大小）
+// 日珥1：北半球中纬度，较小
+createProminence(0.5, Math.PI * 0.35, 3.0, 1.0, 0.2);
+// 日珥2：南半球低纬度，最大
+createProminence(2.8, Math.PI * 0.65, 6.5, 1.8, 0.4);
+// 日珥3：北半球高纬度，中等
+createProminence(4.8, Math.PI * 0.25, 4.5, 1.3, 0.28);
+
+// 根据生长系数 growth 重建日珥的管状几何体和粒子位置
+function rebuildProminenceGeometry(p, growth, isErupting) {
+  const d = p.userData;
+  const height = d.maxHeight * growth;
+  let span;
+  if (isErupting) {
+    // 喷发时弧的跨度收窄、被"甩"得更细更长，像鞭子甩出去的动作
+    span = d.maxSpan * Math.max(0.25, 1 - (growth - 1) / 3.0 * 0.7);
+  } else {
+    span = d.maxSpan * Math.min(growth, 1);
+  }
+  const points = buildProminencePoints(Math.max(height, 0.05), Math.max(span, 0.05));
+  const curve = new THREE.CatmullRomCurve3(points);
+  const tubeRadius = d.maxTubeRadius * Math.max(0.15, Math.min(1, 0.35 + growth * 0.65));
+  
+  const newGeo = new THREE.TubeGeometry(curve, 36, tubeRadius, 8, false);
+  d.tube.geometry.dispose();
+  d.tube.geometry = newGeo;
+  d.curve = curve;
+  
+  // 让弥漫粒子重新贴到新弧线上
+  const posAttr = d.pGeo.attributes.position;
+  const count = posAttr.count;
+  for (let i = 0; i < count; i++) {
+    const t = i / count;
+    const pt = curve.getPoint(Math.min(0.98, Math.max(0.02, t)));
+    posAttr.array[i*3] = pt.x + (Math.random() - 0.5) * 0.25;
+    posAttr.array[i*3+1] = pt.y + (Math.random() - 0.5) * 0.25;
+    posAttr.array[i*3+2] = pt.z + (Math.random() - 0.5) * 0.25;
+  }
+  posAttr.needsUpdate = true;
+}
+
+// 喷发瞬间：从弧顶沿切线方向"甩出"一批粒子
+function triggerProminenceBurst(p) {
+  const d = p.userData;
+  const curve = d.curve;
+  const tipT = 0.95;
+  const tipPoint = curve.getPoint(tipT);
+  const tangent = curve.getTangent(tipT).normalize();
+  if (tipPoint.dot(tangent) < 0) tangent.negate(); // 保证朝外甩出，而不是缩回太阳
+
+  const count = d.burstLife.length;
+  for (let i = 0; i < count; i++) {
+    d.burstPos[i*3] = tipPoint.x;
+    d.burstPos[i*3+1] = tipPoint.y;
+    d.burstPos[i*3+2] = tipPoint.z;
+    const spread = 0.45;
+    const vx = tangent.x + (Math.random() - 0.5) * spread;
+    const vy = tangent.y + (Math.random() - 0.5) * spread;
+    const vz = tangent.z + (Math.random() - 0.5) * spread;
+    const speed = 0.22 + Math.random() * 0.3;
+    d.burstVel[i*3] = vx * speed;
+    d.burstVel[i*3+1] = vy * speed;
+    d.burstVel[i*3+2] = vz * speed;
+    d.burstLife[i] = 0.9 + Math.random() * 0.6;
+  }
+  d.burstGeo.attributes.position.needsUpdate = true;
+}
+
+function updateProminenceBurst(p, delta) {
+  const d = p.userData;
+  const posAttr = d.burstGeo.attributes.position;
+  const lifeAttr = d.burstGeo.attributes.aLife;
+  for (let i = 0; i < d.burstLife.length; i++) {
+    if (d.burstLife[i] > 0) {
+      d.burstLife[i] -= delta * 0.55;
+      posAttr.array[i*3] += d.burstVel[i*3] * delta * 10;
+      posAttr.array[i*3+1] += d.burstVel[i*3+1] * delta * 10;
+      posAttr.array[i*3+2] += d.burstVel[i*3+2] * delta * 10;
+      lifeAttr.array[i] = Math.max(0, d.burstLife[i]);
+    } else {
+      lifeAttr.array[i] = 0;
+    }
+  }
+  posAttr.needsUpdate = true;
+  lifeAttr.needsUpdate = true;
+}
+
+// 日珥生命周期状态机：冒出(growing) → 稳定(active) → 喷发甩出(erupting) → 消退(cooldown) → 循环
+function updateProminence(p, delta) {
+  const d = p.userData;
+  d.phaseTime += delta;
+  const dur = d.durations[d.phase];
+  
+  if (d.phase === 'growing') {
+    const t = Math.min(d.phaseTime / dur, 1);
+    const eased = t * t * (3 - 2 * t); // smoothstep 缓动，冒出感更自然
+    rebuildProminenceGeometry(p, Math.max(eased, 0.02), false);
+    d.promMat.uniforms.uOpacity.value = eased;
+    d.pMat.uniforms.uOpacity.value = eased;
+    if (t >= 1) { d.phase = 'active'; d.phaseTime = 0; }
+    
+  } else if (d.phase === 'active') {
+    const pulse = 1.0 + Math.sin(elapsedTime * 1.4 + d.theta * 3.0) * 0.04;
+    rebuildProminenceGeometry(p, pulse, false);
+    if (d.phaseTime >= dur) {
+      triggerProminenceBurst(p);
+      d.phase = 'erupting';
+      d.phaseTime = 0;
+    }
+    
+  } else if (d.phase === 'erupting') {
+    const t = Math.min(d.phaseTime / dur, 1);
+    const stretch = 1 + t * t * 3.2; // 高度快速拉伸，像鞭子甩出
+    rebuildProminenceGeometry(p, stretch, true);
+    d.promMat.uniforms.uOpacity.value = Math.max(0, 1 - t * 1.3);
+    d.pMat.uniforms.uOpacity.value = Math.max(0, 1 - t * 1.3);
+    updateProminenceBurst(p, delta);
+    if (t >= 1) {
+      d.phase = 'cooldown';
+      d.phaseTime = 0;
+      d.promMat.uniforms.uOpacity.value = 0;
+      d.pMat.uniforms.uOpacity.value = 0;
+    }
+    
+  } else if (d.phase === 'cooldown') {
+    updateProminenceBurst(p, delta); // 让残余甩出的粒子继续飞散、淡出
+    if (d.phaseTime >= dur) {
+      // 冷却结束后在附近重新选一个纬度经度冒出新日珥，增加变化感
+      d.theta += (Math.random() - 0.5) * 0.6;
+      d.phi = THREE.MathUtils.clamp(d.phi + (Math.random() - 0.5) * 0.3, Math.PI * 0.12, Math.PI * 0.88);
+      p.rotation.y = d.theta;
+      p.rotation.x = d.phi - Math.PI / 2;
+      d.phase = 'growing';
+      d.phaseTime = 0;
+    }
+  }
+}
+
+// ============ CME ============
+const cmes = [];
+function createCME(theta, phi) {
+  const group = new THREE.Group();
+  const particleCount = 800;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const velocities = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  const lifeOffsets = new Float32Array(particleCount);
+  
+  const dir = new THREE.Vector3(
+    Math.sin(phi) * Math.cos(theta),
+    Math.cos(phi),
+    Math.sin(phi) * Math.sin(theta)
+  ).normalize();
+  
+  for (let i = 0; i < particleCount; i++) {
+    positions[i*3] = dir.x * 10;
+    positions[i*3+1] = dir.y * 10;
+    positions[i*3+2] = dir.z * 10;
+    
+    const spread = 0.3;
+    const vel = dir.clone().multiplyScalar(0.15 + Math.random() * 0.1);
+    vel.x += (Math.random() - 0.5) * spread * 0.1;
+    vel.y += (Math.random() - 0.5) * spread * 0.1;
+    vel.z += (Math.random() - 0.5) * spread * 0.1;
+    velocities[i*3] = vel.x;
+    velocities[i*3+1] = vel.y;
+    velocities[i*3+2] = vel.z;
+    
+    sizes[i] = 0.3 + Math.random() * 0.5;
+    lifeOffsets[i] = Math.random() * 6;
+  }
+  
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  geo.setAttribute('aOffset', new THREE.BufferAttribute(lifeOffsets, 1));
+  
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float aSize;
+      varying float vDist;
+      void main() {
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        vDist = length(position);
+        gl_PointSize = aSize * (250.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: `
+      varying float vDist;
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.0, d);
+        float fade = smoothstep(40.0, 10.0, vDist);
+        vec3 color = mix(vec3(1.0, 0.3, 0.1), vec3(1.0, 0.7, 0.3), fade);
+        gl_FragColor = vec4(color * 1.8, alpha * fade * 0.8);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false
+  });
+  
+  const points = new THREE.Points(geo, mat);
+  group.add(points);
+  
+  group.userData = {
+    type: 'cme',
+    points: points,
+    positions: positions,
+    velocities: velocities,
+    lifeOffsets: lifeOffsets,
+    dir: dir,
+    baseTheta: theta,
+    basePhi: phi
+  };
+  
+  cmes.push(group);
+  sun.add(group); // 挂到太阳本体上，随太阳自转
+  return group;
+}
+
+createCME(1.5, 0.5);
+createCME(4.0, 2.3);
+
+// ============ 动画循环 ============
+const clock = new THREE.Clock();
+let isPlaying = true;
+let elapsedTime = 0;
+
+function updateFlareParticles(flare, delta) {
+  const data = flare.userData;
+  const posAttr = data.particles.geometry.attributes.position;
+  const lifeAttr = data.particles.geometry.attributes.aLife;
+  
+  for (let i = 0; i < posAttr.count; i++) {
+    data.lifetimes[i] -= delta * 0.5;
+    if (data.lifetimes[i] <= 0) {
+      posAttr.array[i*3] = 0;
+      posAttr.array[i*3+1] = 0;
+      posAttr.array[i*3+2] = 0;
+      data.lifetimes[i] = 0.8 + Math.random() * 0.5;
+    } else {
+      posAttr.array[i*3] += data.velocities[i*3] * delta * 10;
+      posAttr.array[i*3+1] += data.velocities[i*3+1] * delta * 10;
+      posAttr.array[i*3+2] += data.velocities[i*3+2] * delta * 10;
+    }
+    lifeAttr.array[i] = data.lifetimes[i];
+  }
+  posAttr.needsUpdate = true;
+  lifeAttr.needsUpdate = true;
+}
+
+function updateCMEParticles(cme, delta) {
+  const data = cme.userData;
+  const posAttr = data.points.geometry.attributes.position;
+  
+  for (let i = 0; i < posAttr.count; i++) {
+    posAttr.array[i*3] += data.velocities[i*3] * delta * 10;
+    posAttr.array[i*3+1] += data.velocities[i*3+1] * delta * 10;
+    posAttr.array[i*3+2] += data.velocities[i*3+2] * delta * 10;
+    
+    const dist = Math.sqrt(
+      posAttr.array[i*3]**2 + 
+      posAttr.array[i*3+1]**2 + 
+      posAttr.array[i*3+2]**2
+    );
+    
+    if (dist > 45) {
+      posAttr.array[i*3] = data.dir.x * 10;
+      posAttr.array[i*3+1] = data.dir.y * 10;
+      posAttr.array[i*3+2] = data.dir.z * 10;
+    }
+  }
+  posAttr.needsUpdate = true;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  
+  if (isPlaying) {
+    elapsedTime += delta;
+  }
+  
+  sunMaterial.uniforms.uTime.value = elapsedTime;
+  coronaMaterial.uniforms.uTime.value = elapsedTime;
+  outerGlow.material.uniforms.uTime.value = elapsedTime;
+  
+  sunspots.forEach(s => {
+    s.children[0].material.uniforms.uTime.value = elapsedTime;
+  });
+  
+  flares.forEach(f => {
+    f.userData.core.material.uniforms.uTime.value = elapsedTime;
+    f.userData.particles.material.uniforms.uTime.value = elapsedTime;
+    if (isPlaying) updateFlareParticles(f, delta);
+  });
+  
+  prominences.forEach(p => {
+    p.userData.promMat.uniforms.uTime.value = elapsedTime;
+    p.userData.pMat.uniforms.uTime.value = elapsedTime;
+    if (isPlaying) updateProminence(p, delta);
+  });
+  
+  cmes.forEach(c => {
+    c.userData.points.material.uniforms.uTime.value = elapsedTime;
+    if (isPlaying) updateCMEParticles(c, delta);
+  });
+  
+  if (isPlaying) {
+    sun.rotation.y += delta * 0.05;
+  }
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const playBtn = document.getElementById('playBtn');
+const resetBtn = document.getElementById('resetBtn');
+const togglePanel = document.getElementById('togglePanel');
+const infoPanel = document.getElementById('infoPanel');
+const closePanel = document.getElementById('closePanel');
+const showPanelBtn = document.getElementById('showPanelBtn');
+
+playBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  playBtn.textContent = isPlaying ? '⏸ 暂停' : '▶ 播放';
+  playBtn.classList.toggle('active', isPlaying);
+});
+
+resetBtn.addEventListener('click', () => {
+  camera.position.set(0, 8, 35);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+function collapsePanel() {
+  infoPanel.classList.add('collapsed');
+  showPanelBtn.classList.add('show');
+}
+function expandPanel() {
+  infoPanel.classList.remove('collapsed');
+  showPanelBtn.classList.remove('show');
+}
+
+togglePanel.addEventListener('click', () => {
+  if (infoPanel.classList.contains('collapsed')) expandPanel();
+  else collapsePanel();
+});
+closePanel.addEventListener('click', collapsePanel);
+showPanelBtn.addEventListener('click', expandPanel);
+
+document.querySelectorAll('.struct-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const target = item.dataset.target;
+    let targetPos = new THREE.Vector3(0, 0, 0);
+    let cameraOffset = new THREE.Vector3(0, 5, 25);
+    
+    if (target === 'sun') {
+      targetPos.set(0, 0, 0);
+      cameraOffset.set(0, 5, 25);
+    } else if (target === 'spot' && sunspots.length > 0) {
+      const s = sunspots[0];
+      const worldPos = new THREE.Vector3();
+      s.getWorldPosition(worldPos);
+      targetPos.copy(worldPos);
+      cameraOffset = worldPos.clone().normalize().multiplyScalar(18);
+      cameraOffset.y += 3;
+    } else if (target === 'flare' && flares.length > 0) {
+      const f = flares[0];
+      const worldPos = new THREE.Vector3();
+      f.getWorldPosition(worldPos);
+      targetPos.copy(worldPos);
+      cameraOffset = worldPos.clone().normalize().multiplyScalar(20);
+      cameraOffset.y += 3;
+    } else if (target === 'prominence' && prominences.length > 0) {
+      const p = prominences[1]; // 选最大的那个
+      const worldPos = new THREE.Vector3();
+      p.getWorldPosition(worldPos);
+      targetPos.set(0, 0, 0);
+      cameraOffset.set(15, 10, 15);
+    } else if (target === 'cme' && cmes.length > 0) {
+      const c = cmes[0];
+      const dir = c.userData.dir;
+      targetPos.copy(dir.clone().multiplyScalar(20));
+      cameraOffset = dir.clone().multiplyScalar(35);
+      cameraOffset.y += 5;
+    }
+    
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const endPos = targetPos.clone().add(cameraOffset);
+    const duration = 1000;
+    const startTime = Date.now();
+    
+    function animateCamera() {
+      const t = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      camera.position.lerpVectors(startPos, endPos, eased);
+      controls.target.lerpVectors(startTarget, targetPos, eased);
+      controls.update();
+      if (t < 1) requestAnimationFrame(animateCamera);
+    }
+    animateCamera();
+  });
+});
+
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hide');
+}, 500);
+
+</script>
+</body>
+</html>
