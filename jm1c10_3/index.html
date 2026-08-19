@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>3D 人类听觉系统互动模型</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0d1117;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #e6edf3;
+    }
+
+    #webgl-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* UI 面板控制 */
+    .ui-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+      width: 320px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+      overflow: hidden;
+    }
+
+    .ui-panel.collapsed .panel-content {
+      display: none;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .panel-content {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 播放/暂停 控制按钮 */
+    .control-btn {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #238636;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .control-btn:hover {
+      background: #2ea043;
+    }
+
+    .control-btn:active {
+      transform: scale(0.98);
+    }
+
+    .control-btn.paused {
+      background: #da3633;
+    }
+
+    .control-btn.paused:hover {
+      background: #f85149;
+    }
+
+    /* 部位列表 */
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b949e;
+      margin-bottom: 8px;
+    }
+
+    .part-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .part-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .part-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(88, 166, 255, 0.4);
+    }
+
+    .part-item.active {
+      background: rgba(56, 139, 253, 0.15);
+      border-color: #58a6ff;
+    }
+
+    .part-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6fc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .part-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #8b949e;
+    }
+
+    /* 详情展示区 */
+    .info-card {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      border-left: 3px solid #58a6ff;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c9d1d9;
+    }
+
+    .info-card-title {
+      font-weight: 600;
+      color: #58a6ff;
+      margin-bottom: 4px;
+    }
+
+    /* 屏幕适配微调 */
+    @media (max-width: 600px) {
+      .ui-panel {
+        top: 12px;
+        right: 12px;
+        width: calc(100vw - 24px);
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      .ui-panel {
+        max-height: calc(100vh - 24px);
+      }
+      .panel-content {
+        gap: 10px;
+        padding: 10px;
+      }
+    }
+  </style>
+  <!-- 引入 Three.js 与 OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="webgl-container"></div>
+
+  <!-- 可收起式UI控制面板 -->
+  <div class="ui-panel" id="uiPanel">
+    <div class="panel-header" id="panelHeader">
+      <div class="panel-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+        听觉系统 3D 模型
+      </div>
+      <button class="toggle-btn" id="toggleBtn" aria-label="Fold/Unfold">▲</button>
+    </div>
+    
+    <div class="panel-content">
+      <!-- 动画控制 -->
+      <button class="control-btn" id="animControlBtn">
+        <span id="animIcon">⏸</span>
+        <span id="animText">暂停声波动画</span>
+      </button>
+
+      <!-- 结构选择 -->
+      <div>
+        <div class="section-title">结构与部位</div>
+        <div class="part-list" id="partList">
+          <!-- 动态注入或静态节点 -->
+          <div class="part-item active" data-part="all">
+            <div class="part-name">全景视角 <span class="part-tag">Overview</span></div>
+          </div>
+          <div class="part-item" data-part="pinna">
+            <div class="part-name">耳廓 <span class="part-tag">外耳</span></div>
+          </div>
+          <div class="part-item" data-part="canal">
+            <div class="part-name">外耳道 <span class="part-tag">外耳</span></div>
+          </div>
+          <div class="part-item" data-part="tympanic">
+            <div class="part-name">鼓膜 <span class="part-tag">中耳</span></div>
+          </div>
+          <div class="part-item" data-part="ossicles">
+            <div class="part-name">听小骨 <span class="part-tag">中耳</span></div>
+          </div>
+          <div class="part-item" data-part="cochlea">
+            <div class="part-name">耳蜗 <span class="part-tag">内耳</span></div>
+          </div>
+          <div class="part-item" data-part="nerve">
+            <div class="part-name">听神经 <span class="part-tag">内耳</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 功能说明卡片 -->
+      <div class="info-card">
+        <div class="info-card-title" id="infoTitle">听觉传导系统</div>
+        <div id="infoDesc">
+          点击上方任意结构部位，可旋转镜头聚焦查看，并了解其具体的生理功能。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. 部位功能数据 ---
+    const partData = {
+      all: {
+        title: "听觉传导全景",
+        desc: "声波通过外耳收集，经外耳道传至鼓膜引起振动；中耳听小骨放大振动后传至内耳耳蜗；耳蜗将机械波转化为电信号，最终由听神经传导至大脑。",
+        cameraPos: { x: 0, y: 3, z: 22 },
+        targetPos: { x: 0, y: 0, z: 0 }
+      },
+      pinna: {
+        title: "耳廓 (Pinna)",
+        desc: "【外耳】漏斗状结构，主要功能是收集空气中的声波，并通过声波进入耳道的时间差与强度差，帮助大脑判断声音的来源方向。",
+        cameraPos: { x: -8, y: 1, z: 8 },
+        targetPos: { x: -7, y: 0, z: 0 }
+      },
+      canal: {
+        title: "外耳道 (Ear Canal)",
+        desc: "【外耳】长约2.5-3厘米的管道，连接耳廓与鼓膜。它不仅是声波传输的通道，还对特定频率（2000-3000Hz）的声音具有自然共振放大作用。",
+        cameraPos: { x: -3.5, y: 1.5, z: 6 },
+        targetPos: { x: -3.5, y: 0, z: 0 }
+      },
+      tympanic: {
+        title: "鼓膜 (Tympanic Membrane)",
+        desc: "【中耳】薄而有弹性的半透明膜。当声波撞击鼓膜时，会引起鼓膜同步振动，成功将空气中的“声波（气导）”转化为“机械振动”。",
+        cameraPos: { x: 0, y: 1, z: 5 },
+        targetPos: { x: 0, y: 0, z: 0 }
+      },
+      ossicles: {
+        title: "听小骨 (Auditory Ossicles)",
+        desc: "【中耳】人体最小的三块骨头（锤骨、砧骨、镫骨）。它们像杠杆一样联动，将鼓膜的振动放大约20倍，高效地传递给内耳液体。",
+        cameraPos: { x: 2, y: 1.5, z: 4 },
+        targetPos: { x: 2, y: 0, z: 0 }
+      },
+      cochlea: {
+        title: "耳蜗 (Cochlea)",
+        desc: "【内耳】形似蜗牛，内部充满淋巴液。听小骨推动其入口时，液体产生波浪，刺激内部基底膜上的“毛细胞”，将物理振动转为神经电脉冲。",
+        cameraPos: { x: 5, y: 1, z: 5 },
+        targetPos: { x: 4.5, y: -0.2, z: 0 }
+      },
+      nerve: {
+        title: "听神经 (Cochlear Nerve)",
+        desc: "【内耳】由耳蜗毛细胞发出的神经纤维汇集而成。它将产生的神经电信号高速传输至大脑皮层的听觉中枢，完成最终的声音感知与理解。",
+        cameraPos: { x: 8, y: 0.5, z: 5 },
+        targetPos: { x: 7, y: -0.5, z: 0 }
+      }
+    };
+
+    // --- 2. Three.js 核心初始化 ---
+    let scene, camera, renderer, controls;
+    let isAnimating = true; // 动画开关标志
+    let soundWaveParticles = []; // 声波粒子数组
+    const meshes = {}; // 存放模型部件
+
+    const container = document.getElementById('webgl-container');
+
+    function initThree() {
+      // 场景
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0d1117);
+      scene.fog = new THREE.FogExp2(0x0d1117, 0.025);
+
+      // 相机
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 3, 22);
+
+      // 渲染器
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // 轨道控制器
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 + 0.1; // 限制镜头俯仰角度
+
+      // 灯光设置
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0x58a6ff, 1.2);
+      dirLight1.position.set(10, 20, 15);
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0xff7b72, 0.6);
+      dirLight2.position.set(-10, -10, -10);
+      scene.add(dirLight2);
+
+      // 构建听觉系统模型
+      createEarModel();
+
+      // 构建声波动画粒子
+      createSoundWaveParticles();
+
+      // 事件监听
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    // --- 3. 听觉系统程序化 3D 模型生成 ---
+    function createEarModel() {
+      const earGroup = new THREE.Group();
+
+      // 1. 耳廓 (Pinna)
+      const pinnaGeo = new THREE.CylinderGeometry(2.5, 0.5, 5, 16, 1, true, 0, Math.PI * 1.2);
+      const pinnaMat = new THREE.MeshStandardMaterial({ 
+        color: 0xffa07a, 
+        side: THREE.DoubleSide, 
+        roughness: 0.4,
+        metalness: 0.1
+      });
+      const pinna = new THREE.Mesh(pinnaGeo, pinnaMat);
+      pinna.position.set(-7, 0, 0);
+      pinna.rotation.z = Math.PI / 2;
+      pinna.rotation.y = -Math.PI / 6;
+      earGroup.add(pinna);
+      meshes.pinna = pinna;
+
+      // 2. 外耳道 (Ear Canal)
+      const canalGeo = new THREE.CylinderGeometry(0.8, 0.8, 7, 32, 1, true);
+      const canalMat = new THREE.MeshStandardMaterial({ 
+        color: 0xcd5c5c, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: 0.6 
+      });
+      const canal = new THREE.Mesh(canalGeo, canalMat);
+      canal.position.set(-3.5, 0, 0);
+      canal.rotation.z = Math.PI / 2;
+      earGroup.add(canal);
+      meshes.canal = canal;
+
+      // 3. 鼓膜 (Tympanic Membrane)
+      const tympanicGeo = new THREE.CircleGeometry(0.8, 32);
+      const tympanicMat = new THREE.MeshPhongMaterial({ 
+        color: 0x58a6ff, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: 0.8,
+        shininess: 90
+      });
+      const tympanic = new THREE.Mesh(tympanicGeo, tympanicMat);
+      tympanic.position.set(0, 0, 0);
+      tympanic.rotation.y = Math.PI / 2;
+      earGroup.add(tympanic);
+      meshes.tympanic = tympanic;
+
+      // 4. 听小骨 (Ossicles: 锤骨、砧骨、镫骨的联动简化组合)
+      const ossiclesGroup = new THREE.Group();
+      const boneMat = new THREE.MeshStandardMaterial({ color: 0xf0e68c, roughness: 0.3 });
+
+      // 锤骨 Malleus
+      const malleus = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 1.5), boneMat);
+      malleus.position.set(0.6, 0.2, 0);
+      malleus.rotation.z = -Math.PI / 4;
+
+      // 砧骨 Incus
+      const incus = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), boneMat);
+      incus.position.set(1.3, 0.5, 0);
+
+      // 镫骨 Stapes
+      const stapes = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 8, 16), boneMat);
+      stapes.position.set(2.0, 0, 0);
+      stapes.rotation.y = Math.PI / 2;
+
+      ossiclesGroup.add(malleus, incus, stapes);
+      earGroup.add(ossiclesGroup);
+      meshes.ossicles = ossiclesGroup;
+
+      // 5. 耳蜗 (Cochlea - 螺旋管道建模)
+      class SpiralCurve extends THREE.Curve {
+        constructor(scale = 1) {
+          super();
+          this.scale = scale;
+        }
+        getPoint(t) {
+          const a = 1.2;
+          const angle = 4.5 * Math.PI * (1 - t);
+          const r = a * (1 - t);
+          const x = r * Math.cos(angle);
+          const y = r * Math.sin(angle);
+          const z = t * 0.8;
+          return new THREE.Vector3(x, y, z).multiplyScalar(this.scale);
+        }
+      }
+      const path = new SpiralCurve(1.2);
+      const cochleaGeo = new THREE.TubeGeometry(path, 64, 0.35, 16, false);
+      const cochleaMat = new THREE.MeshStandardMaterial({ 
+        color: 0x3fb950, 
+        roughness: 0.3,
+        metalness: 0.2
+      });
+      const cochlea = new THREE.Mesh(cochleaGeo, cochleaMat);
+      cochlea.position.set(4.2, -0.2, 0);
+      cochlea.rotation.x = Math.PI / 2;
+      earGroup.add(cochlea);
+      meshes.cochlea = cochlea;
+
+      // 6. 听神经 (Auditory Nerve)
+      const nerveGroup = new THREE.Group();
+      const nerveMat = new THREE.MeshBasicMaterial({ color: 0xd2a8ff });
+      for (let i = 0; i < 5; i++) {
+        const nerveGeo = new THREE.CylinderGeometry(0.05, 0.08, 3, 8);
+        const nerveSegment = new THREE.Mesh(nerveGeo, nerveMat);
+        nerveSegment.position.set(5.5 + i * 0.2, (i - 2) * 0.15, -0.5 - i * 0.1);
+        nerveSegment.rotation.z = Math.PI / 2 + (i - 2) * 0.08;
+        nerveGroup.add(nerveSegment);
+      }
+      earGroup.add(nerveGroup);
+      meshes.nerve = nerveGroup;
+
+      scene.add(earGroup);
+    }
+
+    // --- 4. 声波粒子动画创建 ---
+    function createSoundWaveParticles() {
+      const particleCount = 25;
+      const ringGeo = new THREE.TorusGeometry(0.7, 0.03, 8, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ 
+        color: 0x58a6ff, 
+        transparent: true, 
+        opacity: 0.8 
+      });
+
+      for (let i = 0; i < particleCount; i++) {
+        const ring = new THREE.Mesh(ringGeo, ringMat.clone());
+        ring.rotation.y = Math.PI / 2;
+        // 初始散布在外耳道路径上 (-8 到 0)
+        ring.position.x = -8 + (i / particleCount) * 8;
+        scene.add(ring);
+        soundWaveParticles.push({
+          mesh: ring,
+          speed: 0.06,
+          startX: -8,
+          endX: 0
+        });
+      }
+    }
+
+    // --- 5. 动画与渲染循环 ---
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      // 仅当未暂停时更新物理动画
+      if (isAnimating) {
+        // 1. 声波环沿着外耳道前进
+        soundWaveParticles.forEach(p => {
+          p.mesh.position.x += p.speed;
+          // 透明度随接近鼓膜渐变
+          const progress = (p.mesh.position.x - p.startX) / (p.endX - p.startX);
+          p.mesh.material.opacity = Math.sin(progress * Math.PI) * 0.8;
+
+          // 循环复位
+          if (p.mesh.position.x >= p.endX) {
+            p.mesh.position.x = p.startX;
+          }
+        });
+
+        // 2. 鼓膜微弱振动
+        if (meshes.tympanic) {
+          meshes.tympanic.position.x = Math.sin(time * 25) * 0.04;
+        }
+
+        // 3. 听小骨传导机械振动
+        if (meshes.ossicles) {
+          meshes.ossicles.position.x = Math.sin(time * 25) * 0.04;
+          meshes.ossicles.rotation.z = Math.sin(time * 25) * 0.02;
+        }
+
+        // 4. 耳蜗微弱脉动
+        if (meshes.cochlea) {
+          const scale = 1 + Math.sin(time * 15) * 0.015;
+          meshes.cochlea.scale.set(scale, scale, scale);
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // --- 6. 相机平滑过渡函数 ---
+    function focusPart(partKey) {
+      const targetData = partData[partKey];
+      if (!targetData) return;
+
+      // 更新界面文本
+      document.getElementById('infoTitle').innerText = targetData.title;
+      document.getElementById('infoDesc').innerText = targetData.desc;
+
+      // 利用 GSAP 式的简单平滑插值过渡
+      const startCamPos = camera.position.clone();
+      const endCamPos = new THREE.Vector3(targetData.cameraPos.x, targetData.cameraPos.y, targetData.cameraPos.z);
+      
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(targetData.targetPos.x, targetData.targetPos.y, targetData.targetPos.z);
+
+      let progress = 0;
+      const duration = 1000; // 毫秒
+      const startTime = performance.now();
+
+      function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        progress = Math.min(elapsed / duration, 1);
+        
+        // Ease-out 缓动函数
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        camera.position.lerpVectors(startCamPos, endCamPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    // --- 7. UI 与交互绑定 ---
+    function setupUI() {
+      const panel = document.getElementById('uiPanel');
+      const header = document.getElementById('panelHeader');
+      const toggleBtn = document.getElementById('toggleBtn');
+      const animBtn = document.getElementById('animControlBtn');
+      const animIcon = document.getElementById('animIcon');
+      const animText = document.getElementById('animText');
+      const partItems = document.querySelectorAll('.part-item');
+
+      // 收起 / 展开面板
+      header.addEventListener('click', () => {
+        panel.classList.toggle('collapsed');
+        toggleBtn.innerText = panel.classList.contains('collapsed') ? '▼' : '▲';
+      });
+
+      // 动画 播放/暂停 控制
+      animBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止触发面板折叠
+        isAnimating = !isAnimating;
+
+        if (isAnimating) {
+          animBtn.classList.remove('paused');
+          animIcon.innerText = '⏸';
+          animText.innerText = '暂停声波动画';
+        } else {
+          animBtn.classList.add('paused');
+          animIcon.innerText = '▶';
+          animText.innerText = '播放声波动画';
+        }
+      });
+
+      // 部位选择点击
+      partItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          partItems.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+
+          const partKey = item.getAttribute('data-part');
+          focusPart(partKey);
+        });
+      });
+    }
+
+    // --- 8. 窗口尺寸调整 & 横竖屏适配 ---
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // 横屏与竖屏下适度调整默认视距
+      if (window.innerHeight > window.innerWidth) {
+        // 竖屏模式：视角变拉远一点，防止模型超屏
+        camera.fov = 55;
+      } else {
+        // 横屏模式
+        camera.fov = 45;
+      }
+      camera.updateProjectionMatrix();
+    }
+
+    // 启动入口
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      setupUI();
+      onWindowResize(); // 初始执行一次适配检查
+      animate();
+    });
+  </script>
+</body>
+</html>
