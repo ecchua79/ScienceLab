@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 嗅觉接收机制交互演示</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #090d16;
+            color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .glow-text {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        .step-active {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+        }
+        /* Custom scrollbar for panel content */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+        /* Collapsible panel content */
+        #panel-content {
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            max-height: 400px;
+            opacity: 1;
+        }
+        #collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        /* Structure labels floating over the 3D scene */
+        .struct-label {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #e0f2fe;
+            font-size: 0.7rem;
+            padding: 4px 9px 4px 7px;
+            border-radius: 8px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+        }
+        .struct-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #38bdf8;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(56,189,248,0.8);
+        }
+        .struct-label.visible { opacity: 1; }
+        .struct-label i { color: #38bdf8; font-size: 0.65rem; }
+        /* Subtle footer watermark line */
+        #site-footer {
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.55rem;
+            color: rgba(56, 189, 248, 0.18);
+            pointer-events: none;
+            z-index: 4;
+            letter-spacing: 0.05em;
+        }
+        /* Landscape mobile: compact panel + side nav so scene stays visible */
+        @media (orientation: landscape) and (max-height: 520px) {
+            main.info-panel { width: 320px !important; }
+            main.info-panel .glass-panel { padding: 0.9rem 1.1rem !important; }
+            #step-desc { height: 2.4rem !important; }
+            nav.side-nav { gap: 6px !important; }
+            nav.side-nav button { width: 2.3rem !important; height: 2.3rem !important; }
+        }
+        @media (max-width: 640px) {
+            .struct-label { font-size: 0.62rem; padding: 3px 7px 3px 6px; }
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen">
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Floating Structure Label Layer -->
+    <div id="label-layer" class="absolute inset-0 z-[5] overflow-hidden pointer-events-none"></div>
+
+    <!-- Header Overlay -->
+    <header class="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 z-10 flex justify-between items-center pointer-events-none">
+        <div class="glass-panel px-5 py-3 rounded-2xl flex items-center gap-3 pointer-events-auto">
+            <div class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
+                <i class="fa-solid font-bold fa-wind"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-white tracking-wide flex items-center gap-2">
+                    人类嗅觉接收机制 3D 演示
+                    <span class="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full">Interactive</span>
+                </h1>
+                <p class="text-xs text-slate-400">从气味分子到大脑知觉的信号转换旅程</p>
+            </div>
+        </div>
+
+        <!-- Controls / Help badge -->
+        <div class="glass-panel px-4 py-2 rounded-xl text-xs text-slate-300 flex items-center gap-2 pointer-events-auto hidden sm:flex">
+            <i class="fa-solid fa-hand-pointer text-sky-400"></i>
+            <span>拖拽旋转 | 滚轮缩放 | 拖动移动视角</span>
+        </div>
+    </header>
+
+    <!-- Main Step Information Box (Floating Bottom Left/Center) -->
+    <main class="info-panel absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-[450px] z-10 pointer-events-auto">
+        <div class="glass-panel p-6 rounded-3xl transition-all duration-500">
+            <!-- Step Badge -->
+            <div class="flex justify-between items-center mb-3">
+                <span id="step-number" class="text-xs font-semibold px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    步骤 1 / 4
+                </span>
+                <div class="flex items-center gap-2">
+                    <span id="step-tag" class="text-xs text-slate-400 flex items-center gap-1">
+                        <i class="fa-solid fa-atom text-amber-400"></i> 物理吸入阶段
+                    </span>
+                    <button id="btn-collapse" class="w-7 h-7 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition" title="收起/展开面板">
+                        <i class="fa-solid fa-chevron-down text-xs" id="collapse-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="panel-content">
+                <!-- Step Title -->
+                <h2 id="step-title" class="text-xl font-bold text-white mb-2 glow-text">
+                    1. 气味分子的吸入与流动
+                </h2>
+
+                <!-- Step Description -->
+                <p id="step-desc" class="text-sm text-slate-300 leading-relaxed mb-6 h-24 overflow-y-auto pr-1">
+                    气味由挥发性化学分子组成。当您呼吸时，空气带着这些微小分子进入鼻腔，并向鼻腔顶部的嗅黏膜区域流动。
+                </p>
+
+                <!-- Navigation Controls -->
+                <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-700/50">
+                    <button id="btn-prev" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1">
+                        <i class="fa-solid fa-chevron-left text-xs"></i> 上一步
+                    </button>
+
+                    <div class="flex gap-1.5">
+                        <button id="btn-play" class="w-10 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center transition shadow-lg shadow-sky-500/20" title="自动播放/暂停">
+                            <i class="fa-solid fa-play" id="play-icon"></i>
+                        </button>
+                        <button id="btn-reset" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition" title="重置视角">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+
+                    <button id="btn-next" class="px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-sm font-medium transition flex items-center gap-1">
+                        下一步 <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Subtle Watermark Footer -->
+    <div id="site-footer">峇株吧辖华仁中学蔡逸众制作</div>
+
+    <!-- Side Step Navigation Indicators -->
+    <nav class="side-nav absolute right-6 top-1/2 -translate-y-1/2 z-10 hidden md:flex flex-col gap-3 pointer-events-auto">
+        <button data-step="0" class="step-btn step-active w-12 h-12 rounded-2xl glass-panel flex flex-col items-center justify-center transition group">
+            <i class="fa-solid fa-wind text-sm"></i>
+            <span class="text-[10px] mt-0.5 opacity-80">1.吸入</span>
+        </button>
+        <button data-step="1" class="step-btn w-12 h-12 rounded-2xl glass-panel flex flex-col items-center justify-center transition group">
+            <i class="fa-solid fa-key text-sm"></i>
+            <span class="text-[10px] mt-0.5 opacity-80">2.结合</span>
+        </button>
+        <button data-step="2" class="step-btn w-12 h-12 rounded-2xl glass-panel flex flex-col items-center justify-center transition group">
+            <i class="fa-solid fa-bolt text-sm"></i>
+            <span class="text-[10px] mt-0.5 opacity-80">3.信号</span>
+        </button>
+        <button data-step="3" class="step-btn w-12 h-12 rounded-2xl glass-panel flex flex-col items-center justify-center transition group">
+            <i class="fa-solid fa-brain text-sm"></i>
+            <span class="text-[10px] mt-0.5 opacity-80">4.感知</span>
+        </button>
+    </nav>
+
+    <!-- 3D Interactive Script -->
+    <script>
+        // Educational Data for Steps
+        const STEPS = [
+            {
+                title: "1. 气味分子的吸入与流动",
+                tag: "物理吸入",
+                desc: "气味由空气中的挥发性有机化学分子组成。吸气时，空气流经鼻腔通道，将数以亿计的气味分子带入鼻腔顶部的嗅黏膜（Olfactory Epithelium）区域。",
+                camPos: { x: 0, y: 5, z: 22 },
+                camLookAt: { x: 0, y: 0, z: 0 }
+            },
+            {
+                title: "2. 黏液溶解与“锁-钥”结合",
+                tag: "生物化学结合",
+                desc: "气味分子先溶解在嗅黏膜表面的黏液层中。然后像钥匙插入锁孔一样，精确嵌入嗅觉神经元纤毛（Cilia）末端的特异性受体蛋白（Receptors）中。",
+                camPos: { x: -2, y: -2, z: 8 },
+                camLookAt: { x: -2, y: -4, z: 0 }
+            },
+            {
+                title: "3. 转化为电脉冲信号",
+                tag: "神经电传导",
+                desc: "受体蛋白激活后，在细胞内引发一系列连锁生化反应，将化学刺激转化为电信号（神经冲动）。电信号沿着神经元轴突穿过筛骨（Cribriform Plate）上的小孔向上传导。",
+                camPos: { x: 0, y: 2, z: 10 },
+                camLookAt: { x: 0, y: 4, z: 0 }
+            },
+            {
+                title: "4. 嗅球整合与大脑高级感知",
+                tag: "中枢大脑处理",
+                desc: "成千上万条轴突在嗅球（Olfactory Bulb）的“嗅小球”中汇合。信号在此处被高度整合与编码，随后直接传至大脑边缘系统（引发情绪与记忆）和嗅觉皮层（识别气味类型）。",
+                camPos: { x: 0, y: 12, z: 18 },
+                camLookAt: { x: 0, y: 10, z: 0 }
+            }
+        ];
+
+        let currentStep = 0;
+        let isPlaying = false;
+        let playInterval = null;
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x090d16, 0.025);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(STEPS[0].camPos.x, STEPS[0].camPos.y, STEPS[0].camPos.z);
+
+        let currentCamTarget = new THREE.Vector3().copy(STEPS[0].camLookAt);
+        camera.lookAt(currentCamTarget);
+
+        //峇株吧辖华仁中学蔡逸众制作
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0x1e293b, 1.5);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+        mainLight.position.set(10, 20, 15);
+        scene.add(mainLight);
+
+        const purplePointLight = new THREE.PointLight(0xa855f7, 3, 20);
+        purplePointLight.position.set(-5, -3, 2);
+        scene.add(purplePointLight);
+
+        //Made by ecchua79
+        const cyanPointLight = new THREE.PointLight(0x06b6d4, 4, 25);
+        cyanPointLight.position.set(0, 10, 0);
+        scene.add(cyanPointLight);
+
+        // Main World Group
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        // --- 1. Nose Cavity Wall (Background Outline) ---
+        const cavityGeometry = new THREE.TorusGeometry(12, 3, 16, 100, Math.PI * 0.8);
+        const cavityMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1e1b4b,
+            roughness: 0.8,
+            metalness: 0.1,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15
+        });
+        const cavityMesh = new THREE.Mesh(cavityGeometry, cavityMaterial);
+        cavityMesh.rotation.x = Math.PI / 2;
+        cavityMesh.rotation.z = -Math.PI / 4;
+        cavityMesh.position.set(0, -6, -5);
+        worldGroup.add(cavityMesh);
+
+        //峇株吧辖蔡逸众制作
+        // --- 2. Mucus Layer & Epithelium Base ---
+        const mucusGeo = new THREE.PlaneGeometry(16, 12, 32, 32);
+        const mucusMat = new THREE.MeshPhysicalMaterial({
+            color: 0x0284c7,
+            transparent: true,
+            opacity: 0.35,
+            roughness: 0.1,
+            transmission: 0.6,
+            thickness: 0.5,
+            side: THREE.DoubleSide
+        });
+        const mucusMesh = new THREE.Mesh(mucusGeo, mucusMat);
+        mucusMesh.rotation.x = -Math.PI / 2.5;
+        mucusMesh.position.set(0, -4, 0);
+        worldGroup.add(mucusMesh);
+
+        // --- 3. Olfactory Neurons & Cilia (Receptors) ---
+        const neuronGroup = new THREE.Group();
+        worldGroup.add(neuronGroup);
+
+        const receptorList = [];
+        const ciliaList = [];
+        const axonPointsList = [];
+
+        const neuronCount = 28;
+        const neuronGeo = new THREE.CylinderGeometry(0.15, 0.25, 3.5, 8);
+        const neuronMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3 });
+
+        //华仁中学蔡逸众制作
+        for (let i = 0; i < neuronCount; i++) {
+            const x = (Math.random() - 0.5) * 12;
+            const z = (Math.random() - 0.5) * 8;
+            const yBase = -4 + Math.sin(x * 0.5) * 0.5;
+
+            // Cell Body (sits in the epithelium, ABOVE the mucus surface)
+            const cell = new THREE.Mesh(neuronGeo, neuronMat);
+            cell.position.set(x, yBase + 1.5, z);
+            neuronGroup.add(cell);
+
+            // Cilia Extensions (hang DOWN from the cell body into the mucus layer below)
+            const ciliaCount = 5;
+            for (let c = 0; c < ciliaCount; c++) {
+                const ciliaGeo = new THREE.CylinderGeometry(0.02, 0.04, 1.2, 6);
+                const ciliaMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x0284c7, emissiveIntensity: 0.3 });
+                const cilia = new THREE.Mesh(ciliaGeo, ciliaMat);
+                
+                cilia.position.set(x + (Math.random() - 0.5) * 0.4, yBase - 0.3, z + (Math.random() - 0.5) * 0.4);
+                cilia.rotation.z = (Math.random() - 0.5) * 0.8;
+                cilia.rotation.x = (Math.random() - 0.5) * 0.8;
+                neuronGroup.add(cilia);
+                ciliaList.push(cilia);
+
+        //峇株吧辖华仁中学蔡逸众制作
+                // Receptors at the tip of cilia (deepest point, submerged in mucus)
+                const receptorGeo = new THREE.SphereGeometry(0.12, 12, 12);
+                const receptorMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xe11d48, emissiveIntensity: 0.5 });
+                const receptor = new THREE.Mesh(receptorGeo, receptorMat);
+                receptor.position.set(0, -0.6, 0);
+                cilia.add(receptor);
+                receptorList.push(receptor);
+            }
+
+            // Axons extend UPWARD from the cell body, through the bone, up to the bulb
+            const axonCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(x, yBase + 3, z),
+                new THREE.Vector3(x * 0.8, yBase + 5, z * 0.8),
+                new THREE.Vector3(x * 0.4, 6, z * 0.4)
+            ]);
+            
+            const axonGeo = new THREE.TubeGeometry(axonCurve, 16, 0.04, 6, false);
+            const axonMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.6 });
+            const axonMesh = new THREE.Mesh(axonGeo, axonMat);
+            neuronGroup.add(axonMesh);
+
+            axonPointsList.push(axonCurve);
+        }
+
+        // --- 4. Bone Plate (Cribriform Plate) ---
+        const boneGeo = new THREE.BoxGeometry(14, 0.8, 10);
+        const boneMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, transparent: true, opacity: 0.7 });
+        const bonePlate = new THREE.Mesh(boneGeo, boneMat);
+        bonePlate.position.set(0, 1.5, 0);
+        worldGroup.add(bonePlate);
+
+        // Holes in Bone Plate
+        for (let h = 0; h < 15; h++) {
+            const holeGeo = new THREE.CylinderGeometry(0.3, 0.3, 1, 12);
+            const holeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+            const hole = new THREE.Mesh(holeGeo, holeMat);
+            hole.position.set((Math.random() - 0.5) * 11, 1.5, (Math.random() - 0.5) * 8);
+            worldGroup.add(hole);
+        }
+
+        //峇株吧辖蔡逸众制作
+        // --- 5. Olfactory Bulb & Glomeruli (Brain Center) ---
+        const bulbGroup = new THREE.Group();
+        bulbGroup.position.set(0, 7.5, 0);
+        worldGroup.add(bulbGroup);
+
+        // Olfactory Bulb Main Body
+        const bulbGeo = new THREE.SphereGeometry(3.5, 32, 16);
+        bulbGeo.scale(1.8, 0.6, 1);
+        const bulbMat = new THREE.MeshPhysicalMaterial({
+            color: 0x8b5cf6,
+            emissive: 0x6d28d9,
+            emissiveIntensity: 0.3,
+            roughness: 0.2,
+            transparent: true,
+            opacity: 0.65,
+            wireframe: false
+        });
+        const bulbMesh = new THREE.Mesh(bulbGeo, bulbMat);
+        bulbGroup.add(bulbMesh);
+
+        // Glomeruli (Sphere Clusters inside Bulb)
+        const glomeruliList = [];
+        const glomerulusCount = 12;
+        for (let g = 0; g < glomerulusCount; g++) {
+            const gGeo = new THREE.IcosahedronGeometry(0.5, 2);
+            const gMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                emissive: 0xd97706,
+                emissiveIntensity: 0.8,
+                wireframe: true
+            });
+            const glomerulus = new THREE.Mesh(gGeo, gMat);
+            const angle = (g / glomerulusCount) * Math.PI * 2;
+            glomerulus.position.set(Math.cos(angle) * 3, -1, Math.sin(angle) * 1.5);
+            bulbGroup.add(glomerulus);
+            glomeruliList.push(glomerulus);
+        }
+
+        // Brain Outline (Point Cloud)
+        const brainGeo = new THREE.BufferGeometry();
+        const brainParticleCount = 800;
+        const brainPositions = new Float32Array(brainParticleCount * 3);
+
+        //华仁中学蔡逸众制作
+        for (let b = 0; b < brainParticleCount * 3; b += 3) {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * 2.0 * Math.PI;
+            const phi = Math.acos(2.0 * v - 1.0);
+            const r = 8 + Math.random() * 4;
+
+            brainPositions[b] = r * Math.sin(phi) * Math.cos(theta) + 2;
+            brainPositions[b + 1] = r * Math.sin(phi) * Math.sin(theta) + 12;
+            brainPositions[b + 2] = r * Math.cos(phi) - 2;
+        }
+        brainGeo.setAttribute('position', new THREE.BufferAttribute(brainPositions, 3));
+        const brainMat = new THREE.PointsMaterial({ size: 0.15, color: 0x818cf8, transparent: true, opacity: 0.3 });
+        const brainPoints = new THREE.Points(brainGeo, brainMat);
+        worldGroup.add(brainPoints);
+
+        // --- 6. Odor Molecules (Floating Polyhedrons) ---
+        const moleculeGroup = new THREE.Group();
+        worldGroup.add(moleculeGroup);
+
+        //Made by ecchua79
+        const molecules = [];
+        const moleculeGeo = new THREE.IcosahedronGeometry(0.25, 0);
+        
+        for (let m = 0; m < 45; m++) {
+            const hueMat = new THREE.MeshStandardMaterial({
+                color: Math.random() > 0.5 ? 0xf43f5e : 0xfbbf24,
+                emissive: 0xf43f5e,
+                emissiveIntensity: 0.6,
+                roughness: 0.1
+            });
+            const mol = new THREE.Mesh(moleculeGeo, hueMat);
+            
+            // Random initial placement around nasal entrance
+            mol.position.set(
+                (Math.random() - 0.5) * 14,
+                -8 + Math.random() * 5,
+                (Math.random() - 0.5) * 10
+            );
+            mol.userData = {
+                speed: 0.02 + Math.random() * 0.03,
+                rotSpeed: (Math.random() - 0.5) * 0.05,
+                initialY: mol.position.y
+            };
+            moleculeGroup.add(mol);
+            molecules.push(mol);
+        }
+
+        // --- 7. Electrical Pulse Signal Particles ---
+        const pulseGroup = new THREE.Group();
+        worldGroup.add(pulseGroup);
+
+        const pulseParticles = [];
+        const pulseGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const pulseMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+        for (let p = 0; p < 30; p++) {
+            const pMesh = new THREE.Mesh(pulseGeo, pulseMat);
+            pMesh.visible = false;
+            pulseGroup.add(pMesh);
+            pulseParticles.push({
+                mesh: pMesh,
+                axonIndex: Math.floor(Math.random() * axonPointsList.length),
+                progress: Math.random()
+            });
+        }
+
+        // --- 8. Structure Labels (floating annotations per step) ---
+        const labelLayer = document.getElementById('label-layer');
+        const LABEL_DEFS = [
+            { step: 0, text: '鼻腔气流', icon: 'fa-wind', pos: [0, -8.5, 6] },
+            { step: 0, text: '嗅黏膜（Olfactory Epithelium）', icon: 'fa-layer-group', pos: [0, -3.3, 2.5] },
+            { step: 1, text: '黏液层', icon: 'fa-droplet', pos: [3.2, -3.6, 1] },
+            { step: 1, text: '纤毛（Cilia）', icon: 'fa-wave-square', pos: [-2, -4.3, -1] },
+            { step: 1, text: '受体蛋白（Receptor）', icon: 'fa-key', pos: [-2, -4.9, -1] },
+            { step: 2, text: '筛骨（Cribriform Plate）', icon: 'fa-bone', pos: [4.5, 1.5, 3] },
+            { step: 2, text: '轴突·电信号传导', icon: 'fa-bolt', pos: [2.3, 3.6, 2] },
+            { step: 3, text: '嗅球（Olfactory Bulb）', icon: 'fa-circle-nodes', pos: [4.2, 7.5, 0] },
+            { step: 3, text: '嗅小球（Glomerulus）', icon: 'fa-braille', pos: [3, 6.3, 1.5] },
+            { step: 3, text: '大脑（边缘系统 / 嗅觉皮层）', icon: 'fa-brain', pos: [6, 12, -2] }
+        ];
+
+        const structLabels = LABEL_DEFS.map(def => {
+            const anchor = new THREE.Object3D();
+            anchor.position.set(def.pos[0], def.pos[1], def.pos[2]);
+            worldGroup.add(anchor);
+
+            const el = document.createElement('div');
+            el.className = 'struct-label';
+            el.innerHTML = `<i class="fa-solid ${def.icon}"></i><span>${def.text}</span>`;
+            labelLayer.appendChild(el);
+
+            return { anchor, el, step: def.step };
+        });
+        const labelVec = new THREE.Vector3();
+
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        const canvasEl = renderer.domElement;
+
+        //峇株吧辖华仁中学蔡逸众制作
+        canvasEl.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        canvasEl.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+
+            worldGroup.rotation.y += deltaX * 0.005;
+            worldGroup.rotation.x += deltaY * 0.005;
+
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Touch control support
+        canvasEl.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        });
+
+        canvasEl.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            const deltaX = e.touches[0].clientX - previousMousePosition.x;
+            const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+            worldGroup.rotation.y += deltaX * 0.005;
+            worldGroup.rotation.x += deltaY * 0.005;
+
+            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+
+        //峇株吧辖蔡逸众制作
+        canvasEl.addEventListener('touchend', () => { isDragging = false; });
+
+        // Wheel Zooming
+        canvasEl.addEventListener('wheel', (e) => {
+            camera.position.z += e.deltaY * 0.01;
+            camera.position.z = Math.max(5, Math.min(40, camera.position.z));
+        });
+
+        function updateStepUI(stepIndex) {
+            currentStep = stepIndex;
+            const data = STEPS[stepIndex];
+
+            document.getElementById('step-number').innerText = `步骤 ${stepIndex + 1} / 4`;
+            document.getElementById('step-tag').innerHTML = `<i class="fa-solid fa-atom text-amber-400"></i> ${data.tag}`;
+            document.getElementById('step-title').innerText = data.title;
+            document.getElementById('step-desc').innerText = data.desc;
+
+            document.getElementById('btn-prev').disabled = (stepIndex === 0);
+            document.getElementById('btn-next').disabled = (stepIndex === STEPS.length - 1);
+
+            // Update side navigation active style
+            document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+                if (idx === stepIndex) {
+                    btn.classList.add('step-active');
+                } else {
+                    btn.classList.remove('step-active');
+                }
+            });
+        }
+
+        // Navigation Click Listeners
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentStep > 0) updateStepUI(currentStep - 1);
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentStep < STEPS.length - 1) updateStepUI(currentStep + 1);
+        });
+
+        document.querySelectorAll('.step-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const stepIdx = parseInt(btn.getAttribute('data-step'));
+                updateStepUI(stepIdx);
+            });
+        });
+
+        // Collapsible Panel (manual toggle + auto-collapse on short landscape screens)
+        const collapseBtn = document.getElementById('btn-collapse');
+        const collapseIcon = document.getElementById('collapse-icon');
+        const panelContent = document.getElementById('panel-content');
+        let panelCollapsed = false;
+        let userToggledPanel = false;
+
+        //华仁中学蔡逸众制作
+        function setPanelCollapsed(collapsed) {
+            panelCollapsed = collapsed;
+            if (collapsed) {
+                panelContent.style.maxHeight = '0px';
+                panelContent.style.opacity = '0';
+                panelContent.style.marginTop = '0px';
+                collapseIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                panelContent.style.maxHeight = '420px';
+                panelContent.style.opacity = '1';
+                panelContent.style.marginTop = '';
+                collapseIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        collapseBtn.addEventListener('click', () => {
+            userToggledPanel = true;
+            setPanelCollapsed(!panelCollapsed);
+        });
+
+        function checkAutoCollapse() {
+            if (userToggledPanel) return;
+            const isLandscapeShort = window.innerWidth > window.innerHeight && window.innerHeight < 500;
+            setPanelCollapsed(isLandscapeShort);
+        }
+        window.addEventListener('orientationchange', () => setTimeout(checkAutoCollapse, 300));
+        checkAutoCollapse();
+
+        // Reset View
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            worldGroup.rotation.set(0, 0, 0);
+            updateStepUI(currentStep);
+        });
+
+        // Auto Play
+        const playBtn = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playInterval = setInterval(() => {
+                    let next = (currentStep + 1) % STEPS.length;
+                    updateStepUI(next);
+                }, 5000);
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                clearInterval(playInterval);
+            }
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+        //Made by ecchua79
+            // Smooth Camera Interpolation
+            const targetCam = STEPS[currentStep].camPos;
+            const targetLook = STEPS[currentStep].camLookAt;
+
+            camera.position.x += (targetCam.x - camera.position.x) * 0.04;
+            camera.position.y += (targetCam.y - camera.position.y) * 0.04;
+            camera.position.z += (targetCam.z - camera.position.z) * 0.04;
+
+            currentCamTarget.x += (targetLook.x - currentCamTarget.x) * 0.04;
+            currentCamTarget.y += (targetLook.y - currentCamTarget.y) * 0.04;
+            currentCamTarget.z += (targetLook.z - currentCamTarget.z) * 0.04;
+            camera.lookAt(currentCamTarget);
+
+            // --- Dynamic Animations Based on Current Step ---
+            
+            // 1. Molecule Flow Animation (Step 1 & 2)
+            molecules.forEach((mol, idx) => {
+                mol.rotation.x += mol.userData.rotSpeed;
+                mol.rotation.y += mol.userData.rotSpeed;
+
+                if (currentStep === 0) {
+                    // Flowing upwards into the nasal cavity
+                    mol.position.y += mol.userData.speed;
+                    if (mol.position.y > -2) mol.position.y = mol.userData.initialY;
+                } else if (currentStep === 1) {
+                    // Attracted down to mucus layer & receptors
+                    const targetReceptor = receptorList[idx % receptorList.length];
+                    const worldPos = new THREE.Vector3();
+                    targetReceptor.getWorldPosition(worldPos);
+                    
+                    mol.position.lerp(worldPos, 0.03);
+                } else {
+                    // Slight floating motion
+                    mol.position.y += Math.sin(elapsedTime * 2 + idx) * 0.003;
+                }
+            });
+
+            // 2. Cilia Swaying (Step 2 & 3)
+            ciliaList.forEach((cilia, i) => {
+                cilia.rotation.z = Math.sin(elapsedTime * 1.5 + i) * 0.15;
+            });
+
+            // 3. Electrical Pulses Propagation (Step 3)
+            pulseParticles.forEach(p => {
+                if (currentStep >= 2) {
+                    p.mesh.visible = true;
+                    p.progress += 0.015;
+                    if (p.progress > 1) p.progress = 0;
+
+                    const curve = axonPointsList[p.axonIndex];
+                    if (curve) {
+                        const point = curve.getPoint(p.progress);
+                        p.mesh.position.copy(point);
+                    }
+                } else {
+                    p.mesh.visible = false;
+                }
+            });
+
+            // 4. Glomeruli Pulsing (Step 4)
+            glomeruliList.forEach((g, idx) => {
+                if (currentStep === 3) {
+                    const scale = 1 + Math.sin(elapsedTime * 4 + idx) * 0.25;
+                    g.scale.set(scale, scale, scale);
+                    g.material.emissiveIntensity = 0.8 + Math.sin(elapsedTime * 5 + idx) * 0.4;
+                } else {
+                    g.scale.set(1, 1, 1);
+                    g.material.emissiveIntensity = 0.3;
+                }
+            });
+
+            // Idle world rotation when not dragging
+            if (!isDragging) {
+                worldGroup.rotation.y += 0.001;
+            }
+
+            // 5. Structure Label Positioning (screen-space projection)
+            const halfW = window.innerWidth / 2;
+            const halfH = window.innerHeight / 2;
+            structLabels.forEach(l => {
+                if (l.step !== currentStep) {
+                    l.el.classList.remove('visible');
+                    return;
+                }
+                l.anchor.getWorldPosition(labelVec);
+                const projected = labelVec.clone().project(camera);
+                if (projected.z > 1 || projected.z < -1) {
+                    l.el.classList.remove('visible');
+                    return;
+                }
+                const x = (projected.x * halfW) + halfW;
+                const y = -(projected.y * halfH) + halfH;
+                l.el.style.left = `${x}px`;
+                l.el.style.top = `${y}px`;
+                l.el.classList.add('visible');
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Window Resize Listener
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            checkAutoCollapse();
+        });
+
+        // Start Animation
+        animate();
+    </script>
+</body>
+</html>
