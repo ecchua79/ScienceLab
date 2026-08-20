@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 味觉系统感知模型</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0f17;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .glass-panel {
+            background: rgba(22, 27, 34, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .transition-panel {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="text-slate-100">
+
+    <!-- 3D View Container -->
+    <div id="webgl-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="relative z-10 pointer-events-none w-full h-full flex flex-col justify-between p-3 md:p-6 overflow-hidden">
+        
+        <!-- Header Controls -->
+        <div class="flex justify-between items-start w-full pointer-events-auto">
+            <div class="glass-panel p-3 md:p-4 rounded-xl max-w-xs md:max-w-md shadow-lg">
+                <h1 class="text-base md:text-2xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
+                    <i class="fa-solid fa-viruses text-pink-400"></i>
+                    3D 味觉系统感知模型
+                </h1>
+                <p class="text-[11px] md:text-sm text-slate-300 mt-0.5">滚轮/双指缩放放大可穿透深入味蕾微观视角。</p>
+            </div>
+
+            <!-- Global Animation Control Bar -->
+            <div class="glass-panel p-2 md:p-3 rounded-xl flex items-center gap-2 md:gap-3 shadow-lg">
+                <button id="btn-toggle-anim" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium flex items-center gap-1.5 transition-all active:scale-95">
+                    <i id="anim-icon" class="fa-solid fa-pause"></i>
+                    <span id="anim-text" class="hidden md:inline">暂停动画</span>
+                </button>
+                <button id="btn-reset-cam" class="bg-slate-700 hover:bg-slate-600 text-white p-2.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all active:scale-95" title="视角复位">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Taste Selector Buttons (Preset Camera & Zoom Levels) -->
+        <div class="flex flex-wrap gap-1.5 md:gap-2 justify-center my-2 pointer-events-auto">
+            <button class="preset-btn bg-slate-800/80 hover:bg-pink-600/80 border border-slate-600 active:scale-95 px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur" data-target="tongue">
+                👅 舌头全貌 (宏观)
+            </button>
+            <button class="preset-btn bg-slate-800/80 hover:bg-pink-600/80 border border-slate-600 active:scale-95 px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur" data-target="papilla">
+                🔴 味乳头 (近景)
+            </button>
+            <button class="preset-btn bg-slate-800/80 hover:bg-pink-600/80 border border-slate-600 active:scale-95 px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur" data-target="tastebud">
+                🧫 深入味蕾细胞 (微观)
+            </button>
+            <button class="preset-btn bg-slate-800/80 hover:bg-pink-600/80 border border-slate-600 active:scale-95 px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur" data-target="molecules">
+                🧪 呈味化学分子 (超微观)
+            </button>
+            <button class="preset-btn bg-slate-800/80 hover:bg-pink-600/80 border border-slate-600 active:scale-95 px-3 py-1.5 rounded-full text-xs font-medium transition-all backdrop-blur" data-target="nerve">
+                ⚡ 神经传导与大脑
+            </button>
+        </div>
+
+        <!-- Bottom Collapsible Info Drawer -->
+        <div class="w-full flex justify-end pointer-events-auto">
+            <div id="info-drawer" class="glass-panel w-full md:w-96 rounded-2xl p-4 shadow-2xl transition-panel transform translate-y-0 relative">
+                
+                <!-- Drawer Toggle Button -->
+                <button id="btn-toggle-drawer" class="absolute -top-10 right-4 bg-slate-800 border border-slate-600 text-slate-200 hover:text-white px-3 py-1.5 rounded-t-lg text-xs flex items-center gap-1.5 shadow-md">
+                    <i id="drawer-icon" class="fa-solid fa-chevron-down"></i>
+                    <span id="drawer-text">收起面板</span>
+                </button>
+
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <span id="part-tag" class="text-[10px] md:text-xs px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 font-semibold">解剖层级</span>
+                        <h2 id="part-title" class="text-base md:text-lg font-bold text-white">请选择结构或滑动缩放</h2>
+                    </div>
+                </div>
+
+                <div id="part-content" class="max-h-36 md:max-h-56 overflow-y-auto pr-1 text-xs md:text-sm text-slate-300 leading-relaxed space-y-1.5">
+                    <p class="text-slate-400 italic">拉近视角（Zoom in）可以放大深入味蕾内部，解锁微观呈味分子与受体细胞！</p>
+                </div>
+
+                <div class="mt-2 pt-2 border-t border-slate-700/60 flex justify-between items-center text-[10px] md:text-xs text-slate-400">
+                    <span id="view-mode-indicator" class="text-pink-400 font-medium">当前视角: 宏观全貌</span>
+                    <span class="text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-circle text-[6px]"></i> LOD微观渐显</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main JS Code -->
+    <script>
+        // --- Anatomical Data ---
+        const anatomyData = {
+            tongue: {
+                title: "舌头本体 (Tongue Surface)",
+                tag: "宏观视角",
+                description: "宏观下只能看到弧形肉质舌体及其表面覆盖的<b>味乳头（Papillae）</b>颗粒。味蕾与细胞极小，隐藏在乳头的侧壁凹槽中，需要放大视角深入观察。",
+                cameraPos: { x: 0, y: 3.2, z: 5.5 }
+            },
+            papilla: {
+                title: "味乳头凹槽 (Papilla Groove)",
+                tag: "中观视角",
+                description: "放大观察轮廓乳头或蕈状乳头：侧壁开有许多微小的<b>味孔（Taste Pore）</b>。唾液充满在此处，将溶解的化学分子引入味蕾。",
+                cameraPos: { x: 0.6, y: 0.6, z: 1.2 }
+            },
+            tastebud: {
+                title: "味蕾内部受体细胞 (Inside Taste Bud)",
+                tag: "微观视角",
+                description: "<b>通过缩放深入味蕾内部！</b><br>每个味蕾由几十个洋葱状排列的<b>味觉受体细胞</b>组成，顶端延伸出微绒毛纤毛，负责抓取呈味分子并产生电信号。",
+                cameraPos: { x: 0.6, y: 0.22, z: 0.35 }
+            },
+            molecules: {
+                title: "呈味化学分子 (Flavor Molecules)",
+                tag: "超微观视角",
+                description: "高倍微观视角：<br>• <b>酸 ($H^+$) / 咸 ($Na^+$)</b>：微小离子直接透过离子通道。<br>• <b>甜 / 鲜 / 苦</b>：呈味分子与细胞膜上的 G 蛋白偶联受体结合，触发神经信号。",
+                cameraPos: { x: 0.6, y: 0.28, z: 0.18 }
+            },
+            nerve: {
+                title: "味觉神经与大脑 (Nerves & Brain)",
+                tag: "信号传导",
+                description: "味觉细胞受刺激后，将神经冲动沿基部的神经纤维传导至大脑孤束核，最终到达初级味觉皮层合成味觉。",
+                cameraPos: { x: -2.0, y: 1.8, z: 4.0 }
+            }
+        };
+
+        // --- Three.js Setup ---
+        let scene, camera, renderer, controls;
+        let isAnimating = true;
+        const interactiveObjects = [];
+
+        let moleculesGroup = new THREE.Group();
+        let tasteBudGroup = new THREE.Group();
+        let signalPulses = [];
+        let tongueMesh, papillaeGroup, brainGroup, nerveGroup;
+
+        // Opacity/Visibility Threshold distance for Level-of-Detail (LOD)
+        const MICRO_DISTANCE_THRESHOLD = 2.2; 
+
+        function init3D() {
+            try {
+                const container = document.getElementById('webgl-container');
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0b0f17);
+                scene.fog = new THREE.FogExp2(0x0b0f17, 0.05);
+
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
+                camera.position.set(0, 3.2, 5.5);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                container.appendChild(renderer.domElement);
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.maxDistance = 10;
+                controls.minDistance = 0.08; // Allow super zoom into the bud
+                controls.maxPolarAngle = Math.PI / 2;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffe4e6, 0.8);
+                scene.add(ambientLight);
+
+                const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
+                mainLight.position.set(3, 6, 4);
+                scene.add(mainLight);
+
+                const rimLight = new THREE.DirectionalLight(0xf43f5e, 0.6);
+                rimLight.position.set(-4, 2, -4);
+                scene.add(rimLight);
+
+                buildTasteSystemModel();
+
+                window.addEventListener('resize', onWindowResize);
+                renderer.domElement.addEventListener('click', onDocumentClick, false);
+                renderer.domElement.addEventListener('touchstart', onDocumentTouch, { passive: false });
+
+                animate();
+
+            } catch (err) {
+                console.error("3D Init Error: ", err);
+            }
+        }
+
+        function buildTasteSystemModel() {
+            const rootGroup = new THREE.Group();
+            scene.add(rootGroup);
+
+            // 1. Tongue Body (Macro)
+            const tongueGeo = new THREE.CylinderGeometry(2.2, 1.6, 0.8, 36, 12);
+            tongueGeo.scale(1, 0.6, 1.3);
+
+            const pos = tongueGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                let x = pos.getX(i);
+                let y = pos.getY(i);
+                let z = pos.getZ(i);
+
+                if (z > 0) y -= Math.pow(z / 2.5, 2) * 0.25;
+                if (y > 0) y -= Math.exp(-Math.pow(x * 1.2, 2)) * 0.15;
+                pos.setXYZ(i, x, y, z);
+            }
+            tongueGeo.computeVertexNormals();
+
+            const tongueMat = new THREE.MeshStandardMaterial({
+                color: 0xe11d48,
+                roughness: 0.5,
+                metalness: 0.05
+            });
+            tongueMesh = new THREE.Mesh(tongueGeo, tongueMat);
+            tongueMesh.position.set(0, -0.3, 0);
+            tongueMesh.userData = { id: 'tongue' };
+            rootGroup.add(tongueMesh);
+            interactiveObjects.push(tongueMesh);
+
+            // 2. Papillae (Macro/Meso)
+            papillaeGroup = new THREE.Group();
+            papillaeGroup.userData = { id: 'papilla' };
+            const papillaMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.4 });
+            const papillaGeo = new THREE.SphereGeometry(0.08, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.6);
+
+            for (let i = 0; i < 80; i++) {
+                const pMesh = new THREE.Mesh(papillaGeo, papillaMat);
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * 1.7;
+                const rx = Math.cos(angle) * r * 0.95;
+                const rz = Math.sin(angle) * r * 1.2;
+                const ry = 0.05 - (rz > 0 ? Math.pow(rz / 2.5, 2) * 0.25 : 0) - (Math.exp(-Math.pow(rx * 1.2, 2)) * 0.15);
+
+                pMesh.position.set(rx, ry, rz);
+                papillaeGroup.add(pMesh);
+            }
+            rootGroup.add(papillaeGroup);
+            interactiveObjects.push(papillaeGroup);
+
+            // 3. Microscopic Taste Bud & Inner Receptor Cells (Micro - Hidden by default at distance)
+            tasteBudGroup = new THREE.Group();
+            tasteBudGroup.position.set(0.6, 0.1, -0.2);
+            tasteBudGroup.userData = { id: 'tastebud' };
+
+            // Outer cellular sheath
+            const budOuterGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            budOuterGeo.scale(1, 1.2, 0.8);
+            const budOuterMat = new THREE.MeshStandardMaterial({
+                color: 0xfbcfe8,
+                transparent: true,
+                opacity: 0, // Controlled by LOD zoom
+                roughness: 0.2
+            });
+            const budOuter = new THREE.Mesh(budOuterGeo, budOuterMat);
+            tasteBudGroup.add(budOuter);
+
+            // Inner Receptor Cell filaments
+            const cellColors = [0x38bdf8, 0xc084fc, 0x34d399, 0xfacc15];
+            for (let i = 0; i < 10; i++) {
+                const cellGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8);
+                const cellMat = new THREE.MeshStandardMaterial({
+                    color: cellColors[i % cellColors.length],
+                    transparent: true,
+                    opacity: 0 // Controlled by LOD zoom
+                });
+                const cell = new THREE.Mesh(cellGeo, cellMat);
+                const angle = (i / 10) * Math.PI * 2;
+                cell.position.set(Math.cos(angle) * 0.06, 0, Math.sin(angle) * 0.06);
+                tasteBudGroup.add(cell);
+            }
+            rootGroup.add(tasteBudGroup);
+            interactiveObjects.push(tasteBudGroup);
+
+            // 4. Flavor Molecules (Micro - Hidden by default at distance)
+            moleculesGroup = new THREE.Group();
+            moleculesGroup.userData = { id: 'molecules' };
+
+            const molGeos = [
+                new THREE.DodecahedronGeometry(0.015),
+                new THREE.IcosahedronGeometry(0.012),
+                new THREE.TetrahedronGeometry(0.016)
+            ];
+            const molColors = [0xf43f5e, 0x38bdf8, 0xfacc15, 0x34d399];
+
+            for (let i = 0; i < 25; i++) {
+                const gIndex = i % molGeos.length;
+                const cIndex = i % molColors.length;
+                const mat = new THREE.MeshStandardMaterial({
+                    color: molColors[cIndex],
+                    emissive: molColors[cIndex],
+                    emissiveIntensity: 0.4,
+                    transparent: true,
+                    opacity: 0 // Controlled by LOD zoom
+                });
+                const mol = new THREE.Mesh(molGeos[gIndex], mat);
+
+                const baseAngle = Math.random() * Math.PI * 2;
+                const baseR = Math.random() * 0.15;
+                const initX = 0.6 + Math.cos(baseAngle) * baseR;
+                const initZ = -0.2 + Math.sin(baseAngle) * baseR;
+                const initY = 0.12 + Math.random() * 0.18;
+
+                mol.position.set(initX, initY, initZ);
+                mol.userData = {
+                    speedY: 0.0008 + Math.random() * 0.001,
+                    minY: 0.10,
+                    maxY: initY
+                };
+                moleculesGroup.add(mol);
+            }
+            rootGroup.add(moleculesGroup);
+            interactiveObjects.push(moleculesGroup);
+
+            // 5. Nerve Path
+            nerveGroup = new THREE.Group();
+            nerveGroup.userData = { id: 'nerve' };
+
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0.6, -0.1, -0.2),
+                new THREE.Vector3(0.2, -0.5, -0.8),
+                new THREE.Vector3(-0.8, -0.8, -1.5),
+                new THREE.Vector3(-1.8, 0.4, -2.2),
+                new THREE.Vector3(-2.0, 1.8, -2.0)
+            ]);
+
+            const tubeGeo = new THREE.TubeGeometry(curve, 24, 0.025, 6, false);
+            const tubeMat = new THREE.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x3730a3 });
+            const nerveLine = new THREE.Mesh(tubeGeo, tubeMat);
+            nerveGroup.add(nerveLine);
+
+            // 6. Brain Area
+            brainGroup = new THREE.Group();
+            brainGroup.position.set(-2.0, 1.9, -2.0);
+            brainGroup.userData = { id: 'nerve' };
+
+            const brainGeo = new THREE.IcosahedronGeometry(0.4, 1);
+            const brainMat = new THREE.MeshStandardMaterial({ color: 0xc084fc, wireframe: true });
+            brainGroup.add(new THREE.Mesh(brainGeo, brainMat));
+
+            rootGroup.add(nerveGroup);
+            rootGroup.add(brainGroup);
+            interactiveObjects.push(nerveGroup);
+
+            // Signal Pulses
+            for (let i = 0; i < 4; i++) {
+                const pulseGeo = new THREE.SphereGeometry(0.04, 6, 6);
+                const pulseMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+                pulse.userData = { progress: i * 0.25, curve: curve };
+                scene.add(pulse);
+                signalPulses.push(pulse);
+            }
+        }
+
+        // --- Dynamic LOD Zoom Update ---
+        function updateLODByDistance() {
+            if (!tasteBudGroup || !moleculesGroup) return;
+
+            // Target focal center for the microscopic taste bud
+            const targetMicroPos = new THREE.Vector3(0.6, 0.1, -0.2);
+            const dist = camera.position.distanceTo(targetMicroPos);
+
+            // Calculate opacity based on proximity (Fade-in when zooming in < 2.2)
+            let microOpacity = 0;
+            if (dist < MICRO_DISTANCE_THRESHOLD) {
+                microOpacity = (MICRO_DISTANCE_THRESHOLD - dist) / (MICRO_DISTANCE_THRESHOLD - 0.3);
+                microOpacity = Math.min(Math.max(microOpacity, 0), 1);
+            }
+
+            // Update Taste Bud Cells opacity
+            tasteBudGroup.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    child.material.opacity = child.material.rawOpacity ? child.material.rawOpacity * microOpacity : microOpacity * 0.8;
+                }
+            });
+
+            // Update Molecules opacity
+            moleculesGroup.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    child.material.opacity = microOpacity;
+                }
+            });
+
+            // UI Mode text update
+            const indicator = document.getElementById('view-mode-indicator');
+            if (indicator) {
+                if (dist < 0.6) {
+                    indicator.innerText = "当前视角: 🧪 超微观呈味分子感应";
+                    indicator.className = "text-emerald-400 font-medium";
+                } else if (dist < MICRO_DISTANCE_THRESHOLD) {
+                    indicator.innerText = "当前视角: 🧫 微观味蕾与受体细胞";
+                    indicator.className = "text-purple-400 font-medium";
+                } else {
+                    indicator.innerText = "当前视角: 👅 宏观舌头全貌";
+                    indicator.className = "text-pink-400 font-medium";
+                }
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls) controls.update();
+
+            // Update LOD zoom visibility
+            updateLODByDistance();
+
+            if (isAnimating) {
+                // Molecule drift inside saliva micro-space
+                moleculesGroup.children.forEach(mol => {
+                    mol.position.y -= mol.userData.speedY;
+                    mol.rotation.x += 0.02;
+                    if (mol.position.y < mol.userData.minY) {
+                        mol.position.y = mol.userData.maxY;
+                    }
+                });
+
+                // Neural impulses
+                signalPulses.forEach(pulse => {
+                    pulse.userData.progress += 0.008;
+                    if (pulse.userData.progress > 1) pulse.userData.progress = 0;
+                    const point = pulse.userData.curve.getPoint(pulse.userData.progress);
+                    pulse.position.copy(point);
+                });
+
+                // Brain rotation
+                if (brainGroup) brainGroup.rotation.y += 0.01;
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // --- Interaction ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function handleSelection(event) {
+            const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+            const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+
+            if (!clientX || !clientY) return;
+
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects, true);
+
+            if (intersects.length > 0) {
+                let target = intersects[0].object;
+                while (target.parent && !target.userData.id && target.parent !== scene) {
+                    target = target.parent;
+                }
+                const partId = target.userData.id || 'tongue';
+                showAnatomyInfo(partId);
+            }
+        }
+
+        function onDocumentClick(event) { handleSelection(event); }
+        function onDocumentTouch(event) { if (event.touches.length === 1) handleSelection(event); }
+
+        function showAnatomyInfo(partId) {
+            const data = anatomyData[partId];
+            if (!data) return;
+
+            document.getElementById('part-title').innerText = data.title;
+            document.getElementById('part-tag').innerText = data.tag;
+            document.getElementById('part-content').innerHTML = `<p>${data.description}</p>`;
+
+            if (data.cameraPos) {
+                // Focus camera target specifically to micro spot if zooming into micro view
+                if (partId === 'tastebud' || partId === 'molecules') {
+                    controls.target.set(0.6, 0.15, -0.2);
+                } else {
+                    controls.target.set(0, 0, 0);
+                }
+                moveCameraTo(data.cameraPos.x, data.cameraPos.y, data.cameraPos.z);
+            }
+
+            openDrawer();
+        }
+
+        function moveCameraTo(x, y, z) {
+            const targetPos = new THREE.Vector3(x, y, z);
+            const startPos = camera.position.clone();
+            const duration = 800;
+            const startTime = performance.now();
+
+            function animateCamera(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = progress * (2 - progress);
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                if (controls) controls.update();
+
+                if (progress < 1) requestAnimationFrame(animateCamera);
+            }
+            requestAnimationFrame(animateCamera);
+        }
+
+        // --- Panel Controls ---
+        const drawer = document.getElementById('info-drawer');
+        const toggleDrawerBtn = document.getElementById('btn-toggle-drawer');
+        const drawerIcon = document.getElementById('drawer-icon');
+        const drawerText = document.getElementById('drawer-text');
+        let isDrawerOpen = true;
+
+        function openDrawer() {
+            drawer.style.transform = 'translateY(0)';
+            drawerIcon.className = 'fa-solid fa-chevron-down';
+            drawerText.innerText = '收起面板';
+            isDrawerOpen = true;
+        }
+
+        function closeDrawer() {
+            drawer.style.transform = 'translateY(calc(100% - 10px))';
+            drawerIcon.className = 'fa-solid fa-chevron-up';
+            drawerText.innerText = '展开功能面板';
+            isDrawerOpen = false;
+        }
+
+        toggleDrawerBtn.addEventListener('click', () => {
+            if (isDrawerOpen) closeDrawer();
+            else openDrawer();
+        });
+
+        // Animation toggle
+        const toggleAnimBtn = document.getElementById('btn-toggle-anim');
+        const animIcon = document.getElementById('anim-icon');
+        const animText = document.getElementById('anim-text');
+
+        toggleAnimBtn.addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            if (isAnimating) {
+                animIcon.className = 'fa-solid fa-pause';
+                animText.innerText = '暂停动画';
+            } else {
+                animIcon.className = 'fa-solid fa-play';
+                animText.innerText = '播放动画';
+            }
+        });
+
+        // Reset Camera
+        document.getElementById('btn-reset-cam').addEventListener('click', () => {
+            controls.target.set(0, 0, 0);
+            moveCameraTo(0, 3.2, 5.5);
+        });
+
+        // Preset View Buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget.getAttribute('data-target');
+                showAnatomyInfo(target);
+            });
+        });
+
+        function onWindowResize() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Start
+        window.addEventListener('DOMContentLoaded', () => {
+            init3D();
+            showAnatomyInfo('tongue');
+        });
+    </script>
+</body>
+</html>
+
