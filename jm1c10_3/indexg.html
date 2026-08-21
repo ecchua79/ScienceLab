@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>味觉是如何形成的？| 初一科学 第10章 感知</title>
+<meta name="author" content="蔡逸众 ecchua79 峇株吧辖华仁中学">
+<meta name="generator" content="峇株吧辖华仁中学蔡逸众制作">
+<!-- 峇株吧辖华仁中学蔡逸众制作 Chinese High School, Batu Pahat -->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+:root{
+  --bg-deep:#070a12;
+  --bg-panel:#0e1420;
+  --line:rgba(148,163,184,0.14);
+  --ink:#e7ecf5;
+  --ink-dim:#8b96ad;
+  --tongue:#e8768e;
+  --signal:#38bdf8;
+  --pore:#fbbf24;
+  --sour:#a3e635;
+  --sweet:#fb7185;
+  --bitter:#a78bfa;
+  --salty:#38bdf8;
+  --umami:#fb923c;
+  --spicy:#ef4444;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg-deep);color:var(--ink);font-family:'Noto Sans SC',sans-serif;overflow:hidden;height:100%;overscroll-behavior:none;}
+.font-display{font-family:'Space Grotesk','Noto Sans SC',sans-serif;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.35);border-radius:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+#app{position:fixed;inset:0;display:flex;flex-direction:column;height:100dvh;width:100vw;}
+
+/* ---------- HERO ---------- */
+#hero{
+  flex:0 0 auto;
+  padding:14px 18px 10px;
+  background:linear-gradient(180deg, rgba(14,20,32,0.98) 0%, rgba(14,20,32,0.85) 100%);
+  border-bottom:1px solid var(--line);
+  position:relative;
+  z-index:20;
+  transition:padding 0.3s ease, max-height 0.3s ease;
+}
+#hero.hero-compact{padding:8px 16px 6px;}
+#hero .eyebrow{font-size:0.62rem;letter-spacing:0.18em;color:#7dd3fc;text-transform:uppercase;font-weight:600;}
+#hero h1{font-size:1.05rem;font-weight:900;margin:2px 0 0;line-height:1.25;letter-spacing:0.01em;}
+#hero h1 .accent{color:var(--pore);}
+#hero .question{font-size:0.72rem;color:var(--ink-dim);margin-top:3px;font-weight:400;}
+#hero .watermark-line{
+  font-size:0.55rem;
+  color:rgba(56,189,248,0.18);
+  margin-top:4px;
+  /* 华仁中学蔡逸众制作 */
+  letter-spacing:0.03em;
+  user-select:none;
+  pointer-events:none;
+}
+#hero-toggle{
+  position:absolute;right:10px;top:10px;
+  width:26px;height:26px;border-radius:8px;
+  background:rgba(148,163,184,0.08);border:1px solid var(--line);
+  color:var(--ink-dim);display:flex;align-items:center;justify-content:center;
+  font-size:0.7rem;cursor:pointer;
+}
+
+/* ---------- MAIN SHELL ---------- */
+#shell{flex:1 1 auto;display:flex;min-height:0;position:relative;}
+#shell.landscape{flex-direction:row;}
+#shell.portrait{flex-direction:column;}
+
+#canvas-wrap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:radial-gradient(ellipse at 50% 30%, #0c1220 0%, #05070c 75%);}
+#three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+
+/* caption chip shown on hotspot select */
+#caption{
+  position:absolute;left:50%;bottom:14px;transform:translate(-50%,0);
+  max-width:min(92%,520px);
+  background:rgba(10,14,22,0.88);border:1px solid var(--line);backdrop-filter:blur(8px);
+  border-radius:14px;padding:9px 14px;
+  opacity:0;pointer-events:none;transition:opacity 0.25s ease, bottom 0.25s ease;
+  z-index:15;
+}
+#caption.show{opacity:1;}
+#caption .cap-title{font-weight:700;font-size:0.82rem;color:var(--pore);}
+#caption .cap-title span{color:var(--ink-dim);font-weight:400;font-size:0.68rem;margin-left:4px;}
+#caption .cap-desc{font-size:0.72rem;color:var(--ink-dim);margin-top:2px;line-height:1.4;}
+
+/* top-left legend / loading */
+#loading{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg-deep);z-index:50;gap:10px;
+}
+#loading .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(56,189,248,0.18);border-top-color:#38bdf8;animation:spin 0.9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading p{font-size:0.72rem;color:var(--ink-dim);}
+
+/* ---------- CONTROL BAR (over canvas) ---------- */
+#controlbar{
+  position:absolute;left:10px;top:10px;right:10px;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;
+  z-index:14;pointer-events:none;
+}
+#controlbar > *{pointer-events:auto;}
+.ctrl-btn{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(10,14,22,0.78);border:1px solid var(--line);backdrop-filter:blur(6px);
+  color:var(--ink);font-size:0.68rem;font-weight:500;
+  padding:7px 11px;border-radius:10px;cursor:pointer;user-select:none;
+  transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space:nowrap;
+}
+.ctrl-btn:active{transform:scale(0.96);}
+.ctrl-btn:hover{border-color:rgba(56,189,248,0.5);}
+.ctrl-btn.active{background:rgba(56,189,248,0.16);border-color:#38bdf8;color:#7dd3fc;}
+.ctrl-btn i{font-size:0.72rem;}
+.ctrl-group{display:flex;gap:6px;}
+.spacer-flex{flex:1;}
+
+/* taste buttons row */
+#tastebar{
+  position:absolute;left:10px;right:10px;bottom:14px;
+  display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+  z-index:14;pointer-events:none;
+}
+#tastebar.hidden-caption{ }
+#tastebar > *{pointer-events:auto;}
+.taste-btn{
+  width:52px;height:52px;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(10,14,22,0.82);border:1.5px solid var(--line);backdrop-filter:blur(6px);
+  cursor:pointer;transition:transform 0.15s, border-color 0.15s, box-shadow 0.2s;
+  gap:2px;
+}
+.taste-btn:active{transform:scale(0.92);}
+.taste-btn .tb-dot{width:9px;height:9px;border-radius:50%;}
+.taste-btn .tb-label{font-size:0.62rem;color:var(--ink-dim);font-weight:600;}
+.taste-btn[data-taste="sour"] .tb-dot{background:var(--sour);}
+.taste-btn[data-taste="sweet"] .tb-dot{background:var(--sweet);}
+.taste-btn[data-taste="bitter"] .tb-dot{background:var(--bitter);}
+.taste-btn[data-taste="salty"] .tb-dot{background:var(--salty);}
+.taste-btn[data-taste="umami"] .tb-dot{background:var(--umami);}
+.taste-btn[data-taste="spicy"] .tb-dot{background:var(--spicy);}
+.taste-btn.firing{box-shadow:0 0 0 3px rgba(255,255,255,0.08), 0 0 18px currentColor;}
+/* 峇株吧辖蔡逸众制作 */
+.taste-btn[data-taste="sour"].firing{border-color:var(--sour);}
+.taste-btn[data-taste="sweet"].firing{border-color:var(--sweet);}
+.taste-btn[data-taste="bitter"].firing{border-color:var(--bitter);}
+.taste-btn[data-taste="salty"].firing{border-color:var(--salty);}
+.taste-btn[data-taste="umami"].firing{border-color:var(--umami);}
+.taste-btn[data-taste="spicy"].firing{border-color:var(--spicy);}
+
+/* ---------- PANEL (drawer) ---------- */
+#panel{
+  flex:0 0 auto;background:var(--bg-panel);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;
+  transition:width 0.32s cubic-bezier(.4,0,.2,1), height 0.32s cubic-bezier(.4,0,.2,1);
+  z-index:16;
+}
+.landscape #panel{width:340px;height:100%;border-top:none;}
+.landscape #panel.collapsed{width:0;overflow:hidden;border-left:none;}
+.portrait #panel{width:100%;height:46vh;border-left:none;border-top:1px solid var(--line);}
+.portrait #panel.collapsed{height:0;overflow:hidden;border-top:none;}
+
+#panel-toggle{
+  position:absolute;z-index:17;
+  background:rgba(10,14,22,0.85);border:1px solid var(--line);backdrop-filter:blur(6px);
+  color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:right 0.32s cubic-bezier(.4,0,.2,1), bottom 0.32s cubic-bezier(.4,0,.2,1);
+}
+.landscape #panel-toggle{right:346px;top:50%;transform:translateY(-50%);width:22px;height:56px;border-radius:10px 0 0 10px;}
+.landscape #panel-toggle.collapsed{right:0;}
+.portrait #panel-toggle{bottom:46vh;left:50%;transform:translateX(-50%);width:56px;height:22px;border-radius:10px 10px 0 0;}
+.portrait #panel-toggle.collapsed{bottom:0;}
+
+/* Made by ecchua79 */
+#panel-inner{width:100%;height:100%;display:flex;flex-direction:column;min-width:340px;min-height:0;}
+.portrait #panel-inner{min-width:0;min-height:46vh;}
+
+#panel-tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto;overflow-x:auto;}
+.ptab{
+  flex:1;padding:10px 6px 9px;text-align:center;font-size:0.68rem;font-weight:600;color:var(--ink-dim);
+  cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.ptab.active{color:#7dd3fc;border-bottom-color:#38bdf8;}
+#panel-body{flex:1 1 auto;overflow-y:auto;padding:12px 14px 22px;}
+.ptab-page{display:none;}
+.ptab-page.active{display:block;}
+
+#step-track{
+  display:flex;align-items:center;flex-wrap:wrap;gap:2px;
+  margin-bottom:6px;
+}
+.step-chip{
+  display:flex;align-items:center;gap:5px;
+  font-size:0.64rem;color:var(--ink-dim);font-weight:600;
+  padding:5px 9px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(255,255,255,0.015);transition:border-color 0.2s, color 0.2s, background 0.2s;
+}
+.step-chip .step-num{
+  width:14px;height:14px;border-radius:50%;background:rgba(148,163,184,0.18);
+  display:flex;align-items:center;justify-content:center;font-size:0.55rem;flex:0 0 auto;
+}
+.step-chip.active{color:#7dd3fc;border-color:#38bdf8;background:rgba(56,189,248,0.1);}
+.step-chip.active .step-num{background:#38bdf8;color:#04121c;}
+.step-chip.done{color:var(--ink);}
+.step-arrow{color:var(--ink-dim);font-size:0.62rem;padding:0 2px;}
+#step-hint{
+  font-size:0.68rem;color:var(--ink-dim);line-height:1.5;
+  margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line);
+}
+
+.part-card{
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px;
+  cursor:pointer;transition:border-color 0.15s, background 0.15s;background:rgba(255,255,255,0.015);
+}
+.part-card:hover{border-color:rgba(56,189,248,0.4);}
+.part-card.selected{border-color:#38bdf8;background:rgba(56,189,248,0.08);}
+.part-card .pc-head{display:flex;align-items:center;gap:8px;}
+.part-card .pc-num{
+  width:22px;height:22px;border-radius:7px;background:rgba(148,163,184,0.12);
+  display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:700;color:var(--ink-dim);flex:0 0 auto;
+}
+.part-card .pc-title{font-weight:700;font-size:0.8rem;}
+.part-card .pc-title .en{font-weight:400;color:var(--ink-dim);font-size:0.65rem;margin-left:5px;}
+.part-card .pc-desc{font-size:0.72rem;color:var(--ink-dim);line-height:1.55;margin-top:5px;}
+
+.info-block{border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:10px;background:rgba(255,255,255,0.015);}
+.info-block h4{font-size:0.78rem;font-weight:700;margin:0 0 6px;color:#7dd3fc;display:flex;align-items:center;gap:6px;}
+.info-block p{font-size:0.72rem;color:var(--ink-dim);line-height:1.6;margin:0 0 6px;}
+.info-block ul{margin:0;padding-left:1.1em;font-size:0.72rem;color:var(--ink-dim);line-height:1.65;}
+.info-block li{margin-bottom:3px;}
+
+.taste-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.taste-card{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,0.015);}
+.taste-card .tc-dot{width:14px;height:14px;border-radius:50%;margin-bottom:6px;}
+.taste-card .tc-title{font-weight:700;font-size:0.78rem;}
+.taste-card .tc-desc{font-size:0.66rem;color:var(--ink-dim);line-height:1.5;margin-top:3px;}
+
+.myth-card{border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.06);border-radius:12px;padding:11px 12px;margin-bottom:10px;}
+.myth-card .myth-tag{font-size:0.62rem;font-weight:700;color:#f87171;letter-spacing:0.05em;}
+.myth-card p{font-size:0.72rem;color:var(--ink-dim);line-height:1.6;margin:5px 0 0;}
+.truth-card{border:1px solid rgba(52,211,153,0.35);background:rgba(52,211,153,0.06);border-radius:12px;padding:11px 12px;}
+.truth-card .truth-tag{font-size:0.62rem;font-weight:700;color:#34d399;letter-spacing:0.05em;}
+.truth-card p{font-size:0.72rem;color:var(--ink-dim);line-height:1.6;margin:5px 0 0;}
+
+.quiz-block{border:1px dashed rgba(148,163,184,0.35);border-radius:12px;padding:11px 12px;margin-top:12px;}
+.quiz-block .qb-tag{font-size:0.62rem;font-weight:700;color:var(--pore);letter-spacing:0.05em;}
+.quiz-block p{font-size:0.72rem;color:var(--ink);line-height:1.6;margin:5px 0 0;}
+
+@media (min-width:900px){
+  #hero h1{font-size:1.3rem;}
+  #hero .question{font-size:0.82rem;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="hero">
+    <button id="hero-toggle" title="收起/展开标题栏"><i class="fa-solid fa-chevron-up" id="hero-toggle-icon"></i></button>
+    <div class="eyebrow">初一科学 · 第10章 感知 · 10.3 味觉如何形成</div>
+    <h1>舌头是如何品尝<span class="accent">味道</span>的？<span style="font-family:'Space Grotesk';font-weight:400;color:#8b96ad;font-size:0.68rem;margin-left:6px;">3D Interactive Taste System</span></h1>
+    <div class="question">你知道舌头是如何品尝味道的吗？点击模型上的发光点，探索味觉形成的每一个环节。</div>
+    <div class="watermark-line">峇株吧辖华仁中学蔡逸众制作</div>
+  </div>
+
+  <div id="shell" class="landscape">
+
+    <div id="canvas-wrap">
+      <div id="loading"><div class="spinner"></div><p>正在构建味觉系统 3D 模型…</p></div>
+      <canvas id="three-canvas"></canvas>
+
+      <div id="controlbar">
+        <div class="ctrl-group">
+          <div class="ctrl-btn active" id="btn-play" title="播放/暂停所有动画"><i class="fa-solid fa-pause"></i><span id="btn-play-label">暂停动画</span></div>
+          <div class="ctrl-btn" id="btn-reset" title="重置视角与流程"><i class="fa-solid fa-rotate-left"></i><span>重置</span></div>
+          <div class="ctrl-btn" id="btn-rotate" title="自动环绕旋转"><i class="fa-solid fa-arrows-spin"></i><span>环绕</span></div>
+        </div>
+        <div class="spacer-flex"></div>
+        <div class="ctrl-group">
+          <div class="ctrl-btn" id="btn-view-overview" title="整体视角"><i class="fa-solid fa-tongue"></i><span>整体</span></div>
+          <div class="ctrl-btn" id="btn-view-zoom" title="味蕾放大视角"><i class="fa-solid fa-magnifying-glass"></i><span>放大味蕾</span></div>
+        </div>
+      </div>
+
+      <div id="tastebar">
+        <div class="taste-btn" data-taste="sour" title="酸"><div class="tb-dot"></div><div class="tb-label">酸</div></div>
+        <div class="taste-btn" data-taste="sweet" title="甜"><div class="tb-dot"></div><div class="tb-label">甜</div></div>
+        <div class="taste-btn" data-taste="bitter" title="苦"><div class="tb-dot"></div><div class="tb-label">苦</div></div>
+        <div class="taste-btn" data-taste="salty" title="咸"><div class="tb-dot"></div><div class="tb-label">咸</div></div>
+        <div class="taste-btn" data-taste="umami" title="鲜"><div class="tb-dot"></div><div class="tb-label">鲜</div></div>
+        <div class="taste-btn" data-taste="spicy" title="辣（不是味觉！）"><div class="tb-dot"></div><div class="tb-label">辣?</div></div>
+      </div>
+
+      <div id="caption">
+        <div class="cap-title" id="cap-title">部位名称<span id="cap-title-en">Part</span></div>
+        <div class="cap-desc" id="cap-desc">说明文字</div>
+      </div>
+    </div>
+
+    <button id="panel-toggle" title="收起/展开说明面板"><i class="fa-solid fa-chevron-right" id="panel-toggle-icon"></i></button>
+
+    <div id="panel">
+      <div id="panel-inner">
+        <div id="panel-tabs">
+          <div class="ptab active" data-tab="parts">结构与功能</div>
+          <div class="ptab" data-tab="tastes">五种基本味觉</div>
+          <div class="ptab" data-tab="myth">常见误区</div>
+          <div class="ptab" data-tab="disorder">味觉异常</div>
+        </div>
+        <div id="panel-body">
+
+          <div class="ptab-page active" id="page-parts">
+            <div id="parts-list"></div>
+          </div>
+
+          <div class="ptab-page" id="page-tastes">
+            <div class="info-block">
+              <h4><i class="fa-solid fa-circle-info"></i>五种基本味觉</h4>
+              <p>人体的味觉主要由酸、甜、苦、咸、鲜五种基本味道构成，其余味道都是由这五种基本味觉组合而成的。</p>
+            </div>
+            <div class="taste-grid" id="taste-grid"></div>
+            <div class="quiz-block">
+              <div class="qb-tag">⚠ 特别注意</div>
+              <p>辣味其实<b>不是</b>味觉的一种，而是属于<b>痛觉</b>！辣味是食物刺激口腔内的热感觉神经与痛觉神经所引起的灼热感，并不是透过味觉神经形成的感觉。点击左侧画面下方的「辣?」按钮，观察它走的是不同的神经路径。</p>
+            </div>
+          </div>
+
+          <div class="ptab-page" id="page-myth">
+            <div class="myth-card">
+              <div class="myth-tag">✕ 常见的错误观念</div>
+              <p>过去人们常常认为「舌头分区图」是对的——例如舌尖专门尝甜味、舌根专门尝苦味、舌头两侧专门尝酸味等等。</p>
+            </div>
+            <div class="truth-card" style="margin-top:10px;">
+              <div class="truth-tag">✓ 科学研究显示</div>
+              <p>味蕾分布于整个舌头表面，而且每一个味蕾中都含有能感受各种不同味道的味觉细胞。因此，舌头的每一个部分其实都能辨别酸、甜、苦、咸、鲜这五种基本味道，并没有明显的感受差异。</p>
+            </div>
+            <div class="info-block" style="margin-top:10px;">
+              <h4><i class="fa-solid fa-sliders"></i>真正会影响味觉敏感度的因素</h4>
+              <ul>
+                <li>食物的温度是否过高</li>
+                <li>味蕾的数量多寡</li>
+                <li>药物或疾病对味神经传导的干扰</li>
+              </ul>
+            </div>
+            <div class="info-block">
+              <h4><i class="fa-solid fa-wind"></i>味觉 + 嗅觉 = 食物的味道</h4>
+              <p>食物的味道其实是由味觉与嗅觉等多种感觉综合形成的。感冒鼻塞导致嗅觉受影响时，人们会觉得食物比较没有味道，就是这个原因。</p>
+            </div>
+          </div>
+
+          <div class="ptab-page" id="page-disorder">
+            <div class="info-block">
+              <h4><i class="fa-solid fa-triangle-exclamation"></i>味觉异常的常见原因</h4>
+              <ul>
+                <li><b>老化：</b>约40岁后味神经与嗅神经逐渐退化，唾液分泌减少，敏感度下降</li>
+                <li><b>药物副作用：</b>抗生素、降血压药、类固醇等可能阻碍味神经与嗅神经传导</li>
+                <li><b>酒精：</b>干扰维生素、叶酸的消化吸收，导致营养不良而降低敏感度</li>
+                <li><b>系统性疾病：</b>如糖尿病、肝硬化会减缓味神经传导与唾液生成</li>
+                <li><b>上呼吸道感染：</b>感冒、咽炎、鼻窦炎会影响味神经与嗅神经的运作</li>
+              </ul>
+            </div>
+            <div class="info-block">
+              <h4><i class="fa-solid fa-brain"></i>感觉最终在哪里形成？</h4>
+              <p>所有感觉器官产生的神经信号，最终都会传递到大脑皮层。大脑皮层含有丰富的神经细胞，不同区域分别负责处理不同的功能，若相应区域受损，就会影响对应的感觉功能。</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+//峇株吧辖蔡逸众制作
+(function(){
+'use strict';
+
+/* =========================================================
+   1. 内容数据 —— 取自课本第10章 10.3 味觉如何形成
+   ========================================================= */
+const PARTS = [
+  { id:'tongue', title:'舌头', en:'Tongue', icon:'fa-solid fa-tongue',
+    desc:'舌头是味觉形成的主要感觉器官。食物在口腔内咀嚼时，成分被分离并溶解在唾液中，让食物粒子能更好地与舌头表面的味蕾接触。' },
+  { id:'papilla', title:'舌乳突', en:'Papilla', icon:'fa-solid fa-braille',
+    desc:'舌头表面布满许多细小的乳突状突起，味蕾就分布在这些舌乳突之中。研究显示味蕾分布于整个舌头，并没有特定"分区"。' },
+  { id:'tastebud', title:'味蕾', en:'Taste Bud', icon:'fa-solid fa-atom',
+    desc:'味蕾（taste bud）是洋葱状的微小结构，内含多个味觉细胞。每一个味蕾都能感受酸、甜、苦、咸、鲜五种基本味道。' },
+  { id:'receptor', title:'味觉细胞', en:'Taste Receptor Cell', icon:'fa-solid fa-braille',
+    desc:'味觉细胞（taste receptor cells）位于味蕾内，其末端特化出细小的味毛结构。每一个味觉细胞负责辨别其中一种基本味道。' },
+  { id:'hair', title:'味毛', en:'Taste Hair', icon:'fa-solid fa-wind',
+    desc:'味毛是味觉细胞末端特化的细小结构，与嗅觉细胞的嗅毛相似。味毛与食物粒子结合后，会刺激味觉细胞产生神经信号。结合的粒子越多，味觉越强烈。' },
+  { id:'pore', title:'味孔', en:'Taste Pore', icon:'fa-solid fa-circle-dot',
+    desc:'味孔是味蕾顶端与口腔相通的小孔，溶解在唾液中的食物粒子透过味孔进入，与内部的味毛结合。' },
+  { id:'nerve', title:'味神经', en:'Gustatory Nerve', icon:'fa-solid fa-bolt',
+    desc:'味觉细胞产生的神经信号，会透过味神经以类似电流的方式传递到大脑，这一段路径就是感觉形成过程中的"传递信号"环节。' },
+  { id:'brain', title:'大脑（味觉皮层）', en:'Gustatory Cortex', icon:'fa-solid fa-brain',
+    desc:'神经信号到达大脑皮层后，经分析处理才真正形成"味觉"。大脑皮层不同区域负责处理不同的感觉功能，这就是"形成感觉"的最后一步。' }
+];
+
+const TASTES = [
+  { id:'sour',  cn:'酸', en:'Sour',  color:'var(--sour)',   note:'常见于柑橘类水果、醋等食物中。' },
+  { id:'sweet', cn:'甜', en:'Sweet', color:'var(--sweet)',  note:'常见于糖分、水果等食物中，容易引起食欲。' },
+  { id:'bitter',cn:'苦', en:'Bitter',color:'var(--bitter)', note:'许多天然毒素带有苦味，苦味有助于避开危险食物。' },
+  { id:'salty', cn:'咸', en:'Salty', color:'var(--salty)',  note:'由食盐等矿物质引起，帮助调节体内电解质摄取。' },
+  { id:'umami', cn:'鲜', en:'Umami', color:'var(--umami)',  note:'常见于肉类、菇菌、酱油等食物中的鲜味。' }
+];
+
+const PROCESS_STEPS = [
+  { id:'receive', label:'接收刺激', hint:'食物粒子溶于唾液，透过味孔与味毛结合' },
+  { id:'generate', label:'产生信号', hint:'味觉细胞受刺激后产生神经信号' },
+  { id:'transmit', label:'传递信号', hint:'神经信号沿味神经传递到大脑' },
+  { id:'perceive', label:'形成感觉', hint:'大脑皮层分析信号，最终形成"味觉"' }
+];
+let currentProcessStep = -1;
+
+/* =========================================================
+   2. 基础 DOM 与状态
+   ========================================================= */
+const wrap = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('three-canvas');
+const loadingEl = document.getElementById('loading');
+const captionEl = document.getElementById('caption');
+const capTitle = document.getElementById('cap-title');
+const capTitleEn = document.getElementById('cap-title-en');
+const capDesc = document.getElementById('cap-desc');
+
+let state = {
+  playing:true,
+  autoRotate:false,
+  selectedPart:null,
+  activeTaste:null,
+  view:'overview'
+};
+
+/* =========================================================
+   3. Three.js 场景搭建
+   ========================================================= */
+let renderer, scene, camera, controls;
+let clock = new THREE.Clock();
+let hotspots = [];      // {id, mesh, worldPos}
+let animQueue = [];     // 正在运行的动画任务
+//华仁中学蔡逸众制作
+let pulsers = [];       // 需要持续脉动的对象 {mesh, base, speed}
+
+function initScene(){
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x05070c, 0.045);
+
+  camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  camera.position.set(0.2, 2.6, 6.4);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 2.5;
+  controls.maxDistance = 12;
+  controls.maxPolarAngle = Math.PI * 0.86;
+  controls.target.set(0, 0.6, 0);
+  controls.update();
+
+  // 灯光
+  scene.add(new THREE.AmbientLight(0x404860, 1.1));
+  const key = new THREE.DirectionalLight(0xfff2e0, 1.4);
+  key.position.set(3.5, 5, 4);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x38bdf8, 0.5);
+  rim.position.set(-4, 2, -3);
+  scene.add(rim);
+  const warm = new THREE.PointLight(0xffb27d, 0.6, 8);
+  warm.position.set(0, 1.2, 2.2);
+  scene.add(warm);
+
+  buildTongueGroup();
+  buildTasteBudZoom();
+  buildNervePathway();
+  buildBrain();
+  buildSpicyPathway();
+  buildGround();
+}
+
+function buildGround(){
+  const g = new THREE.CircleGeometry(9, 48);
+  const m = new THREE.MeshStandardMaterial({ color:0x0a0e18, roughness:1, metalness:0 });
+  const mesh = new THREE.Mesh(g, m);
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.y = -1.35;
+  scene.add(mesh);
+}
+
+/* ---------- 3.1 舌头 ---------- */
+let tongueGroup, tongueMesh, papillaeInst;
+
+function tongueDisplace(p){
+  // p: THREE.Vector3 单位球坐标, 原地修改后返回
+  let x=p.x, y=p.y, z=p.z;
+  // 舌尖收拢 (z>0 方向为舌尖)
+  const tip = THREE.MathUtils.clamp((z-0.25)/0.75, 0, 1);
+  const taper = 1 - 0.62*Math.pow(tip,1.6);
+  x *= taper; y *= taper;
+  // 舌根变平 (z<0 方向变宽平)
+  if(z < -0.55){ x *= 1.12; }
+  z = Math.max(z, -0.92);
+  // 底部压平
+  if(y < 0) y *= 0.42;
+  // 顶部中央凹槽
+  if(y > 0){
+    const groove = 0.16*Math.exp(-(x*x)/0.05);
+    y -= groove*Math.min(1,y*3);
+  }
+  return new THREE.Vector3(x,y,z);
+}
+
+function buildTongueGroup(){
+  tongueGroup = new THREE.Group();
+  tongueGroup.position.set(-0.4, -0.15, 0.6);
+  scene.add(tongueGroup);
+//峇株吧辖华仁中学蔡逸众制作
+
+  const seg = 56;
+  const sphere = new THREE.SphereGeometry(1, seg, seg/2);
+  const pos = sphere.attributes.position;
+  const uv = sphere.attributes.uv;
+  const v = new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos, i);
+    const d = tongueDisplace(v);
+    pos.setXYZ(i, d.x, d.y, d.z);
+  }
+  sphere.computeVertexNormals();
+
+  // 拉伸比例：宽 x, 厚 y, 长 z
+  const scaleMat = new THREE.Matrix4().makeScale(0.95, 0.62, 1.55);
+  sphere.applyMatrix4(scaleMat);
+  sphere.computeVertexNormals();
+
+  const mat = new THREE.MeshPhysicalMaterial({
+    color:0xe8768e, roughness:0.55, clearcoat:0.35, clearcoatRoughness:0.4
+  });
+  tongueMesh = new THREE.Mesh(sphere, mat);
+  tongueMesh.castShadow = false;
+  tongueGroup.add(tongueMesh);
+
+  // 舌乳突：用 raycaster 在舌面上找点
+  buildPapillae();
+
+  // 舌头整体 hotspot（放在舌根中段）
+  addHotspot('tongue', new THREE.Vector3(0,0.05,0.15).add(tongueGroup.position), 0xffffff, 0.075);
+  // 舌乳突 hotspot（放在舌尖偏上）
+  addHotspot('papilla', new THREE.Vector3(0.28,0.28,0.95).add(tongueGroup.position), 0xfbbf24, 0.055);
+}
+
+function buildPapillae(){
+  const count = 130;
+  const coneGeo = new THREE.ConeGeometry(0.028, 0.055, 6);
+  coneGeo.translate(0, 0.0275, 0);
+  const mat = new THREE.MeshStandardMaterial({ color:0xf3a4b6, roughness:0.6 });
+  papillaeInst = new THREE.InstancedMesh(coneGeo, mat, count);
+
+  const raycaster = new THREE.Raycaster();
+  const dummy = new THREE.Object3D();
+  let placed = 0, attempts = 0;
+  while(placed < count && attempts < count*12){
+    attempts++;
+    const lx = THREE.MathUtils.randFloatSpread(1.5);   // local x range approx
+    const lz = THREE.MathUtils.randFloat(-1.25, 1.25);
+    const origin = new THREE.Vector3(lx, 2, lz);
+    raycaster.set(origin, new THREE.Vector3(0,-1,0));
+    const hit = raycaster.intersectObject(tongueMesh, false)[0];
+    if(hit && hit.point.y > -0.05){
+      dummy.position.copy(hit.point);
+      const n = hit.face.normal.clone().transformDirection(tongueMesh.matrixWorld);
+      dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), n);
+      const s = THREE.MathUtils.randFloat(0.7,1.2);
+      dummy.scale.set(s,s,s);
+      dummy.updateMatrix();
+      papillaeInst.setMatrixAt(placed, dummy.matrix);
+      placed++;
+    }
+  }
+  papillaeInst.count = placed;
+  papillaeInst.instanceMatrix.needsUpdate = true;
+  tongueGroup.add(papillaeInst);
+}
+
+/* ---------- 3.2 味蕾放大结构 ---------- */
+let zoomGroup, tastePore, tasteHairsGroup, receptorCells=[], zoomPulseTarget;
+
+function buildTasteBudZoom(){
+  zoomGroup = new THREE.Group();
+  zoomGroup.position.set(1.85, 1.55, -0.15);
+  zoomGroup.scale.set(1.05,1.05,1.05);
+  scene.add(zoomGroup);
+
+  // 连接指示线（从舌面到放大结构）
+  const from = new THREE.Vector3(0.28,0.28,0.95).add(tongueGroup.position);
+  const to = new THREE.Vector3(0,-0.55,0).add(zoomGroup.position);
+  const curve = new THREE.CatmullRomCurve3([
+    from,
+    from.clone().lerp(to,0.4).add(new THREE.Vector3(0.3,0.4,-0.1)),
+    to
+  ]);
+  const lineGeo = new THREE.TubeGeometry(curve, 24, 0.006, 6, false);
+  const lineMat = new THREE.MeshBasicMaterial({ color:0xfbbf24, transparent:true, opacity:0.35 });
+  scene.add(new THREE.Mesh(lineGeo, lineMat));
+
+  // 上皮切面（半剖圆柱，露出内部）
+  const epi = new THREE.CylinderGeometry(0.62, 0.66, 0.75, 28, 1, false, 0, Math.PI*1.5);
+  const epiMat = new THREE.MeshStandardMaterial({ color:0xd88a99, roughness:0.7, side:THREE.DoubleSide });
+  const epiMesh = new THREE.Mesh(epi, epiMat);
+  epiMesh.rotation.y = Math.PI*0.25;
+  zoomGroup.add(epiMesh);
+
+  // 味蕾本体（洋葱状，用 Lathe）
+  const pts = [];
+  for(let i=0;i<=10;i++){
+    const t = i/10;
+//Made by ecchua79
+    const r = 0.30*Math.sin(Math.PI*t) * (1-0.15*t) + 0.02;
+    const y = -0.32 + t*0.62;
+    pts.push(new THREE.Vector2(Math.max(r,0.015), y));
+  }
+  const budGeo = new THREE.LatheGeometry(pts, 24);
+  const budMat = new THREE.MeshPhysicalMaterial({ color:0xfff1e6, roughness:0.45, clearcoat:0.25, clearcoatRoughness:0.5 });
+  const budMesh = new THREE.Mesh(budGeo, budMat);
+  zoomGroup.add(budMesh);
+
+  // 味孔（顶端小环）
+  const poreGeo = new THREE.TorusGeometry(0.045, 0.012, 10, 20);
+  const poreMat = new THREE.MeshStandardMaterial({ color:0xfbbf24, emissive:0xfbbf24, emissiveIntensity:0.4, roughness:0.4 });
+  tastePore = new THREE.Mesh(poreGeo, poreMat);
+  tastePore.position.y = 0.315;
+  tastePore.rotation.x = Math.PI/2;
+  zoomGroup.add(tastePore);
+
+  // 味觉细胞（多条锥形，放射状汇聚向顶部）+ 味毛
+  tasteHairsGroup = new THREE.Group();
+  zoomGroup.add(tasteHairsGroup);
+  const cellCount = 7;
+  const cellColors = [0xf87171,0xfb923c,0xfacc15,0x38bdf8,0xa78bfa,0x34d399,0xfb7185];
+  for(let i=0;i<cellCount;i++){
+    const ang = (i/cellCount)*Math.PI*2;
+    const rad = 0.11;
+    const baseX = Math.cos(ang)*rad, baseZ = Math.sin(ang)*rad;
+    const cellGeo = new THREE.CylinderGeometry(0.028,0.045,0.55,8);
+    const cellMat = new THREE.MeshStandardMaterial({ color:cellColors[i], emissive:cellColors[i], emissiveIntensity:0.12, roughness:0.55 });
+    const cell = new THREE.Mesh(cellGeo, cellMat);
+    cell.position.set(baseX*0.35, -0.05, baseZ*0.35);
+    cell.lookAt(0, 0.32, 0);
+    cell.rotateX(Math.PI/2);
+    zoomGroup.add(cell);
+    receptorCells.push(cell);
+
+    // 味毛：细小圆柱，从细胞顶端伸向味孔
+    const hairGeo = new THREE.CylinderGeometry(0.004,0.004,0.13,4);
+    const hairMat = new THREE.MeshBasicMaterial({ color:0xfff7ec });
+    const hair = new THREE.Mesh(hairGeo, hairMat);
+    hair.position.set(baseX*0.12, 0.28, baseZ*0.12);
+    tasteHairsGroup.add(hair);
+  }
+
+  // 味神经纤维（从味蕾底部往下延伸，稍后与主神经连接）
+  const nerveStubCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,-0.32,0),
+    new THREE.Vector3(0.05,-0.55,0.05),
+    new THREE.Vector3(0,-0.78,0)
+  ]);
+  const nerveStubGeo = new THREE.TubeGeometry(nerveStubCurve, 12, 0.02, 6, false);
+  const nerveStubMat = new THREE.MeshStandardMaterial({ color:0xfacc65, emissive:0xfacc15, emissiveIntensity:0.15 });
+  zoomGroup.add(new THREE.Mesh(nerveStubGeo, nerveStubMat));
+
+  addHotspot('tastebud', new THREE.Vector3(0,0.05,0).add(zoomGroup.position), 0xfff1e6, 0.08);
+  addHotspot('receptor', new THREE.Vector3(0.11,-0.05,0).add(zoomGroup.position), 0xf87171, 0.045);
+  addHotspot('hair', new THREE.Vector3(0.04,0.34,0.04).add(zoomGroup.position), 0xfff7ec, 0.035);
+  addHotspot('pore', new THREE.Vector3(0,0.34,0).add(zoomGroup.position), 0xfbbf24, 0.05);
+
+  zoomPulseTarget = tastePore;
+}
+
+/* ---------- 3.3 味神经通路 ---------- */
+let nerveCurve, nerveTube, nerveTravelStart, nerveTravelEnd;
+
+function buildNervePathway(){
+  nerveTravelStart = new THREE.Vector3(0,-0.78,0).add(zoomGroup.position);
+  const brainTarget = new THREE.Vector3(-1.1, 3.0, -1.6);
+  nerveTravelEnd = brainTarget;
+
+  nerveCurve = new THREE.CatmullRomCurve3([
+    nerveTravelStart,
+    nerveTravelStart.clone().add(new THREE.Vector3(-0.6,0.3,-0.6)),
+    new THREE.Vector3(-0.9,1.4,-1.0),
+    new THREE.Vector3(-1.05,2.3,-1.4),
+    brainTarget
+  ]);
+  const geo = new THREE.TubeGeometry(nerveCurve, 60, 0.028, 8, false);
+  const mat = new THREE.MeshStandardMaterial({ color:0xd4a24a, roughness:0.6, emissive:0xd4a24a, emissiveIntensity:0.08 });
+  nerveTube = new THREE.Mesh(geo, mat);
+  scene.add(nerveTube);
+
+  addHotspot('nerve', nerveCurve.getPointAt(0.5), 0x38bdf8, 0.05);
+}
+
+/* ---------- 3.4 大脑 ---------- */
+let brainGroup, cortexPatch;
+
+function buildBrain(){
+  brainGroup = new THREE.Group();
+  brainGroup.position.set(-1.1, 3.0, -1.6);
+  scene.add(brainGroup);
+
+  const geo = new THREE.IcosahedronGeometry(0.85, 3);
+  const pos = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos,i);
+    const n = Math.sin(v.x*9)*Math.cos(v.y*7)*Math.sin(v.z*8);
+    const len = v.length();
+    v.setLength(len + n*0.05);
+//峇株吧辖蔡逸众制作
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({ color:0xb9a8d9, roughness:0.75, metalness:0.05 });
+  const brainMesh = new THREE.Mesh(geo, mat);
+  brainMesh.scale.set(1.05,0.92,1.0);
+  brainGroup.add(brainMesh);
+
+  // 味觉皮层高亮区块
+  const patchGeo = new THREE.SphereGeometry(0.16, 16, 16);
+  const patchMat = new THREE.MeshStandardMaterial({ color:0x38bdf8, emissive:0x38bdf8, emissiveIntensity:0.25, roughness:0.4 });
+  cortexPatch = new THREE.Mesh(patchGeo, patchMat);
+  cortexPatch.position.set(0.55, 0.05, 0.55);
+  brainGroup.add(cortexPatch);
+
+  // 痛觉/温度感受区（供辣味演示使用）
+  const painPatchGeo = new THREE.SphereGeometry(0.14, 16, 16);
+  const painPatchMat = new THREE.MeshStandardMaterial({ color:0xef4444, emissive:0xef4444, emissiveIntensity:0.15, roughness:0.4 });
+  painCortexPatch = new THREE.Mesh(painPatchGeo, painPatchMat);
+  painCortexPatch.position.set(-0.5, 0.35, 0.35);
+  brainGroup.add(painCortexPatch);
+
+  addHotspot('brain', new THREE.Vector3(0,0,0.7).add(brainGroup.position), 0x7dd3fc, 0.09);
+}
+let painCortexPatch;
+
+/* ---------- 3.5 辣味（痛觉）独立路径 ---------- */
+let spicyCurve, spicyTube;
+function buildSpicyPathway(){
+  const start = new THREE.Vector3(0.5,0.25,1.05).add(tongueGroup.position);
+  spicyCurve = new THREE.CatmullRomCurve3([
+    start,
+    new THREE.Vector3(0.2,0.9,0.4),
+    new THREE.Vector3(-0.4,1.9,-0.6),
+    new THREE.Vector3(-0.9,2.7,-1.3),
+    new THREE.Vector3(-1.1,3.0,-1.6)
+  ]);
+  const geo = new THREE.TubeGeometry(spicyCurve, 50, 0.022, 8, false);
+  const mat = new THREE.MeshStandardMaterial({ color:0xef4444, roughness:0.6, emissive:0xef4444, emissiveIntensity:0.12, transparent:true, opacity:0.55 });
+  spicyTube = new THREE.Mesh(geo, mat);
+  scene.add(spicyTube);
+}
+
+/* =========================================================
+   4. Hotspot 交互（发光标记 + 射线检测）
+   ========================================================= */
+function addHotspot(id, worldPos, color, radius){
+  const geo = new THREE.SphereGeometry(radius, 16, 16);
+  const mat = new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.85 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(worldPos);
+  mesh.userData.partId = id;
+  scene.add(mesh);
+
+  const ringGeo = new THREE.RingGeometry(radius*1.5, radius*1.9, 24);
+  const ringMat = new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.4, side:THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(worldPos);
+  scene.add(ring);
+
+  hotspots.push({ id, mesh, ring, baseScale:1, phase:Math.random()*Math.PI*2 });
+}
+
+const raycaster = new THREE.Raycaster();
+const pointerV = new THREE.Vector2();
+
+function onPointerDown(ev){
+  const rect = canvas.getBoundingClientRect();
+  const cx = (ev.touches ? ev.touches[0].clientX : ev.clientX);
+  const cy = (ev.touches ? ev.touches[0].clientY : ev.clientY);
+  pointerV.x = ((cx-rect.left)/rect.width)*2-1;
+  pointerV.y = -((cy-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointerV, camera);
+  const meshes = hotspots.map(h=>h.mesh);
+  const hit = raycaster.intersectObjects(meshes, false)[0];
+  if(hit){
+    selectPart(hit.object.userData.partId, true);
+  }
+}
+canvas.addEventListener('pointerdown', onPointerDown);
+
+const PART_TO_STEP = { tongue:0, papilla:0, tastebud:0, hair:0, pore:0, receptor:1, nerve:2, brain:3 };
+
+function updateProcessIndicator(stepIndex){
+  currentProcessStep = stepIndex;
+  document.querySelectorAll('.step-chip').forEach((el,i)=>{
+    el.classList.toggle('active', i===stepIndex);
+    el.classList.toggle('done', i<stepIndex);
+  });
+  const hintEl = document.getElementById('step-hint');
+  if(hintEl && stepIndex>=0){ hintEl.textContent = PROCESS_STEPS[stepIndex].hint; }
+}
+
+function selectPart(id, flyCamera){
+  state.selectedPart = id;
+  const info = PARTS.find(p=>p.id===id);
+  if(!info) return;
+  capTitle.textContent = info.title;
+  capTitleEn.textContent = info.en;
+  capDesc.textContent = info.desc;
+  captionEl.classList.add('show');
+  clearTimeout(selectPart._t);
+  selectPart._t = setTimeout(()=>captionEl.classList.remove('show'), 4200);
+
+  document.querySelectorAll('.part-card').forEach(c=>{
+    c.classList.toggle('selected', c.dataset.id===id);
+  });
+  const card = document.querySelector('.part-card[data-id="'+id+'"]');
+  if(card){
+    document.querySelector('.ptab[data-tab="parts"]').click();
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+//华仁中学蔡逸众制作
+  if(id in PART_TO_STEP){ updateProcessIndicator(PART_TO_STEP[id]); }
+
+  if(flyCamera){
+    flyToPart(id);
+  }
+}
+
+function flyToPart(id){
+  const targets = {
+    tongue:   { pos:[0.2,1.6,4.4], look:[-0.4,0,0.6] },
+    papilla:  { pos:[0.4,1.2,3.0], look:[-0.1,0.1,1.1] },
+    tastebud: { pos:[2.4,1.9,1.6], look:[1.85,1.55,-0.15] },
+    receptor: { pos:[2.3,1.7,1.3], look:[1.9,1.5,-0.15] },
+    hair:     { pos:[2.15,1.95,1.2], look:[1.85,1.85,-0.15] },
+    pore:     { pos:[2.1,1.95,1.2], look:[1.85,1.85,-0.15] },
+    nerve:    { pos:[-0.6,2.2,2.4], look:[-0.9,1.8,-1.0] },
+    brain:    { pos:[-0.6,3.2,1.0], look:[-1.1,3.0,-1.6] }
+  };
+  const t = targets[id];
+  if(!t) return;
+  gsap.to(camera.position, { x:t.pos[0], y:t.pos[1], z:t.pos[2], duration:1.1, ease:'power2.inOut' });
+  gsap.to(controls.target, { x:t.look[0], y:t.look[1], z:t.look[2], duration:1.1, ease:'power2.inOut' });
+}
+
+/* =========================================================
+   5. 味觉信号动画（食物 -> 味孔 -> 味神经 -> 大脑）
+   ========================================================= */
+const tasteColorMap = { sour:0xa3e635, sweet:0xfb7185, bitter:0xa78bfa, salty:0x38bdf8, umami:0xfb923c };
+
+function fireTasteSignal(tasteId){
+  const color = tasteColorMap[tasteId] || 0x38bdf8;
+
+  updateProcessIndicator(0);
+
+  // 食物粒子：出现在味孔上方，落下并"溶解"
+  const foodGeo = new THREE.SphereGeometry(0.05, 12, 12);
+  const foodMat = new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:0.5 });
+  const food = new THREE.Mesh(foodGeo, foodMat);
+  const poreWorld = new THREE.Vector3();
+  tastePore.getWorldPosition(poreWorld);
+  food.position.copy(poreWorld).add(new THREE.Vector3(0,0.35,0));
+  scene.add(food);
+
+  const tl = gsap.timeline();
+  tl.to(food.position, { y:poreWorld.y+0.02, duration:0.5, ease:'power1.in' });
+  tl.to(food.scale, { x:0.2,y:0.2,z:0.2, duration:0.35, ease:'power1.out',
+    onStart:()=>{ pulseMesh(tastePore, 1.6, 0.35); receptorCells.forEach(c=>pulseEmissive(c,0.9,0.4)); updateProcessIndicator(1); },
+    onComplete:()=>{ scene.remove(food); food.geometry.dispose(); food.material.dispose(); }
+  }, '-=0.05');
+
+  // 信号粒子：沿神经通路传递到大脑
+  tl.call(()=>{
+    updateProcessIndicator(2);
+    travelAlongCurve(nerveCurve, color, 1.7, ()=>{
+      pulseMesh(cortexPatch, 1.8, 0.5);
+      pulseEmissive(cortexPatch, 0.9, 0.5);
+      updateProcessIndicator(3);
+    });
+  });
+}
+
+function fireSpicySignal(){
+  const color = 0xef4444;
+  const start = spicyCurve.getPointAt(0);
+  const food = new THREE.Mesh(new THREE.SphereGeometry(0.055,12,12), new THREE.MeshStandardMaterial({color, emissive:color, emissiveIntensity:0.6}));
+  food.position.copy(start).add(new THREE.Vector3(0,0.3,0));
+  scene.add(food);
+  gsap.to(food.position, { y:start.y, duration:0.4, ease:'power1.in', onComplete:()=>{
+    scene.remove(food); food.geometry.dispose(); food.material.dispose();
+    travelAlongCurve(spicyCurve, color, 1.5, ()=>{
+      pulseMesh(painCortexPatch, 1.8, 0.5);
+      pulseEmissive(painCortexPatch, 0.7, 0.5);
+    });
+  }});
+}
+
+function travelAlongCurve(curve, color, duration, onArrive){
+  const geo = new THREE.SphereGeometry(0.045, 12, 12);
+  const mat = new THREE.MeshBasicMaterial({ color });
+  const particle = new THREE.Mesh(geo, mat);
+  const glow = new THREE.PointLight(color, 1.2, 1.2);
+  particle.add(glow);
+  scene.add(particle);
+  const obj = { t:0 };
+  const tween = gsap.to(obj, {
+    t:1, duration, ease:'power1.inOut',
+    onUpdate:()=>{
+      if(!state.playing){ tween.pause(); return; }
+      const p = curve.getPointAt(Math.min(obj.t,0.999));
+      particle.position.copy(p);
+    },
+    onComplete:()=>{
+      scene.remove(particle); geo.dispose(); mat.dispose();
+      if(onArrive) onArrive();
+    }
+  });
+  animQueue.push(tween);
+}
+
+function pulseMesh(mesh, targetScale, duration){
+  gsap.fromTo(mesh.scale, { x:1,y:1,z:1 }, { x:targetScale,y:targetScale,z:targetScale, duration:duration/2, yoyo:true, repeat:1, ease:'sine.inOut' });
+}
+function pulseEmissive(mesh, targetIntensity, duration){
+  if(!mesh.material || mesh.material.emissiveIntensity===undefined) return;
+  const base = mesh.material.emissiveIntensity;
+  gsap.fromTo(mesh.material, { emissiveIntensity:base }, { emissiveIntensity:targetIntensity, duration:duration/2, yoyo:true, repeat:1, ease:'sine.inOut',
+    onComplete:()=>{ mesh.material.emissiveIntensity = base; } });
+//峇株吧辖华仁中学蔡逸众制作
+}
+
+/* =========================================================
+   6. 渲染循环 + 响应式尺寸（防止移动端 GPU 崩溃）
+   ========================================================= */
+function resizeRendererToDisplaySize(){
+  const width = wrap.clientWidth;
+  const height = wrap.clientHeight;
+  if(width<=0||height<=0) return;
+  if(canvas.dataset.bw == width && canvas.dataset.bh == height) return;
+  canvas.dataset.bw = width;
+  canvas.dataset.bh = height;
+  renderer.setSize(width, height, false);
+  camera.aspect = width/height;
+  camera.updateProjectionMatrix();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  resizeRendererToDisplaySize();
+  const dt = clock.getDelta();
+
+  if(state.playing){
+    controls.autoRotate = state.autoRotate;
+    controls.autoRotateSpeed = 0.6;
+    // 味毛轻微摆动
+    if(tasteHairsGroup){
+      const t = clock.elapsedTime;
+      tasteHairsGroup.children.forEach((h,i)=>{ h.rotation.z = Math.sin(t*2+i)*0.12; });
+    }
+    // hotspot 呼吸光效
+    hotspots.forEach(h=>{
+      const s = 1 + Math.sin(clock.elapsedTime*2.2 + h.phase)*0.12;
+      h.ring.scale.set(s,s,s);
+    });
+  } else {
+    controls.autoRotate = false;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* =========================================================
+   7. 面板内容渲染
+   ========================================================= */
+function renderPartsList(){
+  const list = document.getElementById('parts-list');
+  list.innerHTML =
+    '<div id="step-track">'+
+      PROCESS_STEPS.map((s,i)=>'<div class="step-chip" data-step="'+i+'"><span class="step-num">'+(i+1)+'</span>'+s.label+'</div>').join('<div class="step-arrow">→</div>')+
+    '</div>'+
+    '<div id="step-hint">点击模型上的发光点，或点击下方部位卡片，查看味觉形成的完整流程。</div>'+
+    PARTS.map((p,i)=>(
+    '<div class="part-card" data-id="'+p.id+'">'+
+      '<div class="pc-head">'+
+        '<div class="pc-num">'+(i+1)+'</div>'+
+        '<div><div class="pc-title">'+p.title+'<span class="en">'+p.en+'</span></div></div>'+
+      '</div>'+
+      '<div class="pc-desc">'+p.desc+'</div>'+
+    '</div>'
+  )).join('');
+  list.querySelectorAll('.part-card').forEach(card=>{
+    card.addEventListener('click', ()=>selectPart(card.dataset.id, true));
+  });
+}
+
+function renderTasteGrid(){
+  const grid = document.getElementById('taste-grid');
+  grid.innerHTML = TASTES.map(t=>(
+    '<div class="taste-card">'+
+      '<div class="tc-dot" style="background:'+t.color+'"></div>'+
+      '<div class="tc-title">'+t.cn+' <span style="font-weight:400;color:var(--ink-dim);font-size:0.62rem;">'+t.en+'</span></div>'+
+      '<div class="tc-desc">'+t.note+'</div>'+
+    '</div>'
+  )).join('');
+}
+
+/* =========================================================
+   8. UI 事件绑定
+   ========================================================= */
+function initUI(){
+  renderPartsList();
+  renderTasteGrid();
+
+  // 面板 tab 切换
+  document.querySelectorAll('.ptab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.ptab-page').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('page-'+tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // 面板收起/展开
+  const panel = document.getElementById('panel');
+  const panelToggle = document.getElementById('panel-toggle');
+  const panelToggleIcon = document.getElementById('panel-toggle-icon');
+  panelToggle.addEventListener('click', ()=>{
+    const collapsed = panel.classList.toggle('collapsed');
+    panelToggle.classList.toggle('collapsed', collapsed);
+    const isLandscape = document.getElementById('shell').classList.contains('landscape');
+    panelToggleIcon.className = collapsed
+      ? (isLandscape ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-up')
+      : (isLandscape ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-down');
+//Made by ecchua79
+  });
+
+  // 标题栏收起/展开
+  const hero = document.getElementById('hero');
+  const heroToggle = document.getElementById('hero-toggle');
+  const heroToggleIcon = document.getElementById('hero-toggle-icon');
+  heroToggle.addEventListener('click', ()=>{
+    const compact = hero.classList.toggle('hero-compact');
+    heroToggleIcon.className = compact ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+    document.querySelectorAll('#hero h1,#hero .question,#hero .watermark-line,#hero .eyebrow').forEach(el=>{
+      el.style.display = compact ? 'none' : '';
+    });
+  });
+
+  // 播放/暂停
+  const btnPlay = document.getElementById('btn-play');
+  btnPlay.addEventListener('click', ()=>{
+    state.playing = !state.playing;
+    btnPlay.classList.toggle('active', state.playing);
+    document.getElementById('btn-play-label').textContent = state.playing ? '暂停动画' : '播放动画';
+    btnPlay.querySelector('i').className = state.playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+    if(state.playing){ animQueue.forEach(t=>t.resume && t.resume()); }
+  });
+
+  // 重置
+  document.getElementById('btn-reset').addEventListener('click', ()=>{
+    gsap.to(camera.position, { x:0.2, y:2.6, z:6.4, duration:1, ease:'power2.inOut' });
+    gsap.to(controls.target, { x:0, y:0.6, z:0, duration:1, ease:'power2.inOut' });
+    state.selectedPart = null;
+    document.querySelectorAll('.part-card').forEach(c=>c.classList.remove('selected'));
+    document.querySelectorAll('.taste-btn').forEach(b=>b.classList.remove('firing'));
+    captionEl.classList.remove('show');
+    updateProcessIndicator(-1);
+  });
+
+  // 自动环绕
+  const btnRotate = document.getElementById('btn-rotate');
+  btnRotate.addEventListener('click', ()=>{
+    state.autoRotate = !state.autoRotate;
+    btnRotate.classList.toggle('active', state.autoRotate);
+  });
+
+  // 预设视角
+  document.getElementById('btn-view-overview').addEventListener('click', ()=>{
+    gsap.to(camera.position, { x:0.2, y:2.6, z:6.4, duration:1.1, ease:'power2.inOut' });
+    gsap.to(controls.target, { x:0, y:0.6, z:0, duration:1.1, ease:'power2.inOut' });
+  });
+  document.getElementById('btn-view-zoom').addEventListener('click', ()=>{
+    flyToPart('tastebud');
+  });
+
+  // 五种基本味觉按钮
+  document.querySelectorAll('.taste-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const taste = btn.dataset.taste;
+      btn.classList.add('firing');
+      setTimeout(()=>btn.classList.remove('firing'), 1900);
+      if(taste === 'spicy'){
+        capTitle.textContent = '辣？其实是痛觉！';
+        capTitleEn.textContent = 'Not a taste';
+        capDesc.textContent = '辣味是热感觉神经与痛觉神经引起的灼热感，走的是与味觉不同的神经路径，最终到达大脑不同的区域。';
+        captionEl.classList.add('show');
+        clearTimeout(selectPart._t2);
+        selectPart._t2 = setTimeout(()=>captionEl.classList.remove('show'), 4200);
+        fireSpicySignal();
+      } else {
+        selectPart('tastebud', false);
+        fireTasteSignal(taste);
+      }
+    });
+  });
+}
+
+/* =========================================================
+   9. 响应式布局：横屏 / 竖屏
+   ========================================================= */
+function updateOrientationClass(){
+  const shell = document.getElementById('shell');
+  const isLandscape = window.innerWidth >= window.innerHeight;
+  shell.classList.toggle('landscape', isLandscape);
+  shell.classList.toggle('portrait', !isLandscape);
+  const icon = document.getElementById('panel-toggle-icon');
+  const panel = document.getElementById('panel');
+  const collapsed = panel.classList.contains('collapsed');
+  icon.className = collapsed
+    ? (isLandscape ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-up')
+    : (isLandscape ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-down');
+}
+window.addEventListener('resize', updateOrientationClass);
+window.addEventListener('orientationchange', updateOrientationClass);
+
+/* =========================================================
+   10. 启动
+   ========================================================= */
+function boot(){
+  try{
+    initScene();
+    initUI();
+    updateOrientationClass();
+    animate();
+    setTimeout(()=>{ loadingEl.style.opacity='0'; loadingEl.style.transition='opacity 0.4s'; setTimeout(()=>loadingEl.style.display='none', 420); }, 500);
+  } catch(err){
+    console.error('模型初始化失败:', err);
+    loadingEl.innerHTML = '<div style="text-align:center;padding:0 24px;">'+
+      '<i class="fa-solid fa-triangle-exclamation" style="font-size:1.6rem;color:#f87171;"></i>'+
+      '<p style="margin-top:10px;color:#e7ecf5;font-size:0.8rem;">3D 模型加载失败，请检查网络连接后刷新页面重试。</p>'+
+      '<p style="margin-top:6px;color:#8b96ad;font-size:0.65rem;">错误信息：'+(err && err.message ? err.message : err)+'</p>'+
+      '</div>';
+  }
+}
+
+window.addEventListener('error', function(e){
+  if(loadingEl && loadingEl.style.display !== 'none'){
+    console.error('页面错误:', e.message);
+  }
+});
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+console.log('%c峇株吧辖华仁中学蔡逸众制作 (ecchua79)', 'color:#38bdf8;font-weight:bold;');
+
+})();
+</script>
+</body>
+</html>
