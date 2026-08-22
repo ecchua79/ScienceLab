@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>真实星空数据可视化 - 完整星表细节版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #03030c;
+            color: white;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* 玻璃拟态 UI */
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15); 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3); 
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 防盗版水印样式：低调，与底色接近 */
+        .watermark-footer {
+            position: fixed;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: rgba(30, 35, 60, 0.85);
+            letter-spacing: 0.05em;
+            z-index: 1;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* 可收起侧边栏 */
+        #side-panel {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.35s ease;
+            transform-origin: top left;
+        }
+        #side-panel.collapsed {
+            transform: translateX(-110%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 展开/收起按钮 */
+        #panel-toggle {
+            position: fixed;
+            top: 68px;
+            left: 16px;
+            z-index: 50;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: background 0.2s, border-color 0.2s, left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #panel-toggle:hover {
+            background: rgba(30, 40, 80, 0.95);
+            border-color: rgba(100, 140, 255, 0.4);
+        }
+        /* 面板展开时按钮跟随移动（桌面端） */
+        @media (min-width: 768px) {
+            #panel-toggle.open {
+                left: calc(24rem + 32px);
+            }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-500/30">
+
+    <!-- 画布层 -->
+    <div id="canvas-container">
+        <canvas id="starCanvas"></canvas>
+    </div>
+
+    <!-- 左上角标题区 -->
+    <div id="header-title" style="
+        position: fixed;
+        top: 0; left: 0;
+        z-index: 40;
+        padding: 14px 18px 10px 18px;
+        pointer-events: none;
+        user-select: none;
+    ">
+        <div style="font-size: 18px; font-weight: 700; letter-spacing: 0.08em;
+                    background: linear-gradient(90deg, #93c5fd, #a5b4fc);
+                    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                    background-clip: text; line-height: 1.2;">
+            常见星座一览
+        </div>
+        <div style="font-size: 9.5px; color: rgba(148,163,184,0.45); margin-top: 3px; letter-spacing: 0.04em;">
+            峇株吧辖华仁中学蔡逸众制作
+        </div>
+    </div>
+
+    <!-- 展开/收起按钮（始终可见） -->
+    <button id="panel-toggle" title="展开/收起面板">
+        <svg id="icon-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="rgba(150,180,255,0.9)" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="rgba(150,180,255,0.9)" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" style="display:none">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+    </button>
+
+    <!-- UI 控制层 -->
+    <div class="absolute inset-0 z-10 pointer-events-none">
+
+        <!-- 侧边面板（可收起） -->
+        <div id="side-panel" class="collapsed absolute top-0 left-0 h-full pointer-events-auto p-4 md:p-6 md:w-96 flex flex-col gap-4 max-h-screen" style="width: min(85vw, 24rem);">
+            <div class="glass-panel rounded-2xl p-5 shadow-2xl flex-shrink-0" style="margin-top: 124px;">
+                <h1 class="text-2xl font-bold mb-1 tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300">
+                    高清星空投影
+                </h1>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                    包含了大量暗星（3.0至5.5等星）与多分支精细连线。<br>
+                    赤经/赤纬系 → 0~1 归一化平面 (带跨零度修正)<br>
+                    视星等 → 半径，光谱型 → 色温
+                </p>
+                <!-- //峇株吧辖华仁中学蔡逸众制作 -->
+
+                <!-- 控制开关区域 -->
+                <div class="flex items-center justify-between p-3 mb-4 rounded-xl bg-slate-900/50 border border-white/5">
+                    <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        星座连线骨架
+                    </span>
+                    <button id="toggle-lines-btn" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-blue-600">
+                        <span id="toggle-switch-dot" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5"></span>
+                    </button>
+                </div>
+
+                <!-- 星座列表 (已按日期排序) -->
+                <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1" id="nav-buttons">
+                    <!-- 按钮由 JS 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 星座详情面板 -->
+            <div id="info-panel" class="glass-panel rounded-2xl p-5 shadow-2xl flex-1 overflow-y-auto hidden fade-in">
+                <div class="flex justify-between items-start mb-3">
+                    <h2 id="info-title" class="text-xl font-bold text-blue-200"></h2>
+                    <span id="star-count-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30"></span>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">天体数据解析 (按星等排序)</h3>
+                        <div id="stars-list" class="flex flex-col gap-1.5">
+                            <!-- 星星数据列表由 JS 生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 悬浮提示框 -->
+        <div id="tooltip" class="absolute pointer-events-none opacity-0 transition-opacity duration-200 glass-panel rounded-xl p-4 shadow-lg transform -translate-x-1/2 -translate-y-full mb-4 z-50 border-l-4 border-l-blue-400">
+            <h4 id="tt-name" class="font-bold text-lg text-white mb-1"></h4>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-300">
+                <span class="text-slate-500">赤经 (RA):</span> <span id="tt-ra" class="font-mono text-right"></span>
+                <span class="text-slate-500">赤纬 (Dec):</span> <span id="tt-dec" class="font-mono text-right"></span>
+                <span class="text-slate-500">视星等:</span> <span id="tt-mag" class="font-mono text-right text-yellow-300"></span>
+                <span class="text-slate-500">光谱型:</span> <span id="tt-spec" class="font-mono text-right"></span>
+                <span class="text-slate-500 mt-2">归一化 X:</span> <span id="tt-x" class="font-mono text-right mt-2 text-blue-300"></span>
+                <span class="text-slate-500">归一化 Y:</span> <span id="tt-y" class="font-mono text-right text-blue-300"></span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 底部低调版权标注 -->
+    <div class="watermark-footer">峇株吧辖华仁中学蔡逸众制作 &nbsp;|&nbsp; Made by ecchua79</div>
+
+<script>
+// //峇株吧辖蔡逸众制作
+/**
+ * 恒星光谱型 -> 颜色映射 (近似真实的黑体辐射颜色)
+ */
+const SPECTRAL_COLORS = {
+    'O': '#9bb0ff', // 蓝
+    'B': '#aabfff', // 蓝白
+    'A': '#ffffff', // 白
+    'F': '#fff4e8', // 黄白
+    'G': '#ffddb4', // 黄
+    'K': '#ffbd6f', // 橙
+    'M': '#ff923f'  // 红
+};
+
+/**
+ * 真实星座数据 (已按照观测时间/黄道顺序进行了严格重排)
+ * //华仁中学蔡逸众制作
+ */
+const CONSTELLATIONS = {
+    "aries": {
+        name: "♈ 白羊座 (Aries)",
+        date: "3.21 - 4.19",
+        stars: {
+            "alpha": { name: "娄宿三 (Hamal)", ra: 31.79, dec: 23.46, mag: 2.01, spec: "K" },
+            "beta": { name: "娄宿一 (Sheratan)", ra: 28.64, dec: 20.81, mag: 2.64, spec: "A" },
+            "gamma": { name: "娄宿二 (Mesarthim)", ra: 28.46, dec: 19.29, mag: 3.88, spec: "A" },
+            "delta": { name: "天阴四 (Botein)", ra: 48.39, dec: 19.85, mag: 4.35, spec: "K" },
+            "61_epsilon": { name: "左更五 (Epsilon Ari)", ra: 44.82, dec: 21.34, mag: 4.63, spec: "A" },
+            "39_eta": { name: "天阴一 (Eta Ari)", ra: 32.86, dec: 21.22, mag: 5.23, spec: "F" },
+            "theta": { name: "剃刀增一 (Theta Ari)", ra: 33.15, dec: 19.85, mag: 5.58, spec: "A" }
+        },
+        lines: [
+            ["alpha", "beta"], ["beta", "gamma"], 
+            ["alpha", "delta"], ["delta", "61_epsilon"],
+            ["beta", "39_eta"], ["39_eta", "theta"]
+        ]
+    },
+    "taurus": {
+        name: "♉ 金牛座 (Taurus)",
+        date: "4.20 - 5.20",
+        stars: {
+            "alpha": { name: "毕宿五 (Aldebaran)", ra: 68.98, dec: 16.51, mag: 0.87, spec: "K" },
+            "beta": { name: "五车五 (Elnath)", ra: 81.57, dec: 28.61, mag: 1.65, spec: "B" },
+            "zeta": { name: "天关 (Tianguan)", ra: 84.41, dec: 21.14, mag: 2.97, spec: "B" },
+            "epsilon": { name: "毕宿一 (Ain)", ra: 67.14, dec: 19.18, mag: 3.53, spec: "G" },
+            "gamma": { name: "毕宿四 (Hyadum I)", ra: 64.95, dec: 15.63, mag: 3.65, spec: "K" },
+            "delta1": { name: "毕宿三 (Delta 1 Tau)", ra: 65.73, dec: 17.54, mag: 3.77, spec: "G" },
+            "theta2": { name: "毕宿六 (Theta 2 Tau)", ra: 67.16, dec: 15.87, mag: 3.40, spec: "A" },
+            "lambda": { name: "毕宿八 (Lambda Tau)", ra: 60.18, dec: 12.49, mag: 3.41, spec: "B" },
+            "eta": { name: "昴宿六 (Alcyone)", ra: 56.87, dec: 24.11, mag: 2.85, spec: "B" },
+            "omicron": { name: "九魁增四 (Omicron Tau)", ra: 51.18, dec: 9.03, mag: 3.61, spec: "G" },
+            "xi": { name: "诸王四 (Xi Tau)", ra: 51.58, dec: 9.73, mag: 3.73, spec: "B" },
+            "tau": { name: "励兵四 (Tau Tau)", ra: 70.32, dec: 22.95, mag: 4.27, spec: "B" }
+        },
+        lines: [
+            ["gamma", "delta1"], ["delta1", "epsilon"], ["epsilon", "alpha"], ["alpha", "theta2"], ["theta2", "gamma"],
+            ["alpha", "zeta"], ["epsilon", "beta"],
+            ["gamma", "lambda"], ["lambda", "omicron"], ["omicron", "xi"],
+            ["epsilon", "tau"]
+        ]
+    },
+    "gemini": {
+        name: "♊ 双子座 (Gemini)",
+        date: "5.21 - 6.21",
+        stars: {
+            "alpha": { name: "北河二 (Castor)", ra: 113.65, dec: 31.89, mag: 1.58, spec: "A" },
+            "beta": { name: "北河三 (Pollux)", ra: 116.33, dec: 28.03, mag: 1.16, spec: "K" },
+            "gamma": { name: "井宿三 (Alhena)", ra: 99.43, dec: 16.40, mag: 1.93, spec: "A" },
+            "mu": { name: "井宿一 (Tejat)", ra: 95.72, dec: 22.51, mag: 2.87, spec: "M" },
+            "nu": { name: "井宿二 (Nu Gem)", ra: 98.15, dec: 20.21, mag: 4.13, spec: "A" },
+            "epsilon": { name: "井宿五 (Mebsuta)", ra: 100.98, dec: 25.13, mag: 3.06, spec: "G" },
+            "zeta": { name: "井宿七 (Mekbuda)", ra: 106.01, dec: 20.57, mag: 4.01, spec: "G" },
+            "delta": { name: "天樽二 (Wasat)", ra: 110.15, dec: 21.98, mag: 3.50, spec: "F" },
+            "tau": { name: "五诸侯四 (Tau Gem)", ra: 107.82, dec: 30.24, mag: 4.41, spec: "G" },
+            "theta": { name: "五诸侯一 (Theta Gem)", ra: 103.45, dec: 33.96, mag: 3.64, spec: "A" },
+            "eta": { name: "钺 (Propus)", ra: 93.73, dec: 22.50, mag: 3.31, spec: "M" },
+            "xi": { name: "井宿四 (Xi Gem)", ra: 102.31, dec: 12.90, mag: 3.35, spec: "F" }
+        },
+        lines: [
+            ["alpha", "theta"], ["theta", "tau"], ["tau", "epsilon"], ["epsilon", "zeta"], ["zeta", "gamma"],
+            ["beta", "delta"], ["delta", "zeta"], ["delta", "xi"],
+            ["epsilon", "mu"], ["mu", "eta"], ["mu", "nu"],
+            ["gamma", "xi"]
+        ]
+    },
+    "cancer": {
+        name: "♋ 巨蟹座 (Cancer)",
+        date: "6.22 - 7.22",
+        stars: {
+            "alpha": { name: "柳宿增三 (Acubens)", ra: 134.69, dec: 11.86, mag: 4.26, spec: "A" },
+            "beta": { name: "柳宿增十 (Tarf)", ra: 124.11, dec: 9.18, mag: 3.53, spec: "K" },
+            "delta": { name: "鬼宿四 (Asellus Aus.)", ra: 128.59, dec: 18.15, mag: 3.94, spec: "K" },
+            "gamma": { name: "鬼宿三 (Asellus Bor.)", ra: 128.32, dec: 21.47, mag: 4.66, spec: "A" },
+            "eta": { name: "鬼宿一 (Eta Cnc)", ra: 128.15, dec: 20.44, mag: 5.33, spec: "K" },
+            "theta": { name: "鬼宿二 (Theta Cnc)", ra: 127.92, dec: 18.09, mag: 5.30, spec: "K" },
+            "iota": { name: "爟二 (Iota Cnc)", ra: 131.08, dec: 28.76, mag: 4.03, spec: "G" },
+            "chi": { name: "爟一 (Chi Cnc)", ra: 124.08, dec: 27.24, mag: 5.12, spec: "F" }
+        },
+        lines: [
+            ["gamma", "delta"], ["delta", "alpha"], ["delta", "beta"],
+            ["gamma", "iota"], ["iota", "chi"],
+            ["gamma", "eta"], ["delta", "theta"]
+        ]
+    },
+    "leo": {
+        name: "♌ 狮子座 (Leo)",
+        date: "7.23 - 8.22",
+        stars: {
+            "alpha": { name: "轩辕十四 (Regulus)", ra: 152.09, dec: 11.97, mag: 1.36, spec: "B" },
+            "beta": { name: "五帝座一 (Denebola)", ra: 177.26, dec: 14.57, mag: 2.14, spec: "A" },
+            "gamma": { name: "轩辕十二 (Algieba)", ra: 154.90, dec: 19.84, mag: 2.01, spec: "K" },
+            "delta": { name: "太微右垣五 (Zosma)", ra: 168.53, dec: 20.52, mag: 2.56, spec: "A" },
+            "theta": { name: "太微右垣四 (Chertan)", ra: 168.53, dec: 15.43, mag: 3.33, spec: "A" },
+            "zeta": { name: "轩辕十一 (Adhafera)", ra: 154.21, dec: 23.42, mag: 3.43, spec: "F" },
+            "mu": { name: "轩辕十 (Rasalas)", ra: 148.12, dec: 26.01, mag: 3.88, spec: "K" },
+            "epsilon": { name: "轩辕九 (Epsilon Leo)", ra: 146.46, dec: 23.78, mag: 2.97, spec: "G" },
+            "eta": { name: "轩辕十三 (Eta Leo)", ra: 151.77, dec: 16.76, mag: 3.48, spec: "A" },
+            "omicron": { name: "轩辕十五 (Omicron Leo)", ra: 147.21, dec: 9.80, mag: 3.52, spec: "F" },
+            "rho": { name: "轩辕十六 (Rho Leo)", ra: 158.75, dec: 9.30, mag: 3.84, spec: "B" },
+            "iota": { name: "少微二 (Iota Leo)", ra: 174.68, dec: 10.53, mag: 4.00, spec: "F" },
+            "sigma": { name: "少微四 (Sigma Leo)", ra: 171.21, dec: 6.02, mag: 4.05, spec: "B" }
+        },
+        lines: [
+            ["epsilon", "mu"], ["mu", "zeta"], ["zeta", "gamma"], ["gamma", "eta"], ["eta", "alpha"],
+            ["gamma", "delta"], ["delta", "theta"], ["theta", "beta"], ["delta", "beta"],
+            ["alpha", "omicron"], ["alpha", "rho"],
+            ["theta", "iota"], ["iota", "sigma"]
+        ]
+    },
+    // //Made by ecchua79
+    "virgo": {
+        name: "♍ 室女座 (Virgo)",
+        date: "8.23 - 9.22",
+        stars: {
+            "alpha": { name: "角宿一 (Spica)", ra: 201.30, dec: -11.16, mag: 0.98, spec: "B" },
+            "beta": { name: "右执法 (Zavijava)", ra: 177.68, dec: 1.76, mag: 3.59, spec: "F" },
+            "gamma": { name: "太微左垣二 (Porrima)", ra: 190.44, dec: -1.45, mag: 2.74, spec: "F" },
+            "delta": { name: "太微左垣三 (Minelauva)", ra: 193.91, dec: 3.40, mag: 3.39, spec: "M" },
+            "epsilon": { name: "太微左垣四 (Vindemiatrix)", ra: 195.54, dec: 10.96, mag: 2.85, spec: "G" },
+            "zeta": { name: "角宿二 (Heze)", ra: 203.68, dec: -0.60, mag: 3.38, spec: "A" },
+            "eta": { name: "左执法 (Zaniah)", ra: 183.02, dec: 1.95, mag: 3.89, spec: "A" },
+            "theta": { name: "太微左垣一 (Theta Vir)", ra: 197.88, dec: -5.54, mag: 4.38, spec: "A" },
+            "iota": { name: "亢宿二 (Syrma)", ra: 213.91, dec: -5.99, mag: 4.07, spec: "F" },
+            "kappa": { name: "亢宿一 (Kappa Vir)", ra: 212.43, dec: -10.27, mag: 4.18, spec: "K" },
+            "tau": { name: "执履 (Tau Vir)", ra: 211.23, dec: 1.44, mag: 4.23, spec: "A" }
+        },
+        lines: [
+            ["beta", "eta"], ["eta", "gamma"], ["gamma", "delta"], ["delta", "epsilon"],
+            ["gamma", "theta"], ["theta", "alpha"],
+            ["alpha", "zeta"], ["zeta", "tau"],
+            ["alpha", "iota"], ["iota", "kappa"], ["zeta", "iota"]
+        ]
+    },
+    "libra": {
+        name: "♎ 天秤座 (Libra)",
+        date: "9.23 - 10.23",
+        stars: {
+            "alpha": { name: "氐宿一 (Zubenelgenubi)", ra: 222.72, dec: -16.04, mag: 2.75, spec: "A" },
+            "beta": { name: "氐宿四 (Zubeneschamali)", ra: 229.25, dec: -9.38, mag: 2.61, spec: "B" },
+            "gamma": { name: "氐宿三 (Zubenelhakrabi)", ra: 233.74, dec: -14.79, mag: 3.91, spec: "G" },
+            "sigma": { name: "折威七 (Brachium)", ra: 226.06, dec: -28.13, mag: 3.25, spec: "M" },
+            "tau": { name: "折威六 (Tau Lib)", ra: 228.02, dec: -29.77, mag: 3.66, spec: "B" },
+            "upsilon": { name: "氐宿二 (Upsilon Lib)", ra: 234.33, dec: -28.13, mag: 3.60, spec: "K" },
+            "iota": { name: "日一 (Iota Lib)", ra: 226.43, dec: -19.78, mag: 4.54, spec: "B" }
+        },
+        lines: [
+            ["alpha", "beta"], ["beta", "gamma"], ["gamma", "alpha"],
+            ["alpha", "sigma"], ["sigma", "tau"],
+            ["gamma", "upsilon"],
+            ["alpha", "iota"], ["iota", "beta"]
+        ]
+    },
+    "scorpius": {
+        name: "♏ 天蝎座 (Scorpius)",
+        date: "10.24 - 11.22",
+        stars: {
+            "alpha": { name: "心宿二 (Antares)", ra: 247.35, dec: -26.43, mag: 1.06, spec: "M" },
+            "beta": { name: "房宿四 (Acrab)", ra: 241.36, dec: -19.80, mag: 2.56, spec: "B" },
+            "delta": { name: "房宿三 (Dschubba)", ra: 240.08, dec: -22.62, mag: 2.29, spec: "B" },
+            "pi": { name: "房宿一 (Pi Sco)", ra: 239.50, dec: -26.11, mag: 2.89, spec: "B" },
+            "rho": { name: "房宿二 (Rho Sco)", ra: 239.11, dec: -29.21, mag: 3.87, spec: "B" },
+            "sigma": { name: "心宿一 (Alniyat)", ra: 245.25, dec: -25.59, mag: 2.90, spec: "B" },
+            "tau": { name: "心宿三 (Paikauhale)", ra: 248.88, dec: -28.21, mag: 2.82, spec: "B" },
+            "epsilon": { name: "尾宿二 (Wei)", ra: 252.50, dec: -34.29, mag: 2.29, spec: "K" },
+            "mu1": { name: "尾宿一 (Mu 1 Sco)", ra: 252.75, dec: -38.04, mag: 3.00, spec: "B" },
+            "zeta2": { name: "尾宿三 (Zeta 2 Sco)", ra: 253.50, dec: -42.36, mag: 3.62, spec: "K" },
+            "eta": { name: "尾宿四 (Eta Sco)", ra: 258.00, dec: -43.24, mag: 3.32, spec: "F" },
+            "theta": { name: "尾宿五 (Sargas)", ra: 264.32, dec: -42.99, mag: 1.86, spec: "F" },
+            "iota1": { name: "尾宿六 (Iota 1 Sco)", ra: 266.82, dec: -40.12, mag: 2.99, spec: "F" },
+            "kappa": { name: "尾宿七 (Kappa Sco)", ra: 265.50, dec: -39.03, mag: 2.39, spec: "B" },
+            "lambda": { name: "尾宿八 (Shaula)", ra: 263.40, dec: -37.10, mag: 1.62, spec: "B" },
+            "upsilon": { name: "尾宿九 (Lesath)", ra: 262.50, dec: -37.29, mag: 2.70, spec: "B" },
+            "omega1": { name: "钩阵一 (Omega 1 Sco)", ra: 241.72, dec: -20.67, mag: 3.93, spec: "B" }
+        },
+        lines: [
+            ["pi", "delta"], ["delta", "beta"], ["beta", "omega1"], ["pi", "rho"],
+            ["delta", "sigma"], ["sigma", "alpha"], ["alpha", "tau"],
+            ["tau", "epsilon"], ["epsilon", "mu1"], ["mu1", "zeta2"], ["zeta2", "eta"], ["eta", "theta"],
+            ["theta", "iota1"], ["iota1", "kappa"], ["kappa", "lambda"], ["lambda", "upsilon"]
+        ]
+    },
+    // //峇株吧辖华仁中学蔡逸众制作
+    "sagittarius": {
+        name: "♐ 人马座 (Sagittarius)",
+        date: "11.23 - 12.21",
+        stars: {
+            "epsilon": { name: "箕宿三 (Kaus Australis)", ra: 276.04, dec: -34.39, mag: 1.79, spec: "B" },
+            "sigma": { name: "斗宿四 (Nunki)", ra: 283.82, dec: -26.30, mag: 2.05, spec: "B" },
+            "zeta": { name: "斗宿六 (Ascella)", ra: 285.74, dec: -29.88, mag: 2.60, spec: "A" },
+            "delta": { name: "箕宿二 (Kaus Media)", ra: 275.25, dec: -29.83, mag: 2.72, spec: "K" },
+            "lambda": { name: "斗宿二 (Kaus Borealis)", ra: 276.99, dec: -25.42, mag: 2.82, spec: "K" },
+            "gamma2": { name: "箕宿一 (Alnasl)", ra: 271.45, dec: -30.43, mag: 2.98, spec: "K" },
+            "phi": { name: "斗宿三 (Phi Sgr)", ra: 281.39, dec: -26.99, mag: 3.17, spec: "B" },
+            "tau": { name: "斗宿五 (Tau Sgr)", ra: 286.35, dec: -27.67, mag: 3.32, spec: "K" },
+            "eta": { name: "箕宿四 (Eta Sgr)", ra: 273.82, dec: -36.75, mag: 3.11, spec: "M" },
+            "pi": { name: "建鼓一 (Pi Sgr)", ra: 287.41, dec: -21.02, mag: 2.89, spec: "F" },
+            "mu": { name: "斗宿一 (Mu Sgr)", ra: 273.34, dec: -21.06, mag: 3.84, spec: "B" }
+        },
+        lines: [
+            ["gamma2", "delta"], ["delta", "epsilon"], ["epsilon", "eta"], ["delta", "lambda"],
+            ["lambda", "phi"], ["phi", "sigma"], ["sigma", "tau"], ["tau", "zeta"], ["zeta", "phi"],
+            ["zeta", "epsilon"],
+            ["sigma", "pi"], ["lambda", "mu"]
+        ]
+    },
+    "capricornus": {
+        name: "♑ 摩羯座 (Capricornus)",
+        date: "12.22 - 1.19",
+        stars: {
+            "delta": { name: "垒壁阵四 (Deneb Algedi)", ra: 326.77, dec: -16.13, mag: 2.85, spec: "A" },
+            "beta": { name: "牛宿一 (Dabih)", ra: 305.29, dec: -14.78, mag: 3.05, spec: "F" },
+            "alpha2": { name: "牛宿二 (Algedi)", ra: 304.51, dec: -12.52, mag: 3.58, spec: "G" },
+            "omega": { name: "天田三 (Omega Cap)", ra: 312.98, dec: -26.92, mag: 4.12, spec: "M" },
+            "zeta": { name: "天田四 (Zeta Cap)", ra: 311.41, dec: -22.41, mag: 3.77, spec: "G" },
+            "theta": { name: "十二国一 (Theta Cap)", ra: 316.32, dec: -17.23, mag: 4.08, spec: "A" },
+            "gamma": { name: "垒壁阵三 (Nashira)", ra: 324.23, dec: -16.65, mag: 3.69, spec: "F" },
+            "psi": { name: "天田二 (Psi Cap)", ra: 307.24, dec: -25.26, mag: 4.13, spec: "F" }
+        },
+        lines: [
+            ["alpha2", "beta"], ["beta", "psi"], ["psi", "omega"], ["omega", "zeta"],
+            ["zeta", "theta"], ["theta", "gamma"], ["gamma", "delta"],
+            ["alpha2", "delta"]
+        ]
+    },
+    "aquarius": {
+        name: "♒ 宝瓶座 (Aquarius)",
+        date: "1.20 - 2.18",
+        stars: {
+            "alpha": { name: "危宿一 (Sadalmelik)", ra: 331.42, dec: -0.32, mag: 2.95, spec: "G" },
+            "beta": { name: "虚宿一 (Sadalsuud)", ra: 322.91, dec: -5.57, mag: 2.90, spec: "G" },
+            "delta": { name: "羽林军二十六 (Skat)", ra: 340.91, dec: -15.82, mag: 3.27, spec: "A" },
+            "gamma": { name: "坟墓二 (Sadachbia)", ra: 335.43, dec: -1.39, mag: 3.86, spec: "A" },
+            "zeta": { name: "坟墓一 (Zeta Aqr)", ra: 336.14, dec: -0.02, mag: 3.65, spec: "F" },
+            "eta": { name: "坟墓三 (Eta Aqr)", ra: 336.31, dec: -0.11, mag: 4.04, spec: "B" },
+            "theta": { name: "泣二 (Ancha)", ra: 333.15, dec: -7.82, mag: 4.17, spec: "G" },
+            "lambda": { name: "羽林军二十五 (Lambda Aqr)", ra: 343.12, dec: -7.58, mag: 3.73, spec: "M" },
+            "tau2": { name: "羽林军二十八 (Tau 2 Aqr)", ra: 342.14, dec: -13.58, mag: 4.05, spec: "K" }
+        },
+        lines: [
+            ["beta", "alpha"], ["alpha", "gamma"], ["gamma", "zeta"], ["zeta", "eta"],
+            ["alpha", "theta"], ["theta", "delta"],
+            ["gamma", "lambda"], ["lambda", "tau2"], ["tau2", "delta"]
+        ]
+    },
+    "pisces": {
+        name: "♓ 双鱼座 (Pisces)",
+        date: "2.19 - 3.20",
+        stars: {
+            "eta": { name: "右更二 (Alpherg)", ra: 22.86, dec: 15.35, mag: 3.62, spec: "G" },
+            "alpha": { name: "外屏七 (Alrescha)", ra: 30.52, dec: 2.76, mag: 3.82, spec: "A" },
+            "omega": { name: "霹雳五 (Omega Psc)", ra: 359.88, dec: 6.86, mag: 4.03, spec: "F" },
+            "gamma": { name: "霹雳二 (Gamma Psc)", ra: 342.85, dec: 3.28, mag: 3.70, spec: "G" },
+            "theta": { name: "霹雳三 (Theta Psc)", ra: 348.12, dec: 6.31, mag: 4.27, spec: "K" },
+            "iota": { name: "霹雳四 (Iota Psc)", ra: 353.44, dec: 5.62, mag: 4.13, spec: "F" },
+            "lambda": { name: "霹雳一 (Lambda Psc)", ra: 344.86, dec: 1.80, mag: 4.49, spec: "A" },
+            "kappa": { name: "奎宿十一 (Kappa Psc)", ra: 351.05, dec: 1.25, mag: 4.95, spec: "F" },
+            "omicron": { name: "外屏一 (Omicron Psc)", ra: 26.15, dec: 9.15, mag: 4.26, spec: "K" }
+        },
+        lines: [
+            ["gamma", "theta"], ["theta", "iota"], ["iota", "omega"], ["omega", "kappa"], ["kappa", "lambda"], ["lambda", "gamma"],
+            ["omega", "alpha"],
+            ["alpha", "omicron"], ["omicron", "eta"]
+        ]
+    },
+    "pegasus": {
+        name: "🍂 飞马座 (Pegasus)",
+        date: "秋季最佳",
+        stars: {
+            "alpha": { name: "室宿一 (Markab)", ra: 346.16, dec: 15.20, mag: 2.49, spec: "B" },
+            "beta": { name: "室宿二 (Scheat)", ra: 345.94, dec: 28.08, mag: 2.44, spec: "M" },
+            "gamma": { name: "壁宿一 (Algenib)", ra: 363.30, dec: 15.19, mag: 2.83, spec: "B" }, 
+            "delta": { name: "壁宿二 (Alpheratz)", ra: 362.00, dec: 29.09, mag: 2.07, spec: "B" },
+            "epsilon": { name: "危宿三 (Enif)", ra: 326.00, dec: 9.87, mag: 2.38, spec: "K" },
+            "zeta": { name: "雷电一 (Zeta Peg)", ra: 340.25, dec: 10.83, mag: 3.41, spec: "B" },
+            "theta": { name: "危宿二 (Theta Peg)", ra: 332.50, dec: 6.19, mag: 3.52, spec: "A" },
+            "eta": { name: "离宫二 (Eta Peg)", ra: 340.75, dec: 30.22, mag: 2.93, spec: "G" },
+            "pi2": { name: "离宫一 (Pi 2 Peg)", ra: 332.25, dec: 33.17, mag: 4.28, spec: "F" },
+            "mu": { name: "离宫四 (Mu Peg)", ra: 341.29, dec: 24.60, mag: 3.51, spec: "G" }
+        },
+        lines: [
+            ["alpha", "beta"], ["beta", "delta"], ["delta", "gamma"], ["gamma", "alpha"],
+            ["alpha", "zeta"], ["zeta", "theta"], ["theta", "epsilon"],
+            ["beta", "eta"], ["eta", "pi2"],
+            ["beta", "mu"]
+        ]
+    },
+    "orion": {
+        name: "❄️ 猎户座 (Orion)",
+        date: "冬季最佳",
+        stars: {
+            "alpha": { name: "参宿四 (Betelgeuse)", ra: 88.79, dec: 7.41, mag: 0.42, spec: "M" },
+            "beta": { name: "参宿七 (Rigel)", ra: 78.63, dec: -8.20, mag: 0.18, spec: "B" },
+            "gamma": { name: "参宿五 (Bellatrix)", ra: 81.28, dec: 6.35, mag: 1.64, spec: "B" },
+            "delta": { name: "参宿三 (Mintaka)", ra: 83.00, dec: -0.29, mag: 2.25, spec: "O" },
+            "epsilon": { name: "参宿二 (Alnilam)", ra: 84.05, dec: -1.20, mag: 1.69, spec: "B" },
+            "zeta": { name: "参宿一 (Alnitak)", ra: 85.19, dec: -1.94, mag: 1.74, spec: "O" },
+            "kappa": { name: "参宿六 (Saiph)", ra: 86.94, dec: -9.67, mag: 2.07, spec: "B" },
+            "lambda": { name: "觜宿一 (Meissa)", ra: 83.86, dec: 9.93, mag: 3.39, spec: "O" },
+            "eta": { name: "参宿增廿六 (Eta Orionis)", ra: 78.12, dec: -2.39, mag: 3.35, spec: "B" },
+            "theta1": { name: "伐三 (Orion Nebula Group)", ra: 83.82, dec: -5.39, mag: 4.01, spec: "O" },
+            "iota": { name: "伐二 (Hatysa)", ra: 83.86, dec: -5.91, mag: 2.75, spec: "O" }
+        },
+        lines: [
+            ["alpha", "gamma"], ["gamma", "lambda"], ["lambda", "alpha"],
+            ["alpha", "zeta"], ["gamma", "delta"],
+            ["delta", "epsilon"], ["epsilon", "zeta"],
+            ["delta", "eta"], ["eta", "beta"],
+            ["zeta", "kappa"],
+            ["epsilon", "theta1"], ["theta1", "iota"]
+        ]
+    }
+};
+
+// 全局状态
+const state = {
+    activeKey: null,
+    processedStars: [],
+    processedLines: [],
+    bgStars: [],
+    hoveredStar: null,
+    showLines: true
+};
+
+// Canvas 配置
+const canvas = document.getElementById('starCanvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if(state.activeKey) {
+        processConstellation(state.activeKey);
+    }
+    generateBgStars();
+    draw();
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+/**
+ * 核心投影转换算法 (带0°跨度修正、余弦天区形变补正、比例保真)
+ * //峇株吧辖蔡逸众制作
+ */
+function processConstellation(key) {
+    const data = CONSTELLATIONS[key];
+    const starsObj = data.stars;
+    const linesArr = data.lines;
+
+    let minRA = Infinity, maxRA = -Infinity;
+    let minDec = Infinity, maxDec = -Infinity;
+
+    // 1. 跨零度子午线探测与自动转换
+    const raVals = Object.values(starsObj).map(s => s.ra);
+    const raSpread = Math.max(...raVals) - Math.min(...raVals);
+    const wrapRA = raSpread > 180;
+
+    // 2. 寻找极值边界
+    for (const id in starsObj) {
+        const s = starsObj[id];
+        let ra = s.ra;
+        if (wrapRA && ra < 180) {
+            ra += 360;
+        }
+
+        if (ra < minRA) minRA = ra;
+        if (ra > maxRA) maxRA = ra;
+        if (s.dec < minDec) minDec = s.dec;
+        if (s.dec > maxDec) maxDec = s.dec;
+    }
+
+    const raRange = maxRA - minRA || 1;
+    const decRange = maxDec - minDec || 1;
+    const avgDec = (minDec + maxDec) / 2;
+    
+    // 3. 采用余弦定理补正天球投影拉伸 (RA scale = cos(dec))
+    const raScale = Math.cos(avgDec * Math.PI / 180);
+    const trueWidth = raRange * raScale;
+    const trueHeight = decRange;
+    const maxDim = Math.max(trueWidth, trueHeight);
+
+    // 4. 等比例适配屏幕 (预留 25% 安全边距提供深邃感)
+    const paddingX = canvas.width * 0.25;
+    const paddingY = canvas.height * 0.25;
+    const drawAreaW = canvas.width - paddingX * 2;
+    const drawAreaH = canvas.height - paddingY * 2;
+    const scale = Math.min(drawAreaW / trueWidth, drawAreaH / trueHeight);
+    
+    const offsetX = (canvas.width - trueWidth * scale) / 2;
+    const offsetY = (canvas.height - trueHeight * scale) / 2;
+
+    state.processedStars = [];
+    
+    for (const id in starsObj) {
+        const s = starsObj[id];
+        
+        let ra = s.ra;
+        if (wrapRA && ra < 180) ra += 360;
+        
+        const raOffset = (maxRA - ra) * raScale;
+        const decOffset = (maxDec - s.dec);
+
+        // 归一化 X Y 坐标 (0.00 ~ 1.00)
+        const normX = (raOffset + (maxDim - trueWidth) / 2) / maxDim;
+        const normY = (decOffset + (maxDim - trueHeight) / 2) / maxDim;
+
+        // 计算恒星视觉半径 (视星等越小，能量越强，圆越饱满)
+        const radius = Math.max(1.8, (6.0 - s.mag) * 2.2);
+
+        state.processedStars.push({
+            id: id,
+            ...s,
+            normX: normX,
+            normY: normY,
+            x: offsetX + raOffset * scale,
+            y: offsetY + decOffset * scale,
+            r: radius,
+            color: SPECTRAL_COLORS[s.spec] || '#ffffff'
+        });
+    }
+
+    // 重构连线
+    state.processedLines = linesArr.map(line => {
+        return [
+            state.processedStars.find(s => s.id === line[0]),
+            state.processedStars.find(s => s.id === line[1])
+        ];
+    });
+
+    updateUI(data);
+    draw();
+}
+
+/**
+ * 离屏缓冲微弱背景乱星，增强太空纵深感
+ */
+function generateBgStars() {
+    state.bgStars = [];
+    const count = Math.floor((canvas.width * canvas.height) / 3000);
+    for (let i = 0; i < count; i++) {
+        state.bgStars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.2,
+            opacity: Math.random() * 0.4 + 0.05
+        });
+    }
+}
+
+/**
+ * 渲染系统
+ * //华仁中学蔡逸众制作
+ */
+function draw() {
+    // 清屏与基底
+    ctx.fillStyle = '#020208';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制深空紫蓝色发光星云
+    const bgGradient = ctx.createRadialGradient(
+        canvas.width/2, canvas.height/2, 0, 
+        canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/1.1
+    );
+    bgGradient.addColorStop(0, '#0a0d24');
+    bgGradient.addColorStop(0.5, '#040512');
+    bgGradient.addColorStop(1, '#000000');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 渲染遥远的背景恒星
+    state.bgStars.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(235, 240, 255, ${s.opacity})`;
+        ctx.fill();
+    });
+
+    if (!state.activeKey) return;
+
+    // 绘制星座星骨（如果开启了显示连线）
+    if (state.showLines) {
+        ctx.lineWidth = 1.2;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(100, 140, 255, 0.3)';
+        state.processedLines.forEach(line => {
+            if (!line[0] || !line[1]) return;
+            ctx.beginPath();
+            ctx.moveTo(line[0].x, line[0].y);
+            ctx.lineTo(line[1].x, line[1].y);
+            
+            const grad = ctx.createLinearGradient(line[0].x, line[0].y, line[1].x, line[1].y);
+            const opacity = 0.3;
+            grad.addColorStop(0, `rgba(${hexToRgb(line[0].color)}, ${opacity})`);
+            grad.addColorStop(1, `rgba(${hexToRgb(line[1].color)}, ${opacity})`);
+            
+            ctx.strokeStyle = grad;
+            ctx.stroke();
+        });
+        ctx.shadowBlur = 0;
+    }
+
+    // 绘制实体星座主星
+    state.processedStars.forEach(s => {
+        const isHovered = state.hoveredStar && state.hoveredStar.id === s.id;
+        const currentR = isHovered ? s.r * 1.4 : s.r;
+
+        // 星团发光特效
+        const glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, currentR * (s.mag < 2.0 ? 5 : 3.5));
+        glow.addColorStop(0, s.color);
+        glow.addColorStop(0.25, `rgba(${hexToRgb(s.color)}, ${s.mag < 2.0 ? 0.45 : 0.25})`);
+        glow.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, currentR * (s.mag < 2.0 ? 5 : 3.5), 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // 恒星耀眼核心
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, currentR, 0, Math.PI * 2);
+        ctx.fillStyle = s.mag < 2.0 ? '#ffffff' : `rgba(255, 255, 255, 0.9)`;
+        ctx.fill();
+
+        // 绘制星名标签
+        if (s.mag < 4.2 || isHovered) {
+            ctx.font = isHovered ? "bold 13px 'Noto Sans SC'" : "11px 'Noto Sans SC'";
+            ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.45)';
+            ctx.fillText(s.name.split(' ')[0], s.x + currentR + 7, s.y + 4);
+        }
+    });
+
+    // 在Canvas上绘制隐形水印（与背景高度融合）
+    // //Made by ecchua79
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    ctx.fillStyle = '#8899cc';
+    ctx.font = "10px monospace";
+    ctx.fillText('ecchua79 | 峇株吧辖华仁中学', 12, canvas.height - 10);
+    ctx.restore();
+}
+
+/**
+ * 辅助函数：十六进制色值转RGB
+ */
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? 
+        `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+        '255, 255, 255';
+}
+
+/**
+ * 生成星座选择列表并显示日期范围
+ */
+function initUI() {
+    const navBtnContainer = document.getElementById('nav-buttons');
+    
+    Object.keys(CONSTELLATIONS).forEach(key => {
+        const item = CONSTELLATIONS[key];
+        const btn = document.createElement('button');
+        
+        btn.className = 'w-full text-left px-3 py-2 rounded-lg border border-slate-800 hover:border-blue-500/50 hover:bg-blue-500/10 transition-all duration-300 text-slate-300 flex flex-col gap-0.5';
+        btn.innerHTML = `
+            <span class="text-xs font-semibold text-slate-200 truncate w-full">${item.name}</span>
+            <span class="text-[10px] text-slate-400 font-medium tracking-wide">${item.date}</span>
+        `;
+        
+        btn.onclick = () => {
+            document.querySelectorAll('#nav-buttons button').forEach(b => {
+                b.classList.remove('bg-blue-600/20', 'border-blue-400', 'text-white');
+                b.classList.add('border-slate-800', 'text-slate-300');
+            });
+            btn.classList.add('bg-blue-600/20', 'border-blue-400', 'text-white');
+            btn.classList.remove('border-slate-800', 'text-slate-300');
+            
+            state.activeKey = key;
+            processConstellation(key);
+            document.getElementById('info-panel').classList.remove('hidden');
+        };
+        navBtnContainer.appendChild(btn);
+    });
+
+    // 绑定隐藏/显示连线的 Switch 按钮
+    const toggleBtn = document.getElementById('toggle-lines-btn');
+    const toggleDot = document.getElementById('toggle-switch-dot');
+
+    toggleBtn.onclick = () => {
+        state.showLines = !state.showLines;
+        if (state.showLines) {
+            toggleBtn.classList.remove('bg-slate-700');
+            toggleBtn.classList.add('bg-blue-600');
+            toggleDot.classList.remove('translate-x-0');
+            toggleDot.classList.add('translate-x-5');
+        } else {
+            toggleBtn.classList.remove('bg-blue-600');
+            toggleBtn.classList.add('bg-slate-700');
+            toggleDot.classList.remove('translate-x-5');
+            toggleDot.classList.add('translate-x-0');
+        }
+        draw();
+    };
+}
+
+/**
+ * 重新加载数据侧边面板列表
+ */
+function updateUI(data) {
+    document.getElementById('info-title').innerText = data.name.split(' ')[1] || data.name;
+    
+    const count = Object.keys(data.stars).length;
+    document.getElementById('star-count-badge').innerText = `${count} 颗恒星`;
+
+    const list = document.getElementById('stars-list');
+    list.innerHTML = '';
+
+    const sortedStars = [...state.processedStars].sort((a, b) => a.mag - b.mag);
+
+    sortedStars.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'p-2 rounded-lg bg-slate-900/40 border border-slate-800 text-xs hover:bg-slate-800/40 transition-colors cursor-pointer flex justify-between items-center';
+        
+        const isMinor = s.mag >= 3.8;
+        const badgeHTML = isMinor ? `<span class="ml-1.5 text-[8px] bg-slate-700/50 text-slate-400 px-1 rounded">暗星</span>` : '';
+
+        item.innerHTML = `
+            <div class="flex items-center gap-2 truncate">
+                <div class="w-2.5 h-2.5 rounded-full shadow-[0_0_6px_currentColor] flex-shrink-0" style="background-color: ${s.color}; color: ${s.color}"></div>
+                <span class="font-semibold text-slate-200 truncate">${s.name.split(' ')[0]}</span>
+                ${badgeHTML}
+            </div>
+            <div class="text-right text-[11px] flex-shrink-0 ml-1">
+                <span class="text-slate-400">星等: <span class="text-yellow-300 font-mono">${s.mag.toFixed(2)}</span></span>
+            </div>
+        `;
+        
+        item.onmouseenter = () => highlightStar(s);
+        item.onmouseleave = () => highlightStar(null);
+        
+        list.appendChild(item);
+    });
+}
+
+/**
+ * 碰撞检测鼠标悬停事件
+ */
+canvas.addEventListener('mousemove', (e) => {
+    if (!state.activeKey) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    let found = null;
+    for (let i = 0; i < state.processedStars.length; i++) {
+        const s = state.processedStars[i];
+        const dx = mouseX - s.x;
+        const dy = mouseY - s.y;
+        const hoverRange = Math.max(12, s.r * 2.5);
+        if (dx * dx + dy * dy < hoverRange * hoverRange) {
+            found = s;
+            break;
+        }
+    }
+
+    highlightStar(found, mouseX, mouseY);
+});
+
+function highlightStar(star, mouseX, mouseY) {
+    state.hoveredStar = star;
+    
+    if (star) {
+        document.getElementById('tt-name').innerText = star.name;
+        document.getElementById('tt-ra').innerText = `${star.ra.toFixed(2)}°`;
+        document.getElementById('tt-dec').innerText = `${star.dec.toFixed(2)}°`;
+        document.getElementById('tt-mag').innerText = star.mag.toFixed(2);
+        document.getElementById('tt-spec').innerText = star.spec;
+        document.getElementById('tt-x').innerText = star.normX.toFixed(4);
+        document.getElementById('tt-y').innerText = star.normY.toFixed(4);
+
+        const x = mouseX || star.x;
+        const y = mouseY || star.y;
+
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y - 15}px`;
+        tooltip.style.opacity = '1';
+        canvas.style.cursor = 'crosshair';
+    } else {
+        tooltip.style.opacity = '0';
+        canvas.style.cursor = 'default';
+    }
+    draw();
+}
+
+// 启动程序
+initUI();
+resizeCanvas();
+
+// 面板收起/展开逻辑
+(function() {
+    const panel = document.getElementById('side-panel');
+    const toggleBtn = document.getElementById('panel-toggle');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+    let isOpen = false;
+
+    toggleBtn.addEventListener('click', () => {
+        isOpen = !isOpen;
+        if (isOpen) {
+            panel.classList.remove('collapsed');
+            toggleBtn.classList.add('open');
+            iconOpen.style.display = 'none';
+            iconClose.style.display = 'block';
+        } else {
+            panel.classList.add('collapsed');
+            toggleBtn.classList.remove('open');
+            iconOpen.style.display = 'block';
+            iconClose.style.display = 'none';
+        }
+    });
+})();
+
+// 默认点击第一个白羊座进行展示
+document.querySelector('#nav-buttons button').click();
+
+</script>
+</body>
+</html>
