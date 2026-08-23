@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>定滑轮与动滑轮 3D 原理解析</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0f172a;
+        }
+        #webgl-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .canvas-label {
+            position: absolute;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            pointer-events: none;
+            transform: translate(-50%, -100%);
+            transition: opacity 0.15s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+        .canvas-label::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+        }
+        .label-fulcrum {
+            background-color: #ef4444; /* Red */
+            z-index: 13;
+        }
+        .label-fulcrum::after {
+            border-color: #ef4444 transparent;
+        }
+        .label-effort {
+            background-color: #3b82f6; /* Blue */
+            z-index: 11;
+        }
+        .label-effort::after {
+            border-color: #3b82f6 transparent;
+        }
+        .label-load {
+            background-color: #10b981; /* Green */
+            z-index: 12;
+        }
+        .label-load::after {
+            border-color: #10b981 transparent;
+        }
+        /* Glassmorphism panel styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+    </style>
+</head>
+<body class="text-slate-100">
+
+    <!-- 3D Render Area -->
+    <div id="webgl-container"></div>
+
+    <!-- 2D Overlay Labels -->
+    <div id="labels-container">
+        <div id="label-fulcrum" class="canvas-label label-fulcrum">
+            <i class="fa-solid fa-location-crosshairs"></i> 支点 (O)
+        </div>
+        <div id="label-effort" class="canvas-label label-effort">
+            <i class="fa-solid fa-hand"></i> 动力点 (F1)
+        </div>
+        <div id="label-load" class="canvas-label label-load">
+            <i class="fa-solid fa-box"></i> 阻力点 (F2)
+        </div>
+    </div>
+
+    <!-- UI Overlay Controls -->
+    <div class="relative z-20 pointer-events-none w-full h-full flex flex-col justify-between p-4 md:p-6">
+        
+        <!-- Top Bar: Navigation Tabs & Title -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-auto">
+            <!-- App Title -->
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-lg">
+                <i class="fa-solid fa-gear text-amber-400 text-lg"></i>
+                <div>
+                    <h1 class="text-sm md:text-base font-bold leading-tight">滑轮物理原理解析 3D</h1>
+                    <p class="text-[10px] md:text-xs text-slate-400">结合杠杆原理与受力分析</p>
+                    <p style="font-size:0.55rem; color:rgba(56,189,248,0.18); margin-top:2px;">峇株吧辖华仁中学蔡逸众制作</p>
+                </div>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="glass-panel p-1.5 rounded-2xl flex gap-1 shadow-lg">
+                <button id="tab-fixed" onclick="switchPulley('fixed')" class="px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-amber-500 text-slate-950 shadow">
+                    <i class="fa-solid fa-anchor"></i> 定滑轮
+                </button>
+                <button id="tab-movable" onclick="switchPulley('movable')" class="px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/50">
+                    <i class="fa-solid fa-arrows-up-down"></i> 动滑轮
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Controls & Info Panel Area -->
+        <div class="flex flex-col md:flex-row items-end justify-between gap-4 pointer-events-auto">
+            
+            <!-- Left Side: Animation Player Controls -->
+            <div class="glass-panel p-3 rounded-2xl flex items-center gap-3 shadow-xl w-full md:w-auto justify-between md:justify-start">
+                <button id="btn-play" onclick="toggleAnimation()" class="w-11 h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl flex items-center justify-center font-bold text-base transition-transform active:scale-95 shadow">
+                    <i id="icon-play" class="fa-solid fa-play"></i>
+                </button>
+                <button onclick="resetAnimation()" class="w-11 h-11 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center transition-transform active:scale-95 border border-slate-700">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+
+                <div class="h-8 w-[1px] bg-slate-700 mx-1"></div>
+
+                <!-- Speed Slider -->
+                <div class="flex flex-col gap-1 pr-2">
+                    <div class="flex justify-between text-xs text-slate-400">
+                        <span>动画速度</span>
+                        <span id="speed-val" class="font-mono text-amber-400">1.0x</span>
+                    </div>
+                    <input id="slider-speed" type="range" min="0.2" max="2.5" step="0.1" value="1.0" oninput="updateSpeed(this.value)" class="w-24 md:w-32 accent-amber-400 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Right Side: Collapsible Educational Info Panel -->
+            <div id="info-panel" class="glass-panel rounded-2xl shadow-xl w-full md:w-96 transition-all duration-300 overflow-hidden">
+                <!-- Panel Header (Click to toggle collapse) -->
+                <div onclick="togglePanelCollapse()" class="px-4 py-3 border-b border-slate-800/80 flex items-center justify-between cursor-pointer hover:bg-slate-800/30">
+                    <div class="flex items-center gap-2">
+                        <i id="panel-icon" class="fa-solid fa-lightbulb text-amber-400"></i>
+                        <span id="panel-title" class="font-bold text-xs md:text-sm">定滑轮特性说明</span>
+                    </div>
+                    <button class="text-slate-400 hover:text-white transition-transform duration-200" id="collapse-arrow">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Panel Body -->
+                <div id="panel-content" class="p-4 text-xs space-y-3 leading-relaxed transition-all duration-300">
+                    <div id="pulley-description" class="text-slate-300">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <!-- Force Formula -->
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex justify-around text-center">
+                        <div>
+                            <div class="text-slate-400 text-[10px]">拉力关系</div>
+                            <div id="formula-force" class="font-mono text-amber-400 font-bold text-sm mt-0.5">F = G</div>
+                        </div>
+                        <div class="w-[1px] bg-slate-800"></div>
+                        <div>
+                            <div class="text-slate-400 text-[10px]">移动距离</div>
+                            <div id="formula-dist" class="font-mono text-emerald-400 font-bold text-sm mt-0.5">s = h</div>
+                        </div>
+                    </div>
+
+                    <!-- Points explanation -->
+                    <div class="space-y-1.5 pt-1 text-[11px]">
+                        <div class="flex items-start gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-500 mt-1 shrink-0"></span>
+                            <p><strong class="text-red-400">支点 (O)：</strong><span id="desc-fulcrum"></span></p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0"></span>
+                            <p><strong class="text-blue-400">动力点 (F1)：</strong><span id="desc-effort"></span></p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
+                            <p><strong class="text-emerald-400">阻力点 (F2)：</strong><span id="desc-load"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Global Variables ---
+        let scene, camera, renderer, controls;
+        let currentType = 'fixed'; // 'fixed' or 'movable'
+        let isPlaying = false;
+        let animSpeed = 1.0;
+        let animProgress = 0; // 0.0 to 1.0
+        let animDirection = 1;
+
+        // 3D Objects
+        let ceiling, fixedHookLeft, fixedHookCenter, pulleyWheel, pulleyAxle;
+        let fixedBracket, movableBracket, ropeLine, loadMesh, handMesh, leverLine;
+        let fulcrumMesh, effortMesh, loadPointMesh;
+
+        // Constants
+        const PULLEY_RADIUS = 1.2;
+        const PULLEY_THICKNESS = 0.4;
+        const ROPE_RADIUS = 0.055;
+        const CABLE_COLOR = 0xe2e8f0; // Off-white clean rope color
+        const WOOD_COLOR = 0xd97706;
+        const METAL_DARK = 0x334155; // Dark bracket metal
+        const METAL_WHEEL = 0x64748b; // Pulley wheel metal
+        const RIM_GROOVE_COLOR = 0x1e293b; // Dark groove color (non-contact half of rim)
+
+        // Rim materials (upper/lower halves) - shared refs so color can swap per pulley type
+        let rimMatUpper, rimMatLower;
+        // Rope material - created once and reused to avoid per-frame allocation
+        let ropeMaterial;
+        //峇株吧辖华仁中学蔡逸众制作
+
+        // Info Text Configurations
+        const INFO_TEXTS = {
+            fixed: {
+                title: "定滑轮物理特性",
+                desc: "轴的位置固定不动。实质上是一个<b>等臂杠杆</b>（L1 = L2 = R）。使用定滑轮<b>不省力</b>，但可以<b>改变力的作用方向</b>。",
+                fForce: "F1 = G",
+                fDist: "s = h",
+                fulcrum: "位于固定轴心（O），位置不随物体移动。",
+                effort: "绳子自由端受力点（F1），手向下施力。",
+                load: "挂重物侧切点（F2），重物随绳上升。"
+            },
+            movable: {
+                title: "动滑轮物理特性",
+                desc: "轴随重物一同上下移动。实质上是一个<b>动力臂为阻力臂2倍的省力杠杆</b>（L1 = 2R, L2 = R）。使用动滑轮可以<b>省一半力</b>，但要<b>多拉一倍距离</b>。",
+                fForce: "F1 = ½(G + G轮)",
+                fDist: "s = 2h",
+                fulcrum: "位于左侧固定绳切点（O），滑轮以此点滚动转动。",
+                effort: "右侧拉绳切点（F1），手向上施力牵引。",
+                load: "滑轮中心轴心（F2），吊挂重物向上移动。"
+            }
+        };
+        //峇株吧辖蔡逸众制作
+
+        // --- Initialization ---
+        window.addEventListener('load', () => {
+            initScene();
+            createEnvironment();
+            buildPulleySystem();
+            updateUIInfo();
+            animate();
+
+            window.addEventListener('resize', onWindowResize);
+        });
+
+        function initScene() {
+            const container = document.getElementById('webgl-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.025);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.8, 11);
+            //华仁中学蔡逸众制作
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1, 0);
+            controls.maxPolarAngle = Math.PI / 2 + 0.1;
+            controls.minDistance = 4;
+            controls.maxDistance = 20;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(5, 12, 8);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.bias = -0.001;
+            scene.add(dirLight);
+            //Made by ecchua79
+
+            const dirLightBack = new THREE.DirectionalLight(0x38bdf8, 0.4);
+            dirLightBack.position.set(-5, 5, -5);
+            scene.add(dirLightBack);
+        }
+
+        function createEnvironment() {
+            // Floor Grid
+            const gridHelper = new THREE.GridHelper(20, 20, 0x334155, 0x1e293b);
+            gridHelper.position.y = -3.8;
+            scene.add(gridHelper);
+
+            // Ceiling Platform
+            const ceilingGeo = new THREE.BoxGeometry(8, 0.3, 4);
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7 });
+            ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+            ceiling.position.set(0, 5, 0);
+            ceiling.castShadow = true;
+            ceiling.receiveShadow = true;
+            scene.add(ceiling);
+            //峇株吧辖华仁中学蔡逸众制作
+
+            // Ceiling Hooks
+            const hookMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
+            
+            // Center Ceiling Hook (for Fixed Pulley Top)
+            const hookGeoCenter = new THREE.CylinderGeometry(0.08, 0.08, 0.6, 16);
+            fixedHookCenter = new THREE.Mesh(hookGeoCenter, hookMat);
+            fixedHookCenter.position.set(0, 4.55, 0);
+            scene.add(fixedHookCenter);
+
+            // Left Ceiling Hook (for Movable Pulley Fixed Rope)
+            const hookGeoLeft = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 16);
+            fixedHookLeft = new THREE.Mesh(hookGeoLeft, hookMat);
+            fixedHookLeft.position.set(-PULLEY_RADIUS, 4.6, 0);
+            scene.add(fixedHookLeft);
+        }
+
+        function buildPulleySystem() {
+            // 1. Wheel (Pulley)
+            const wheelGroup = new THREE.Group();
+            
+            const wheelGeo = new THREE.CylinderGeometry(PULLEY_RADIUS, PULLEY_RADIUS, PULLEY_THICKNESS, 36);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: METAL_WHEEL, metalness: 0.6, roughness: 0.3 });
+            const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
+            wheelMesh.rotation.x = Math.PI / 2;
+            wheelMesh.castShadow = true;
+            wheelGroup.add(wheelMesh);
+
+            // Rim / Outer Groove - split into upper half (theta 0->PI) and lower half,
+            // so each half can be recolored to match the rope when the rope wraps that side.
+            rimMatUpper = new THREE.MeshStandardMaterial({ color: RIM_GROOVE_COLOR, metalness: 0.8 });
+            rimMatLower = new THREE.MeshStandardMaterial({ color: RIM_GROOVE_COLOR, metalness: 0.8 });
+
+            const rimGeoUpper = new THREE.TorusGeometry(PULLEY_RADIUS, 0.08, 16, 18, Math.PI);
+            const rimMeshUpper = new THREE.Mesh(rimGeoUpper, rimMatUpper);
+            // theta=0 starts at +x, sweeping through +y (top) to -x: this is the top half.
+            wheelGroup.add(rimMeshUpper);
+
+            const rimGeoLower = new THREE.TorusGeometry(PULLEY_RADIUS, 0.08, 16, 18, Math.PI);
+            const rimMeshLower = new THREE.Mesh(rimGeoLower, rimMatLower);
+            rimMeshLower.rotation.z = Math.PI; // flip to cover -x -> -y (bottom) -> +x
+            wheelGroup.add(rimMeshLower);
+
+            // Spokes for Rotation Visuals
+            for (let i = 0; i < 4; i++) {
+                const spokeGeo = new THREE.CylinderGeometry(0.05, 0.05, PULLEY_RADIUS * 1.8, 12);
+                const spoke = new THREE.Mesh(spokeGeo, wheelMat);
+                spoke.rotation.z = (Math.PI / 4) * i;
+                wheelGroup.add(spoke);
+            }
+
+            // Axle
+            const axleGeo = new THREE.CylinderGeometry(0.18, 0.18, PULLEY_THICKNESS + 0.15, 16);
+            const axleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 });
+            pulleyAxle = new THREE.Mesh(axleGeo, axleMat);
+            pulleyAxle.rotation.x = Math.PI / 2;
+            wheelGroup.add(pulleyAxle);
+
+            pulleyWheel = wheelGroup;
+            scene.add(pulleyWheel);
+
+            // 2. Fixed Pulley Top Bracket (黑色定滑轮挂架 - 上半部分)
+            const darkMat = new THREE.MeshStandardMaterial({ color: METAL_DARK, metalness: 0.7, roughness: 0.3 });
+            
+            fixedBracket = new THREE.Group();
+            const topBarGeo = new THREE.BoxGeometry(0.15, 1.2, 0.1);
+            const fbLeft = new THREE.Mesh(topBarGeo, darkMat);
+            fbLeft.position.set(0, 0.6, PULLEY_THICKNESS/2 + 0.06);
+            const fbRight = new THREE.Mesh(topBarGeo, darkMat);
+            fbRight.position.set(0, 0.6, -(PULLEY_THICKNESS/2 + 0.06));
+            
+            const fbTopCross = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, PULLEY_THICKNESS + 0.22), darkMat);
+            fbTopCross.position.y = 1.15;
+
+            fixedBracket.add(fbLeft, fbRight, fbTopCross);
+            scene.add(fixedBracket);
+            //峇株吧辖蔡逸众制作
+
+            // 3. Movable Pulley Bottom Bracket (黑色动滑轮框架 - 下半部分含挂钩)
+            movableBracket = new THREE.Group();
+            const botBarGeo = new THREE.BoxGeometry(0.15, 1.2, 0.1);
+            const mbLeft = new THREE.Mesh(botBarGeo, darkMat);
+            mbLeft.position.set(0, -0.6, PULLEY_THICKNESS/2 + 0.06);
+            const mbRight = new THREE.Mesh(botBarGeo, darkMat);
+            mbRight.position.set(0, -0.6, -(PULLEY_THICKNESS/2 + 0.06));
+
+            const mbBotCross = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, PULLEY_THICKNESS + 0.22), darkMat);
+            mbBotCross.position.y = -1.15;
+
+            // Hook attached under movable bracket
+            const hookRingGeo = new THREE.TorusGeometry(0.16, 0.04, 12, 24);
+            const hookMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+            const botHookMesh = new THREE.Mesh(hookRingGeo, hookMat);
+            botHookMesh.position.y = -1.35;
+            botHookMesh.rotation.x = Math.PI / 2;
+
+            movableBracket.add(mbLeft, mbRight, mbBotCross, botHookMesh);
+            scene.add(movableBracket);
+
+            // 4. Load Weight Box
+            const loadGroup = new THREE.Group();
+            const boxGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+            const boxMat = new THREE.MeshStandardMaterial({ color: WOOD_COLOR, roughness: 0.6 });
+            const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+            boxMesh.position.y = -0.6;
+            boxMesh.castShadow = true;
+            loadGroup.add(boxMesh);
+
+            // Top Hook Ring on Weight Box
+            const loadRingMesh = new THREE.Mesh(hookRingGeo, hookMat);
+            loadRingMesh.position.y = 0.12;
+            loadGroup.add(loadRingMesh);
+
+            loadMesh = loadGroup;
+            scene.add(loadMesh);
+
+            // 5. Force Pull Hand / Arrow Indicator
+            const handGeo = new THREE.ConeGeometry(0.22, 0.5, 16);
+            const handMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, emissive: 0x1d4ed8 });
+            handMesh = new THREE.Mesh(handGeo, handMat);
+            scene.add(handMesh);
+
+            // 6. Rope Mesh Container (mesh created lazily on first updateRopeGeometry call)
+            ropeLine = null;
+            ropeMaterial = new THREE.MeshStandardMaterial({
+                color: CABLE_COLOR,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            //华仁中学蔡逸众制作
+
+            // 7. Lever Arm Visualizer Line
+            const leverGeo = new THREE.BufferGeometry();
+            const leverMat = new THREE.LineDashedMaterial({
+                color: 0xf59e0b,
+                dashSize: 0.2,
+                gapSize: 0.1,
+                linewidth: 3
+            });
+            leverLine = new THREE.Line(leverGeo, leverMat);
+            scene.add(leverLine);
+
+            // 8. Lever Points Markers
+            fulcrumMesh = createPointMarker(0xef4444); // Red
+            effortMesh = createPointMarker(0x3b82f6);  // Blue
+            loadPointMesh = createPointMarker(0x10b981); // Green
+
+            scene.add(fulcrumMesh);
+            scene.add(effortMesh);
+            scene.add(loadPointMesh);
+
+            updatePositions();
+        }
+
+        function createPointMarker(colorHex) {
+            const geo = new THREE.SphereGeometry(0.13, 16, 16);
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex, depthTest: false });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.renderOrder = 999;
+            return mesh;
+        }
+
+        // --- Switch Between Fixed & Movable Pulley ---
+        function switchPulley(type) {
+            if (currentType === type) return;
+            currentType = type;
+            //峇株吧辖华仁中学蔡逸众制作
+
+            const btnFixed = document.getElementById('tab-fixed');
+            const btnMovable = document.getElementById('tab-movable');
+
+            if (type === 'fixed') {
+                btnFixed.className = "px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-amber-500 text-slate-950 shadow";
+                btnMovable.className = "px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/50";
+            } else {
+                btnMovable.className = "px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 bg-amber-500 text-slate-950 shadow";
+                btnFixed.className = "px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800/50";
+            }
+
+            animProgress = 0;
+            updateUIInfo();
+            updatePositions();
+        }
+
+        // --- Core Mechanical Calculations & Position Updates ---
+        function updatePositions() {
+            const maxTravel = 2.0;
+            const currentTravel = animProgress * maxTravel;
+
+            if (currentType === 'fixed') {
+                // ==================== FIXED PULLEY (定滑轮) ====================
+                fixedHookLeft.visible = false;
+                fixedHookCenter.visible = true;
+                fixedBracket.visible = true;
+                movableBracket.visible = false;
+
+                // Fixed Wheel & Bracket
+                const wheelY = 3.2;
+                pulleyWheel.position.set(0, wheelY, 0);
+                fixedBracket.position.set(0, wheelY, 0);
+
+                // Wheel rotation
+                pulleyWheel.rotation.z = -currentTravel / PULLEY_RADIUS;
+
+                // Rope wraps over the TOP of a fixed pulley -> top half of rim matches rope color
+                rimMatUpper.color.setHex(CABLE_COLOR);
+                rimMatLower.color.setHex(RIM_GROOVE_COLOR);
+
+                // Load directly attached to Left rope end (Heavy Box Top Ring)
+                const loadRingY = (-1.0) + currentTravel;
+                loadMesh.position.set(-PULLEY_RADIUS, loadRingY, 0);
+
+                // Hand Pulling on Right side
+                const handY = (1.5) - currentTravel;
+                handMesh.position.set(PULLEY_RADIUS, handY, 0);
+                handMesh.rotation.z = Math.PI; // Arrow points Down
+
+                // Rope Curve: Hand -> Up to Right Pulley Rim -> TOP Arc -> Down directly connecting to Box Ring!
+                const numArcSegments = 12;
+                const ropePoints = [];
+
+                // 1. Right vertical rope
+                ropePoints.push(new THREE.Vector3(PULLEY_RADIUS, handY, 0));
+                ropePoints.push(new THREE.Vector3(PULLEY_RADIUS, wheelY, 0));
+
+                // 2. Arc OVER the TOP of fixed pulley
+                for (let i = 0; i <= numArcSegments; i++) {
+                    const angle = (i / numArcSegments) * Math.PI;
+                    const x = PULLEY_RADIUS * Math.cos(angle);
+                    const y = wheelY + PULLEY_RADIUS * Math.sin(angle);
+                    ropePoints.push(new THREE.Vector3(x, y, 0));
+                }
+
+                // 3. Left vertical rope straight down, tightly tied to the Box Top Ring
+                ropePoints.push(new THREE.Vector3(-PULLEY_RADIUS, loadRingY + 0.12, 0));
+
+                updateRopeGeometry(ropePoints);
+
+                // Lever Principle Markers:
+                const O = new THREE.Vector3(0, wheelY, 0.3);
+                const F1 = new THREE.Vector3(PULLEY_RADIUS, wheelY, 0.3);
+                const F2 = new THREE.Vector3(-PULLEY_RADIUS, wheelY, 0.3);
+
+                fulcrumMesh.position.copy(O);
+                effortMesh.position.copy(F1);
+                loadPointMesh.position.copy(F2);
+
+                updateLeverLine(F2, O, F1);
+
+            } else {
+                // ==================== MOVABLE PULLEY (动滑轮) ====================
+                fixedHookLeft.visible = true;
+                fixedHookCenter.visible = false;
+                fixedBracket.visible = false;
+                movableBracket.visible = true; // Show Black Bottom Frame
+
+                // Movable Wheel & Bottom Frame move UP together
+                const wheelY = (-0.8) + currentTravel;
+                pulleyWheel.position.set(0, wheelY, 0);
+                movableBracket.position.set(0, wheelY, 0);
+
+                // Wheel rotation as it rolls along the cable
+                pulleyWheel.rotation.z = currentTravel / PULLEY_RADIUS;
+
+                // Rope wraps under the BOTTOM of a movable pulley -> bottom half of rim matches rope color
+                rimMatLower.color.setHex(CABLE_COLOR);
+                rimMatUpper.color.setHex(RIM_GROOVE_COLOR);
+
+                // Load Box attached tightly to bottom bracket hook (Hook-to-Hook interlaced)
+                const loadRingY = wheelY - 1.35 - 0.12;
+                loadMesh.position.set(0, loadRingY, 0);
+
+                // Right Rope End Pulled UP by Hand (s = 2h)
+                const handY = wheelY + currentTravel + 1.8;
+                handMesh.position.set(PULLEY_RADIUS, handY, 0);
+                handMesh.rotation.z = 0; // Arrow points Up
+                //峇株吧辖蔡逸众制作
+
+                // Rope Curve: Left Ceiling Hook -> Down to Left Rim -> UNDER BOTTOM RIM -> Up to Hand
+                const numArcSegments = 12;
+                const ropePoints = [];
+
+                // 1. Left vertical rope from Ceiling Hook down to movable pulley
+                ropePoints.push(new THREE.Vector3(-PULLEY_RADIUS, 4.35, 0));
+                ropePoints.push(new THREE.Vector3(-PULLEY_RADIUS, wheelY, 0));
+
+                // 2. Arc UNDER the BOTTOM of movable pulley
+                for (let i = 0; i <= numArcSegments; i++) {
+                    const angle = Math.PI + (i / numArcSegments) * Math.PI;
+                    const x = PULLEY_RADIUS * Math.cos(angle);
+                    const y = wheelY + PULLEY_RADIUS * Math.sin(angle);
+                    ropePoints.push(new THREE.Vector3(x, y, 0));
+                }
+
+                // 3. Right vertical rope up to Hand
+                ropePoints.push(new THREE.Vector3(PULLEY_RADIUS, handY, 0));
+
+                updateRopeGeometry(ropePoints);
+
+                // Lever Principle Markers:
+                const O = new THREE.Vector3(-PULLEY_RADIUS, wheelY, 0.3);
+                const F2 = new THREE.Vector3(0, wheelY, 0.3);
+                const F1 = new THREE.Vector3(PULLEY_RADIUS, wheelY, 0.3);
+
+                fulcrumMesh.position.copy(O);
+                loadPointMesh.position.copy(F2);
+                effortMesh.position.copy(F1);
+
+                updateLeverLine(O, F2, F1);
+            }
+
+            update2DLabels();
+        }
+
+        // Draw Rope with dynamic CatmullRom Curve
+        // NOTE: this runs every animation frame, so we reuse the Mesh + Material and only
+        // swap the Geometry (disposing the old one) to avoid leaking WebGL buffers every frame.
+        function updateRopeGeometry(points) {
+            const curve = new THREE.CatmullRomCurve3(points);
+            curve.curveType = 'catmullrom';
+            curve.tension = 0.05;
+
+            const tubeGeo = new THREE.TubeGeometry(curve, 48, ROPE_RADIUS, 8, false);
+
+            if (ropeLine) {
+                ropeLine.geometry.dispose();
+                ropeLine.geometry = tubeGeo;
+            } else {
+                ropeLine = new THREE.Mesh(tubeGeo, ropeMaterial);
+                ropeLine.castShadow = true;
+                scene.add(ropeLine);
+            }
+        }
+        //华仁中学蔡逸众制作
+
+        // Dashed Line to represent Lever Arm (杠杆示意线)
+        function updateLeverLine(p1, p2, p3) {
+            const positions = [];
+            positions.push(p1.x, p1.y, p1.z);
+            positions.push(p2.x, p2.y, p2.z);
+            positions.push(p3.x, p3.y, p3.z);
+
+            leverLine.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            leverLine.geometry.computeBoundingSphere();
+            leverLine.computeLineDistances();
+        }
+
+        // Position 2D Screen Overlay Tags over 3D Markers
+        function update2DLabels() {
+            positionLabel('label-fulcrum', fulcrumMesh.position);
+            positionLabel('label-effort', effortMesh.position);
+            positionLabel('label-load', loadPointMesh.position);
+        }
+
+        function positionLabel(elementId, vector3D) {
+            const elem = document.getElementById(elementId);
+            if (!elem) return;
+
+            const tempV = vector3D.clone();
+            tempV.project(camera);
+
+            const x = (tempV.x * .5 + .5) * window.innerWidth;
+            const y = (tempV.y * -.5 + .5) * window.innerHeight;
+
+            if (tempV.z > 1) {
+                elem.style.opacity = '0';
+            } else {
+                elem.style.opacity = '1';
+                elem.style.left = `${x}px`;
+                elem.style.top = `${y - 12}px`;
+            }
+        }
+
+        //Made by ecchua79
+        function updateUIInfo() {
+            const info = INFO_TEXTS[currentType];
+            document.getElementById('panel-title').innerText = info.title;
+            document.getElementById('pulley-description').innerHTML = info.desc;
+            document.getElementById('formula-force').innerText = info.fForce;
+            document.getElementById('formula-dist').innerText = info.fDist;
+            document.getElementById('desc-fulcrum').innerText = info.fulcrum;
+            document.getElementById('desc-effort').innerText = info.effort;
+            document.getElementById('desc-load').innerText = info.load;
+        }
+
+        function toggleAnimation() {
+            isPlaying = !isPlaying;
+            const icon = document.getElementById('icon-play');
+            const btn = document.getElementById('btn-play');
+
+            if (isPlaying) {
+                icon.className = "fa-solid fa-pause";
+                btn.className = "w-11 h-11 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center font-bold text-base transition-transform active:scale-95 shadow";
+            } else {
+                icon.className = "fa-solid fa-play";
+                btn.className = "w-11 h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl flex items-center justify-center font-bold text-base transition-transform active:scale-95 shadow";
+            }
+        }
+
+        function resetAnimation() {
+            isPlaying = false;
+            animProgress = 0;
+            animDirection = 1;
+            const icon = document.getElementById('icon-play');
+            const btn = document.getElementById('btn-play');
+            icon.className = "fa-solid fa-play";
+            btn.className = "w-11 h-11 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl flex items-center justify-center font-bold text-base transition-transform active:scale-95 shadow";
+            updatePositions();
+        }
+
+        function updateSpeed(val) {
+            animSpeed = parseFloat(val);
+            document.getElementById('speed-val').innerText = animSpeed.toFixed(1) + 'x';
+        }
+
+        function togglePanelCollapse() {
+            const content = document.getElementById('panel-content');
+            const arrow = document.getElementById('collapse-arrow');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            update2DLabels();
+        }
+
+        let lastTime = performance.now();
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            const delta = (now - lastTime) / 1000 || 0;
+            lastTime = now;
+
+            if (isPlaying) {
+                animProgress += delta * 0.35 * animSpeed * animDirection;
+
+                if (animProgress >= 1.0) {
+                    animProgress = 1.0;
+                    animDirection = -1;
+                } else if (animProgress <= 0.0) {
+                    animProgress = 0.0;
+                    animDirection = 1;
+                }
+                updatePositions();
+            } else {
+                update2DLabels();
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        //Made by ecchua79
+    </script>
+</body>
+</html>
