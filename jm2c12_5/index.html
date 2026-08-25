@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>宇宙深空：恒星终极演化 3D 实验室</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for space icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 使用 dvh 确保在移动端 100% 完美适配动态视口，绝不溢出或被遮挡 */
+        html, body {
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #010103;
+            font-family: 'Rajdhani', sans-serif;
+            -webkit-text-size-adjust: 100%;
+        }
+        .tech-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* 自定义面板滚动条 */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(234, 179, 8, 0.3);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(234, 179, 8, 0.6);
+        }
+        /* 霓虹发光边框 */
+        .neon-border-amber {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2), inset 0 0 15px rgba(245, 158, 11, 0.05);
+        }
+        /* 按钮呼吸动画 */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(234, 179, 8, 0.2); }
+            50% { box-shadow: 0 0 15px rgba(234, 179, 8, 0.7); }
+        }
+        .toggle-pulse {
+            animation: pulseGlow 2s infinite;
+        }
+    </style>
+</head>
+<body class="w-screen h-[100dvh] overflow-hidden text-slate-100 flex flex-col select-none">
+
+    <!-- Header HUD (头部控制中枢) -->
+    <header class="h-14 sm:h-16 border-b border-yellow-500/20 bg-black/85 backdrop-blur-md flex flex-row items-center justify-between px-4 z-30 shrink-0">
+        <div class="flex items-center space-x-2">
+            <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-yellow-500/50 flex items-center justify-center animate-spin" style="animation-duration: 12s;">
+                <i class="fa-solid fa-circle-notch text-yellow-400 text-[10px] sm:text-xs"></i>
+            </div>
+            <div>
+                <h1 class="tech-font font-bold text-xs sm:text-sm tracking-wider text-yellow-400">STELLAR LAB</h1>
+                <p class="text-[8px] text-slate-400 tracking-widest uppercase hidden sm:block font-mono">PLASMA SIMULATOR v2.5</p>
+            </div>
+        </div>
+        
+        <!-- 恒星初始质量选择器 -->
+        <div class="flex bg-slate-950 border border-slate-800 p-0.5 rounded-lg scale-90 sm:scale-100">
+            <button onclick="switchMassRoute('low')" id="btn-route-low" class="px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 bg-yellow-500 text-black">
+                1 M☉ (太阳)
+            </button>
+            <button onclick="switchMassRoute('medium')" id="btn-route-medium" class="px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 text-slate-400 hover:text-white">
+                12 M☉ (中子星)
+            </button>
+            <button onclick="switchMassRoute('high')" id="btn-route-high" class="px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 text-slate-400 hover:text-white">
+                30 M☉ (黑洞)
+            </button>
+        </div>
+
+        <!-- 宇宙年龄与计时 -->
+        <div class="flex items-center space-x-2 sm:space-x-4 scale-90 sm:scale-100">
+            <div class="text-right">
+                <span class="text-[8px] text-slate-500 block">COSMIC TIME</span>
+                <span id="cosmic-age-timer" class="tech-font text-xs font-semibold text-yellow-400">0.00 年</span>
+            </div>
+            <i class="fa-solid fa-satellite text-slate-400 animate-pulse text-xs sm:text-sm"></i>
+        </div>
+    </header>
+
+    <!-- 主视窗容器 -->
+    <div class="flex-1 w-full relative overflow-hidden">
+        
+        <!-- 底层全屏 3D 渲染器 -->
+        <div class="absolute inset-0 z-0">
+            <canvas id="canvas3d" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- 低调版权标识 -->
+        <div style="position:absolute; top:6px; left:50%; transform:translateX(-50%); font-size:0.55rem; color:rgba(56,189,248,0.18); z-index:1; pointer-events:none; user-select:none; letter-spacing:0.05em;">峇株吧辖华仁中学蔡逸众制作</div>
+
+
+        <!-- 左侧面板: 阶段切换 & 科学阐述 -->
+        <div id="panel-left" class="absolute left-0 top-0 bottom-0 z-20 w-[280px] sm:w-[350px] max-w-[85vw] bg-black/90 backdrop-blur-lg border-r border-yellow-500/10 flex flex-col transition-transform duration-300 ease-in-out">
+            <!-- 伸缩折叠手柄 -->
+            <button onclick="toggleLeftPanel()" class="absolute top-1/2 -translate-y-1/2 -right-8 w-8 h-16 bg-black/95 border-y border-r border-yellow-500/20 rounded-r-xl flex flex-col items-center justify-center cursor-pointer text-yellow-400 hover:text-yellow-300 hover:bg-black transition-all shadow-[5px_0_15px_rgba(0,0,0,0.5)] z-30 toggle-pulse" title="展开/收起左面板">
+                <i id="arrow-left" class="fa-solid fa-chevron-left text-xs"></i>
+                <span class="text-[8px] font-bold tracking-widest uppercase mt-1" style="writing-mode: vertical-lr;">MENU</span>
+            </button>
+
+            <!-- 面板真实滚动内容 -->
+            <div class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
+                <!-- 历程列表 -->
+                <div class="p-3 sm:p-4 border-b border-yellow-500/10 bg-black/20 shrink-0">
+                    <span class="text-xs text-yellow-500/70 font-semibold uppercase tracking-wider block mb-2 sm:mb-3">
+                        <i class="fa-solid fa-route mr-1.5"></i>演化阶段
+                    </span>
+                    <div id="stages-container" class="grid grid-cols-2 gap-2">
+                        <!-- 按钮通过 JS 动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 科学解释区域 -->
+                <div class="p-4 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span id="text-stage-roman" class="text-[10px] px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded border border-yellow-500/30 font-bold">STAGE I</span>
+                            <span id="star-mass-tag" class="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded border border-blue-500/30 font-bold">1 M☉</span>
+                        </div>
+                        <h2 id="text-stage-title" class="text-lg sm:text-2xl font-bold tracking-tight text-white mb-3">弥漫星云</h2>
+                        
+                        <div class="bg-yellow-500/5 border-l-2 border-yellow-500 p-2.5 sm:p-3 mb-4 rounded-r">
+                            <p id="text-stage-short" class="text-xs text-yellow-200/90 leading-relaxed font-semibold">
+                                由氢、氦等元素及微尘构成的冰冷星云。
+                            </p>
+                        </div>
+
+                        <p id="text-stage-description" class="text-xs text-slate-400 leading-relaxed space-y-2">
+                            星云受到扰动发生坍缩，拉开了一颗恒星生命史诗的帷幕。
+                        </p>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 text-[10px] text-slate-500 shrink-0 font-sans">
+                        <p><i class="fa-solid fa-circle-info mr-1"></i> 三维相机自带镜头推拉过渡与电浆噪声物理着色。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧面板: 天体遥测仪表 & 赫罗图 -->
+        <div id="panel-right" class="absolute right-0 top-0 bottom-0 z-20 w-[260px] sm:w-[320px] max-w-[80vw] bg-black/90 backdrop-blur-lg border-l border-yellow-500/10 flex flex-col transition-transform duration-300 ease-in-out p-4 sm:p-5 overflow-y-auto space-y-4 sm:space-y-5">
+            <!-- 伸缩折叠手柄 -->
+            <button onclick="toggleRightPanel()" class="absolute top-1/2 -translate-y-1/2 -left-8 w-8 h-16 bg-black/95 border-y border-l border-yellow-500/20 rounded-l-xl flex flex-col items-center justify-center cursor-pointer text-yellow-400 hover:text-yellow-300 hover:bg-black transition-all shadow-[-5px_0_15px_rgba(0,0,0,0.5)] z-30 toggle-pulse" title="展开/收起右面板">
+                <i id="arrow-right" class="fa-solid fa-chevron-right text-xs"></i>
+                <span class="text-[8px] font-bold tracking-widest uppercase mt-1" style="writing-mode: vertical-lr;">DATA</span>
+            </button>
+
+            <!-- 传感器数据统计 -->
+            <div class="space-y-2.5 sm:space-y-3 shrink-0">
+                <span class="text-xs text-yellow-500/70 font-semibold uppercase tracking-wider block border-b border-slate-800 pb-2"><i class="fa-solid fa-gauge mr-2"></i>物理遥测仪表</span>
+                
+                <!-- 属性: 温度 -->
+                <div class="bg-slate-950/60 p-2 sm:p-2.5 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[9px] text-slate-500 uppercase block tracking-wider">核心表面温度</span>
+                        <span id="telemetry-temp" class="tech-font text-sm sm:text-base font-bold text-white">10 K</span>
+                    </div>
+                    <div class="text-red-400/80 bg-red-500/10 w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-temperature-three-quarters"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 半径 -->
+                <div class="bg-slate-950/60 p-2 sm:p-2.5 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[9px] text-slate-500 uppercase block tracking-wider">天体物理半径</span>
+                        <span id="telemetry-radius" class="tech-font text-sm sm:text-base font-bold text-white">1.5 光年</span>
+                    </div>
+                    <div class="text-blue-400/80 bg-blue-500/10 w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-ruler-combined"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 聚变状态 -->
+                <div class="bg-slate-950/60 p-2 sm:p-2.5 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[9px] text-slate-500 uppercase block tracking-wider">核聚变燃料</span>
+                        <span id="telemetry-fusion" class="tech-font text-xs font-semibold text-white">未激活</span>
+                    </div>
+                    <div class="text-amber-400/80 bg-amber-500/10 w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-fire-burner"></i>
+                    </div>
+                </div>
+
+                <!-- 属性: 引力平衡 -->
+                <div class="bg-slate-950/60 p-2 sm:p-2.5 rounded-lg border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[9px] text-slate-500 uppercase block tracking-wider">压强 vs 引力状态</span>
+                        <span id="telemetry-balance" class="tech-font text-xs text-white">收缩中</span>
+                    </div>
+                    <div class="text-teal-400/80 bg-teal-500/10 w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-arrows-to-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 迷你赫罗图 (H-R Diagram) -->
+            <div class="space-y-1.5 sm:space-y-2 shrink-0">
+                <div class="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-1">
+                    <span>赫罗图位置</span>
+                    <i class="fa-solid fa-chart-line text-yellow-500"></i>
+                </div>
+                <div class="h-24 sm:h-28 bg-slate-950 border border-slate-800 rounded-lg relative overflow-hidden flex items-end">
+                    <div class="absolute inset-0 grid grid-cols-4 grid-rows-4 opacity-5 pointer-events-none">
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-r border-b border-white"></div>
+                        <div class="border-b border-white"></div>
+                    </div>
+                    
+                    <span class="absolute left-1 top-1 text-[8px] text-slate-600 uppercase">Luminosity</span>
+                    <span class="absolute right-1 bottom-1 text-[8px] text-slate-600 uppercase">Temp</span>
+                    
+                    <div class="absolute w-[120%] h-0.5 bg-yellow-500/15 -rotate-[25deg] top-1/2 left-[-10%] pointer-events-none"></div>
+                    <div class="absolute top-2 right-4 w-6 h-6 rounded-full bg-red-500/5 border border-red-500/10 flex items-center justify-center text-[5px] text-red-500/30">超巨星</div>
+                    <div class="absolute bottom-4 left-6 w-6 h-6 rounded-full bg-blue-500/5 border border-blue-500/10 flex items-center justify-center text-[5px] text-blue-500/30">矮星</div>
+
+                    <!-- 动态质点 -->
+                    <div id="hr-dot" class="absolute w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_10px_#eab308] border border-white -translate-x-1/2 translate-y-1/2 transition-all duration-700 ease-out" style="left: 10%; bottom: 10%;"></div>
+                </div>
+                <p id="hr-brief" class="text-[9px] text-slate-500 leading-tight">计算赫罗图中位置...</p>
+            </div>
+        </div>
+
+        <!-- 悬浮播放控制台 (升级为 fixed 绝对固定，结合 safe-area 防止移动端各种截断和隐藏) 🌟 -->
+        <div class="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-black/95 backdrop-blur-lg border border-slate-800 px-3 py-2 rounded-xl flex items-center space-x-3 z-40 w-[92%] max-w-[380px] shadow-2xl pb-[calc(10px+env(safe-area-inset-bottom))] transition-all">
+            <!-- 播放/暂停按钮 -->
+            <button onclick="toggleAutoPlay()" id="btn-play" class="w-8 h-8 rounded-full bg-yellow-500 text-black flex items-center justify-center hover:bg-yellow-400 transition-all duration-300 shrink-0">
+                <i class="fa-solid fa-play ml-0.5 text-xs" id="icon-play"></i>
+            </button>
+
+            <!-- 镜头模式切换：自动旋转 / 手动锁定 -->
+            <button onclick="toggleCameraMode()" id="btn-cam-mode" class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-yellow-400 flex flex-col items-center justify-center hover:bg-slate-800 transition-all duration-300 shrink-0" title="切换镜头模式: 自动巡航 / 手动锁定">
+                <i class="fa-solid fa-compass text-[10px]" id="icon-cam-mode"></i>
+                <span class="text-[6px] font-bold tracking-tight mt-0.5" id="label-cam-mode">AUTO</span>
+            </button>
+
+            <!-- 自动播放速度调整 -->
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between text-[9px] mb-0.5">
+                    <span class="text-slate-400 truncate">自动演化进程加速</span>
+                    <span id="autoplay-speed-label" class="text-yellow-500 font-bold tech-font shrink-0">5.0 亿年/秒</span>
+                </div>
+                <input type="range" id="autoplay-speed-slider" min="1" max="10" step="1" value="5" class="w-full accent-yellow-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- GSAP for Smooth Camera Tweening -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Three.js + Modules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Postprocessing files -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- 卡冈图雅风格黑洞 Raymarching Shader (Gargantua Black Hole) 🕳️✨ -->
+    <!-- 原理: 逐像素光线步进，实时模拟广义相对论引力弯曲；光线穿越吸积盘赤道面时
+         采样噪声纹理生成高温流体质感；落入事件视界的光线被完全吞噬(纯黑) -->
+    <script id="bhVertexShader" type="x-shader/x-vertex">
+        varying vec3 vWorldPosition;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+
+        void main() {
+            vUv = uv;
+            vNormal = normalize(normalMatrix * normal);
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+        }
+    </script>
+
+    <script id="bhFragmentShader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform float uTime;
+        varying vec3 vWorldPosition;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+
+        // 简易噪声函数，用于生成吸积盘纹理
+        float hash(vec2 p) {
+            p = fract(p * vec2(123.34, 456.21));
+            p += dot(p, p + 45.32);
+            return fract(p.x * p.y);
+        }
+
+        float noise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            float a = hash(i);
+            float b = hash(i + vec2(1.0, 0.0));
+            float c = hash(i + vec2(0.0, 1.0));
+            float d = hash(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        float fbm(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            vec2 shift = vec2(100.0);
+            mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+            for (int i = 0; i < 5; ++i) {
+                v += a * noise(p);
+                p = rot * p * 2.0 + shift;
+                a *= 0.5;
+            }
+            return v;
+        }
+
+        void main() {
+            vec3 rayOrigin = cameraPosition;
+            vec3 rayDir = normalize(vWorldPosition - cameraPosition);
+
+            vec3 blackHoleCenter = vec3(0.0, 0.0, 0.0);
+            float eventHorizonRadius = 4.5; // 黑洞事件视界半径
+
+            // 光线步进 (Raymarching) 物理模拟
+            vec3 currentPos = rayOrigin;
+            vec3 currentDir = rayDir;
+
+            vec3 color = vec3(0.0);
+            float stepSize = 0.4;
+            float accumulatedAccretion = 0.0;
+            vec3 accretionColor = vec3(0.0);
+
+            bool hitEventHorizon = false;
+
+            for (int i = 0; i < 180; i++) {
+                vec3 toCenter = blackHoleCenter - currentPos;
+                float dist = length(toCenter);
+
+                // 如果落入事件视界，完全吞噬光线
+                if (dist < eventHorizonRadius) {
+                    hitEventHorizon = true;
+                    break;
+                }
+
+                // 广义相对论引力弯曲计算
+                float gravityStrength = 12.0 / (dist * dist + 0.1);
+                vec3 gravityDir = normalize(toCenter);
+                currentDir = normalize(currentDir + gravityDir * gravityStrength * stepSize * 0.08);
+
+                // 计算吸积盘 (Accretion Disk) 交叉
+                // 吸积盘位于 XZ 平面 (Y ≈ 0)
+                float prevY = currentPos.y;
+                currentPos += currentDir * stepSize;
+                float currY = currentPos.y;
+
+                // 穿越赤道面
+                if ((prevY > 0.0 && currY < 0.0) || (prevY < 0.0 && currY > 0.0)) {
+                    float tSq = dist;
+                    float innerRadius = 6.0;
+                    float outerRadius = 18.0;
+
+                    if (tSq > innerRadius && tSq < outerRadius) {
+                        // 计算极坐标参数
+                        float angle = atan(currentPos.z, currentPos.x);
+                        float normDist = (tSq - innerRadius) / (outerRadius - innerRadius);
+
+                        // 旋转漩涡纹理
+                        float speed = 1.2 / (normDist + 0.2);
+                        float noiseVal = fbm(vec2(normDist * 6.0, angle * 3.0 + uTime * speed));
+
+                        // 边缘渐变
+                        float alpha = sin(normDist * 3.14159);
+                        alpha = pow(alpha, 1.5) * (0.4 + 0.6 * noiseVal);
+
+                        // 多普勒效应和高温吸积盘颜色 (橙红到白紫)
+                        vec3 hotColor = mix(vec3(1.0, 0.3, 0.05), vec3(1.0, 0.9, 0.7), noiseVal);
+                        hotColor = mix(hotColor, vec3(0.8, 0.9, 1.0), pow(1.0 - normDist, 3.0));
+
+                        accretionColor += hotColor * alpha * 0.8;
+                        accumulatedAccretion += alpha;
+                    }
+                }
+
+                // 如果光线飞向无穷远，停止步进
+                if (dist > 100.0) {
+                    break;
+                }
+            }
+
+            // 合成最终颜色
+            if (hitEventHorizon) {
+                color = accretionColor; // 视界内部黑洞本身为全黑，只保留被前置吸积盘遮挡的部分
+            } else {
+                // 背景微弱星空
+                float bgPattern = noise(currentDir.xy * 30.0);
+                vec3 starColor = vec3(pow(bgPattern, 12.0) * 2.0);
+                color = starColor + accretionColor;
+            }
+
+            // 色调映射与光晕处理
+            color = mix(color, vec3(1.0, 0.6, 0.2), accumulatedAccretion * 0.15);
+            color = vec3(1.0) - exp(-color * 1.3); // Simple Reinhard tone mapping
+
+            gl_FragColor = vec4(color, 1.0);
+        }
+    </script>
+
+    <!-- Custom Shader (GLSL Simplex Noise) for Solar/Stellar Surface (完美的、不发黑、高亮沸腾燃烧着色器) 🌟 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        precision highp float;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+            vUv = uv;
+            vNormal = normalize(normalMatrix * normal);
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform float uTime;
+        uniform vec3 uColor;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        // Simplex Noise 3D Implementation by Ashima Arts
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+        float snoise(vec3 v) { 
+            const vec2 C = vec2(1.0/6.0, 1.0/3.0) ;
+            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+            vec3 i  = floor(v + dot(v, C.yyy) );
+            vec3 x0 =   v - i + dot(i, C.xxx) ;
+
+            vec3 g = step(x0.yzx, x0.xyz);
+            vec3 l = 1.0 - g;
+            vec3 i1 = min( g.xyz, l.zxy );
+            vec3 i2 = max( g.xyz, l.zxy );
+
+            vec3 x1 = x0 - i1 + C.xxx;
+            vec3 x2 = x0 - i2 + C.yyy;
+            vec3 x3 = x0 - D.yyy;
+
+            i = mod289(i); 
+            vec4 p = permute( permute( permute( 
+                        i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                    + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+                    + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+            float n_ = 0.142857142857;
+            vec3  ns = n_ * D.wyz - D.xzx;
+
+            vec4 j = p - 49.0 * floor(p * ns.z);
+
+            vec4 x_ = floor(j * ns.z);
+            vec4 y_ = floor(j - 7.0 * x_ );
+
+            vec4 x = x_ *ns.x + ns.yyyy;
+            vec4 y = y_ *ns.x + ns.yyyy;
+            vec4 h = 1.0 - abs(x) - abs(y);
+
+            vec4 b0 = vec4( x.xy, y.xy );
+            vec4 b1 = vec4( x.zw, y.zw );
+
+            vec4 s0 = floor(b0)*2.0 + 1.0;
+            vec4 s1 = floor(b1)*2.0 + 1.0;
+            vec4 sh = -step(h, vec4(0.0));
+
+            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+            vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+            vec3 p0 = vec3(a0.xy,h.x);
+            vec3 p1 = vec3(a0.zw,h.y);
+            vec3 p2 = vec3(a1.xy,h.z);
+            vec3 p3 = vec3(a1.zw,h.w);
+
+            vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+            p0 *= norm.x;
+            p1 *= norm.y;
+            p2 *= norm.z;
+            p3 *= norm.w;
+
+            vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+            m = m * m;
+            return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                            dot(p2,x2), dot(p3,x3) ) );
+        }
+
+        void main() {
+            // 通过 3D 噪声生成对流胞颗粒
+            vec3 noisePos = normalize(vPosition) * 4.5 + vec3(0.0, 0.0, uTime * 0.75);
+            float n1 = snoise(noisePos);
+            float n2 = snoise(noisePos * 2.5 - vec3(uTime * 0.3)) * 0.5;
+            float totalNoise = (n1 + n2) / 1.5; // [-1.0, 1.0]
+            totalNoise = clamp(totalNoise, -1.0, 1.0);
+
+            // 恒星耀眼表面配置 (自发光亮度加成，杜绝黑心)
+            vec3 coreBright = vec3(1.15, 1.12, 1.0); // 白炽亮斑
+            vec3 midTone = uColor * 1.6;             // 对流中色调 (增强 1.6 倍发光)
+            vec3 coolTone = uColor * 0.85;           // 对流冷却斑
+
+            vec3 surfaceColor = mix(coolTone, midTone, totalNoise * 0.5 + 0.5);
+            if (totalNoise > 0.1) {
+                surfaceColor = mix(surfaceColor, coreBright, clamp((totalNoise - 0.1) * 1.6, 0.0, 1.0));
+            }
+
+            // 边缘菲涅尔散射，让发光更加有质感
+            float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
+            vec3 rimColor = mix(uColor, vec3(1.0), 0.6) * 1.8;
+            
+            vec3 finalColor = surfaceColor + rimColor * fresnel;
+            finalColor = clamp(finalColor, 0.0, 4.0);
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    </script>
+
+    <!-- App Main Logic -->
+    <script>
+        // --- 1. 三条演化路线数据配置 ---
+        const EVOLUTION_DATA = {
+            low: {
+                massTag: "1 M☉",
+                stages: {
+                    1: {
+                        title: "分子气尘星云", roman: "STAGE I", color: 0xaa55ff, colorClass: "text-purple-400",
+                        short: "低温的星云在外界激波扰动下发生引力坍缩。",
+                        desc: "大约46亿年前，巨大的冷气体和宇宙尘埃云受引力作用开始收缩。核心逐渐发热，万有引力拉开演化序幕。",
+                        temp: "10 K", radius: "1.5 光年", fusion: "未激活", balance: "引力塌缩中", ageText: "0.00 年", hrPos: { x: 15, y: 15 },
+                        hrBrief: "处于赫罗图极右下角黑暗、冷散区。", cameraDist: 26
+                    },
+                    2: {
+                        title: "原恒星 (Protostar)", roman: "STAGE II", color: 0xffaa00, colorClass: "text-amber-400",
+                        short: "引力势能转化内能，核心凝聚发热，产生吸积盘与喷流。",
+                        desc: "星云中心形成旋转吸积盘并不断向中心喂食，两极形成高能垂直热喷流。此时氢聚变尚未点燃。",
+                        temp: "3,200 K", radius: "4.5 R☉", fusion: "重力塌缩生热", balance: "引力大占优势", ageText: "10 万年", hrPos: { x: 45, y: 35 },
+                        hrBrief: "位于对流阶段，光度极强，在赫罗图右侧急剧下移。", cameraDist: 18
+                    },
+                    3: {
+                        title: "黄主序星 (Main Sequence)", roman: "STAGE III", color: 0xff8c00, colorClass: "text-yellow-400", // 增亮太阳主序基准色为更亮的橙黄
+                        short: "氢核聚变全面开启，恒星最稳定、最漫长的发光阶段。",
+                        desc: "核心温度破千万，点燃氢聚变反应。辐射压和引力完美平衡，将平稳发光发热约 100 亿年。这就是我们的太阳。",
+                        temp: "5,778 K", radius: "1.0 R☉", fusion: "核心氢核聚变", balance: "静力学完美平衡", ageText: "46.00 亿年", hrPos: { x: 60, y: 55 },
+                        hrBrief: "精准降落于主序带的中段安家落户。", cameraDist: 12
+                    },
+                    4: {
+                        title: "红巨星 (Red Giant)", roman: "STAGE IV", color: 0xef3300, colorClass: "text-red-500",
+                        short: "核心氢燃尽骤缩，外壳极速膨胀并冷却，吞噬内行星。",
+                        desc: "中心氢燃烧殆尽，核坍缩导致温度极速上升，点燃了外层氢，外壳疯狂膨胀。太阳将吞噬水星和金星，表面泛红降温。",
+                        temp: "3,100 K", radius: "180.0 R☉", fusion: "氦核聚变 + 壳层氢聚变", balance: "不平衡 (外壳剧烈膨胀)", ageText: "102.5 亿年", hrPos: { x: 80, y: 80 },
+                        hrBrief: "向右上跃迁入巨星区分支。", cameraDist: 22
+                    },
+                    5: {
+                        title: "行星状星云", roman: "STAGE V", color: 0x14b8a6, colorClass: "text-teal-400",
+                        short: "外层气体剥离，从中间喷射出五彩斑斓的彩色颗粒扩散气流。",
+                        desc: "不稳定的热脉动导致外层大气剥落。我们采用高能微粒排布，模拟星云从炽热内核向太空发生的大面积虹彩大爆炸。",
+                        temp: "气壳 1万K / 核 12万K", radius: "0.5 光年", fusion: "聚变熄灭", balance: "结构瓦解", ageText: "103.1 亿年", hrPos: { x: 30, y: 70 },
+                        hrBrief: "光度仍大但由于脱掉外壳开始向左下方迁移。", cameraDist: 20
+                    },
+                    6: {
+                        title: "白矮星 (White Dwarf)", roman: "STAGE VI", color: 0x60a5fa, colorClass: "text-blue-400",
+                        short: "简并态余炭，不再核聚变，靠简并电子支撑爆发极致高能冷晕。",
+                        desc: "气壳散尽，只剩致密碳氧白矮星（类似地球大小）。无聚变，依靠热力残温在后期处理下形成极致强烈高亮发光圈。",
+                        temp: "15,000 K", radius: "0.01 R☉", fusion: "无 (电子简并压力支撑)", balance: "电子简并支撑力平衡", ageText: "104.0 亿年", hrPos: { x: 25, y: 25 },
+                        hrBrief: "坠落于赫罗图最底部的白矮星带。", cameraDist: 8
+                    }
+                }
+            },
+            medium: {
+                massTag: "12 M☉",
+                stages: {
+                    1: {
+                        title: "大质量分子星云", roman: "STAGE I", color: 0x7788ff, colorClass: "text-indigo-400",
+                        short: "巨大的星系冷气团，在强引力牵引下极速收缩。",
+                        desc: "大质量星际气云含有更充沛 of 氢分子。万有引力更强、坍缩更加迅猛，孕育着蓝色的庞然大物。",
+                        temp: "15 K", radius: "4.0 光年", fusion: "未激活", balance: "强引力极速崩塌", ageText: "0.00 年", hrPos: { x: 20, y: 20 },
+                        hrBrief: "星云起点，位于中低光度极冷区。", cameraDist: 30
+                    },
+                    2: {
+                        title: "超大原恒星", roman: "STAGE II", color: 0x2288ff, colorClass: "text-blue-500",
+                        short: "旋转吞噬周边气体，高能蓝色对流核在狂暴等离子流中喷射。",
+                        desc: "随着超强引力吸积，核心温度极高，并呈现蓝白色，高能轴向射流强度是太阳级的数万倍。",
+                        temp: "8,000 K", radius: "12.0 R☉", fusion: "强引力压缩生热", balance: "疯狂吸积中", ageText: "2.5 万年", hrPos: { x: 40, y: 65 },
+                        hrBrief: "位于赫罗图上半段，尚未定型。", cameraDist: 20
+                    },
+                    3: {
+                        title: "蓝巨星 (Blue Giant)", roman: "STAGE III", color: 0x0088ff, colorClass: "text-blue-600", // 修正：真正的炽烈蓝
+                        short: "以CNO循环发生极为狂暴的氢聚变，光度惊人但寿命极短。",
+                        desc: "巨大的引力要求核心以极速发生氢聚变，释放万倍于太阳的光芒。采用电浆着色器实时模拟狂暴等离子胞流动。",
+                        temp: "25,000 K", radius: "8.5 R☉", fusion: "狂暴CNO氢核聚变", balance: "极端辐射压平衡", ageText: "1,200 万年", hrPos: { x: 30, y: 85 },
+                        hrBrief: "完美镶嵌在主序带的极左上角高端。", cameraDist: 15
+                    },
+                    4: {
+                        title: "红超巨星 (Red Supergiant)", roman: "STAGE IV", color: 0xd94406, colorClass: "text-amber-600", // 修正：洋葱红超巨星
+                        short: "核聚变历经氦、碳、氖、氧、硅，形成洋葱状核结构。",
+                        desc: "氢耗尽后迅速膨胀为超巨星。其内部核反应合成重元素。当合成至铁元素（Fe）时，核心再也无法通过聚变释放能量，灾难即将来临。",
+                        temp: "3,500 K", radius: "950 R☉", fusion: "各级壳层多重聚变直至铁核", balance: "洋葱核结构即将崩溃", ageText: "1,450 万年", hrPos: { x: 85, y: 92 },
+                        hrBrief: "横穿右移至最高光度红超巨星带（如参宿四）。", cameraDist: 25
+                    },
+                    5: {
+                        title: "超新星爆发 💥", roman: "STAGE V", color: 0xf97316, colorClass: "text-orange-500",
+                        short: "铁核自重坍缩引发猛烈反弹，导致宇宙最震撼的毁灭性爆炸。",
+                        desc: "无法支撑重力的铁核在一瞬间坍缩。核极度致密触发物质强烈反弹，引发摧毁整颗恒星的Ⅱ型超新星大爆炸，光度比肩一个星系。",
+                        temp: "百亿开尔文", radius: "炸裂震荡波向外无限扩散", fusion: "瞬时超新星核合成 (产生金银铂重金)", balance: "彻底爆裂崩溃", ageText: "1,452 万年 (爆燃瞬时)", hrPos: { x: 75, y: 98 },
+                        hrBrief: "光度暴增至极限，短暂冲出赫罗图峰值。", cameraDist: 20
+                    },
+                    6: {
+                        title: "中子星 (Neutron Star) 💫", roman: "STAGE VI", color: 0xa5b4fc, colorClass: "text-indigo-300",
+                        short: "超高致密坍缩余骸，原子被压碎，磁极电磁辐射在耀眼光晕中高速旋转。",
+                        desc: "残余的核心坍缩进10公里直径。在 UnrealBloomPass 电影级滤镜渲染下，核心和两极极强辐射束产生极为刺眼的闪烁辉光。",
+                        temp: "100万 K", radius: "约 12 公里", fusion: "无聚变 (中子简并支撑)", balance: "中子简并压 vs 极端引力", ageText: "永远冷暗", hrPos: { x: 10, y: 5 },
+                        hrBrief: "在赫罗图極左下方深渊（低温弱光极密区）。", cameraDist: 10
+                    }
+                }
+            },
+            high: {
+                massTag: "30 M☉",
+                stages: {
+                    1: {
+                        title: "巨无霸星际星云", roman: "STAGE I", color: 0x5599ff, colorClass: "text-blue-500",
+                        short: "超大型星际温床，重力势能充沛，孕育黑洞之种。",
+                        desc: "足以孕育超大恒星的深空巨云，拥有庞大的重力储备，注定将引发宇宙间最极端的重力悲剧。",
+                        temp: "20 K", radius: "8.0 光年", fusion: "未激活", balance: "极端收缩", ageText: "0.00 年", hrPos: { x: 25, y: 25 },
+                        hrBrief: "大型温床，演化伊始。", cameraDist: 32
+                    },
+                    2: {
+                        title: "高能蓝色原恒星", roman: "STAGE II", color: 0x0066ff, colorClass: "text-blue-700",
+                        short: "吞噬吸积盘尘埃速度惊人，蓝色高温内核伴随喷流剧烈爆发。",
+                        desc: "极快、极重、极热的吸积涡流。由于重力巨大，还在原恒星阶段就已经在表面呈现刺眼的深蓝紫色。",
+                        temp: "12,000 K", radius: "25 R☉", fusion: "重力塌缩生热", balance: "强风暴吸积", ageText: "1 万年", hrPos: { x: 35, y: 75 },
+                        hrBrief: "在赫罗图上半段大步左进。", cameraDist: 22
+                    },
+                    3: {
+                        title: "蓝特超巨星", roman: "STAGE III", color: 0x0022ff, colorClass: "text-indigo-950", // 修正：超高能深邃邃蓝
+                        short: "光度超日百万倍，蓝色等离子核心在时空轨道中燃烧翻滚。",
+                        desc: "在狂暴辐射驱使下，星体外衣不断喷发强恒星风。表面温度惊人，采用高强度蓝色噪声 Shader 呈现强流动质感。",
+                        temp: "35,000 K", radius: "35 R☉", fusion: "极端CNO聚变反应", balance: "不稳定辐射压控制", ageText: "300 万年", hrPos: { x: 20, y: 95 },
+                        hrBrief: "立足于赫罗图最左上方，傲视群星。", cameraDist: 16
+                    },
+                    4: {
+                        title: "蓝特超巨星膨胀期", roman: "STAGE IV", color: 0xb91c1c, colorClass: "text-red-700",
+                        short: "星核迅速重合演替，在超高光度下极不稳定地挣扎。",
+                        desc: "由于质量过大，其红巨星时期极其不稳定。在蓝、红超巨星之间剧烈跳跃，最终由于铁核沉底完全失去核支撑。",
+                        temp: "4,000 K", radius: "1500 R☉ (横跨轨道)", fusion: "核心碳、氧、硅瞬间耗尽", balance: "重力势将压垮核简并", ageText: "350 万年", hrPos: { x: 90, y: 95 },
+                        hrBrief: "赫罗图最右上方边缘，处于极度不稳定的暴风雨前夕。", cameraDist: 25
+                    },
+                    5: {
+                        title: "超超新星/极超新星 💥", roman: "STAGE V", color: 0xd97706, colorClass: "text-amber-500",
+                        short: "极超新星爆发，瞬时能量是普通超新星的百倍。",
+                        desc: "大核心的塌陷伴随着伽马射线暴（GRB），瞬间喷流能量可摧毁沿途数百光年内的一切星体，结合强色度 Bloom 极为刺眼。",
+                        temp: "千亿开尔文", radius: "强极光激波暴射", fusion: "瞬时极端核素链反应", balance: "彻底分崩离析", ageText: "352 万年", hrPos: { x: 80, y: 98 },
+                        hrBrief: "亮度短暂超越一整个宿主星系，极亮。", cameraDist: 22
+                    },
+                    6: {
+                        title: "恒星级黑洞 (Black Hole) 🕳️", roman: "STAGE VI", color: 0x000000, colorClass: "text-slate-200",
+                        short: "时空深不可测的奇点。引力透镜弯曲吸积盘，相对论射线刺眼耀眼。",
+                        desc: "时空向内塌陷成奇点。周围的光线因引力透镜效应发生剧烈弯曲，吸积盘的光甚至能绕到黑洞正上方和正下方被看见，呈现摄人心魄的卡冈图雅式效果。",
+                        temp: "接近绝对零度", radius: "视界半径约 90 公里", fusion: "无 (核物理在此崩溃失效)", balance: "无限塌陷 (时空弯曲)", ageText: "直至宇宙尽头", hrPos: { x: 5, y: 1 },
+                        hrBrief: "物理性质在此归零，坠落于赫罗图框架以外的无限深处。", cameraDist: 45
+                    }
+                }
+            }
+        };
+
+        // --- 2. 初始化核心 3D 变量与后期处理管线 ---
+        let scene, camera, renderer, controls;
+        let composer; 
+        let currentRoute = 'low'; 
+        let currentStage = 1;
+        let autoPlayInterval = null;
+        let isPlaying = false;
+        let autoPlaySpeed = 5;
+
+        // 镜头模式
+        let isCameraAutoCruise = true; 
+
+        // 面板隐藏
+        let isLeftPanelOpen = true;
+        let isRightPanelOpen = true;
+
+        const stageGroup = new THREE.Group();
+
+        // 全局共享噪声 Shader 材质 🌟 (杜绝克隆 Uniform 时的颜色覆盖及不沸腾现象)
+        let stellarShaderMaterial = null;
+
+        // 过程化发光点
+        function createParticleGlowTexture(innerColStr, outerColStr) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, innerColStr);
+            gradient.addColorStop(0.2, innerColStr);
+            gradient.addColorStop(0.5, outerColStr);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const textures = {
+            purpleGlow: createParticleGlowTexture('rgba(224,180,255,1)', 'rgba(147,51,234,0.3)'), 
+            amberGlow: createParticleGlowTexture('rgba(255,220,180,1)', 'rgba(245,158,11,0.3)'),  
+            blueGlow: createParticleGlowTexture('rgba(200,225,255,1)', 'rgba(59,130,246,0.3)'), 
+            yellowGlow: createParticleGlowTexture('rgba(255,250,200,1)', 'rgba(161,98,7,0.35)'),
+        //峇株吧辖蔡逸众制作
+            redGlow: createParticleGlowTexture('rgba(255,210,210,1)', 'rgba(239,68,68,0.3)'),
+            tealGlow: createParticleGlowTexture('rgba(180,255,240,1)', 'rgba(20,184,166,0.3)'),
+            whiteDot: createParticleGlowTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0.35)'),
+            indigoGlow: createParticleGlowTexture('rgba(230,235,255,1)', 'rgba(99,102,241,0.35)') 
+        };
+
+        // 3D 实体引用句柄
+        let activePoints = null; 
+        let activeStar = null;   
+        let activeCompanion = null; 
+        let specialOutflow = null; 
+
+        // 卡冈图雅黑洞 Raymarching 材质句柄 🕳️✨
+        let blackHoleRaymarchMaterial = null;
+
+        // 背景星空 (常驻远景星光层，增强整体宇宙氛围)
+        function createBackgroundStarfield() {
+            const count = 6000;
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = 260 + Math.random() * 220;
+                pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i+2] = r * Math.cos(phi);
+                const b = 0.55 + Math.random() * 0.45;
+                colors[i] = b;
+                colors[i+1] = b;
+                colors[i+2] = Math.min(1.0, b + 0.08);
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 1.3,
+                vertexColors: true,
+                map: textures.whiteDot,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                sizeAttenuation: false
+            });
+            return new THREE.Points(geom, mat);
+        }
+
+        // --- 3. 3D 场景与后期通道搭建 ---
+        function initScene() {
+            const container = document.getElementById('canvas3d');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x010103, 0.01);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 10, 26); 
+
+            renderer = new THREE.WebGLRenderer({ canvas: container, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // 轨道控制
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 120;
+            controls.minDistance = 2;
+
+            scene.add(stageGroup);
+
+            // 背景星空层 (常驻场景，为黑洞引力透镜提供可扭曲的星光背景)
+            scene.add(createBackgroundStarfield());
+
+            // 强环境光提亮
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            
+            const pointLight = new THREE.PointLight(0xffffff, 6.0, 100);
+            pointLight.position.set(0, 0, 0);
+            scene.add(pointLight);
+
+            // 初始化电浆着色器材质组件 (强制 highp 精度，修复移动端 GPU 噪声溢出导致的错色 bug) 🌟
+            stellarShaderMaterial = new THREE.ShaderMaterial({
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent,
+                precision: 'highp',
+                uniforms: {
+                    uTime: { value: 0.0 },
+                    uColor: { value: new THREE.Color(0xffaa00) }
+                }
+            });
+
+            // 核心后期处理管线设置
+            const renderScene = new THREE.RenderPass(scene, camera);
+
+        //峇株吧辖蔡逸众制作
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(container.clientWidth, container.clientHeight), 
+                1.75,  
+                0.45,  
+                0.12   
+            );
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // 自适应布局
+            checkResponsiveLayout();
+
+            // 生成阶段 Tab
+            generateStageButtons();
+
+            // 绘制初始 3D 天体
+            buildStage3D();
+
+            // 动画主线程启动
+            animate();
+        }
+
+        // --- 4. 三维星云/星体阶段几何动态重建 ---
+        function clearStageGroup() {
+            while(stageGroup.children.length > 0){ 
+                const obj = stageGroup.children[0];
+                stageGroup.remove(obj);
+                disposeObject3D(obj);
+            }
+            activePoints = null;
+            activeStar = null;
+            activeCompanion = null;
+            specialOutflow = null;
+            blackHoleRaymarchMaterial = null;
+        }
+
+        // 递归释放几何体与材质的 GPU 资源，防止阶段切换时显存泄漏 🌟
+        //Made by ecchua79
+        // 注意：全局共享的 stellarShaderMaterial 不在此释放，避免频繁切换阶段时
+        // 反复触发 WebGLProgram 重新编译，带来不必要的性能开销
+        function disposeObject3D(obj) {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material && obj.material !== stellarShaderMaterial) {
+                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                mats.forEach(m => {
+                    if (m !== stellarShaderMaterial) m.dispose();
+                });
+            }
+            if (obj.children && obj.children.length > 0) {
+                obj.children.forEach(child => disposeObject3D(child));
+            }
+        }
+
+        // 重新构建对应路线与演化阶段的 3D 星体结构
+        function buildStage3D() {
+            clearStageGroup();
+
+            const config = EVOLUTION_DATA[currentRoute].stages[currentStage];
+            const col = config.color;
+
+            // 阶段 1: 弥漫星云
+            if (currentStage === 1) {
+                const count = 3800;
+                const geom = new THREE.BufferGeometry();
+                const pos = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+
+                const scaleRad = currentRoute === 'low' ? 12 : currentRoute === 'medium' ? 16 : 20;
+                
+                for (let i = 0; i < count * 3; i += 3) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const r = Math.pow(Math.random(), 2.2) * scaleRad + 1.0;
+
+                    pos[i] = r * Math.sin(phi) * Math.cos(theta);
+                    pos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                    pos[i+2] = r * Math.cos(phi);
+
+                    const tempCol = new THREE.Color(col);
+                    tempCol.multiplyScalar(1.6);
+                    colors[i] = tempCol.r;
+                    colors[i+1] = tempCol.g;
+                    colors[i+2] = tempCol.b;
+                }
+
+                geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const mapGlow = currentRoute === 'low' ? textures.purpleGlow : currentRoute === 'medium' ? textures.indigoGlow : textures.blueGlow;
+
+                const mat = new THREE.PointsMaterial({
+                    size: 0.45, 
+                    vertexColors: true,
+                    map: mapGlow,
+                    transparent: true,
+                    opacity: 0.85, 
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+
+                activePoints = new THREE.Points(geom, mat);
+                stageGroup.add(activePoints);
+            }
+
+            // 阶段 2: 原恒星
+            else if (currentStage === 2) {
+                const radius = currentRoute === 'low' ? 1.2 : currentRoute === 'medium' ? 1.8 : 2.5;
+                const coreGeom = new THREE.SphereGeometry(radius, 48, 48);
+                
+                // 给全局共享 Shader 更新当前的颜色 Uniform 🌟
+                stellarShaderMaterial.uniforms.uColor.value.setHex(col);
+                activeStar = new THREE.Mesh(coreGeom, stellarShaderMaterial);
+                stageGroup.add(activeStar);
+
+                // 吸积盘尘埃粒子
+                const diskCount = 2000;
+                const diskGeom = new THREE.BufferGeometry();
+                const diskPos = new Float32Array(diskCount * 3);
+                const diskColors = new Float32Array(diskCount * 3);
+
+                for (let i = 0; i < diskCount * 3; i += 3) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.pow(Math.random(), 1.5) * (radius * 5.2) + (radius * 1.1);
+                    diskPos[i] = r * Math.cos(angle);
+                    diskPos[i+1] = (Math.random() - 0.5) * 0.35;
+                    diskPos[i+2] = r * Math.sin(angle);
+
+                    const factor = (r - radius) / (radius * 5.2);
+                    const coreCol = new THREE.Color(col).multiplyScalar(1.5); 
+                    const outerCol = new THREE.Color(0xaa3300);
+                    coreCol.lerp(outerCol, factor);
+                    diskColors[i] = coreCol.r;
+                    diskColors[i+1] = coreCol.g;
+                    diskColors[i+2] = coreCol.b;
+                }
+
+        //峇株吧辖华仁中学蔡逸众制作
+                diskGeom.setAttribute('position', new THREE.BufferAttribute(diskPos, 3));
+                diskGeom.setAttribute('color', new THREE.BufferAttribute(diskColors, 3));
+
+                const diskMat = new THREE.PointsMaterial({
+                    size: 0.22, 
+                    vertexColors: true,
+                    map: textures.amberGlow,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                activePoints = new THREE.Points(diskGeom, diskMat);
+                stageGroup.add(activePoints);
+
+                buildPolarJets(radius);
+            }
+
+            // 阶段 3: 主序星阶段 (直接绑定全局唯一 Noise Shader 🌟，动态灌入颜色 Uniform，从底层根除交叉覆盖 Bug)
+            else if (currentStage === 3) {
+                const radius = currentRoute === 'low' ? 1.5 : currentRoute === 'medium' ? 2.2 : 3.0;
+                const coreGeom = new THREE.SphereGeometry(radius, 48, 48); 
+                
+                // 动态将当前阶段的颜色精确、实时写入全局 Shader 中 🌟
+                stellarShaderMaterial.uniforms.uColor.value.setHex(col);
+                
+                activeStar = new THREE.Mesh(coreGeom, stellarShaderMaterial);
+                stageGroup.add(activeStar);
+
+                // 日冕环绕粒子
+                const coronaCount = 600;
+                const coronaGeom = new THREE.BufferGeometry();
+                const coronaPos = new Float32Array(coronaCount * 3);
+                for (let i = 0; i < coronaCount * 3; i += 3) {
+        //Made by ecchua79
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const r = radius + 0.1 + Math.random() * 0.5;
+                    coronaPos[i] = r * Math.sin(phi) * Math.cos(theta);
+                    coronaPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                    coronaPos[i+2] = r * Math.cos(phi);
+                }
+                coronaGeom.setAttribute('position', new THREE.BufferAttribute(coronaPos, 3));
+                const glowTexture = currentRoute === 'low' ? textures.yellowGlow : textures.blueGlow;
+                const coronaMat = new THREE.PointsMaterial({
+                    size: 0.15,
+                    color: col,
+                    map: glowTexture,
+                    transparent: true,
+                    opacity: 0.8,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                activePoints = new THREE.Points(coronaGeom, coronaMat);
+                stageGroup.add(activePoints);
+            }
+
+            // 阶段 4: 红巨星/红超巨星 (同样应用电浆噪声 Shader 并灌入红橙色 Uniform) 🌟
+            else if (currentStage === 4) {
+                const radius = currentRoute === 'low' ? 4.2 : currentRoute === 'medium' ? 5.5 : 7.0;
+                const coreGeom = new THREE.SphereGeometry(radius, 48, 48);
+                
+                stellarShaderMaterial.uniforms.uColor.value.setHex(col);
+
+                activeStar = new THREE.Mesh(coreGeom, stellarShaderMaterial);
+                stageGroup.add(activeStar);
+
+                const denseGeom = new THREE.SphereGeometry(radius * 0.15, 32, 32);
+                const denseMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+                const denseCore = new THREE.Mesh(denseGeom, denseMat);
+                stageGroup.add(denseCore);
+
+                const shieldGeom = new THREE.SphereGeometry(radius * 1.05, 32, 32);
+                const shieldMat = new THREE.MeshBasicMaterial({
+                    color: col,
+                    transparent: true,
+                    opacity: 0.35,
+                    blending: THREE.AdditiveBlending
+                });
+                activeCompanion = new THREE.Mesh(shieldGeom, shieldMat);
+                stageGroup.add(activeCompanion);
+            }
+
+            // 阶段 5: 行星状星云 (重构为七彩高频大爆炸扩散) OR 超新星大爆炸 💥
+            else if (currentStage === 5) {
+                if (currentRoute === 'low') {
+                    // 1. 小质量：行星状星云大面积彩色粒子流
+                    const coreGeom = new THREE.SphereGeometry(0.25, 16, 16);
+                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    activeStar = new THREE.Mesh(coreGeom, coreMat);
+                    stageGroup.add(activeStar);
+
+                    buildPlanetaryRings();
+                } else {
+                    // 2. 超新星大爆炸
+                    const coreGeom = new THREE.SphereGeometry(0.8, 32, 32);
+                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    activeStar = new THREE.Mesh(coreGeom, coreMat);
+                    stageGroup.add(activeStar);
+
+        //峇株吧辖华仁中学蔡逸众制作
+                    const snCount = 3500;
+                    const snGeom = new THREE.BufferGeometry();
+                    const snPos = new Float32Array(snCount * 3);
+                    const snColors = new Float32Array(snCount * 3);
+                    for (let i = 0; i < snCount * 3; i += 3) {
+                        const theta = Math.random() * Math.PI * 2;
+                        const phi = Math.acos(2 * Math.random() - 1);
+                        const r = 1.0 + Math.random() * 8.0;
+
+                        snPos[i] = r * Math.sin(phi) * Math.cos(theta);
+                        snPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                        snPos[i+2] = r * Math.cos(phi);
+
+                        const mix = Math.random();
+                        if (mix < 0.3) {
+                            snColors[i] = 1.0; snColors[i+1] = 1.0; snColors[i+2] = 1.0;
+                        } else if (mix < 0.7) {
+                            snColors[i] = 0.95; snColors[i+1] = 0.45; snColors[i+2] = 0.05;
+                        } else {
+                            snColors[i] = 0.95; snColors[i+1] = 0.1; snColors[i+2] = 0.1;
+                        }
+                    }
+                    snGeom.setAttribute('position', new THREE.BufferAttribute(snPos, 3));
+                    snGeom.setAttribute('color', new THREE.BufferAttribute(snColors, 3));
+
+                    const glowTex = currentRoute === 'medium' ? textures.amberGlow : textures.redGlow;
+                    const snMat = new THREE.PointsMaterial({
+                        size: 0.38,
+                        vertexColors: true,
+                        map: glowTex,
+                        transparent: true,
+                        opacity: 0.85,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    activePoints = new THREE.Points(snGeom, snMat);
+                    stageGroup.add(activePoints);
+                }
+            }
+
+            // 阶段 6: 终极残骸 (白矮星 vs 中子星 vs 恒星级黑洞)
+            else if (currentStage === 6) {
+                if (currentRoute === 'low') {
+                    const coreGeom = new THREE.SphereGeometry(0.12, 32, 32);
+                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    activeStar = new THREE.Mesh(coreGeom, coreMat);
+                    stageGroup.add(activeStar);
+
+                    const haloGeom = new THREE.SphereGeometry(0.4, 16, 16);
+                    const haloMat = new THREE.MeshBasicMaterial({
+                        color: 0x93c5fd,
+                        transparent: true,
+                        opacity: 0.8, 
+                        blending: THREE.AdditiveBlending
+                    });
+                    activeCompanion = new THREE.Mesh(haloGeom, haloMat);
+                    stageGroup.add(activeCompanion);
+                } 
+                else if (currentRoute === 'medium') {
+                    const coreGeom = new THREE.SphereGeometry(0.15, 32, 32);
+                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    activeStar = new THREE.Mesh(coreGeom, coreMat);
+                    stageGroup.add(activeStar);
+
+                    const magnetGeom = new THREE.SphereGeometry(0.45, 16, 16);
+                    const magnetMat = new THREE.MeshBasicMaterial({
+                        color: 0x818cf8,
+                        transparent: true,
+                        opacity: 0.85,
+                        blending: THREE.AdditiveBlending
+                    });
+                    activeCompanion = new THREE.Mesh(magnetGeom, magnetMat);
+                    stageGroup.add(activeCompanion);
+
+                    // 极向偏角射线束
+                    const coneCount = 350;
+                    const coneGeom = new THREE.BufferGeometry();
+                    const conePos = new Float32Array(coneCount * 3);
+                    for (let i = 0; i < coneCount * 3; i += 3) {
+                        conePos[i] = (Math.random() - 0.5) * 0.12;
+                        conePos[i+1] = Math.random() * 11.0 + 0.3; 
+                        conePos[i+2] = (Math.random() - 0.5) * 0.12;
+                    }
+                    coneGeom.setAttribute('position', new THREE.BufferAttribute(conePos, 3));
+                    const coneMat = new THREE.PointsMaterial({
+                        size: 0.18,
+                        color: 0xe0e7ff,
+                        map: textures.whiteDot,
+                        transparent: true,
+                        opacity: 0.85,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    specialOutflow = new THREE.Points(coneGeom, coneMat);
+                    stageGroup.add(specialOutflow);
+
+                    const coneDownGeom = coneGeom.clone();
+                    const posDown = coneDownGeom.attributes.position.array;
+                    for (let i = 1; i < posDown.length; i += 3) {
+                        posDown[i] = -posDown[i]; 
+                    }
+                    coneDownGeom.attributes.position.needsUpdate = true;
+                    const specialOutflowDown = new THREE.Points(coneDownGeom, coneMat);
+                    stageGroup.add(specialOutflowDown);
+                } 
+                else if (currentRoute === 'high') {
+                    // 卡冈图雅风格黑洞：光线步进(Raymarching)物理引力透镜渲染 🕳️✨
+                    blackHoleRaymarchMaterial = new THREE.ShaderMaterial({
+                        uniforms: {
+                            uTime: { value: 0.0 }
+                        },
+                        vertexShader: document.getElementById('bhVertexShader').textContent,
+                        fragmentShader: document.getElementById('bhFragmentShader').textContent,
+                        precision: 'highp',
+                        side: THREE.BackSide
+                    });
+
+                    // 大球体作为光线步进的渲染容器(从内部观察，需完整包裹相机可达范围)
+                    const skyDomeGeometry = new THREE.SphereGeometry(90, 64, 64);
+                    activeStar = new THREE.Mesh(skyDomeGeometry, blackHoleRaymarchMaterial);
+                    stageGroup.add(activeStar);
+
+                    // 环绕吸积盘尘埃粒子，增强立体感与空间流体感
+                    const dustCount = 2500;
+                    const dustGeom = new THREE.BufferGeometry();
+                    const dustPos = new Float32Array(dustCount * 3);
+
+                    for (let i = 0; i < dustCount; i++) {
+                        const r = 6.5 + Math.random() * 12.0;
+                        const theta = Math.random() * Math.PI * 2;
+                        dustPos[i * 3] = r * Math.cos(theta);
+                        dustPos[i * 3 + 1] = (Math.random() - 0.5) * 0.6;
+                        dustPos[i * 3 + 2] = r * Math.sin(theta);
+                    }
+
+                    dustGeom.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+
+                    const dustMat = new THREE.PointsMaterial({
+                        size: 0.15,
+                        color: 0xffaa44,
+                        transparent: true,
+                        opacity: 0.6,
+                        blending: THREE.AdditiveBlending
+                    });
+                    activePoints = new THREE.Points(dustGeom, dustMat);
+                    stageGroup.add(activePoints);
+                }
+            }
+        }
+
+        // 原恒星两极喷流
+        function buildPolarJets(radius) {
+            const jetCount = 450;
+            const jetUpGeom = new THREE.BufferGeometry();
+            const jetDownGeom = new THREE.BufferGeometry();
+            const posUp = new Float32Array(jetCount * 3);
+            const posDown = new Float32Array(jetCount * 3);
+
+            for(let i=0; i<jetCount*3; i+=3) {
+                posUp[i] = (Math.random() - 0.5) * 0.3;
+                posUp[i+1] = Math.random() * 8.0 + (radius * 1.02);
+                posUp[i+2] = (Math.random() - 0.5) * 0.3;
+
+                posDown[i] = (Math.random() - 0.5) * 0.3;
+                posDown[i+1] = -(Math.random() * 8.0 + (radius * 1.02));
+                posDown[i+2] = (Math.random() - 0.5) * 0.3;
+            }
+
+            jetUpGeom.setAttribute('position', new THREE.BufferAttribute(posUp, 3));
+            jetDownGeom.setAttribute('position', new THREE.BufferAttribute(posDown, 3));
+
+            const jetMat = new THREE.PointsMaterial({
+                size: 0.25, 
+                color: 0xaaccff,
+                map: textures.blueGlow,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const j1 = new THREE.Points(jetUpGeom, jetMat);
+            const j2 = new THREE.Points(jetDownGeom, jetMat);
+            
+            const jetGroup = new THREE.Group();
+            jetGroup.add(j1, j2);
+            activeCompanion = jetGroup;
+            stageGroup.add(activeCompanion);
+        }
+
+        // 太阳行星状星云：五彩斑斓爆发式球形扩散气层 🌟
+        function buildPlanetaryRings() {
+            const count = 2800; 
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const customData = new Float32Array(count * 3); 
+
+            for (let i = 0; i < count; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = Math.random() * 0.4;
+
+                const idx = i * 3;
+                pos[idx] = r * Math.sin(phi) * Math.cos(theta);
+                pos[idx+1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[idx+2] = r * Math.cos(phi);
+
+                customData[idx] = Math.sin(phi) * Math.cos(theta);
+                customData[idx+1] = Math.sin(phi) * Math.sin(theta);
+                customData[idx+2] = Math.cos(phi);
+
+                // 五彩斑斓彩虹色：极光绿、紫、红、宇宙蓝、金黄
+                const randCol = Math.random();
+                let col = new THREE.Color();
+                if (randCol < 0.2) col.setHex(0x14b8a6);      
+                else if (randCol < 0.4) col.setHex(0x9333ea); 
+                else if (randCol < 0.6) col.setHex(0xef4444); 
+                else if (randCol < 0.8) col.setHex(0x3b82f6); 
+                else col.setHex(0xeab308);                    
+
+                colors[idx] = col.r;
+                colors[idx+1] = col.g;
+                colors[idx+2] = col.b;
+            }
+
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geom.setAttribute('customData', new THREE.BufferAttribute(customData, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.16, 
+                vertexColors: true,
+                map: textures.whiteDot,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            activePoints = new THREE.Points(geom, mat);
+            stageGroup.add(activePoints);
+        }
+
+        // --- 5. 动态装配阶段按钮 ---
+        function generateStageButtons() {
+            const container = document.getElementById("stages-container");
+            container.innerHTML = ""; 
+
+            const route = EVOLUTION_DATA[currentRoute];
+            const stages = route.stages;
+
+            for (let i = 1; i <= 6; i++) {
+                const s = stages[i];
+                let roman = "";
+                switch(i) {
+                    case 1: roman = "STAGE I"; break;
+        //Made by ecchua79
+                    case 2: roman = "STAGE II"; break;
+                    case 3: roman = "STAGE III"; break;
+                    case 4: roman = "STAGE IV"; break;
+                    case 5: roman = "STAGE V"; break;
+                    case 6: roman = "STAGE VI"; break;
+                }
+
+                const button = document.createElement("button");
+                button.id = `btn-stage-${i}`;
+                button.onclick = () => changeStage(i);
+                button.className = "stage-btn flex flex-col p-1.5 rounded border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left";
+                
+                button.innerHTML = `
+                    <span class="text-[8px] ${s.colorClass} font-bold tech-font">${roman}</span>
+                    <span class="text-[10px] sm:text-xs text-slate-300 font-semibold truncate w-full">${i}. ${s.title.split(' ')[0]}</span>
+                `;
+                container.appendChild(button);
+            }
+        }
+
+        // --- 6. 镜头自转与手动模式切换 ---
+        window.toggleCameraMode = function() {
+            isCameraAutoCruise = !isCameraAutoCruise;
+            const btn = document.getElementById("btn-cam-mode");
+            const label = document.getElementById("label-cam-mode");
+            const icon = document.getElementById("icon-cam-mode");
+
+            if (isCameraAutoCruise) {
+                btn.className = "w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-yellow-400 flex flex-col items-center justify-center hover:bg-slate-800 transition-all duration-300 shrink-0";
+                label.innerText = "AUTO";
+                icon.className = "fa-solid fa-compass text-[10px]";
+            } else {
+                btn.className = "w-8 h-8 rounded-full bg-slate-800 border border-yellow-500/30 text-slate-300 flex flex-col items-center justify-center hover:bg-slate-700 transition-all duration-300 shrink-0";
+                label.innerText = "MANUAL";
+                icon.className = "fa-solid fa-lock text-[10px]";
+            }
+        };
+
+        // --- 7. 演化控制与镜头补间过渡 ---
+        window.switchMassRoute = function(routeKey) {
+            currentRoute = routeKey;
+            
+            document.getElementById("btn-route-low").className = `px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 ${routeKey === 'low' ? 'bg-yellow-500 text-black' : 'text-slate-400 hover:text-white'}`;
+            document.getElementById("btn-route-medium").className = `px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 ${routeKey === 'medium' ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-white'}`;
+            document.getElementById("btn-route-high").className = `px-2 sm:px-3 py-1 rounded text-[10px] font-semibold tracking-wider transition-all duration-300 ${routeKey === 'high' ? 'bg-blue-600 text-white shadow-[0_0_15px_#2563eb]' : 'text-slate-400 hover:text-white'}`;
+
+            generateStageButtons();
+            changeStage(currentStage);
+        };
+
+        window.changeStage = function(stageIndex) {
+            currentStage = parseInt(stageIndex);
+            
+            buildStage3D();
+
+            const route = EVOLUTION_DATA[currentRoute];
+            const config = route.stages[currentStage];
+
+            // 黑洞阶段的 Raymarching Shader 只在有限距离内步进有效，
+            // 收紧镜头缩放范围避免拉得过远导致黑洞"消失"；其他阶段恢复默认范围 🕳️
+            if (currentRoute === 'high' && currentStage === 6) {
+                controls.minDistance = 15;
+        //峇株吧辖华仁中学蔡逸众制作
+                controls.maxDistance = 60;
+            } else {
+                controls.minDistance = 2;
+                controls.maxDistance = 120;
+            }
+            
+            // GSAP 镜头平滑拉推
+            const targetDistance = config.cameraDist || 20;
+            const targetX = 0;
+            const targetY = targetDistance * 0.4;
+            const targetZ = targetDistance * 0.9;
+
+            gsap.to(camera.position, {
+                x: targetX,
+                y: targetY,
+                z: targetZ,
+                duration: 1.4, 
+                ease: "power2.inOut",
+                onUpdate: () => {
+                    camera.lookAt(0, 0, 0);
+                }
+            });
+
+            gsap.to(controls.target, {
+                x: 0,
+                y: 0,
+                z: 0,
+                duration: 1.4,
+                ease: "power2.inOut"
+            });
+
+            // 面板文字更新
+            document.getElementById("star-mass-tag").innerText = route.massTag;
+            document.getElementById("text-stage-roman").innerText = config.roman;
+            document.getElementById("text-stage-title").innerText = config.title;
+            document.getElementById("text-stage-short").innerText = config.short;
+        //华仁中学蔡逸众制作
+            document.getElementById("text-stage-description").innerText = config.desc;
+
+            // 遥测物理指标更新
+            document.getElementById("telemetry-temp").innerText = config.temp;
+            document.getElementById("telemetry-radius").innerText = config.radius;
+            document.getElementById("telemetry-fusion").innerText = config.fusion;
+            document.getElementById("telemetry-balance").innerText = config.balance;
+            document.getElementById("cosmic-age-timer").innerText = config.ageText;
+
+            // 侧边选定高亮
+            document.querySelectorAll(".stage-btn").forEach((btn) => {
+                btn.className = "stage-btn flex flex-col p-1.5 rounded border border-slate-800 bg-slate-900/40 hover:bg-yellow-500/5 hover:border-yellow-500/30 transition-all duration-300 text-left";
+            });
+            const activeBtn = document.getElementById(`btn-stage-${currentStage}`);
+            if (activeBtn) {
+                activeBtn.className = "stage-btn flex flex-col p-1.5 rounded border border-yellow-500/40 bg-yellow-500/10 transition-all duration-300 text-left neon-border-amber";
+            }
+
+            // 赫罗图
+            const hrDot = document.getElementById("hr-dot");
+            hrDot.style.left = `${config.hrPos.x}%`;
+            hrDot.style.bottom = `${config.hrPos.y}%`;
+            
+            let dotColor = '#eab308';
+            if (currentRoute === 'medium') dotColor = '#6366f1';
+            if (currentRoute === 'high') dotColor = '#2563eb';
+            if (currentStage === 4) dotColor = '#ef4444'; 
+            if (currentStage === 5) dotColor = '#f97316'; 
+
+            hrDot.style.boxShadow = `0 0 10px ${dotColor}`;
+            hrDot.style.backgroundColor = dotColor;
+            document.getElementById("hr-brief").innerText = config.hrBrief;
+        };
+
+        // --- 8. 面板展开收纳 ---
+        window.toggleLeftPanel = function(forceCollapse = null) {
+            const panel = document.getElementById('panel-left');
+            const arrow = document.getElementById('arrow-left');
+            
+            if (forceCollapse !== null) {
+                isLeftPanelOpen = !forceCollapse;
+            } else {
+                isLeftPanelOpen = !isLeftPanelOpen;
+            }
+
+            if (isLeftPanelOpen) {
+                panel.style.transform = 'translateX(0)';
+                arrow.className = 'fa-solid fa-chevron-left text-xs';
+            } else {
+                panel.style.transform = 'translateX(-100%)';
+                arrow.className = 'fa-solid fa-chevron-right text-xs';
+            }
+        };
+
+        window.toggleRightPanel = function(forceCollapse = null) {
+            const panel = document.getElementById('panel-right');
+            const arrow = document.getElementById('arrow-right');
+
+            if (forceCollapse !== null) {
+                isRightPanelOpen = !forceCollapse;
+            } else {
+                isRightPanelOpen = !isRightPanelOpen;
+            }
+
+            if (isRightPanelOpen) {
+                panel.style.transform = 'translateX(0)';
+                arrow.className = 'fa-solid fa-chevron-right text-xs';
+            } else {
+                panel.style.transform = 'translateX(100%)';
+                arrow.className = 'fa-solid fa-chevron-left text-xs';
+            }
+        };
+
+        function checkResponsiveLayout() {
+            if (window.innerWidth < 1024) {
+                toggleLeftPanel(true);
+                toggleRightPanel(true);
+            } else {
+                toggleLeftPanel(false);
+                toggleRightPanel(false);
+            }
+        }
+
+        // 自动播放
+        window.toggleAutoPlay = function() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById("icon-play");
+            const playBtn = document.getElementById("btn-play");
+
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playBtn.className = "w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-400 transition-all duration-300 animate-pulse shrink-0";
+                startAutoPlayTimer();
+            } else {
+                playIcon.className = "fa-solid fa-play ml-0.5 text-xs";
+                playBtn.className = "w-8 h-8 rounded-full bg-yellow-500 text-black flex items-center justify-center hover:bg-yellow-400 transition-all duration-300 shrink-0";
+                clearInterval(autoPlayInterval);
+            }
+        };
+
+        function startAutoPlayTimer() {
+            if (autoPlayInterval) clearInterval(autoPlayInterval);
+            const intervalTime = (11 - autoPlaySpeed) * 1000;
+            
+            autoPlayInterval = setInterval(() => {
+                let nextStage = currentStage + 1;
+                if (nextStage > 6) nextStage = 1;
+                changeStage(nextStage);
+            }, intervalTime);
+        }
+
+        document.getElementById("autoplay-speed-slider").addEventListener("input", (e) => {
+            autoPlaySpeed = parseInt(e.target.value);
+            document.getElementById("autoplay-speed-label").innerText = `${(autoPlaySpeed).toFixed(1)} 亿年/秒`;
+            if (isPlaying) {
+                startAutoPlayTimer();
+            }
+        });
+
+        // --- 9. 3D 心跳动画渲染主循环 ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const elapsedTime = clock.getElapsedTime();
+
+            // 相机自动巡航
+            if (isCameraAutoCruise) {
+                const config = EVOLUTION_DATA[currentRoute].stages[currentStage];
+                const orbitRadius = (config.cameraDist || 20) * 1.1;
+                const slowSpeed = elapsedTime * 0.08; 
+                
+                camera.position.x = orbitRadius * Math.sin(slowSpeed);
+                camera.position.z = orbitRadius * Math.cos(slowSpeed);
+                camera.position.y = (orbitRadius * 0.4) + Math.sin(elapsedTime * 0.2) * (orbitRadius * 0.08); 
+                
+                controls.target.set(0, 0, 0);
+            }
+        //华仁中学蔡逸众制作
+
+            controls.update();
+
+            // 驱动全局共享着色器 Uniform (让沸腾的太阳和炽热大质量蓝巨星在渲染管线中动起来) 🌟
+            if (stellarShaderMaterial) {
+                stellarShaderMaterial.uniforms.uTime.value = elapsedTime;
+            }
+
+            // 1. STAGE I: 星云旋转
+            if (currentStage === 1 && activePoints) {
+                activePoints.rotation.y = elapsedTime * 0.04;
+                activePoints.rotation.z = Math.sin(elapsedTime * 0.05) * 0.08;
+            }
+
+            // 2. STAGE II: 原恒星吸积自转
+            if (currentStage === 2) {
+                if (activeStar) activeStar.rotation.y = elapsedTime * 0.4;
+                
+                if (activePoints) {
+                    activePoints.rotation.y = elapsedTime * 1.1; 
+                    const geom = activePoints.geometry;
+                    const pos = geom.attributes.position.array;
+                    for (let i = 0; i < pos.length; i += 3) {
+                        const x = pos[i];
+                        const z = pos[i+2];
+                        const r = Math.sqrt(x*x + z*z);
+                        pos[i+1] = Math.sin(r * 1.5 - elapsedTime * 4.0) * 0.08;
+                    }
+                    geom.attributes.position.needsUpdate = true;
+                }
+
+                if (activeCompanion) {
+                    const jets = activeCompanion.children;
+                    jets.forEach((j, jIdx) => {
+                        const pos = j.geometry.attributes.position.array;
+                        const limit = jIdx === 0 ? 9.0 : -9.0;
+                        const direction = jIdx === 0 ? 1 : -1;
+                        
+                        for (let i = 1; i < pos.length; i += 3) {
+                            pos[i] += 0.09 * direction;
+                            if (direction === 1 && pos[i] > limit) pos[i] = 1.2;
+                            if (direction === -1 && pos[i] < limit) pos[i] = -1.2;
+                        }
+                        j.geometry.attributes.position.needsUpdate = true;
+                    });
+                }
+            }
+
+            // 3. STAGE III: 主序星对流呼吸
+            if (currentStage === 3) {
+                if (activeStar) {
+                    activeStar.rotation.y = elapsedTime * 0.15;
+                    const pulse = 1.0 + Math.sin(elapsedTime * 2.5) * 0.015;
+                    activeStar.scale.set(pulse, pulse, pulse);
+                }
+                if (activePoints) {
+                    activePoints.rotation.y = -elapsedTime * 0.3;
+                }
+            }
+
+            // 4. STAGE IV: 巨星/超巨星
+            if (currentStage === 4) {
+                if (activeStar) {
+                    activeStar.rotation.y = elapsedTime * 0.05;
+                    const pulse = 1.0 + Math.sin(elapsedTime * 0.8) * 0.03;
+                    activeStar.scale.set(pulse, pulse, pulse);
+                    
+                    if (activeCompanion) {
+                        activeCompanion.scale.set(pulse * 1.01, pulse * 1.01, pulse * 1.01);
+                        activeCompanion.rotation.y = -elapsedTime * 0.06;
+                    }
+                }
+            }
+
+            // 5. STAGE V: 行星状星云大面积彩色粒子爆发扩散 🌟 OR 超新星爆发
+            if (currentStage === 5) {
+                if (currentRoute === 'low') {
+                    if (activeStar) activeStar.rotation.y = elapsedTime * 0.6;
+                    if (activePoints) {
+                        const geom = activePoints.geometry;
+                        const pos = geom.attributes.position.array;
+                        const vel = geom.attributes.customData.array;
+                        
+                        for (let i = 0; i < pos.length; i += 3) {
+                            const speed = 0.045 + (i % 5) * 0.015; 
+        //峇株吧辖蔡逸众制作
+                            pos[i] += vel[i] * speed;
+                            pos[i+1] += vel[i+1] * speed;
+                            pos[i+2] += vel[i+2] * speed;
+
+                            const dist = Math.sqrt(pos[i]*pos[i] + pos[i+1]*pos[i+1] + pos[i+2]*pos[i+2]);
+                            if (dist > 9.0) {
+                                pos[i] = 0;
+                                pos[i+1] = 0;
+                                pos[i+2] = 0;
+                            }
+                        }
+                        geom.attributes.position.needsUpdate = true;
+                    }
+                } else {
+                    if (activePoints) {
+                        const geom = activePoints.geometry;
+        //华仁中学蔡逸众制作
+                        const pos = geom.attributes.position.array;
+                        const rate = 0.45; 
+                        const cycle = (elapsedTime * rate) % 5.0; 
+                        
+                        for (let i = 0; i < pos.length; i += 3) {
+                            const x = pos[i];
+                            const y = pos[i+1];
+                            const z = pos[i+2];
+                            const r = Math.sqrt(x*x + y*y + z*z);
+                            
+                            const nx = x / r;
+                            const ny = y / r;
+                            const nz = z / r;
+                            
+                            pos[i] += nx * 0.07;
+                            pos[i+1] += ny * 0.07;
+                            pos[i+2] += nz * 0.07;
+
+                            if (cycle < 0.05) {
+                                const theta = Math.random() * Math.PI * 2;
+                                const phi = Math.acos(2 * Math.random() - 1);
+                                const newR = 1.0 + Math.random() * 3.0;
+                                pos[i] = newR * Math.sin(phi) * Math.cos(theta);
+                                pos[i+1] = newR * Math.sin(phi) * Math.sin(theta);
+                                pos[i+2] = newR * Math.cos(phi);
+                            }
+                        }
+                        geom.attributes.position.needsUpdate = true;
+                    }
+                }
+            }
+
+            // 6. STAGE VI: 终极致密核心发光
+            if (currentStage === 6) {
+                if (currentRoute === 'low') {
+                    if (activeStar) activeStar.rotation.y = elapsedTime * 2.0;
+                    if (activeCompanion) {
+                        const shim = 0.95 + Math.random() * 0.08;
+                        activeCompanion.scale.set(shim, shim, shim);
+                    }
+                }
+                else if (currentRoute === 'medium') {
+                    if (activeStar) activeStar.rotation.y = elapsedTime * 4.0;
+                    if (activeCompanion) {
+                        const shim = 0.9 + Math.random() * 0.15;
+                        activeCompanion.scale.set(shim, shim, shim);
+                    }
+                    if (specialOutflow) {
+                        specialOutflow.rotation.y = elapsedTime * 10.0; 
+                        const geom = specialOutflow.geometry;
+                        const pos = geom.attributes.position.array;
+                        for (let i = 1; i < pos.length; i += 3) {
+                            pos[i] += 0.35;
+                            if (pos[i] > 11.0) pos[i] = 0.3;
+                        }
+                        geom.attributes.position.needsUpdate = true;
+
+                        const downCone = stageGroup.children.find(child => child !== specialOutflow && child.material === specialOutflow.material && child instanceof THREE.Points);
+                        if (downCone) {
+                            downCone.rotation.y = elapsedTime * 10.0;
+                            const dGeom = downCone.geometry;
+                            const dPos = dGeom.attributes.position.array;
+                            for (let i = 1; i < dPos.length; i += 3) {
+                                dPos[i] -= 0.35;
+                                if (dPos[i] < -11.0) dPos[i] = -0.3;
+                            }
+                            dGeom.attributes.position.needsUpdate = true;
+                        }
+                    }
+                }
+                else if (currentRoute === 'high') {
+                    // 驱动黑洞 Raymarching Shader 的时间流逝(吸积盘漩涡旋转) 🕳️✨
+                    if (blackHoleRaymarchMaterial) {
+                        blackHoleRaymarchMaterial.uniforms.uTime.value = elapsedTime;
+                    }
+                    // 环绕尘埃粒子缓慢公转
+                    if (activePoints) {
+                        activePoints.rotation.y = elapsedTime * 0.15;
+                    }
+                }
+            }
+
+            composer.render();
+        }
+
+        // --- 10. 界面事件初始化 ---
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas3d');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            composer.setSize(container.clientWidth, container.clientHeight);
+            checkResponsiveLayout();
+        });
+
+        window.onload = function() {
+            initScene();
+        };
+    </script>
+</body>
+</html>
