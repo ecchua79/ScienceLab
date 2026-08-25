@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>滑轮组 3D 演示</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1d24; color: #e8eaed; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* ===== 面板通用 ===== */
+  .panel {
+    position: fixed; background: rgba(26,29,36,0.92); border: 1px solid #3a3f4b;
+    border-radius: 12px; backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    transition: width .3s, height .3s, opacity .3s; z-index: 10;
+  }
+  .panel header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid #3a3f4b; cursor: pointer; user-select: none;
+  }
+  .panel header h3 { font-size: 14px; font-weight: 600; letter-spacing: .5px; }
+  .panel .toggle { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #2c303a; color: #9aa0a6; font-size: 14px; transition: .2s; }
+  .panel .toggle:hover { background: #3a3f4b; color: #fff; }
+  .panel .body { padding: 12px 14px; overflow: auto; }
+  .panel.collapsed .body { display: none; }
+
+  /* ===== 控制面板（左上） ===== */
+  #ctrl { top: 12px; left: 12px; width: 280px; }
+  #ctrl .body { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; flex-direction: column; gap: 6px; }
+  .row label { font-size: 12px; color: #9aa0a6; }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seg button {
+    flex: 1; min-width: 36px; padding: 7px 0; border-radius: 8px; border: 1px solid #3a3f4b;
+    background: #23262f; color: #e8eaed; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s;
+  }
+  .seg button:hover { background: #2c303a; }
+  .seg button.active { background: #4a7dff; border-color: #4a7dff; color: #fff; }
+  .btnrow { display: flex; gap: 8px; }
+  .btnrow button {
+    flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid #3a3f4b;
+    background: #23262f; color: #e8eaed; font-size: 13px; cursor: pointer; transition: .15s;
+  }
+  .btnrow button:hover { background: #2c303a; }
+  .btnrow button.primary { background: #4a7dff; border-color: #4a7dff; }
+  .btnrow button.primary:hover { background: #3a6ae0; }
+  input[type=range] { width: 100%; accent-color: #4a7dff; }
+  .val { font-size: 12px; color: #c9d3df; display: flex; justify-content: space-between; }
+
+  /* ===== 说明面板（右下） ===== */
+  #info { right: 12px; bottom: 12px; width: 300px; max-height: 60vh; }
+  #info .body { display: flex; flex-direction: column; gap: 9px; max-height: 50vh; }
+  .info-item { display: flex; gap: 9px; align-items: flex-start; font-size: 12px; line-height: 1.5; }
+  .info-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .info-item b { color: #fff; }
+  .info-item span { color: #b8c0cc; }
+
+  /* ===== 物理读数 HUD（左下） ===== */
+  #hud { left: 12px; bottom: 12px; width: 280px; }
+  #hud .body { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+  .hud-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #23262f; border-radius: 8px; }
+  .hud-line .k { color: #9aa0a6; }
+  .hud-line .v { font-weight: 700; font-size: 13px; }
+  .hud-line .v.red { color: #ff6b6b; }
+  .hud-line .v.blue { color: #6ba3ff; }
+  .hud-line .v.green { color: #5fd39a; }
+
+  /* ===== 提示（右上） ===== */
+  #hint { top: 12px; right: 12px; max-width: 240px; padding: 8px 12px; font-size: 11px; color: #9aa0a6; background: rgba(26,29,36,0.7); border-radius: 8px; border: 1px solid #3a3f4b; }
+  #hint b { color: #c9d3df; }
+
+  /* ===== Tooltip ===== */
+  #tooltip { position: fixed; pointer-events: none; z-index: 20; padding: 5px 9px; background: rgba(20,22,28,0.95); border: 1px solid #4a7dff; border-radius: 6px; font-size: 12px; color: #fff; transform: translate(-50%,-120%); display: none; white-space: nowrap; }
+
+  /* ===== 竖屏适配 ===== */
+  @media (max-width: 760px), (orientation: portrait) {
+    #ctrl { width: calc(100% - 24px); }
+    #ctrl .body { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+    #ctrl .body > .row { flex: 1 1 45%; }
+    #info { width: calc(100% - 24px); max-height: 38vh; bottom: 8px; }
+    #info .body { max-height: 28vh; }
+    #hud { width: calc(100% - 24px); left: 12px; bottom: auto; top: 150px; }
+    #hint { display: none; }
+  }
+  @media (max-height: 520px) {
+    #info { width: 260px; max-height: 80vh; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel" id="ctrl">
+  <header><h3>⚙ 滑轮组控制</h3><span class="toggle">－</span></header>
+  <div class="body">
+    <div class="row">
+      <label>滑轮数量 n</label>
+      <div class="seg" id="segN">
+        <button data-n="2">2</button><button data-n="3">3</button>
+        <button data-n="4">4</button><button data-n="5">5</button>
+        <button data-n="6">6</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>动画</label>
+      <div class="btnrow">
+        <button id="btnPlay" class="primary">⏸ 暂停</button>
+        <button id="btnReset">↺ 重置</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>提升速度</label>
+      <input id="speed" type="range" min="1" max="100" value="35">
+      <div class="val"><span>慢</span><span id="speedVal">35%</span><span>快</span></div>
+    </div>
+    <div class="row">
+      <label>视角</label>
+      <div class="btnrow">
+        <button id="btnFront">正面</button>
+        <button id="btnSide">侧面</button>
+        <button id="btnTop">俯视</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="info">
+  <header><h3>📖 部位功能说明</h3><span class="toggle">－</span></header>
+  <div class="body" id="infoBody"></div>
+</div>
+
+<div class="panel" id="hud">
+  <header><h3>📊 物理读数</h3><span class="toggle">－</span></header>
+  <div class="body">
+    <div class="hud-line"><span class="k">重物重力 G</span><span class="v blue" id="hG">100 N</span></div>
+    <div class="hud-line"><span class="k">绳拉力 F = G/n</span><span class="v red" id="hF">50 N</span></div>
+    <div class="hud-line"><span class="k">滑轮数 n</span><span class="v" id="hN">2</span></div>
+    <div class="hud-line"><span class="k">提升高度 h</span><span class="v green" id="hH">0.0 cm</span></div>
+    <div class="hud-line"><span class="k">绳端位移 s = n·h</span><span class="v" id="hS">0.0 cm</span></div>
+  </div>
+</div>
+
+<div id="hint"><b>拖拽</b>旋转 · <b>滚轮</b>缩放 · <b>悬停/点击</b>部件查看说明</div>
+<div id="tooltip"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============ 基础场景 ============ */
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1d24);
+scene.fog = new THREE.Fog(0x1a1d24, 18, 40);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 1.2, 9);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.target.set(0, 1.5, 0); controls.minDistance = 4; controls.maxDistance = 18;
+
+// 灯光
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(5, 8, 6); key.castShadow = true;
+key.shadow.mapSize.set(1024,1024); key.shadow.camera.left=-8; key.shadow.camera.right=8; key.shadow.camera.top=8; key.shadow.camera.bottom=-2;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x8fbfff, 0.25); fill.position.set(-6, 3, -4); scene.add(fill);
+
+// 地面
+const ground = new THREE.Mesh(new THREE.CircleGeometry(10, 48), new THREE.MeshStandardMaterial({ color:0x22262f, roughness:0.9, metalness:0.0 }));
+ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true; scene.add(ground);
+const grid = new THREE.GridHelper(20, 20, 0x333845, 0x2a2e38); grid.position.y = 0; scene.add(grid);
+
+/* ============ 颜色 / 部位注册 ============ */
+const PARTS = {
+  beam:   { name:'顶梁（固定支架）', color:0x5a6070, desc:'固定在天花板/支架上，承受整个滑轮组与重物的总重量，是系统的支撑基础。' },
+  fixed:  { name:'定滑轮', color:0xe8a33d, desc:'轴固定不动的滑轮。只改变拉力方向，不省力（不改变力的大小）。' },
+  moving: { name:'动滑轮', color:0xf0c060, desc:'随重物一起升降的滑轮。能省一半力（F=G/2 对每个动滑轮而言），但费距离。' },
+  rope:   { name:'绳索', color:0xb0653a, desc:'绕过各滑轮传递拉力。绳端拉力 F=G/n（n 为承重绳段数=滑轮总数）。' },
+  load:   { name:'重物', color:0x8a90a0, desc:'被提升的物体，重力 G=100N。动滑轮越多，所需拉力越小，但绳端移动距离越长（s=n·h）。' },
+  hook:   { name:'吊钩', color:0x4a7dff, desc:'连接动滑轮组与重物的挂钩，随动滑轮组同步升降。' },
+};
+
+/* ============ 工具函数 ============ */
+const matCache = new Map();
+function mat(part){ if(!matCache.has(part)) matCache.set(part, new THREE.MeshStandardMaterial({ color:PARTS[part].color, roughness:0.45, metalness:0.35 })); return matCache.get(part); }
+function matRope(){ return new THREE.MeshStandardMaterial({ color:PARTS.rope.color, roughness:0.7, metalness:0.1 }); }
+
+// 创建滑轮（圆盘 + 轮轴），返回 group；圆盘绕局部 Z 轴旋转
+function makePulley(radius){
+  const g = new THREE.Group();
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.16, 36), mat('fixed'));
+  disc.rotation.x = Math.PI/2; disc.castShadow = true; disc.userData.part = 'fixed';
+  g.add(disc);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.05, 12, 40), new THREE.MeshStandardMaterial({color:0xc98820, roughness:0.4, metalness:0.6}));
+  rim.rotation.y = Math.PI/2; g.add(rim);
+  const ax = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.26,16), new THREE.MeshStandardMaterial({color:0x9aa0a6, roughness:0.3, metalness:0.8}));
+  ax.rotation.x = Math.PI/2; ax.userData.part = 'fixed'; g.add(ax);
+  g.userData.disc = disc; g.userData.radius = radius; return g;
+}
+
+/* ============ 滑轮组状态 ============ */
+const STATE = { n:2, playing:true, speed:0.35, h:0, G:100 };
+
+// 布局参数
+const R = 0.5;          // 滑轮半径
+const PULLEY_GAP = 1.15;// 同层滑轮中心竖向间距
+const TOP_Y = 5.4;      // 顶梁底沿 y
+const LOAD_REST_Y = 1.5;// 重物静止时顶面 y
+const MAX_H = 2.2;      // 最大提升高度
+
+const root = new THREE.Group(); scene.add(root);
+
+let beamMesh=null, loadGroup=null, hookMesh=null, ropeObj=null;
+let fixedPulleys=[], movingPulleys=[];
+let animPhase = 0; // 0..1 往复
+
+/* ---- 构建顶梁 ---- */
+function buildBeam(n){
+  if(beamMesh){ beamMesh.geometry.dispose(); root.remove(beamMesh); }
+  const w = Math.max(4.2, n*1.15 + 1.6);
+  const g = new THREE.BoxGeometry(w, 0.32, 0.7);
+  beamMesh = new THREE.Mesh(g, mat('beam'));
+  beamMesh.position.y = TOP_Y; beamMesh.castShadow = true; beamMesh.receiveShadow = true;
+  beamMesh.userData.part = 'beam'; root.add(beamMesh);
+}
+/* ---- 支架立柱（两侧） ---- */
+let supports=null;
+function buildSupports(n){
+  if(supports){ supports.forEach(s=>{s.geometry.dispose();root.remove(s);}); supports=[]; }
+  const w = Math.max(4.2, n*1.15 + 1.6);
+  const mk = (x)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(0.28, TOP_Y+0.5, 0.5), mat('beam')); m.position.set(x, (TOP_Y-0.16)/2, 0); m.castShadow=true; m.userData.part='beam'; root.add(m); supports.push(m); };
+  mk(-w/2+0.25); mk(w/2-0.25);
+}
+
+/* ---- 计算绳路（关键）----
+   参考图规律：n 个滑轮，绳一端固定于顶梁，之字形绕过各滑轮，自由端向下施力。
+   定滑轮在上排，动滑轮在下排。n 为总数。
+   承重绳段数 = n，F = G/n。
+   返回 { points:[Vector3...], fixedPos:[], movingPos:[] } */
+function buildRopePath(n){
+  // 排布：定滑轮 fixedY 上排，动滑轮 movingY 下排
+  const fixedY = TOP_Y - 0.5;
+  const movingY = LOAD_REST_Y + 0.9; // 动滑轮中心 y（随 load 升降）
+  // 水平位置：滑轮等分排开
+  const span = Math.min(2.6, 0.9*(n-1)+0.2);
+  const xs = [];
+  if(n===2) xs.push(0); else { for(let i=0;i<n;i++) xs.push(-span/2 + (n>1? i*span/(n-1) : 0)); }
+  // 交替：固定(上)->动(下)->固定(上)... 或反向，取决于 n。采用经典：绳固定于顶梁左端，先下到动滑轮1，上到定滑轮1，下到动滑轮2...
+  const fixedIdx=[], movIdx=[];
+  for(let i=0;i<n;i++){ if(i%2===0) fixedIdx.push(i); else movIdx.push(i); }
+  // 保证至少一个定一个动
+  const fixedPos = fixedIdx.map(i=>new THREE.Vector3(xs[i], fixedY, 0));
+  const movingPos = movIdx.map(i=>new THREE.Vector3(xs[i], movingY, 0));
+  // 绳路点序列（顶梁固定点 -> ... -> 自由端向下）
+  const pts=[];
+  // 固定点：顶梁左侧
+  const anchor = new THREE.Vector3(-span/2-0.2, TOP_Y-0.16, 0);
+  pts.push(anchor.clone());
+  // 决定起始：若首个滑轮是动滑轮则先下到动滑轮，否则先到定滑轮
+  // 采用：anchor -> 最近定滑轮(若有)或直接动滑轮。经典：绳固定端在顶梁，先到定滑轮再下到动滑轮。
+  const order=[]; // 0=定,1=动 交替串
+  let toggle = (fixedIdx.length>0)?0:1;
+  let fi=0,mi=0;
+  while(fi<fixedPos.length || mi<movingPos.length){
+    if(toggle===0 && fi<fixedPos.length) order.push({t:0, idx:fi++});
+    else if(toggle===1 && mi<movingPos.length) order.push({t:1, idx:mi++});
+    else if(toggle===0 && fi<fixedPos.length) order.push({t:0, idx:fi++});
+    else if(toggle===1 && mi<movingPos.length) order.push({t:1, idx:mi++});
+    toggle ^= 1;
+  }
+  order.forEach(o=>{ pts.push((o.t===0?fixedPos[o.idx]:movingPos[o.idx]).clone()); });
+  // 自由端：最后一段向下（拉力端），沿最后绳段方向继续一小段
+  const last = pts[pts.length-1].clone();
+  const prev = pts[pts.length-2].clone();
+  const dir = last.clone().sub(prev).normalize();
+  // 自由端竖直向下
+  const free = last.clone(); free.y -= 1.6; pts.push(free);
+  return { pts, fixedPos, movingPos, anchor, xs, span, fixedY, movingY };
+}
+
+/* ---- 用 TubeGeometry 沿折线构建绳索（分段直线） ---- */
+function buildRopeGeom(pts){
+  const curve = new THREE.CurvePath();
+  for(let i=0;i<pts.length-1;i++) curve.add(new THREE.LineCurve3(pts[i], pts[i+1]));
+  return new THREE.TubeGeometry(curve, pts.length*8, 0.045, 10, false);
+}
+
+/* ---- 重建整个滑轮组 ---- */
+function rebuild(n){
+  STATE.n = n;
+  // 清场
+  root.children.slice().forEach(c=>{ if(c!==ground && c!==grid && c!==beamMesh && beamMesh && false){} });
+  // 更简单：仅保留地面/网格/beam，重建其余
+  [...fixedPulleys, ...movingPulleys].forEach(p=>{ root.remove(p); disposeGroup(p); });
+  fixedPulleys=[]; movingPulleys=[];
+  if(loadGroup){ root.remove(loadGroup); disposeGroup(loadGroup); loadGroup=null; }
+  if(ropeObj){ root.remove(ropeObj); ropeObj.geometry.dispose(); ropeObj=null; }
+  if(supports){ supports.forEach(s=>root.remove(s)); supports.forEach(s=>s.geometry.dispose()); supports=null; }
+
+  buildBeam(n); buildSupports(n);
+  const path = buildRopePath(n);
+  // 创建定滑轮
+  path.fixedPos.forEach(p=>{ const pu=makePulley(R); pu.position.copy(p); root.add(pu); fixedPulleys.push(pu); });
+  // 创建动滑轮（先放静止位，update 中随 load 升降）
+  path.movingPos.forEach(p=>{ const pu=makePulley(R); pu.position.set(p.x, p.y, 0); root.add(pu); movingPulleys.push(pu); });
+  // 重物组
+  loadGroup = new THREE.Group();
+  const lw = 1.3, lh = 0.95, ld = 1.0;
+  const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(lw, lh, ld), mat('load'));
+  loadMesh.position.y = lh/2; loadMesh.castShadow=true; loadMesh.receiveShadow=true; loadMesh.userData.part='load';
+  loadGroup.add(loadMesh);
+  // 梯形视觉：顶部加小沿
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(lw+0.12, 0.1, ld+0.12), new THREE.MeshStandardMaterial({color:0x6f7585, roughness:0.5}));
+  cap.position.y = lh+0.02; loadGroup.add(cap);
+  // 吊钩（连接动滑轮组与重物）
+  const hook = new THREE.Mesh(new THREE.TorusGeometry(0.16,0.045,10,20, Math.PI*1.2), mat('hook'));
+  hook.position.y = -0.22; hook.rotation.x = Math.PI/2; hook.userData.part='hook'; loadGroup.add(hook);
+  hookMesh = hook;
+  loadGroup.position.y = LOAD_REST_Y; root.add(loadGroup);
+  // 绳索（初始）
+  updateRope(0);
+  // HUD
+  STATE.h=0; animPhase=0;
+  document.getElementById('hF').textContent = (STATE.G/n).toFixed(n>3?2:0).replace(/\.00$/,'') + ' N';
+  document.getElementById('hN').textContent = n;
+}
+
+function disposeGroup(g){ g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+
+/* ---- 每帧更新绳索 + 动滑轮位置 ---- */
+function updateRope(h){
+  const n=STATE.n;
+  const path = buildRopePath(n);
+  // 动滑轮 y 随 load 升降
+  const dy = h;
+  path.movingPos.forEach(p=>{ p.y = (LOAD_REST_Y+0.9) + dy; });
+  // 重新组装点序列（与 buildRopePath 一致的逻辑）
+  const pts=[];
+  pts.push(path.anchor.clone());
+  const order=[]; let toggle=(path.fixedPos.length>0)?0:1; let fi=0,mi=0;
+  while(fi<path.fixedPos.length || mi<path.movingPos.length){
+    if(toggle===0 && fi<path.fixedPos.length) order.push({t:0, idx:fi++});
+    else if(toggle===1 && mi<path.movingPos.length) order.push({t:1, idx:mi++});
+    else if(toggle===0 && fi<path.fixedPos.length) order.push({t:0, idx:fi++});
+    else if(toggle===1 && mi<path.movingPos.length) order.push({t:1, idx:mi++});
+    toggle^=1;
+  }
+  order.forEach(o=>{ pts.push((o.t===0?path.fixedPos[o.idx]:path.movingPos[o.idx]).clone()); });
+  const last=pts[pts.length-1].clone(), prev=pts[pts.length-2].clone();
+  const free=last.clone(); free.y-=1.6; pts.push(free);
+  if(ropeObj){ ropeObj.geometry.dispose(); root.remove(ropeObj); }
+  ropeObj = new THREE.Mesh(buildRopeGeom(pts), matRope()); ropeObj.userData.part='rope'; root.add(ropeObj);
+  // 动滑轮位置 + load 位置
+  movingPulleys.forEach((pu,i)=>{ const mp=path.movingPos[i]; if(mp) pu.position.set(mp.x, mp.y, 0); });
+  loadGroup.position.y = LOAD_REST_Y + dy;
+  // 吊钩随动
+  if(hookMesh) hookMesh.position.y = -0.22;
+}
+
+/* ============ 部位说明面板 ============ */
+const infoBody = document.getElementById('infoBody');
+function buildInfo(){
+  infoBody.innerHTML='';
+  Object.entries(PARTS).forEach(([k,v])=>{
+    const d=document.createElement('div'); d.className='info-item';
+    d.innerHTML=`<span class="info-dot" style="background:#${v.color.toString(16).padStart(6,'0')}"></span><div><b>${v.name}</b><br><span>${v.desc}</span></div>`;
+    d.dataset.part=k; infoBody.appendChild(d);
+  });
+}
+buildInfo();
+
+/* ============ 交互：悬停/点击高亮 ============ */
+const tooltip=document.getElementById('tooltip');
+const ray=new THREE.Raycaster(); const mouse=new THREE.Vector2();
+let hoverObj=null, selectedPart=null;
+function pickPart(obj){
+  let o=obj; while(o && !o.userData.part && o!==root) o=o.parent; return o&&o.userData.part?o:null;
+}
+renderer.domElement.addEventListener('pointermove', e=>{
+  mouse.x=(e.clientX/innerWidth)*2-1; mouse.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(mouse,camera); const hits=ray.intersectObjects(root.children, true);
+  let part=null; for(const h of hits){ const p=pickPart(h.object); if(p){ part=p.userData.part; hoverObj=p; break; } }
+  if(part){ tooltip.style.display='block'; tooltip.style.left=e.clientX+'px'; tooltip.style.top=e.clientY+'px'; tooltip.textContent=PARTS[part].name; app.style.cursor='pointer'; }
+  else { tooltip.style.display='none'; app.style.cursor='default'; hoverObj=null; }
+});
+renderer.domElement.addEventListener('click', ()=>{
+  if(hoverObj){ selectedPart=hoverObj.userData.part; highlightInfo(selectedPart); }
+});
+function highlightInfo(part){
+  infoBody.querySelectorAll('.info-item').forEach(d=>{ d.style.background = d.dataset.part===part ? 'rgba(74,125,255,0.18)' : ''; d.style.borderRadius='8px'; });
+}
+
+/* ============ 控制面板逻辑 ============ */
+document.querySelectorAll('#segN button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#segN button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); rebuild(parseInt(b.dataset.n));
+  });
+});
+const btnPlay=document.getElementById('btnPlay');
+btnPlay.addEventListener('click', ()=>{ STATE.playing=!STATE.playing; btnPlay.textContent=STATE.playing?'⏸ 暂停':'▶ 播放'; btnPlay.classList.toggle('primary', STATE.playing); });
+document.getElementById('btnReset').addEventListener('click', ()=>{ STATE.h=0; animPhase=0; updateRope(0); updateHUD(); });
+const speedEl=document.getElementById('speed'); speedEl.addEventListener('input', ()=>{ STATE.speed=speedEl.value/100; document.getElementById('speedVal').textContent=speedEl.value+'%'; });
+document.getElementById('btnFront').addEventListener('click', ()=>tweenCam(0,1.2,9));
+document.getElementById('btnSide').addEventListener('click', ()=>tweenCam(8,2,4));
+document.getElementById('btnTop').addEventListener('click', ()=>tweenCam(0,9,0.1));
+
+// 面板收起/展开
+document.querySelectorAll('.panel').forEach(p=>{
+  p.querySelector('header').addEventListener('click', ()=>{ p.classList.toggle('collapsed'); const t=p.querySelector('.toggle'); t.textContent=p.classList.contains('collapsed')?'＋':'－'; });
+});
+
+// 相机缓动
+let camTarget=null, camFrom=null, camT=0;
+function tweenCam(x,y,z){ camFrom=camera.position.clone(); camTarget=new THREE.Vector3(x,y,z); camT=0; }
+
+/* ============ HUD ============ */
+const hG=document.getElementById('hG'), hF=document.getElementById('hF'), hN=document.getElementById('hN'), hH=document.getElementById('hH'), hS=document.getElementById('hS');
+function updateHUD(){ hH.textContent=(STATE.h*100).toFixed(1)+' cm'; hS.textContent=(STATE.h*STATE.n*100).toFixed(1)+' cm'; }
+
+/* ============ 主循环 ============ */
+const clock=new THREE.Clock();
+function animate(){
+  const dt=Math.min(clock.getDelta(), 0.05);
+  if(STATE.playing){
+    animPhase += dt*STATE.speed*0.28;
+    if(animPhase>1){ animPhase=1; STATE.playing=false; btnPlay.textContent='▶ 播放'; btnPlay.classList.remove('primary'); }
+    STATE.h = animPhase*MAX_H;
+    updateRope(STATE.h);
+    // 滑轮旋转：绳速 → 角速度
+    const omega = STATE.speed*2.4;
+    fixedPulleys.forEach(p=>{ if(p.userData.disc) p.userData.disc.rotation.z += omega*dt; });
+    movingPulleys.forEach(p=>{ if(p.userData.disc) p.userData.disc.rotation.z += omega*dt; });
+    updateHUD();
+  }
+  if(camTarget){ camT+=dt*1.6; const k=Math.min(1,camT); camera.position.lerpVectors(camFrom,camTarget,k); if(k>=1) camTarget=null; }
+  controls.update(); renderer.render(scene,camera); requestAnimationFrame(animate);
+}
+
+/* ============ 自适应 + 初始构建 ============ */
+function onResize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); }
+addEventListener('resize', onResize);
+addEventListener('orientationchange', ()=>setTimeout(onResize,200));
+
+// 初始：2 滑轮
+document.querySelector('#segN button[data-n="2"]').classList.add('active');
+rebuild(2); updateHUD();
+animate();
+</script>
+</body>
+</html>
