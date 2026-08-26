@@ -1,0 +1,413 @@
+<!--
+    3D 皮肤剖面构造模型
+    制作: 蔡逸众 (ecchua79) | 华仁中学 Chinese High School
+    Made for classroom teaching use.
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta name="author" content="蔡逸众 (ecchua79) - 华仁中学 Chinese High School">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 皮肤剖面构造模型 - Three.js</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #2c3e50; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ecf0f1;
+            background: rgba(44, 62, 80, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: none;
+            max-width: 250px;
+        }
+        h2 { 
+            margin-top: 0; 
+            margin-bottom: 20px; 
+            font-size: 18px; 
+            border-bottom: 1px solid #7f8c8d;
+            padding-bottom: 10px;
+        }
+        .legend-item { 
+            margin-bottom: 10px; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+        }
+        .color-box {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .tips {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #bdc3c7;
+            border-top: 1px solid #7f8c8d;
+            padding-top: 15px;
+            text-align: center;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        /* 水印 */
+        #watermark {
+            position: absolute;
+            bottom: 46px;
+            right: 16px;
+            color: rgba(255,255,255,0.35);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            user-select: none;
+            text-align: right;
+            z-index: 5;
+        }
+        /* 页脚 */
+        #footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(236, 240, 241, 0.7);
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 5;
+        }
+        #footer a {
+            color: rgba(236, 240, 241, 0.9);
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">加载 3D 模型中...</div>
+
+    <div id="info-panel">
+        <h2>皮肤剖面结构图</h2>
+        <div class="legend-item"><span class="color-box" style="background: #f1dfc3;"></span> 表皮 (Epidermis)</div>
+        <div class="legend-item"><span class="color-box" style="background: #e6b8af;"></span> 真皮 (Dermis)</div>
+        <div class="legend-item"><span class="color-box" style="background: #f9e79f;"></span> 皮下组织 (Hypodermis)</div>
+        <div class="legend-item"><span class="color-box" style="background: #3e2723;"></span> 毛发与毛囊</div>
+        <div class="legend-item"><span class="color-box" style="background: #f4d03f;"></span> 皮脂腺</div>
+        <div class="legend-item"><span class="color-box" style="background: #d4e157;"></span> 汗腺</div>
+        <div class="legend-item"><span class="color-box" style="background: #e74c3c;"></span> 动脉 / <span class="color-box" style="background: #3498db; margin-left: 4px; margin-right: 4px;"></span> 静脉</div>
+        <div class="tips">拖拽旋转 | 滚轮缩放<br>最佳视角：正视剖切面</div>
+    </div>
+
+    <div id="watermark">蔡逸众 · ecchua79<br>华仁中学 Chinese High School</div>
+
+    <div id="footer">
+        © 蔡逸众 (ecchua79) · 华仁中学 Chinese High School ·
+        <a href="https://ecchua79.github.io/ScienceLab" target="_blank" rel="noopener">ScienceLab</a>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+        console.log('%c3D 皮肤剖面构造模型 | 制作: 蔡逸众 (ecchua79) | 华仁中学 Chinese High School', 'color:#3498db;font-weight:bold;');
+
+        // 移除加载提示
+        document.getElementById('loading').style.display = 'none';
+
+        const scene = new THREE.Scene();
+        // 调整背景色，使其与UI更协调
+        scene.background = new THREE.Color('#2c3e50');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // 调整初始相机角度，使其正对剖切面
+        camera.position.set(0, 5, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 优化性能
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // 更柔和的阴影
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; // 更好的颜色映射
+        renderer.toneMappingExposure = 1.0;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2; // 限制不要转到地底
+        controls.minDistance = 10;
+        controls.maxDistance = 50;
+
+        // 灯光设置
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        // 主光源，照亮剖面
+        const frontLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        frontLight.position.set(0, 10, 20);
+        frontLight.castShadow = true;
+        frontLight.shadow.mapSize.width = 2048;
+        frontLight.shadow.mapSize.height = 2048;
+        scene.add(frontLight);
+
+        // 辅助光源，照亮背面和侧面
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        backLight.position.set(10, 10, -20);
+        scene.add(backLight);
+
+        const skinGroup = new THREE.Group();
+        scene.add(skinGroup);
+
+        const width = 16;
+        const depth = 8; // 减小深度，突出剖面
+        const cutZ = depth / 2; // 剖切面的 Z 轴位置
+
+        // 辅助函数：生成粗糙不平的几何体（用于表现皮肤表皮的粗糙质感）
+        function pseudoRandom(x, y, z) {
+            const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453123;
+            return s - Math.floor(s);
+        }
+        function createRoughGeometry(width, height, depth, segments, noiseAmount) {
+            const geo = new THREE.BoxGeometry(width, height, depth, segments, segments, segments);
+            const posAttr = geo.attributes.position;
+            const normAttr = geo.attributes.normal;
+            const v = new THREE.Vector3();
+            const n = new THREE.Vector3();
+            for (let i = 0; i < posAttr.count; i++) {
+                v.fromBufferAttribute(posAttr, i);
+                n.fromBufferAttribute(normAttr, i);
+                const noise = (pseudoRandom(v.x, v.y, v.z) - 0.5) * 2 * noiseAmount;
+                v.addScaledVector(n, noise);
+                posAttr.setXYZ(i, v.x, v.y, v.z);
+            }
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // 材质定义
+        const matEpidermis = new THREE.MeshStandardMaterial({ 
+            color: 0xf1dfc3, roughness: 0.95, side: THREE.DoubleSide, flatShading: true
+        });
+        const matDermis = new THREE.MeshStandardMaterial({ 
+            color: 0xe6b8af, roughness: 0.9, side: THREE.DoubleSide
+        });
+        const matHypodermisBase = new THREE.MeshStandardMaterial({ 
+            color: 0xf5b041, transparent: true, opacity: 0.4, side: THREE.DoubleSide
+        });
+        const matFat = new THREE.MeshStandardMaterial({ 
+            color: 0xf9e79f, roughness: 0.5 
+        });
+
+        // 1. 表皮层（使用带噪点位移的几何体，表现粗糙质感）
+        const hEpidermis = 0.8;
+        const geoEpidermis = createRoughGeometry(width, hEpidermis, depth, 24, 0.06);
+        const meshEpidermis = new THREE.Mesh(geoEpidermis, matEpidermis);
+        meshEpidermis.position.y = 7;
+        meshEpidermis.receiveShadow = true;
+        meshEpidermis.castShadow = true;
+        skinGroup.add(meshEpidermis);
+
+        // 为了表现角质层，在表皮顶上加薄薄一层稍深色、同样粗糙不平的层
+        const geoStratum = createRoughGeometry(width, 0.1, depth, 24, 0.05);
+        const matStratum = new THREE.MeshStandardMaterial({ color: 0xd9b38c, roughness: 0.95, flatShading: true });
+        const meshStratum = new THREE.Mesh(geoStratum, matStratum);
+        meshStratum.position.y = 7 + hEpidermis/2 + 0.05;
+        skinGroup.add(meshStratum);
+
+        // 2. 真皮层 (带有乳头层起伏的视觉效果暗示)
+        const hDermis = 6;
+        const geoDermis = new THREE.BoxGeometry(width, hDermis, depth);
+        const meshDermis = new THREE.Mesh(geoDermis, matDermis);
+        meshDermis.position.y = 7 - hEpidermis/2 - hDermis/2;
+        meshDermis.receiveShadow = true;
+        skinGroup.add(meshDermis);
+
+        // 3. 皮下组织
+        const hHypodermis = 3.5;
+        const geoHypodermis = new THREE.BoxGeometry(width, hHypodermis, depth);
+        const meshHypodermis = new THREE.Mesh(geoHypodermis, matHypodermisBase);
+        meshHypodermis.position.y = meshDermis.position.y - hDermis/2 - hHypodermis/2;
+        meshHypodermis.receiveShadow = true;
+        skinGroup.add(meshHypodermis);
+
+        // 填充脂肪球在剖面处更容易看到
+        const fatGeo = new THREE.SphereGeometry(0.6, 16, 16);
+        for(let i = 0; i < 40; i++) {
+            const fat = new THREE.Mesh(fatGeo, matFat);
+            // 将脂肪球分布在靠近前面的剖切面附近
+            const x = (Math.random() - 0.5) * (width - 1.5);
+            const y = meshHypodermis.position.y + (Math.random() - 0.5) * (hHypodermis - 1.2);
+            const z = (Math.random() * (depth - 1)) - (depth/2) + 0.5; // 分布在前半部分
+            
+            fat.position.set(x, y, z);
+            fat.scale.set(1 + Math.random()*0.3, 1 + Math.random()*0.2, 1 + Math.random()*0.3);
+            skinGroup.add(fat);
+        }
+
+        // 毛发
+        const hairPoints = [
+            new THREE.Vector3(-2, -1, cutZ + 0.2), // 毛球底部
+            new THREE.Vector3(-1.5, 3, cutZ + 0.2),  // 穿过真皮
+            new THREE.Vector3(-1, 7.5, cutZ + 0.2),  // 穿出表皮
+            new THREE.Vector3(-0.2, 10, cutZ + 0.2), // 空中弯曲
+            new THREE.Vector3(1, 11, cutZ + 0.2)
+        ];
+        const hairCurve = new THREE.CatmullRomCurve3(hairPoints);
+        const hairGeo = new THREE.TubeGeometry(hairCurve, 64, 0.12, 12, false);
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x221100, roughness: 0.8 });
+        const hair = new THREE.Mesh(hairGeo, hairMat);
+        hair.castShadow = true;
+        skinGroup.add(hair);
+
+        // 竖毛肌 (立毛肌)：从毛发根部往上 1/4 处，斜向连接到表皮层底部
+        const hairRootAttachPoint = hairCurve.getPointAt(0.25); // 沿毛发全长 1/4 处（从根部起算）
+        const epidermisBottomY = 7 - hEpidermis / 2; // 表皮层底部的 y 坐标
+        const arrectorPiliTop = new THREE.Vector3(
+            hairRootAttachPoint.x - 0.7,
+            epidermisBottomY,
+            hairRootAttachPoint.z
+        );
+        const arrectorPiliDir = new THREE.Vector3().subVectors(arrectorPiliTop, hairRootAttachPoint);
+        const arrectorPiliLength = arrectorPiliDir.length();
+        const arrectorPiliGeo = new THREE.CylinderGeometry(0.22, 0.32, arrectorPiliLength, 12);
+        const arrectorPiliMat = new THREE.MeshStandardMaterial({ color: 0xcc9988, side: THREE.DoubleSide, roughness: 0.7 });
+        const arrectorPili = new THREE.Mesh(arrectorPiliGeo, arrectorPiliMat);
+        arrectorPili.position.copy(hairRootAttachPoint).addScaledVector(arrectorPiliDir, 0.5);
+        arrectorPili.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), arrectorPiliDir.clone().normalize());
+        arrectorPili.castShadow = true;
+        skinGroup.add(arrectorPili);
+        
+        // 毛球 (毛囊底部)
+        const bulbGeo = new THREE.SphereGeometry(0.5, 16, 16, 0, Math.PI);
+        const bulbMat = new THREE.MeshStandardMaterial({ color: 0xaa7766, side: THREE.DoubleSide });
+        const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+        bulb.position.set(-2, -1, cutZ - 0.1);
+        skinGroup.add(bulb);
+
+        // 1. 皮脂腺 (依附于毛囊)
+        const glandGroup = new THREE.Group();
+        const glandMat = new THREE.MeshStandardMaterial({ color: 0xf4d03f, roughness: 0.6 });
+        
+        const gland1 = new THREE.Mesh(new THREE.SphereGeometry(0.5), glandMat);
+        gland1.position.set(0, 0, 0);
+        const gland2 = new THREE.Mesh(new THREE.SphereGeometry(0.4), glandMat);
+        gland2.position.set(-0.5, -0.3, 0.2);
+        const gland3 = new THREE.Mesh(new THREE.SphereGeometry(0.4), glandMat);
+        gland3.position.set(0.2, -0.4, -0.2);
+        
+        glandGroup.add(gland1, gland2, gland3);
+        // 定位到毛囊左侧
+        glandGroup.position.set(-2.4, 3.5, cutZ);
+        skinGroup.add(glandGroup);
+
+        // 2. 汗腺 (盘旋的管子)
+        const sweatGlandMat = new THREE.MeshStandardMaterial({ color: 0xd4e157 });
+        
+        // 汗腺导管 (直达表皮)
+        const ductPoints = [
+            new THREE.Vector3(2, 0, cutZ),
+            new THREE.Vector3(2.2, 2, cutZ),
+            new THREE.Vector3(2.1, 4, cutZ),
+            new THREE.Vector3(2.3, 6, cutZ),
+            new THREE.Vector3(2.2, 7.5, cutZ) // 汗腺孔
+        ];
+        const ductCurve = new THREE.CatmullRomCurve3(ductPoints);
+        const ductGeo = new THREE.TubeGeometry(ductCurve, 32, 0.08, 8, false);
+        const duct = new THREE.Mesh(ductGeo, sweatGlandMat);
+        skinGroup.add(duct);
+
+        // 汗腺分泌部 (底部盘绕结构)
+        const coilPoints = [];
+        let t = 0;
+        for (let i = 0; i < 40; i++) {
+            t += 0.3;
+            const x = 2 + Math.cos(t) * 0.4;
+            const y = 0 - i * 0.05; // 向下螺旋
+            const z = cutZ + Math.sin(t) * 0.4;
+            coilPoints.push(new THREE.Vector3(x, y, z));
+        }
+        const coilCurve = new THREE.CatmullRomCurve3(coilPoints);
+        const coilGeo = new THREE.TubeGeometry(coilCurve, 64, 0.1, 8, false);
+        const coil = new THREE.Mesh(coilGeo, sweatGlandMat);
+        skinGroup.add(coil);
+
+        function createVesselSection(color, start, end, control1, control2) {
+            const curve = new THREE.CubicBezierCurve3(start, control1, control2, end);
+            const geo = new THREE.TubeGeometry(curve, 32, 0.15, 8, false);
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
+            return new THREE.Mesh(geo, mat);
+        }
+
+        // 动脉 (红)
+        const artery = createVesselSection(
+            0xe74c3c,
+            new THREE.Vector3(4, meshHypodermis.position.y - 1, cutZ), // 皮下组织底部起
+            new THREE.Vector3(-1, 0.5, cutZ), // 延伸至真皮层毛囊下方
+            new THREE.Vector3(4, -1, cutZ),
+            new THREE.Vector3(1, -1, cutZ)
+        );
+        skinGroup.add(artery);
+
+        // 静脉 (蓝)
+        const vein = createVesselSection(
+            0x3498db,
+            new THREE.Vector3(4, meshHypodermis.position.y - 0.5, cutZ + 0.5),
+            new THREE.Vector3(-0.5, 0, cutZ + 0.2),
+            new THREE.Vector3(3.5, -1, cutZ + 0.5),
+            new THREE.Vector3(2, -0.5, cutZ + 0.2)
+        );
+        skinGroup.add(vein);
+
+        // 居中整个模型组
+        // 稍微倾斜一点，让剖切面更容易被看到
+        skinGroup.position.y = -3;
+        skinGroup.rotation.y = -Math.PI / 8; // 微微右转
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
