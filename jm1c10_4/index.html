@@ -236,6 +236,17 @@ function makeMat(color, opts = {}) {
   });
 }
 
+// 在两点之间生成一根圆柱骨骼，保证两端精确对接（用于听小骨关节咬合）
+function makeBone(pA, pB, rA, rB, mat) {
+  const dir = new THREE.Vector3().subVectors(pB, pA);
+  const len = dir.length() || 0.001;
+  const geom = new THREE.CylinderGeometry(rA, rB, len, 10);
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.copy(pA).add(pB).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return mesh;
+}
+
 // 1. 耳廓 - 用扭曲的圆环模拟
 (function buildPinna() {
   const g = new THREE.Group();
@@ -258,7 +269,7 @@ function makeMat(color, opts = {}) {
   g.add(lobe);
 
   g.position.set(-4.5, 0.3, 0);
-  g.rotation.y = Math.PI / 2;
+  g.rotation.y = -Math.PI / 2; // 翻转朝向，使耳廓凹面向前方开口（原方向反了）
   earRoot.add(g);
   partGroups.pinna = g;
   g.traverse(c => { if (c.isMesh) { c.userData.part = 'pinna'; partMeshes.pinna = partMeshes.pinna || []; partMeshes.pinna.push(c); } });
@@ -295,46 +306,52 @@ function makeMat(color, opts = {}) {
   partMeshes.eardrum = [drum];
 })();
 
-// 4-6. 听小骨（锤骨、砧骨、镫骨）
+// 4-6. 听小骨（锤骨、砧骨、镫骨）—— 三块依次咬合，锤骨柄贴住鼓膜
 (function buildOssicles() {
-  // 锤骨
+  // 关节锚点（世界坐标）：鼓膜中心 -> 锤骨头/砧骨体 -> 砧骨长脚/镫骨头 -> 镫骨足板（卵圆窗方向）
+  const pDrum        = new THREE.Vector3(-0.4, 0.1, 0);   // 与鼓膜中心重合
+  const pMalleusHead  = new THREE.Vector3(0.05, 0.38, 0);  // 锤骨头，同时是砧骨体的位置
+  const pIncusTip     = new THREE.Vector3(0.55, 0.05, 0);  // 砧骨长脚尖，同时是镫骨头位置
+  const pFootplate    = new THREE.Vector3(1.0, -0.05, 0);  // 镫骨足板，贴近耳蜗卵圆窗一侧
+
+  // 锤骨：group 原点放在锤骨头（与砧骨相接处），柄部向下向外延伸贴住鼓膜
   const malleusG = new THREE.Group();
   const mHead = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), makeMat(PARTS.malleus.color));
-  mHead.position.set(0.1, 0.2, 0);
-  const mHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 12), makeMat(PARTS.malleus.color));
-  mHandle.position.set(0.1, 0, 0);
-  mHandle.rotation.z = 0.3;
-  malleusG.add(mHead, mHandle);
-  malleusG.position.set(0.3, 0.2, 0);
+  const mTipLocal = pDrum.clone().sub(pMalleusHead); // 手柄尖端相对锤骨头的位置
+  const mHandle = makeBone(new THREE.Vector3(0, 0, 0), mTipLocal, 0.08, 0.05, makeMat(PARTS.malleus.color));
+  const mDrumJoint = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), makeMat(PARTS.malleus.color));
+  mDrumJoint.position.copy(mTipLocal); // 紧贴鼓膜内侧面的小关节球
+  malleusG.add(mHead, mHandle, mDrumJoint);
+  malleusG.position.copy(pMalleusHead);
   earRoot.add(malleusG);
   partGroups.malleus = malleusG;
-  [mHead, mHandle].forEach(m => { m.userData.part = 'malleus'; partMeshes.malleus = partMeshes.malleus || []; partMeshes.malleus.push(m); });
+  [mHead, mHandle, mDrumJoint].forEach(m => { m.userData.part = 'malleus'; partMeshes.malleus = partMeshes.malleus || []; partMeshes.malleus.push(m); });
 
-  // 砧骨
+  // 砧骨：group 原点与锤骨头重合（紧密咬合），长脚伸向镫骨
   const incusG = new THREE.Group();
   const iBody = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), makeMat(PARTS.incus.color));
   iBody.scale.set(1.2, 0.9, 1);
-  const iLong = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.3, 12), makeMat(PARTS.incus.color));
-  iLong.position.set(0.15, -0.1, 0);
-  iLong.rotation.z = -0.6;
+  const iTipLocal = pIncusTip.clone().sub(pMalleusHead);
+  const iLong = makeBone(new THREE.Vector3(0, 0, 0), iTipLocal, 0.05, 0.04, makeMat(PARTS.incus.color));
   incusG.add(iBody, iLong);
-  incusG.position.set(0.7, 0.15, 0);
+  incusG.position.copy(pMalleusHead);
   earRoot.add(incusG);
   partGroups.incus = incusG;
   [iBody, iLong].forEach(m => { m.userData.part = 'incus'; partMeshes.incus = partMeshes.incus || []; partMeshes.incus.push(m); });
 
-  // 镫骨（马镫形）
+  // 镫骨（马镫形）：group 原点与砧骨长脚尖重合，足板贴近耳蜗方向
   const stapesG = new THREE.Group();
-  const sBase = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.03, 8, 16), makeMat(PARTS.stapes.color));
-  sBase.rotation.y = Math.PI / 2;
   const sTop = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), makeMat(PARTS.stapes.color));
-  sTop.position.set(0.2, 0, 0);
-  const sArm1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), makeMat(PARTS.stapes.color));
-  sArm1.position.set(0.1, 0.08, 0); sArm1.rotation.z = Math.PI / 2 - 0.3;
-  const sArm2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), makeMat(PARTS.stapes.color));
-  sArm2.position.set(0.1, -0.08, 0); sArm2.rotation.z = Math.PI / 2 + 0.3;
+  const footLocal = pFootplate.clone().sub(pIncusTip);
+  const sBase = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 8, 16), makeMat(PARTS.stapes.color));
+  sBase.position.copy(footLocal);
+  sBase.rotation.x = Math.PI / 2;
+  const armEnd1 = footLocal.clone().add(new THREE.Vector3(-0.06, 0.02, 0.08));
+  const armEnd2 = footLocal.clone().add(new THREE.Vector3(-0.06, 0.02, -0.08));
+  const sArm1 = makeBone(new THREE.Vector3(0, 0, 0), armEnd1, 0.02, 0.02, makeMat(PARTS.stapes.color));
+  const sArm2 = makeBone(new THREE.Vector3(0, 0, 0), armEnd2, 0.02, 0.02, makeMat(PARTS.stapes.color));
   stapesG.add(sBase, sTop, sArm1, sArm2);
-  stapesG.position.set(1.1, 0.1, 0);
+  stapesG.position.copy(pIncusTip);
   earRoot.add(stapesG);
   partGroups.stapes = stapesG;
   [sBase, sTop, sArm1, sArm2].forEach(m => { m.userData.part = 'stapes'; partMeshes.stapes = partMeshes.stapes || []; partMeshes.stapes.push(m); });
@@ -344,10 +361,10 @@ function makeMat(color, opts = {}) {
 (function buildEustachian() {
   const g = new THREE.Group();
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.5, 0, 0),
-    new THREE.Vector3(0.6, -0.8, 0.2),
-    new THREE.Vector3(0.4, -1.8, 0.3),
-    new THREE.Vector3(0.2, -2.6, 0.2)
+    new THREE.Vector3(0.5, -0.1, 0),
+    new THREE.Vector3(0.95, -1.0, 0.15),
+    new THREE.Vector3(1.4, -1.9, 0.2),
+    new THREE.Vector3(1.7, -2.6, 0.15)
   ]);
   const tube = new THREE.Mesh(new THREE.TubeGeometry(path, 24, 0.08, 10, false), makeMat(PARTS.eustachian.color, { opacity: 0.75 }));
   g.add(tube);
@@ -361,19 +378,24 @@ function makeMat(color, opts = {}) {
 (function buildCochlea() {
   const g = new THREE.Group();
   const points = [];
-  const turns = 2.5, segs = 120;
+  const turns = 2.5, segs = 160;
+  const tubeR = 0.09;                 // 管道半径，需和下方紧密度公式匹配
+  const startR = 0.85;                // 最外圈半径（蜗底，靠近镫骨/卵圆窗一侧）
+  const k = tubeR / Math.PI;          // 每转一圈半径缩小 2*tubeR，让相邻圈刚好贴合
+  const cx = 1.7, cy = -0.1, cz = 0.1;
   for (let i = 0; i <= segs; i++) {
     const t = i / segs;
-    const angle = t * turns * Math.PI * 2;
-    const r = 0.5 * (1 - t * 0.7); // 逐渐变小
+    // 起始角设为 π，让蜗壳最外圈的开口正对镫骨足板方向（朝向 -X）
+    const angle = Math.PI + t * turns * Math.PI * 2;
+    const r = startR - k * (angle - Math.PI);
     points.push(new THREE.Vector3(
-      1.6 + Math.cos(angle) * r,
-      0.1 + t * 0.1 - 0.2,
-      Math.sin(angle) * r
+      cx + Math.cos(angle) * r,   // 螺旋在 XY 平面内盘绕（竖直平面，正面看像蜗牛壳）
+      cy + Math.sin(angle) * r,
+      cz
     ));
   }
   const curve = new THREE.CatmullRomCurve3(points);
-  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.12, 12, false), makeMat(PARTS.cochlea.color, { roughness: 0.4, metalness: 0.2 }));
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, tubeR, 12, false), makeMat(PARTS.cochlea.color, { roughness: 0.4, metalness: 0.2 }));
   g.add(tube);
   earRoot.add(g);
   partGroups.cochlea = g;
@@ -384,10 +406,12 @@ function makeMat(color, opts = {}) {
 // 9. 半规管（三个互相垂直的环）
 (function buildSemicircular() {
   const g = new THREE.Group();
+  // 三个环需两两垂直才能代表三个半规管；原来的第三个环（仅绕 Z 旋转）
+  // 和第一个环共面重叠，这里改为绕 Y 轴旋转，补上真正纵向的一个环
   const orientations = [
-    { rx: 0, ry: 0, rz: 0 },
-    { rx: Math.PI / 2, ry: 0, rz: 0 },
-    { rx: 0, ry: 0, rz: Math.PI / 2 }
+    { rx: 0, ry: 0, rz: 0 },          // 上半规管（竖直，XY 平面）
+    { rx: Math.PI / 2, ry: 0, rz: 0 }, // 外（水平）半规管（XZ 平面）
+    { rx: 0, ry: Math.PI / 2, rz: 0 }  // 后半规管（纵向，YZ 平面，新补上的一个）
   ];
   orientations.forEach(o => {
     const torus = new THREE.Mesh(
