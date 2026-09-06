@@ -63,6 +63,9 @@
         .w-full { width: 100%; }
         .h-full { height: 100%; }
         .mx-auto { margin-left: auto; margin-right: auto; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .modal-max-h { max-height: 85vh; }
 
         /* ========================================================
            自适应可视化面板高度：电脑横屏、手机竖屏、手机横屏都能正常显示
@@ -221,8 +224,14 @@
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">太阳位于最左侧，向右滑动体验各行星距离太阳有多远（按照当前缩放比例计算）</p>
                 </div>
-                <div class="text-xs text-cyan-300 bg-cyan-950/60 border border-cyan-800 px-3 py-1 rounded-full">
-                    👈 请左右按住拖拽或滑动查看 👉
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="inner-zoom-btn" type="button"
+                        class="text-xs font-semibold text-amber-300 bg-amber-950/40 border border-amber-700/60 hover:bg-amber-900/60 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors">
+                        <span>🔍</span> 内太阳系放大（水星～火星挤在一起时点这里）
+                    </button>
+                    <div class="text-xs text-cyan-300 bg-cyan-950/60 border border-cyan-800 px-3 py-1 rounded-full">
+                        👈 请左右按住拖拽或滑动查看 👉
+                    </div>
                 </div>
             </div>
 
@@ -242,6 +251,26 @@
                 </div>
             </div>
         </section>
+
+        <!-- 内太阳系放大弹窗（点击"内太阳系放大"按钮时显示，解决水星~火星挤在一起看不清的问题） -->
+        <div id="inner-zoom-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(2,6,23,0.85);">
+            <div class="bg-slate-900 border border-amber-700/50 rounded-2xl shadow-2xl w-full max-w-2xl modal-max-h flex flex-col">
+                <div class="flex justify-between items-center border-b border-slate-800 p-4">
+                    <h4 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                        <span>🔍</span> 内太阳系距离特写（太阳～火星，单独放大展示）
+                    </h4>
+                    <button id="inner-zoom-close" type="button" class="text-slate-400 hover:text-slate-100 text-xl leading-none px-2">&times;</button>
+                </div>
+                <div class="p-4 overflow-x-auto custom-scrollbar bg-space-grid">
+                    <div id="inner-zoom-track" class="relative flex items-center" style="height:200px; min-width:640px;">
+                        <!-- Dynamic Inner-System Markers Generated via JS -->
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500 px-4 pb-4">
+                    注：此特写图仅为拉开水星～火星的显示间距以便辨认，行星之间的左右间隔并未严格按比例绘制；准确的真实比例请参考下方数据表格中的 AU 数值。
+                </p>
+            </div>
+        </div>
 
         <!-- Comprehensive Data Table -->
         <section class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
@@ -380,6 +409,42 @@
             //峇株吧辖蔡逸众制作
         }
 
+        // 生成一个"距离轨道"标记点（主全景图 与 内太阳系放大弹窗 共用同一份逻辑，避免重复代码）
+        function createDistanceMarker(body, leftPx, scaledDistanceMeters) {
+            const marker = document.createElement("div");
+            marker.className = "absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group cursor-pointer";
+            marker.style.left = `${leftPx}px`;
+
+            const isSun = body.id === "sun";
+
+            marker.innerHTML = `
+                <!-- Top Info Tag -->
+                <div class="mb-3 text-center transition-transform duration-200 group-hover:-translate-y-1">
+                    <span class="text-xs font-bold text-slate-100 bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded shadow">
+                        ${body.icon} ${body.name}
+                    </span>
+                    <div class="text-[10px] text-cyan-300 font-mono mt-1 font-semibold">
+                        ${formatScaledDistance(scaledDistanceMeters)}
+                    </div>
+                </div>
+
+                <!-- Planet Icon Pin (本地色块+图标，不依赖外部图片，离线可用) -->
+                <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${body.gradient} border-2 border-slate-600 flex items-center justify-center text-sm shadow-lg group-hover:border-amber-400 z-10">
+                    ${body.icon}
+                </div>
+
+                <!-- Vertical Line to Axis -->
+                <div class="w-0.5 h-6 bg-slate-700/80 my-1"></div>
+
+                <!-- AU Label -->
+                <div class="text-[10px] text-slate-400 font-mono">
+                    ${isSun ? '0 AU' : `${body.distanceAu} AU`}
+                </div>
+            `;
+
+            return marker;
+        }
+
         // DOM elements
         const baseBodySelect = document.getElementById("base-body");
         const baseSizeInput = document.getElementById("base-size");
@@ -389,6 +454,11 @@
         const scaleRatioText = document.getElementById("scale-ratio-text");
         const sizePanoramicContainer = document.getElementById("size-panoramic-container");
         const distanceMapTrack = document.getElementById("distance-map-track");
+        const innerZoomBtn = document.getElementById("inner-zoom-btn");
+        const innerZoomModal = document.getElementById("inner-zoom-modal");
+        const innerZoomClose = document.getElementById("inner-zoom-close");
+        const innerZoomTrack = document.getElementById("inner-zoom-track");
+        let lastScaleFactorMmPerKm = 0; // 缓存最近一次的缩放比例，供"内太阳系放大"弹窗复用
 
         // Convert size to mm
         function getBaseSizeInMm(value, unit) {
@@ -414,6 +484,7 @@
 
             // Scale Factor: Scaled Millimeters per Real Kilometer
             const scaleFactorMmPerKm = baseSizeMm / baseBody.diameterKm;
+            lastScaleFactorMmPerKm = scaleFactorMmPerKm;
             const realBaseKm = baseBody.diameterKm;
             const scaleRatio = (realBaseKm * 1000000) / baseSizeMm; 
 
@@ -512,38 +583,7 @@
                 const posRatio = body.distanceAu / neptuneObj.distanceAu;
                 const leftPx = 50 + (posRatio * mapTrackWidthPx);
 
-                const marker = document.createElement("div");
-                marker.className = "absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group cursor-pointer";
-                marker.style.left = `${leftPx}px`;
-
-                const isSun = body.id === "sun";
-                //峇株吧辖蔡逸众制作
-
-                marker.innerHTML = `
-                    <!-- Top Info Tag -->
-                    <div class="mb-3 text-center transition-transform duration-200 group-hover:-translate-y-1">
-                        <span class="text-xs font-bold text-slate-100 bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded shadow">
-                            ${body.icon} ${body.name}
-                        </span>
-                        <div class="text-[10px] text-cyan-300 font-mono mt-1 font-semibold">
-                            ${formatScaledDistance(scaledDistanceMeters)}
-                        </div>
-                    </div>
-
-                    <!-- Planet Icon Pin (本地色块+图标，不依赖外部图片，离线可用) -->
-                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${body.gradient} border-2 border-slate-600 flex items-center justify-center text-sm shadow-lg group-hover:border-amber-400 z-10">
-                        ${body.icon}
-                    </div>
-
-                    <!-- Vertical Line to Axis -->
-                    <div class="w-0.5 h-6 bg-slate-700/80 my-1"></div>
-
-                    <!-- AU Label -->
-                    <div class="text-[10px] text-slate-400 font-mono">
-                        ${isSun ? '0 AU' : `${body.distanceAu} AU`}
-                    </div>
-                `;
-
+                const marker = createDistanceMarker(body, leftPx, scaledDistanceMeters);
                 distanceMapTrack.appendChild(marker);
             });
 
@@ -616,6 +656,54 @@
         baseBodySelect.addEventListener("change", calculateAndRender);
         baseSizeInput.addEventListener("input", calculateAndRender);
         baseUnitSelect.addEventListener("change", calculateAndRender);
+
+        // --- 内太阳系放大弹窗：把水星~火星单独拉开间距展示，解决主图里挤在一起分不清的问题 ---
+        function renderInnerZoomView() {
+            const innerBodies = SOLAR_SYSTEM.filter(b =>
+                ["sun", "mercury", "venus", "earth", "mars"].includes(b.id)
+            );
+            const marsObj = innerBodies.find(b => b.id === "mars");
+            //峇株吧辖蔡逸众制作
+            const zoomTrackWidthPx = 560; // 特写图轨道宽度：足够把四颗内行星的标记分开显示
+
+            innerZoomTrack.innerHTML = "";
+
+            // 特写图自己的轴线
+            const zoomAxisLine = document.createElement("div");
+            zoomAxisLine.className = "absolute left-8 right-8 top-1/2 h-0.5 bg-gradient-to-r from-amber-500/80 via-blue-500/50 to-red-500/70";
+            innerZoomTrack.appendChild(zoomAxisLine);
+
+            innerBodies.forEach((body) => {
+                const realDistanceKm = body.distanceAu * AU_IN_KM;
+                const scaledDistanceMeters = (realDistanceKm * lastScaleFactorMmPerKm) / 1000;
+
+                // 以火星为满宽基准，把内太阳系拉开显示（此处比例仅为方便辨认，非真实等比例）
+                const posRatio = body.distanceAu / marsObj.distanceAu;
+                const leftPx = 40 + (posRatio * zoomTrackWidthPx);
+
+                const marker = createDistanceMarker(body, leftPx, scaledDistanceMeters);
+                innerZoomTrack.appendChild(marker);
+            });
+        }
+
+        function openInnerZoom() {
+            renderInnerZoomView();
+            innerZoomModal.classList.remove("hidden");
+        }
+
+        function closeInnerZoom() {
+            innerZoomModal.classList.add("hidden");
+        }
+
+        innerZoomBtn.addEventListener("click", openInnerZoom);
+        innerZoomClose.addEventListener("click", closeInnerZoom);
+        innerZoomModal.addEventListener("click", (e) => {
+            // 点击弹窗以外的深色遮罩区域时也关闭
+            if (e.target === innerZoomModal) closeInnerZoom();
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeInnerZoom();
+        });
 
         // Initial Load
         window.addEventListener("load", calculateAndRender);
