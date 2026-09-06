@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太阳系全景比例与距离示意图</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+            /* //峇株吧辖华仁中学蔡逸众制作 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        
+        /* Grid background pattern for space maps */
+        .bg-space-grid {
+            background-size: 30px 30px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* ========================================================
+           离线/弱网兜底样式（Tailwind CDN 加载失败时的基础布局保障）
+           这些规则只覆盖关键的结构性属性（定位、flex/grid、溢出等），
+           不影响色彩与间距——Tailwind 正常加载时会在其后被覆盖，不冲突。
+           ======================================================== */
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .sticky { position: sticky; }
+        .hidden { display: none; }
+        .overflow-x-auto { overflow-x: auto; }
+        .overflow-hidden { overflow: hidden; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-start { justify-content: flex-start; }
+        .flex-col { flex-direction: column; }
+        .flex-wrap { flex-wrap: wrap; }
+        .flex-1 { flex: 1 1 0%; }
+        .rounded-full { border-radius: 9999px; }
+        .text-center { text-align: center; }
+        .shrink-0 { flex-shrink: 0; }
+        .min-h-screen { min-height: 100vh; }
+        .top-0 { top: 0; }
+        .z-10 { z-index: 10; }
+        .z-50 { z-index: 50; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+
+        /* ========================================================
+           自适应可视化面板高度：电脑横屏、手机竖屏、手机横屏都能正常显示
+           默认（电脑/平板横屏）：较高，展示更充分
+           ======================================================== */
+        .viz-size-panel {
+            min-width: 800px;
+            height: 320px;
+        }
+        .viz-distance-panel {
+            height: 220px;
+        }
+        .viz-body-shape {
+            height: 210px;
+        }
+
+        /* 手机竖屏：视口较窄但够高，适度降低面板高度，避免过度留白 */
+        @media (max-width: 640px) {
+            .viz-size-panel { height: 240px; }
+            .viz-distance-panel { height: 180px; }
+            .viz-body-shape { height: 160px; }
+        }
+
+        /* 手机/平板横屏：视口高度很矮，压缩面板高度与吸顶header，优先保证核心内容可见 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .viz-size-panel { height: 150px; }
+            .viz-distance-panel { height: 140px; }
+            .viz-body-shape { height: 100px; }
+            header.sticky { position: relative; } /* 让出吸顶，避免占用宝贵的竖直空间 */
+            #size-panoramic-container, #distance-map-track { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+                    ☀️
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide bg-gradient-to-r from-amber-400 via-orange-300 to-yellow-200 bg-clip-text text-transparent">
+                        太阳系全景等比例示意图
+                    </h1>
+                    <p class="text-xs text-slate-400">一图看懂整个太阳系天体大小与真实轨道距离</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 text-xs">
+                <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">
+                    🌌 包含 1 颗恒星 + 8 大行星
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <div class="text-center" style="font-size:0.55rem;color:rgba(56,189,248,0.18);padding:2px 0;user-select:none;">峇株吧辖华仁中学蔡逸众制作</div>
+
+    <!-- Main Body -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6">
+
+        <!-- Control Panel -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
+            <h2 class="text-base font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                <span>⚙️</span> 输入任意天体尺寸（全景图将同步按比例缩放）
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Select Body -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">基准参照天体</label>
+                    <select id="base-body" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="sun">太阳 (Sun)</option>
+                        <option value="mercury">水星 (Mercury)</option>
+                        <option value="venus">金星 (Venus)</option>
+                        <option value="earth" selected>地球 (Earth)</option>
+                        <option value="mars">火星 (Mars)</option>
+                        <option value="jupiter">木星 (Jupiter)</option>
+                        <option value="saturn">土星 (Saturn)</option>
+                        <option value="uranus">天王星 (Uranus)</option>
+                        <option value="neptune">海王星 (Neptune)</option>
+                    </select>
+                </div>
+
+                <!-- Input Size -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">设定该天体大小</label>
+                    <input type="number" id="base-size" value="1" min="0.0001" step="any"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <!-- Unit -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">尺寸单位</label>
+                    <select id="base-unit" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="mm">毫米 (mm)</option>
+                        <option value="cm" selected>厘米 (cm)</option>
+                        <option value="m">米 (m)</option>
+                        <option value="km">公里 (km)</option>
+                    </select>
+                </div>
+
+                <!-- Presets -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">快速场景预设</label>
+                    <select id="preset-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="">-- 选择预设模板 --</option>
+                        <option value="preset-earth-1cm">地球 = 1 厘米玻璃珠</option>
+                        <option value="preset-sun-basketball">太阳 = 23 厘米标准篮球</option>
+                        <option value="preset-sun-1m">太阳 = 1 米大健身球</option>
+                        <option value="preset-earth-1mm">地球 = 1 毫米小芝麻</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap justify-between items-center text-xs text-slate-400">
+                <div id="scale-ratio-text">缩放比例计算中...</div>
+                <div class="text-amber-400/90 font-medium">💡 提示：在下方的全景图中，可水平滑动查看整个太阳系排列</div>
+            </div>
+        </section>
+
+        <!-- Viewport 1: Whole Solar System Relative Body Sizes View (一图看全太阳系天体等比例大小) -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <span>🪐</span> 图解 1：整个太阳系天体大小同框对比全景图
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">将太阳与八大行星放在同一个画面中，按实际等比例渲染其直径大小</p>
+                </div>
+                <div class="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1 rounded-full">
+                    完全按实际体积比例等比绘制
+                </div>
+            </div>
+
+            <!-- Panoramic Planet Size Canvas / SVG Container -->
+            <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto custom-scrollbar bg-space-grid">
+                <div id="size-panoramic-container" class="viz-size-panel relative flex items-center justify-start px-8">
+                    <!-- Dynamic Graphic Elements Generated via JS Canvas / SVG -->
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-400 flex flex-wrap gap-4 justify-between bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                <div>📌 **图解说明**：由于太阳极其庞大（直径约为地球的 109 倍），岩石行星（水星、金星、地球、火星）在同框图中会显得非常精致微小。</div>
+            </div>
+        </section>
+
+        <!-- Viewport 2: Whole Solar System Scaled Orbit Distance View (全景太阳系轨道空间距离地图) -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col gap-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <span>🚀</span> 图解 2：整个太阳系轨道距离全景卷轴（带真实标尺）
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">太阳位于最左侧，向右滑动体验各行星距离太阳有多远（按照当前缩放比例计算）</p>
+                </div>
+                <div class="text-xs text-cyan-300 bg-cyan-950/60 border border-cyan-800 px-3 py-1 rounded-full">
+                    👈 请左右按住拖拽或滑动查看 👉
+                </div>
+            </div>
+
+            <!-- Distance Map Scrollable Track -->
+            <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto custom-scrollbar bg-space-grid">
+                <div id="distance-map-track" class="viz-distance-panel relative flex items-center transition-all">
+                    <!-- Dynamic Distance Markers Generated via JS -->
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-400">
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                    <span class="text-amber-300 font-bold">🌌 内太阳系 (水·金·地·火)：</span> 聚集在靠近太阳的区域（缩放后通常在几米到十几米内）。
+                </div>
+                <div class="bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                    <span class="text-cyan-300 font-bold">🧊 外太阳系 (木·土·天王·海王)：</span> 距离急剧拉远，最外围的海王星距离太阳可达数百米乃至上千米！
+                </div>
+            </div>
+        </section>
+
+        <!-- Comprehensive Data Table -->
+        <section class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-200">📊 太阳系全景等比例数据推算表</h3>
+                <span class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">数据来源：NASA 天文测量常数</span>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-xs">
+                            <th class="p-3 pl-5">天体名称</th>
+                            <th class="p-3">真实直径</th>
+                            <th class="p-3 font-semibold text-amber-300">缩放后直径</th>
+                            <th class="p-3">生活参照物</th>
+                            <th class="p-3">真实日距 (AU)</th>
+                            <th class="p-3 font-semibold text-cyan-300">缩放后距离太阳</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body" class="divide-y divide-slate-800/60 text-slate-300 text-xs sm:text-sm">
+                        <!-- JS Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        太阳系全景比例与距离示意图 · 支持自定义缩放与可视化渲染
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Astronomical Data
+        const SOLAR_SYSTEM = [
+            { 
+                id: "sun", name: "太阳", icon: "☀️", color: "#f59e0b", diameterKm: 1392700, distanceAu: 0, 
+                gradient: "from-amber-400 via-orange-500 to-yellow-300",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/The_Sun_by_the_Atmospheric_Imaging_Assembly_of_NASA%27s_Solar_Dynamics_Observatory_-_20100819.jpg/320px-The_Sun_by_the_Atmospheric_Imaging_Assembly_of_NASA%27s_Solar_Dynamics_Observatory_-_20100819.jpg"
+            },
+            { 
+                id: "mercury", name: "水星", icon: "⚪", color: "#9ca3af", diameterKm: 4879, distanceAu: 0.387,
+                //峇株吧辖蔡逸众制作
+                gradient: "from-gray-300 to-gray-500",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/320px-Mercury_in_true_color.jpg"
+            },
+            { 
+                id: "venus", name: "金星", icon: "🟡", color: "#fef08a", diameterKm: 12104, distanceAu: 0.723,
+                gradient: "from-amber-100 to-amber-300",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Venus-real_color.jpg/320px-Venus-real_color.jpg"
+            },
+            { 
+                id: "earth", name: "地球", icon: "🌍", color: "#3b82f6", diameterKm: 12756, distanceAu: 1.000,
+                gradient: "from-blue-400 to-emerald-400",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/320px-The_Earth_seen_from_Apollo_17.jpg"
+            },
+            { 
+                id: "mars", name: "火星", icon: "🔴", color: "#ef4444", diameterKm: 6792, distanceAu: 1.524,
+                gradient: "from-red-500 to-orange-600",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/320px-OSIRIS_Mars_true_color.jpg"
+            },
+            { 
+                id: "jupiter", name: "木星", icon: "🟠", color: "#f97316", diameterKm: 142984, distanceAu: 5.204,
+                gradient: "from-orange-400 via-amber-600 to-amber-200",
+                //华仁中学蔡逸众制作
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/320px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg"
+            },
+            { 
+                id: "saturn", name: "土星", icon: "🪐", color: "#eab308", diameterKm: 120536, distanceAu: 9.582,
+                gradient: "from-yellow-200 via-amber-400 to-yellow-600",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/320px-Saturn_during_Equinox.jpg"
+            },
+            { 
+                id: "uranus", name: "天王星", icon: "🧊", color: "#06b6d4", diameterKm: 51118, distanceAu: 19.201,
+                gradient: "from-cyan-300 to-blue-400",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/320px-Uranus2.jpg"
+            },
+            { 
+                id: "neptune", name: "海王星", icon: "🔵", color: "#2563eb", diameterKm: 49528, distanceAu: 30.047,
+                gradient: "from-blue-600 to-indigo-500",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Neptune_-_Planetary_Hub.jpg/320px-Neptune_-_Planetary_Hub.jpg"
+            }
+        ];
+
+        const AU_IN_KM = 149597870.7; // 1 AU in Km
+
+        // Everyday comparison objects
+        function getComparisonObject(dMm) {
+        //Made by ecchua79
+            if (dMm < 0.1) return "灰尘颗粒 (<0.1 mm)";
+            if (dMm < 0.5) return "细沙粒 / 面粉粒 (0.2 mm)";
+            if (dMm < 1.5) return "1粒芝麻 / 粗盐粒 (1 mm)";
+            if (dMm < 3) return "芥末籽 / 花椒粒 (2 mm)";
+            if (dMm < 6) return "绿豆 / 黄豆粒 (4-5 mm)";
+            if (dMm < 12) return "蓝莓 / 1厘米弹珠 (10 mm)";
+            if (dMm < 25) return "葡萄 / 大弹珠 (2 cm)";
+            if (dMm < 45) return "乒乓球 (4 cm)";
+            if (dMm < 75) return "网球 / 鸡蛋 (6 cm)";
+            if (dMm < 150) return "大柚子 / 垒球 (12 cm)";
+            if (dMm < 250) return "标准篮球 (23 cm)";
+            if (dMm < 500) return "瑜伽健身球 (50 cm)";
+            if (dMm < 1000) return "呼啦圈 / 1米圆形桌";
+            if (dMm < 3000) return "小型轿车车长 (2-3米)";
+            if (dMm < 10000) return "公交车车长 (~10米)";
+            return `大型建筑/场地 (约 ${(dMm / 1000).toFixed(1)} 米)`;
+        }
+
+        // Format distances
+        function formatScaledDistance(distMeters) {
+            if (distMeters === 0) return "0 (太阳中心)";
+            //峇株吧辖华仁中学蔡逸众制作
+            if (distMeters < 1) {
+                return `${(distMeters * 100).toFixed(1)} 厘米`;
+            } else if (distMeters < 1000) {
+                return `${distMeters.toFixed(2)} 米`;
+            } else {
+                return `${(distMeters / 1000).toFixed(2)} 公里`;
+            }
+        }
+
+        // Format diameter
+        function formatScaledDiameter(valInMm) {
+            if (valInMm < 0.01) {
+                return `${valInMm.toFixed(4)} mm`;
+            } else if (valInMm < 10) {
+                return `${valInMm.toFixed(2)} mm`;
+            } else if (valInMm < 1000) {
+                return `${(valInMm / 10).toFixed(2)} cm`;
+            } else if (valInMm < 1000000) {
+                return `${(valInMm / 1000).toFixed(2)} m`;
+            } else {
+                return `${(valInMm / 1000000).toFixed(2)} km`;
+            }
+            //峇株吧辖蔡逸众制作
+        }
+
+        // DOM elements
+        const baseBodySelect = document.getElementById("base-body");
+        const baseSizeInput = document.getElementById("base-size");
+        const baseUnitSelect = document.getElementById("base-unit");
+        const presetSelect = document.getElementById("preset-select");
+        const resultsTableBody = document.getElementById("results-table-body");
+        const scaleRatioText = document.getElementById("scale-ratio-text");
+        const sizePanoramicContainer = document.getElementById("size-panoramic-container");
+        const distanceMapTrack = document.getElementById("distance-map-track");
+
+        // Convert size to mm
+        function getBaseSizeInMm(value, unit) {
+            switch (unit) {
+                case "mm": return value;
+                case "cm": return value * 10;
+                case "m": return value * 1000;
+                case "km": return value * 1000000;
+                default: return value * 10;
+            }
+        }
+        //华仁中学蔡逸众制作
+
+        function calculateAndRender() {
+            const selectedId = baseBodySelect.value;
+            const inputVal = parseFloat(baseSizeInput.value);
+            const selectedUnit = baseUnitSelect.value;
+
+            if (isNaN(inputVal) || inputVal <= 0) return;
+
+            const baseBody = SOLAR_SYSTEM.find(b => b.id === selectedId);
+            const baseSizeMm = getBaseSizeInMm(inputVal, selectedUnit);
+
+            // Scale Factor: Scaled Millimeters per Real Kilometer
+            const scaleFactorMmPerKm = baseSizeMm / baseBody.diameterKm;
+            const realBaseKm = baseBody.diameterKm;
+            const scaleRatio = (realBaseKm * 1000000) / baseSizeMm; 
+
+            scaleRatioText.innerHTML = `基准比例：<span class="text-amber-300 font-mono">1 : ${scaleRatio.toExponential(2)}</span> (1 公里 相当于 ${(scaleFactorMmPerKm).toFixed(6)} mm)`;
+
+            // Clear previous outputs
+            resultsTableBody.innerHTML = "";
+            sizePanoramicContainer.innerHTML = "";
+            distanceMapTrack.innerHTML = "";
+
+            // Calculate max diameters for relative canvas scaling
+            const sunObj = SOLAR_SYSTEM.find(b => b.id === "sun");
+            const sunScaledMm = sunObj.diameterKm * scaleFactorMmPerKm;
+
+            // Maximum pixel size for Sun in Visual Diagram 1
+            const maxSunPx = 200; // max px height for Sun in diagram
+            //Made by ecchua79
+            const pixelPerMm = maxSunPx / sunScaledMm;
+
+            // --- 1. RENDER PLANET SIZE PANORAMIC DIAGRAM (同框全景大小对比图) ---
+            SOLAR_SYSTEM.forEach((body) => {
+                const scaledDiameterMm = body.diameterKm * scaleFactorMmPerKm;
+                let displayPx = scaledDiameterMm * pixelPerMm;
+
+                // Ensure a minimum pixel rendering size so tiny planets (like Mercury/Earth) stay visible
+                const minPx = body.id === "sun" ? 140 : 6;
+                const renderPx = Math.max(displayPx, minPx);
+
+                const isSelected = body.id === selectedId;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "flex flex-col items-center justify-center shrink-0 mx-3 group relative cursor-pointer";
+
+                // Planet sphere element
+                let bodyShapeHtml = '';
+                if (body.id === 'saturn') {
+                    // Saturn with rings representation
+                    bodyShapeHtml = `
+                        <div class="relative flex items-center justify-center" style="width: ${renderPx * 2}px; height: ${renderPx}px;">
+                            <div class="absolute inset-0 rounded-full border-2 border-yellow-500/60 transform rotate-[15deg] scale-y-[0.35]"></div>
+                            <div class="rounded-full bg-gradient-to-tr ${body.gradient} shadow-lg" style="width: ${renderPx}px; height: ${renderPx}px;"></div>
+                        </div>
+                    `;
+                } else {
+                    bodyShapeHtml = `
+                        <div class="rounded-full bg-gradient-to-tr ${body.gradient} shadow-lg transition-transform duration-300 group-hover:scale-110" 
+                             style="width: ${renderPx}px; height: ${renderPx}px; box-shadow: 0 0 15px ${body.color}40;">
+                        </div>
+                    `;
+                }
+
+                wrapper.innerHTML = `
+                    <div class="viz-body-shape flex items-center justify-center relative">
+                        ${bodyShapeHtml}
+                    </div>
+                    
+                    <div class="mt-2 text-center">
+                        <div class="text-xs font-bold flex items-center justify-center gap-1 ${isSelected ? 'text-amber-300' : 'text-slate-200'}">
+                            <span>${body.name}</span>
+                            ${isSelected ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 px-1 rounded border border-amber-500/40">基准</span>' : ''}
+                        </div>
+                        <div class="text-[11px] font-mono text-amber-400 font-semibold mt-0.5">
+                            ${formatScaledDiameter(scaledDiameterMm)}
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">
+                            ${getComparisonObject(scaledDiameterMm)}
+                        </div>
+                    </div>
+                `;
+
+                sizePanoramicContainer.appendChild(wrapper);
+            });
+
+
+            // --- 2. RENDER DISTANCE MAP TRACK (全景轨道距离地图) ---
+            //峇株吧辖华仁中学蔡逸众制作
+            // Calculate track width based on Neptune (farthest planet)
+            const neptuneObj = SOLAR_SYSTEM.find(b => b.id === "neptune");
+            const neptuneRealKm = neptuneObj.distanceAu * AU_IN_KM;
+            const neptuneScaledMeters = (neptuneRealKm * scaleFactorMmPerKm) / 1000;
+
+            // Set fixed width for scrollable distance map (e.g., 2000px width track)
+            const mapTrackWidthPx = 1800;
+            distanceMapTrack.style.width = `${mapTrackWidthPx + 200}px`;
+
+            // Draw axis line
+            const axisLine = document.createElement("div");
+            axisLine.className = "absolute left-10 right-10 top-1/2 h-0.5 bg-gradient-to-r from-amber-500/80 via-blue-500/50 to-indigo-600/80";
+            distanceMapTrack.appendChild(axisLine);
+
+            SOLAR_SYSTEM.forEach((body) => {
+                const realDistanceKm = body.distanceAu * AU_IN_KM;
+                const scaledDistanceMeters = (realDistanceKm * scaleFactorMmPerKm) / 1000;
+                
+                // Position percentage on track (Neptune = 100%)
+                const posRatio = body.distanceAu / neptuneObj.distanceAu;
+                const leftPx = 50 + (posRatio * mapTrackWidthPx);
+
+                const marker = document.createElement("div");
+                marker.className = "absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group cursor-pointer";
+                marker.style.left = `${leftPx}px`;
+
+                const isSun = body.id === "sun";
+                //峇株吧辖蔡逸众制作
+
+                marker.innerHTML = `
+                    <!-- Top Info Tag -->
+                    <div class="mb-3 text-center transition-transform duration-200 group-hover:-translate-y-1">
+                        <span class="text-xs font-bold text-slate-100 bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded shadow">
+                            ${body.icon} ${body.name}
+                        </span>
+                        <div class="text-[10px] text-cyan-300 font-mono mt-1 font-semibold">
+                            ${formatScaledDistance(scaledDistanceMeters)}
+                        </div>
+                    </div>
+
+                    <!-- Planet Icon Pin (本地色块+图标，不依赖外部图片，离线可用) -->
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr ${body.gradient} border-2 border-slate-600 flex items-center justify-center text-sm shadow-lg group-hover:border-amber-400 z-10">
+                        ${body.icon}
+                    </div>
+
+                    <!-- Vertical Line to Axis -->
+                    <div class="w-0.5 h-6 bg-slate-700/80 my-1"></div>
+
+                    <!-- AU Label -->
+                    <div class="text-[10px] text-slate-400 font-mono">
+                        ${isSun ? '0 AU' : `${body.distanceAu} AU`}
+                    </div>
+                `;
+
+                distanceMapTrack.appendChild(marker);
+            });
+
+
+            // --- 3. RENDER FULL RESULT TABLE ---
+            SOLAR_SYSTEM.forEach(body => {
+                const scaledDiameterMm = body.diameterKm * scaleFactorMmPerKm;
+                const realDistanceKm = body.distanceAu * AU_IN_KM;
+                const scaledDistanceMeters = (realDistanceKm * scaleFactorMmPerKm) / 1000;
+                const comparisonObj = getComparisonObject(scaledDiameterMm);
+                const isSelected = body.id === selectedId;
+
+                const tr = document.createElement("tr");
+                tr.className = isSelected 
+                    ? "bg-amber-500/10 font-medium text-amber-200 border-l-4 border-amber-400" 
+                    : "hover:bg-slate-800/40 transition-colors";
+
+                const distAuText = body.distanceAu === 0 ? "0 AU" : `${body.distanceAu.toFixed(3)} AU (${(realDistanceKm / 1e8).toFixed(2)}亿km)`;
+
+                tr.innerHTML = `
+                    <td class="p-3 pl-5 flex items-center space-x-2.5">
+                        <span class="w-6 h-6 rounded-full bg-gradient-to-tr ${body.gradient} border border-slate-700 shrink-0 flex items-center justify-center text-[11px]">${body.icon}</span>
+                        <span>${body.name}</span>
+                        ${isSelected ? '<span class="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded">基准</span>' : ''}
+                    </td>
+                    <td class="p-3 text-slate-400 font-mono">${body.diameterKm.toLocaleString()} km</td>
+                    <td class="p-3 font-semibold text-amber-300 font-mono">${formatScaledDiameter(scaledDiameterMm)}</td>
+                    <td class="p-3 text-slate-300">${comparisonObj}</td>
+                    <td class="p-3 text-slate-400 font-mono text-xs">${distAuText}</td>
+                    <td class="p-3 font-semibold text-cyan-300 font-mono">${formatScaledDistance(scaledDistanceMeters)}</td>
+                `;
+
+                resultsTableBody.appendChild(tr);
+            });
+        }
+
+        // Preset Handlers
+        presetSelect.addEventListener("change", (e) => {
+            const val = e.target.value;
+            if (!val) return;
+            //华仁中学蔡逸众制作
+
+            switch (val) {
+                case "preset-earth-1cm":
+                    baseBodySelect.value = "earth";
+                    baseSizeInput.value = "1";
+                    baseUnitSelect.value = "cm";
+                    break;
+                case "preset-sun-basketball":
+                    baseBodySelect.value = "sun";
+                    baseSizeInput.value = "23";
+                    baseUnitSelect.value = "cm";
+                    break;
+                case "preset-sun-1m":
+                    baseBodySelect.value = "sun";
+                    baseSizeInput.value = "1";
+                    baseUnitSelect.value = "m";
+                    break;
+                case "preset-earth-1mm":
+                    baseBodySelect.value = "earth";
+                    baseSizeInput.value = "1";
+                    baseUnitSelect.value = "mm";
+                    //Made by ecchua79
+                    break;
+            }
+            calculateAndRender();
+        });
+
+        // Event Listeners
+        baseBodySelect.addEventListener("change", calculateAndRender);
+        baseSizeInput.addEventListener("input", calculateAndRender);
+        baseUnitSelect.addEventListener("change", calculateAndRender);
+
+        // Initial Load
+        window.addEventListener("load", calculateAndRender);
+    </script>
+</body>
+</html>
