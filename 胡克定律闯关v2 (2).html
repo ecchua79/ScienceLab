@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<!--
+  峇株吧辖华仁中学蔡逸众制作
+  胡克定律闯关大冒险 2.0 - 计算驱动版(数字每局随机生成)
+  单文件离线版,无外部依赖
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>胡克定律闯关大冒险 2.0</title>
+<style>
+:root{
+  --ink:#141c2e;
+  --panel:#1c2740;
+  --panel-2:#233252;
+  --coil:#c7cedd;
+  --brass:#e2a542;
+  --brass-deep:#b97f1f;
+  --ok:#5fb87a;
+  --bad:#e0645a;
+  --paper:#f3ede1;
+  --line:#3a4a70;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:"PingFang SC","Microsoft YaHei","Heiti SC",-apple-system,sans-serif;
+  background:
+    radial-gradient(circle at 20% 10%, #223256 0%, transparent 55%),
+    radial-gradient(circle at 85% 85%, #1a2440 0%, transparent 50%),
+    var(--ink);
+  color:var(--paper);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  touch-action:manipulation;
+}
+/* Made by ecchua79 */
+.stage{
+  width:100%;
+  max-width:540px;
+  min-height:680px;
+  background:var(--panel);
+  border-radius:22px;
+  border:1px solid var(--line);
+  box-shadow:0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+  padding:24px 20px 20px;
+  position:relative;
+  overflow:hidden;
+}
+.screen{display:none;}
+.screen.active{display:flex; flex-direction:column; height:100%;}
+
+.coil-row{display:flex; justify-content:center; gap:6px; margin-bottom:14px;}
+.coil-dot{width:8px; height:8px; border-radius:50%; background:var(--coil); opacity:0.35;}
+.coil-dot:nth-child(3n){opacity:0.7;}
+
+/* ---------- START ---------- */
+#start-screen{align-items:center; text-align:center; justify-content:center; gap:12px;}
+.logo-badge{
+  width:82px; height:82px; border-radius:50%;
+  background:linear-gradient(145deg, var(--brass), var(--brass-deep));
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px;
+  box-shadow:0 8px 24px rgba(226,165,66,0.35);
+  margin-bottom:4px;
+}
+h1.title{font-size:24px; margin:0; letter-spacing:1px; color:var(--paper);}
+.subtitle{font-size:13.5px; color:#a9b4cc; margin:0 0 6px; line-height:1.6;}
+.brief-card{
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 15px;
+  font-size:12.5px;
+  color:#c3cce2;
+  text-align:left;
+  line-height:1.75;
+  width:100%;
+}
+.brief-card b{color:var(--brass);}
+.level-list{font-size:11.5px; color:#93a0bf; text-align:left; width:100%; line-height:1.8; margin-top:2px;}
+.btn{
+  border:none;
+  border-radius:14px;
+  padding:15px 28px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+  color:#1a2440;
+  background:linear-gradient(145deg, var(--brass), var(--brass-deep));
+  box-shadow:0 8px 20px rgba(226,165,66,0.3);
+  transition:transform .15s ease;
+  width:100%;
+}
+.btn:active{transform:scale(0.97);}
+.btn.ghost{background:transparent; color:var(--paper); border:1px solid var(--line); box-shadow:none;}
+.footer-mark{margin-top:auto; padding-top:8px; font-size:10px; color:rgba(255,255,255,0.06); letter-spacing:0.5px;}
+
+/* ---------- HUD ---------- */
+.hud{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px;}
+.hearts{display:flex; gap:3px; font-size:15px;}
+.heart.lost{opacity:0.18; filter:grayscale(1);}
+.hud-mid{flex:1; text-align:center; font-size:12.5px; color:#a9b4cc;}
+.hud-mid b{color:var(--paper); font-size:13.5px;}
+.score-pill{background:var(--panel-2); border:1px solid var(--line); border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:700; color:var(--brass); white-space:nowrap;}
+.progress-track{height:6px; border-radius:6px; background:var(--panel-2); overflow:hidden; margin-bottom:10px;}
+.progress-fill{height:100%; background:linear-gradient(90deg, var(--brass-deep), var(--brass)); width:0%; transition:width .35s ease;}
+.combo-flag{position:absolute; top:66px; right:20px; background:var(--brass); color:#1a2440; font-weight:800; font-size:13px; padding:5px 10px; border-radius:10px; opacity:0; transform:translateY(6px) scale(0.9); transition:all .25s ease; pointer-events:none;}
+.combo-flag.show{opacity:1; transform:translateY(0) scale(1);}
+
+/* ---------- QUESTION ---------- */
+.level-tag{font-size:11.5px; color:var(--brass); font-weight:700; margin-bottom:4px; letter-spacing:0.5px;}
+.level-sub{font-size:10.5px; color:#7c88a8; margin-bottom:8px;}
+.q-text{font-size:15.5px; line-height:1.6; margin:0 0 10px; color:var(--paper); white-space:pre-line;}
+.q-svg-wrap{width:100%; display:flex; justify-content:center; margin-bottom:10px;}
+.q-svg-wrap svg{width:100%; max-width:230px; height:auto; display:block;}
+.q-table{width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:12.5px; background:var(--panel-2); border-radius:10px; overflow:hidden;}
+.q-table th,.q-table td{border:1px solid var(--line); padding:6px 5px; text-align:center; color:#dbe2f2;}
+.q-table th{background:#2a3a5e; color:var(--brass);}
+.options{display:flex; flex-direction:column; gap:9px; margin-bottom:10px;}
+.opt-btn{text-align:left; background:var(--panel-2); border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; font-size:14.5px; color:var(--paper); cursor:pointer; line-height:1.4;}
+.opt-btn:active{transform:scale(0.985);}
+.opt-btn.correct{background:rgba(95,184,122,0.18); border-color:var(--ok); color:#bdf0cc;}
+.opt-btn.wrong{background:rgba(224,100,90,0.18); border-color:var(--bad); color:#f7c9c5;}
+.opt-btn.disabled{pointer-events:none; opacity:0.65;}
+.opt-btn:not(.disabled):hover{border-color:var(--brass);}
+.input-answer-box{margin-bottom:10px;}
+.input-tag{font-size:12px; color:var(--brass); font-weight:700; margin-bottom:8px;}
+.input-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+.answer-input{flex:1; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:var(--panel-2); color:var(--paper); font-size:16px; font-family:inherit;}
+.answer-input:focus{outline:none; border-color:var(--brass);}
+.answer-input.correct{border-color:var(--ok); background:rgba(95,184,122,0.12);}
+.answer-input.wrong{border-color:var(--bad); background:rgba(224,100,90,0.12);}
+.input-unit{font-size:14px; color:#a9b4cc; min-width:36px;}
+.explain-box{background:var(--panel-2); border-left:3px solid var(--brass); border-radius:8px; padding:10px 12px; font-size:12.5px; color:#c3cce2; line-height:1.6; margin-bottom:10px; display:none;}
+.explain-box.show{display:block;}
+.next-wrap{margin-top:auto;}
+
+/* ---------- FAIL / RESULT ---------- */
+#result-screen, #fail-screen{align-items:center; text-align:center; gap:10px; justify-content:center;}
+.result-emoji{font-size:48px;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px; width:100%; margin:6px 0;}
+.stat-box{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:11px 8px;}
+.stat-box .num{font-size:19px; font-weight:800; color:var(--brass);}
+.stat-box .lbl{font-size:10.5px; color:#9aa6bf; margin-top:2px;}
+.badges{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:4px 0;}
+.badge{background:linear-gradient(145deg,#31406a,#243252); border:1px solid var(--line); border-radius:20px; padding:6px 12px; font-size:11.5px; color:#e6ecfb;}
+.name-input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--line); background:var(--panel-2); color:var(--paper); font-size:15px; margin:6px 0; font-family:inherit;}
+.name-input:focus{outline:none; border-color:var(--brass);}
+#cert-canvas{display:none;}
+.cert-preview{width:100%; border-radius:14px; margin:6px 0; border:1px solid var(--line); display:none;}
+.btn-row{display:flex; gap:10px; width:100%;}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ START ============ -->
+  <div id="start-screen" class="screen active">
+    <div class="coil-row">
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div>
+    </div>
+    <div class="logo-badge">🔧</div>
+    <h1 class="title">胡克定律闯关大冒险 2.0</h1>
+    <p class="subtitle">每一局的数字都是现场随机生成的,答案不能死背,只能真正会算!</p>
+    <div class="brief-card">
+      🎯 <b>目标</b>:闯过6层共24题<br>
+      ❤️ <b>生命值</b>:5颗心,答错扣1颗<br>
+      ⭐ <b>加分</b>:连击奖励 + 10秒内作答速度加分<br>
+      🏆 <b>通关</b>:获得专属认证证书
+      <div class="level-list">
+        L1 基础代入 F=kx(知二求一)<br>
+        L2 比例关系 F₁/x₁=F₂/x₂(知三求一)<br>
+        L3 原长与总长(加入 L₀、L)<br>
+        L4 单位换算(cm 与 m 混合)<br>
+        L5 两步综合(先求k,再求答案)<br>
+        L6 图表判读(从数据找 k / F / x)
+      </div>
+    </div>
+    <button class="btn" id="start-btn">开始挑战 →</button>
+    <div class="footer-mark">Made by ecchua79</div>
+  </div>
+
+  <!-- ============ GAME ============ -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hearts" id="hearts-box"></div>
+      <div class="hud-mid">第 <b id="level-num">1</b> 关 · <span id="level-name">基础代入</span></div>
+      <div class="score-pill" id="score-pill">0 分</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="combo-flag" id="combo-flag">🔥 连击 x0</div>
+
+    <div class="level-tag" id="q-index-tag">题目 1/24</div>
+    <div class="level-sub" id="level-sub">F = kx</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="q-svg-wrap" id="q-svg-wrap"></div>
+    <div id="q-table-wrap"></div>
+    <div class="options" id="options-box"></div>
+    <div class="input-answer-box" id="input-answer-box" style="display:none;">
+      <div class="input-tag">🏁 关卡考核题:请手动输入答案,不能用猜的!</div>
+      <div class="input-row">
+        <input type="text" inputmode="decimal" id="answer-input" class="answer-input" placeholder="请输入数值" autocomplete="off">
+        <span class="input-unit" id="input-unit"></span>
+      </div>
+      <button class="btn" id="submit-answer-btn">提交答案 ✓</button>
+    </div>
+    <div class="explain-box" id="explain-box"></div>
+
+    <div class="next-wrap">
+      <button class="btn" id="next-btn" style="display:none;">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- ============ FAIL ============ -->
+  <div id="fail-screen" class="screen">
+    <div class="result-emoji">💔</div>
+    <h1 class="title">弹簧实验室暂时关闭了</h1>
+    <p class="subtitle">生命值用完啦,再来一次,你一定可以修好所有测力计!</p>
+    <div class="score-pill" id="fail-score">0 分</div>
+    <button class="btn" id="retry-btn">再试一次 🔁</button>
+  </div>
+
+  <!-- ============ RESULT ============ -->
+  <div id="result-screen" class="screen">
+    <div class="result-emoji" id="result-emoji">🏆</div>
+    <h1 class="title" id="result-title">挑战成功!</h1>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="stat-score">0</div><div class="lbl">总分</div></div>
+      <div class="stat-box"><div class="num" id="stat-acc">0%</div><div class="lbl">正确率</div></div>
+      <div class="stat-box"><div class="num" id="stat-time">0:00</div><div class="lbl">通关时间</div></div>
+      <div class="stat-box"><div class="num" id="stat-combo">0</div><div class="lbl">最高连击</div></div>
+    </div>
+    <div class="badges" id="badges-box"></div>
+
+    <input class="name-input" id="name-input" type="text" placeholder="请输入你的姓名 / Name" maxlength="16">
+    <img id="cert-preview" class="cert-preview" alt="证书预览">
+    <div class="btn-row">
+      <button class="btn" id="gen-cert-btn">生成证书 🏅</button>
+    </div>
+    <div class="btn-row" id="post-cert-row" style="display:none;">
+      <button class="btn" id="download-cert-btn">下载证书 ⬇️</button>
+      <button class="btn ghost" id="replay-btn">再玩一次 🔁</button>
+    </div>
+  </div>
+
+  <canvas id="cert-canvas" width="1240" height="1754"></canvas>
+</div>
+
+<script>
+/* 华仁中学蔡逸众制作 */
+(function(){
+"use strict";
+
+/* =========================================================
+   工具函数
+========================================================= */
+function r2(n){ let v=Math.round((n+Number.EPSILON)*100)/100; if(Object.is(v,-0)) v=0; return v; }
+function fmtNum(n){
+  let v=r2(n);
+  let s=v.toFixed(2);
+  s=s.replace(/0+$/,'').replace(/\.$/,'');
+  return s;
+}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+const K_POOL=[20,25,40,50,60,75,80,100,120,125,150,160,200,250,300];
+
+function uniquePositive(correct, candidates, count, minVal){
+  minVal = minVal===undefined?0.01:minVal;
+  const correctR=r2(correct);
+  const seen=new Set([correctR]);
+  const result=[];
+  for(const c of candidates){
+    const v=r2(c);
+    if(v>minVal && !seen.has(v)){ seen.add(v); result.push(v); }
+    if(result.length>=count) break;
+  }
+  let tries=0;
+  while(result.length<count && tries<80){
+    tries++;
+    const scale=0.5+Math.random()*1.6;
+    const v=r2(correctR*scale + (Math.random()<0.5?-1:1)*randInt(1,9)/10);
+    if(v>minVal && !seen.has(v)){ seen.add(v); result.push(v); }
+  }
+  return result.slice(0,count);
+}
+
+/* =========================================================
+   6层数字生成器(与独立测试脚本一致,已跑过上万次随机验证)
+========================================================= */
+function genLayer1(){
+  const k=pick(K_POOL), xCm=randInt(2,25), xM=xCm/100, F=r2(k*xM);
+  const hide=pick(['F','k','x']);
+  let correct, candidates;
+  if(hide==='F'){ correct=F; candidates=[r2(k+xM), r2(k/xM), r2(xM/k), r2(k*xM*10), r2(k*xM/10)]; }
+  else if(hide==='k'){ correct=k; candidates=[r2(F*xM), r2(xM/F), r2(F+xM), r2(F/xM*10), r2(F/xM/10)]; }
+  else { correct=xM; candidates=[r2(F*k), r2(k/F), Math.abs(r2(F-k)), r2(F/k*10), r2(F/k/10)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {level:1, hide, k, F, x:xM, correct, distractors};
+}
+
+function genLayer2(){
+  const k=pick(K_POOL);
+  let x1Cm=randInt(2,25), x2Cm=randInt(2,25);
+  while(x2Cm===x1Cm) x2Cm=randInt(2,25);
+  const x1=x1Cm/100, x2=x2Cm/100, F1=r2(k*x1), F2=r2(k*x2);
+  const hide=pick(['F1','x1','F2','x2']);
+  let correct, candidates;
+  if(hide==='x2'){ correct=x2; candidates=[r2(F1*x1/F2), r2(F2*F1/x1), x1, r2(x1*(F2-F1))]; }
+  else if(hide==='x1'){ correct=x1; candidates=[r2(F2*x2/F1), r2(F1*F2/x2), x2, r2(x2*(F1-F2))]; }
+  else if(hide==='F2'){ correct=F2; candidates=[r2(F1*x1/x2), r2(x2*x1/F1), F1, r2(F1*(x2-x1))]; }
+  else { correct=F1; candidates=[r2(F2*x2/x1), r2(x1*x2/F2), F2, r2(F2*(x1-x2))]; }
+  candidates=candidates.map(c=>Math.abs(c));
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {level:2, hide, k, F1, x1, F2, x2, correct, distractors};
+}
+
+function genLayer3(){
+  // 现实约束:伸长量x不应该超过原长L0(否则等于把弹簧拉长超过100%,早就超过弹性限度了)
+  const k=pick(K_POOL), L0Cm=randInt(8,20), xCm=randInt(2, L0Cm);
+  const xM=xCm/100, L0M=L0Cm/100, LM=r2(L0M+xM), F=r2(k*xM);
+  const hide=pick(['F','k','x','L0','L']);
+  let correct, candidates;
+  if(hide==='x'){ correct=xM; candidates=[LM, r2(LM+L0M), Math.abs(r2(LM-2*L0M))]; }
+  else if(hide==='L'){ correct=LM; candidates=[xM, r2(L0M-xM), r2(L0M*2+xM)]; }
+  else if(hide==='L0'){ correct=L0M; candidates=[xM, LM, r2(LM+xM)]; }
+  else if(hide==='F'){ correct=F; candidates=[r2(k*LM), r2(k*L0M), r2(k+xM)]; }
+  else { correct=k; candidates=[r2(F/LM), r2(F/L0M), r2(F+xM)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {level:3, hide, k, F, x:xM, L0:L0M, L:LM, correct, distractors};
+}
+
+function genLayer4(){
+  const k=pick(K_POOL), xCm=randInt(2,25), xM=xCm/100, F=r2(k*xM);
+  const hide=pick(['F','k','x']);
+  let correct, candidates, correctUnit;
+  if(hide==='F'){ correct=F; correctUnit='N'; candidates=[r2(k+xM), r2(k/xM), r2(xM/k), r2(F*100), r2(F/100)]; }
+  else if(hide==='k'){ correct=k; correctUnit='N/m'; candidates=[r2(F*xM), r2(xM/F), r2(k*100), r2(k/100), r2(F+xCm)]; }
+  else { correct=xCm; correctUnit='cm'; candidates=[r2(xM), r2(xCm*100), r2(xCm/100), r2(F*k)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3, 0.001);
+  return {level:4, hide, k, F, x:xM, xCm, correct, correctUnit, distractors};
+}
+
+function genLayer5(){
+  // 同样的现实约束:两次的伸长量都不应超过原长L0
+  const k=pick(K_POOL), L0Cm=randInt(8,20), L0M=L0Cm/100;
+  const x1Cm=randInt(2,L0Cm), x1M=x1Cm/100, L1M=r2(L0M+x1M), F1=r2(k*x1M);
+  let x2Cm=randInt(2,L0Cm);
+  while(x2Cm===x1Cm) x2Cm=randInt(2,L0Cm);
+  const x2M=x2Cm/100, F2=r2(k*x2M), L2M=r2(L0M+x2M);
+  const askType=pick(['L2','x2']);
+  const wrongK=r2(F1*x1M), wrongX2=r2(F2/wrongK);
+  let correct, candidates;
+  if(askType==='L2'){ correct=L2M; candidates=[x2M, r2(L0M+wrongX2), L1M, r2(L0M*2+x2M)]; }
+  else { correct=x2M; candidates=[L2M, wrongX2, r2(x2M+L0M/2)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {level:5, askType, k, L0:L0M, x1:x1M, F1, L1:L1M, x2:x2M, F2, L2:L2M, correct, distractors};
+}
+
+function genLayer6(subtype){
+  const k=pick(K_POOL);
+  const base=shuffle([randInt(2,8), randInt(9,14), randInt(15,20)]).sort((a,b)=>a-b);
+  const pts=base.map(cm=>({xCm:cm, xM:cm/100, F:r2(k*cm/100)}));
+
+  if(subtype==='find_k'){
+    const correct=k;
+    const candidates=[pick(K_POOL), r2(k*2), r2(k/2), k+randInt(5,20)].filter(v=>v!==k);
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {level:6, subtype, pts, correct, distractors};
+  }
+  if(subtype==='extrap_F'){
+    const x4Cm=randInt(21,30), x4M=x4Cm/100, correct=r2(k*x4M), lastPt=pts[pts.length-1];
+    const candidates=[r2(lastPt.F+(x4Cm-lastPt.xCm)), r2(k*x4M*2), r2(k*x4M/2), r2(lastPt.F*x4M)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {level:6, subtype, pts, x4Cm, x4M, correct, distractors};
+  }
+  if(subtype==='extrap_x'){
+    const x4Cm=randInt(21,30), x4M=x4Cm/100, F4=r2(k*x4M), correct=x4Cm;
+    const candidates=[r2(x4M*100*100), r2(x4Cm/2), r2(x4Cm*2), r2(F4*k)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3, 0.001);
+    return {level:6, subtype, pts, F4, correct, distractors};
+  }
+  const k2=pick(K_POOL.filter(v=>v!==k));
+  const outlierCm=randInt(21,28), outlierF=r2(k2*outlierCm/100);
+  const allPts=pts.concat([{xCm:outlierCm, xM:outlierCm/100, F:outlierF}]);
+  return {level:6, subtype:'outlier', pts:allPts, correctIndex:3};
+}
+
+/* 峇株吧辖蔡逸众制作 */
+
+/* =========================================================
+   关卡元信息
+========================================================= */
+const LEVELS=[
+  {id:1, name:"基础代入", sub:"F = kx  知二求一", base:10},
+  {id:2, name:"比例关系", sub:"F₁/x₁ = F₂/x₂  知三求一", base:15},
+  {id:3, name:"原长与总长", sub:"加入 L₀ 与 L", base:20},
+  {id:4, name:"单位换算", sub:"cm 与 m 混合", base:25},
+  {id:5, name:"两步综合", sub:"先求 k,再求答案", base:30},
+  {id:6, name:"图表判读", sub:"从数据找出 k / F / x", base:35}
+];
+
+/* =========================================================
+   SVG 弹簧示意图(仅作参考,非精确比例,风格与课本插图一致)
+========================================================= */
+function labelSpan(text, isUnknown){
+  const color = isUnknown ? "#e2a542" : "#dbe2f2";
+  const weight = isUnknown ? "800" : "600";
+  return '<tspan fill="'+color+'" font-weight="'+weight+'">'+text+'</tspan>';
+}
+
+/* 用贝塞尔曲线画出真正的螺旋弹簧线圈(参考实拍弹簧样式与素材文件的画法) */
+function getSpringPath(startY, endY, coils, width, cx){
+  const totalHeight = Math.max(15, endY-startY);
+  const topStraight = totalHeight*0.08;
+  const bottomStraight = totalHeight*0.08;
+  const coilHeight = totalHeight-topStraight-bottomStraight;
+  let path = 'M '+cx+' '+startY;
+  path += ' L '+cx+' '+(startY+topStraight);
+  const segments = coils*2;
+  const step = coilHeight/segments;
+  for(let i=0;i<segments;i++){
+    const currentY = startY+topStraight+(i+0.5)*step;
+    const direction = i%2===0?1:-1;
+    const controlX = cx+direction*width;
+    const nextY = startY+topStraight+(i+1)*step;
+    path += ' Q '+controlX+' '+currentY+' '+cx+' '+nextY;
+  }
+  path += ' L '+cx+' '+(startY+totalHeight);
+  return path;
+}
+function coilCountFor(h){ return Math.max(6, Math.min(14, Math.round(h/16))); }
+
+function weightBoxSVG(cx, y, w, h, gradId){
+  let s='';
+  s+='<path d="M '+cx+' '+(y-8)+' L '+cx+' '+y+'" fill="none" stroke="#94a3b8" stroke-width="2"/>';
+  s+='<rect x="'+(cx-w/2)+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="url(#'+gradId+')" stroke="#8a5c14" stroke-width="1.5"/>';
+  s+='<text x="'+cx+'" y="'+(y+h/2+5)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fef3c7">m</text>';
+  return s;
+}
+
+function svgDefs(){
+  return '<defs>'+
+    '<linearGradient id="coilGrad" x1="0" y1="0" x2="1" y2="0">'+
+      '<stop offset="0%" stop-color="#7fd8ff"/><stop offset="100%" stop-color="#2e9ee0"/>'+
+    '</linearGradient>'+
+    '<linearGradient id="weightGrad" x1="0%" y1="0%" x2="100%" y2="0%">'+
+      '<stop offset="0%" stop-color="#b45309"/><stop offset="30%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#78350f"/>'+
+    '</linearGradient>'+
+  '</defs>';
+}
+
+function segPx(v, fallback){
+  if(v===undefined || v===null) return fallback;
+  return Math.max(38, Math.min(150, v*420));
+}
+
+function bracketLine(x, y1, y2, color){
+  return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+color+'" stroke-width="1.5"/>'+
+    '<line x1="'+(x-4)+'" y1="'+y1+'" x2="'+(x+4)+'" y2="'+y1+'" stroke="'+color+'" stroke-width="1.5"/>'+
+    '<line x1="'+(x-4)+'" y1="'+y2+'" x2="'+(x+4)+'" y2="'+y2+'" stroke="'+color+'" stroke-width="1.5"/>';
+}
+
+/*
+  单弹簧示意图。核心原则(修正过的重点):
+  - x(伸长量)只能是"原长终点"到"现在终点"之间那一小段,绝不能画成从天花板到砝码的整段(那是 L0+x)。
+  - 图形按真实数值等比例绘制(L0、x都换算成像素后再画),不是瞎摆位置。
+  - 只画题目真正涉及的量;跟本题无关的量(比如只问x时的k、F)完全不画,避免误导。
+*/
+function singleSpringSVG(cfg){
+  const {showL0, showL, showX, showF, showK, L0Num, xNum, l0Str, lStr, xStr, fStr, kStr, hide} = cfg;
+  const cx=112, topY=30;
+  const extPx = segPx(xNum, 60);
+  // 没有L0数值时(第1、4关),原长部分只是示意,但仍要让它至少跟伸长部分一样长甚至更长,
+  // 避免看起来像是"弹簧被拉长了好几倍",更贴近真实弹簧的比例。
+  const naturalPx = showL0 ? segPx(L0Num, 45) : Math.max(75, extPx*1.15);
+  const naturalY = topY + naturalPx;
+  const endY = naturalY + extPx;
+  const boxH=24, boxY=endY;
+
+  let parts=[];
+  const svgH = Math.max(300, boxY+boxH+120);
+  parts.push('<svg viewBox="0 0 280 '+svgH+'" xmlns="http://www.w3.org/2000/svg">');
+  parts.push(svgDefs());
+  parts.push('<rect x="'+(cx-40)+'" y="10" width="80" height="10" fill="#3a4a70" rx="2"/>');
+  for(let i=0;i<6;i++){ parts.push('<line x1="'+(cx-36+i*13)+'" y1="20" x2="'+(cx-46+i*13)+'" y2="'+topY+'" stroke="#233252" stroke-width="2"/>'); }
+  parts.push('<line x1="'+(cx-28)+'" y1="'+naturalY+'" x2="'+(cx+28)+'" y2="'+naturalY+'" stroke="#7c88a8" stroke-width="1" stroke-dasharray="2,3" opacity="0.6"/>');
+  parts.push('<path d="'+getSpringPath(topY, endY, coilCountFor(endY-topY), 15, cx)+'" fill="none" stroke="url(#coilGrad)" stroke-width="3" stroke-linecap="round"/>');
+  parts.push(weightBoxSVG(cx, boxY, 38, boxH, "weightGrad"));
+
+  if(showF){
+    const arrowTop=boxY+boxH+6, arrowBottom=arrowTop+42;
+    parts.push('<line x1="'+cx+'" y1="'+arrowTop+'" x2="'+cx+'" y2="'+arrowBottom+'" stroke="#e0645a" stroke-width="4" stroke-linecap="round"/>');
+    parts.push('<polygon points="'+cx+','+(arrowBottom+10)+' '+(cx-9)+','+arrowBottom+' '+(cx+9)+','+arrowBottom+'" fill="#e0645a"/>');
+    parts.push('<text x="'+(cx+24)+'" y="'+(arrowBottom+2)+'" font-size="13.5" text-anchor="start">'+labelSpan("F = "+(hide==='F'?"?":fStr), hide==='F')+'</text>');
+  }
+  if(showK){
+    parts.push('<text x="8" y="'+(naturalY-18)+'" font-size="13" text-anchor="start">'+labelSpan("k = "+(hide==='k'?"?":kStr), hide==='k')+'</text>');
+  }
+
+  const laneL0 = cx+44, laneX = cx+68, laneL = cx+92;
+  if(showL0){
+    parts.push(bracketLine(laneL0, topY, naturalY, "#8b96b3"));
+    parts.push('<text x="'+(laneL0+7)+'" y="'+((topY+naturalY)/2+4)+'" font-size="12.5" text-anchor="start">'+labelSpan("L\u2080="+(hide==='L0'?"?":l0Str), hide==='L0')+'</text>');
+  }
+  if(showX){
+    parts.push(bracketLine(laneX, naturalY, endY, "#e0645a"));
+    parts.push('<text x="'+(laneX+7)+'" y="'+((naturalY+endY)/2+4)+'" font-size="12.5" text-anchor="start" fill="#f0a29c">'+labelSpan("x="+(hide==='x'?"?":xStr), hide==='x')+'</text>');
+  }
+  if(showL){
+    parts.push(bracketLine(laneL, topY, endY, "#8b96b3"));
+    parts.push('<text x="'+(laneL+7)+'" y="'+((topY+endY)/2+4)+'" font-size="12.5" text-anchor="start">'+labelSpan("L="+(hide==='L'?"?":lStr), hide==='L')+'</text>');
+  }
+  parts.push('</svg>');
+  return parts.join('');
+}
+
+function pairSpringSVG(left, right, leftTitle, rightTitle){
+  // 两根弹簧不用严格按比例画,但长度差异要"看得出来",同时设上下限避免挤扁或爆版
+  function relativeHeights(aVal, bVal, minH, maxH){
+    const a = (aVal===undefined||aVal===null||aVal<=0) ? 0.05 : aVal;
+    const b = (bVal===undefined||bVal===null||bVal<=0) ? 0.05 : bVal;
+    const ratio = Math.max(a,b)/Math.min(a,b);
+    const capped = Math.min(ratio, 2.2);
+    const big = maxH, small = Math.max(minH, maxH/capped);
+    return a<=b ? [small, big] : [big, small];
+  }
+  const [hLeft, hRight] = relativeHeights(left.xNum, right.xNum, 65, 100);
+
+  function one(state, xOffset, title, boxY){
+    const o = state;
+    const cx=72, ceilY=20, topY=32, boxH=20;
+    let p=[];
+    p.push('<g transform="translate('+xOffset+',0)">');
+    p.push('<text x="'+cx+'" y="12" text-anchor="middle" font-size="12" fill="#93a0bf">'+title+'</text>');
+    p.push('<rect x="'+(cx-30)+'" y="'+ceilY+'" width="60" height="8" fill="#3a4a70" rx="2"/>');
+    p.push('<path d="'+getSpringPath(topY, boxY, coilCountFor(boxY-topY), 12, cx)+'" fill="none" stroke="url(#coilGrad)" stroke-width="2.6" stroke-linecap="round"/>');
+    p.push(weightBoxSVG(cx, boxY, 28, boxH, "weightGrad"));
+    const at=boxY+boxH+6, ab=at+30;
+    p.push('<line x1="'+cx+'" y1="'+at+'" x2="'+cx+'" y2="'+ab+'" stroke="#e0645a" stroke-width="3.5" stroke-linecap="round"/>');
+    p.push('<polygon points="'+cx+','+(ab+8)+' '+(cx-7)+','+ab+' '+(cx+7)+','+ab+'" fill="#e0645a"/>');
+    p.push('<text x="'+cx+'" y="'+(ab+24)+'" text-anchor="middle" font-size="11.5">'+labelSpan("F="+(o.fText||"?"), o.fUnknown)+'</text>');
+    if(o.l0Text!==undefined || o.l0Unknown){
+      p.push('<text x="'+cx+'" y="'+(ab+40)+'" text-anchor="middle" font-size="11.5">'+labelSpan("L\u2080="+(o.l0Text||"?"), o.l0Unknown)+'</text>');
+      p.push('<text x="'+cx+'" y="'+(ab+56)+'" text-anchor="middle" font-size="11.5">'+labelSpan("L="+(o.lText||"?"), o.lUnknown)+'</text>');
+    } else {
+      p.push('<text x="'+cx+'" y="'+(ab+40)+'" text-anchor="middle" font-size="11.5">'+labelSpan("x="+(o.xText||"?"), o.xUnknown)+'</text>');
+    }
+    p.push('</g>');
+    return p.join('');
+  }
+  let svg='<svg viewBox="0 0 280 270" xmlns="http://www.w3.org/2000/svg">';
+  svg+=svgDefs();
+  svg+=one(left,0,leftTitle,32+hLeft);
+  svg+=one(right,140,rightTitle,32+hRight);
+  svg+='</svg>';
+  return svg;
+}
+
+/* 峇株吧辖华仁中学蔡逸众制作 */
+function chartSVG(pts, extraPoint, outlierIdx){
+  const allPts = extraPoint ? pts.concat([extraPoint]) : pts;
+  const maxX = Math.max(...allPts.map(p=>p.xCm))+3;
+  const maxF = Math.max(...allPts.map(p=>p.F))+2;
+  const W=280,H=230,padL=42,padB=30,padT=14,padR=14;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  function px(xcm){ return padL + (xcm/maxX)*plotW; }
+  function py(f){ return H-padB - (f/maxF)*plotH; }
+  let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  s+='<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="#7c88a8" stroke-width="1.5"/>';
+  s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'" stroke="#7c88a8" stroke-width="1.5"/>';
+  s+='<text x="'+(padL-8)+'" y="'+padT+'" font-size="10" fill="#93a0bf" text-anchor="end">F/N</text>';
+  s+='<text x="'+(W-padR)+'" y="'+(H-padB+16)+'" font-size="10" fill="#93a0bf" text-anchor="end">x/m</text>';
+
+  // 连接线:数据点之间连线,方便判读趋势与转折点(所有点统一同一种颜色,不额外提示答案)
+  const sortedPts = allPts.map((p,i)=>({p,i})).sort((a,b)=>a.p.xCm-b.p.xCm);
+  let linePath = "M";
+  sortedPts.forEach((item,idx)=>{
+    const cx=px(item.p.xCm), cy=py(item.p.F);
+    linePath += (idx===0?"":" L")+cx+","+cy;
+  });
+  s+='<path d="'+linePath+'" fill="none" stroke="#5a6c95" stroke-width="2"/>';
+
+  // 数据点:统一颜色与统一的文字格式(F/x都显示),不用颜色或格式差异暴露答案
+  allPts.forEach((p,i)=>{
+    const cx=px(p.xCm), cy=py(p.F);
+    s+='<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="#e2a542"/>';
+    const groupPrefix = (outlierIdx!==undefined) ? ("第"+(i+1)+"组: ") : "";
+    const lbl = groupPrefix+"F="+fmtNum(p.F)+"N,x="+fmtNum(p.xM)+"m";
+    const anchor = cx>W*0.55 ? "end":"start";
+    const dx = cx>W*0.55? -8:8;
+    s+='<text x="'+(cx+dx)+'" y="'+(cy-8)+'" font-size="9.5" fill="#c3cce2" text-anchor="'+anchor+'">'+lbl+'</text>';
+  });
+  s+='</svg>';
+  return s;
+}
+
+/* =========================================================
+   题目文字生成
+========================================================= */
+function buildQuestion(level){
+  if(level===1){
+    const q=genLayer1();
+    let text, svg, unit;
+    if(q.hide==='F'){
+      text="某弹簧的劲度系数 k = "+q.k+" N/m,伸长量 x = "+fmtNum(q.x)+" m。\n求弹簧受到的拉力 F 是多少?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, xStr:fmtNum(q.x)+"m", kStr:q.k+"N/m", hide:"F"});
+      unit="N";
+    } else if(q.hide==='k'){
+      text="弹簧受到拉力 F = "+fmtNum(q.F)+" N 时,伸长量为 x = "+fmtNum(q.x)+" m。\n求这根弹簧的劲度系数 k?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, xStr:fmtNum(q.x)+"m", fStr:fmtNum(q.F)+"N", hide:"k"});
+      unit="N/m";
+    } else {
+      text="某弹簧的劲度系数 k = "+q.k+" N/m,受到拉力 F = "+fmtNum(q.F)+" N。\n求弹簧的伸长量 x 是多少?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, kStr:q.k+"N/m", fStr:fmtNum(q.F)+"N", hide:"x"});
+      unit="m";
+    }
+    return {level, text, svg, correct:q.correct, distractors:q.distractors, unit,
+      explain:"公式:F = kx。"+(q.hide==='F'?("F = "+q.k+" × "+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N"):
+        q.hide==='k'?("k = F ÷ x = "+fmtNum(q.F)+" ÷ "+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N/m"):
+        ("x = F ÷ k = "+fmtNum(q.F)+" ÷ "+q.k+" = "+fmtNum(q.correct)+" m"))};
+  }
+
+  if(level===2){
+    const q=genLayer2();
+    const parts=[];
+    parts.push("第一次受力 F₁ = "+(q.hide==='F1'?"? N":fmtNum(q.F1)+" N")+",伸长量 x₁ = "+(q.hide==='x1'?"? m":fmtNum(q.x1)+" m"));
+    parts.push("第二次受力 F₂ = "+(q.hide==='F2'?"? N":fmtNum(q.F2)+" N")+",伸长量 x₂ = "+(q.hide==='x2'?"? m":fmtNum(q.x2)+" m"));
+    const askLabel = {F1:"F₁", x1:"x₁", F2:"F₂", x2:"x₂"}[q.hide];
+    const text="同一根弹簧,两次受力情况如下:\n"+parts.join("\n")+"\n利用比例关系 F₁/x₁ = F₂/x₂,求 "+askLabel+" 是多少?";
+    const leftLabel = {fText: q.hide==='F1'?undefined:fmtNum(q.F1), fUnknown:q.hide==='F1', xText:q.hide==='x1'?undefined:fmtNum(q.x1), xUnknown:q.hide==='x1', xNum:q.x1};
+    const rightLabel = {fText: q.hide==='F2'?undefined:fmtNum(q.F2), fUnknown:q.hide==='F2', xText:q.hide==='x2'?undefined:fmtNum(q.x2), xUnknown:q.hide==='x2', xNum:q.x2};
+    const svg=pairSpringSVG(leftLabel, rightLabel, "第一次", "第二次");
+    const unit = (q.hide==='F1'||q.hide==='F2')?"N":"m";
+    return {level, text, svg, correct:q.correct, distractors:q.distractors, unit,
+      explain:"利用交叉相乘:F₁×x₂ = F₂×x₁,代入已知的三个数据求出 "+askLabel+" = "+fmtNum(q.correct)+" "+unit};
+  }
+
+  if(level===3){
+    const q=genLayer3();
+    let text, svg, explain, unit;
+    if(q.hide==='x'){
+      text="弹簧原长 L₀ = "+fmtNum(q.L0)+" m,受力后变为 L = "+fmtNum(q.L)+" m。\n求伸长量 x 是多少?";
+      svg=singleSpringSVG({showL0:true, showL:true, showX:true, L0Num:q.L0, xNum:q.x, l0Str:fmtNum(q.L0)+"m", lStr:fmtNum(q.L)+"m", hide:"x"});
+      unit="m";
+      explain="x = L − L₀ = "+fmtNum(q.L)+" − "+fmtNum(q.L0)+" = "+fmtNum(q.correct)+" m。注意:x 是伸长量,不是总长度!";
+    } else if(q.hide==='L'){
+      text="弹簧原长 L₀ = "+fmtNum(q.L0)+" m,劲度系数 k = "+q.k+" N/m,受力 F = "+fmtNum(q.F)+" N。\n求弹簧现在的总长度 L?";
+      svg=singleSpringSVG({showL0:true, showL:true, showX:true, showK:true, showF:true, L0Num:q.L0, xNum:q.x, l0Str:fmtNum(q.L0)+"m", kStr:q.k+"N/m", fStr:fmtNum(q.F)+"N", xStr:fmtNum(q.x)+"m", hide:"L"});
+      unit="m";
+      explain="先求 x = F÷k = "+fmtNum(q.F)+"÷"+q.k+" = "+fmtNum(q.x)+" m,再求 L = L₀+x = "+fmtNum(q.L0)+"+"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" m。";
+    } else if(q.hide==='L0'){
+      text="弹簧现在长度 L = "+fmtNum(q.L)+" m,劲度系数 k = "+q.k+" N/m,受力 F = "+fmtNum(q.F)+" N。\n求弹簧的原长 L₀?";
+      svg=singleSpringSVG({showL0:true, showL:true, showX:true, showK:true, showF:true, L0Num:q.L0, xNum:q.x, lStr:fmtNum(q.L)+"m", kStr:q.k+"N/m", fStr:fmtNum(q.F)+"N", xStr:fmtNum(q.x)+"m", hide:"L0"});
+      unit="m";
+      explain="先求 x = F÷k = "+fmtNum(q.F)+"÷"+q.k+" = "+fmtNum(q.x)+" m,再求 L₀ = L−x = "+fmtNum(q.L)+"−"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" m。";
+    } else if(q.hide==='F'){
+      text="弹簧原长 L₀ = "+fmtNum(q.L0)+" m,受力后变为 L = "+fmtNum(q.L)+" m,劲度系数 k = "+q.k+" N/m。\n求所受的力 F?";
+      svg=singleSpringSVG({showL0:true, showL:true, showX:true, showK:true, showF:true, L0Num:q.L0, xNum:q.x, l0Str:fmtNum(q.L0)+"m", lStr:fmtNum(q.L)+"m", kStr:q.k+"N/m", xStr:fmtNum(q.x)+"m", hide:"F"});
+      unit="N";
+      explain="先求 x = L−L₀ = "+fmtNum(q.x)+" m,再求 F = kx = "+q.k+"×"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N。";
+    } else {
+      text="弹簧原长 L₀ = "+fmtNum(q.L0)+" m,受力 F = "+fmtNum(q.F)+" N 后变为 L = "+fmtNum(q.L)+" m。\n求这根弹簧的劲度系数 k?";
+      svg=singleSpringSVG({showL0:true, showL:true, showX:true, showF:true, L0Num:q.L0, xNum:q.x, l0Str:fmtNum(q.L0)+"m", lStr:fmtNum(q.L)+"m", fStr:fmtNum(q.F)+"N", xStr:fmtNum(q.x)+"m", hide:"k"});
+      unit="N/m";
+      explain="先求 x = L−L₀ = "+fmtNum(q.x)+" m,再求 k = F÷x = "+fmtNum(q.F)+"÷"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N/m。";
+    }
+    return {level, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(level===4){
+    const q=genLayer4();
+    let text, svg, explain, unit=q.correctUnit;
+    if(q.hide==='F'){
+      text="某弹簧的劲度系数 k = "+q.k+" N/m,伸长量为 "+q.xCm+" cm。\n求弹簧受到的拉力 F 是多少(单位:N)?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, xStr:q.xCm+"cm", kStr:q.k+"N/m", hide:"F"});
+      explain="先把 cm 换算成 m:"+q.xCm+" cm = "+fmtNum(q.x)+" m。再算 F = kx = "+q.k+"×"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N。";
+    } else if(q.hide==='k'){
+      text="弹簧受到拉力 F = "+fmtNum(q.F)+" N 时,伸长量为 "+q.xCm+" cm。\n求这根弹簧的劲度系数 k(单位:N/m)?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, xStr:q.xCm+"cm", fStr:fmtNum(q.F)+"N", hide:"k"});
+      explain="先把 cm 换算成 m:"+q.xCm+" cm = "+fmtNum(q.x)+" m。再算 k = F÷x = "+fmtNum(q.F)+"÷"+fmtNum(q.x)+" = "+fmtNum(q.correct)+" N/m。";
+    } else {
+      text="某弹簧的劲度系数 k = "+q.k+" N/m,受到拉力 F = "+fmtNum(q.F)+" N。\n求伸长量 x 是多少(单位:cm)?";
+      svg=singleSpringSVG({showX:true, showK:true, showF:true, xNum:q.x, kStr:q.k+"N/m", fStr:fmtNum(q.F)+"N", hide:"x"});
+      explain="先求 x = F÷k = "+fmtNum(q.F)+"÷"+q.k+" = "+fmtNum(q.x)+" m,再换算成 cm:"+fmtNum(q.x)+" m = "+q.correct+" cm。别忘了单位换算!";
+    }
+    return {level, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(level===5){
+    const q=genLayer5();
+    const askLabel = q.askType==='L2' ? "此时弹簧的总长度 L₂" : "此时弹簧的伸长量 x₂";
+    const text="弹簧原长 L₀ = "+fmtNum(q.L0)+" m,受力 F₁ = "+fmtNum(q.F1)+" N 后变为 L₁ = "+fmtNum(q.L1)+" m。\n先求出这根弹簧的劲度系数 k,再求当 F₂ = "+fmtNum(q.F2)+" N 时,"+askLabel+" 是多少?";
+    const left={fText:fmtNum(q.F1), l0Text:fmtNum(q.L0), lText:fmtNum(q.L1), L0Num:q.L0, xNum:q.x1};
+    const right={fText:fmtNum(q.F2), l0Text:fmtNum(q.L0), lUnknown:(q.askType==='L2'), xUnknown:(q.askType==='x2'), L0Num:q.L0, xNum:q.x2};
+    if(q.askType==='x2'){ delete right.l0Text; right.xText=undefined; right.xUnknown=true; }
+    const svg=pairSpringSVG(left, right, "第一次(已知)", "第二次(求?)");
+    const unit = q.askType==='L2' ? "m" : "m";
+    const explain = "第一步:x₁=L₁−L₀="+fmtNum(q.x1)+"m,k=F₁÷x₁="+fmtNum(q.F1)+"÷"+fmtNum(q.x1)+"="+q.k+"N/m。\n"+
+      "第二步:x₂=F₂÷k="+fmtNum(q.F2)+"÷"+q.k+"="+fmtNum(q.x2)+"m"+
+      (q.askType==='L2' ? ("，L₂=L₀+x₂="+fmtNum(q.L0)+"+"+fmtNum(q.x2)+"="+fmtNum(q.correct)+"m。"):"。");
+    return {level, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  // level 6
+  const subtype = pick(["find_k","extrap_F","extrap_x","outlier"]);
+  const q=genLayer6(subtype);
+  let text, svg, unit, explain, options, correctIsIndex=false;
+  if(subtype==='find_k'){
+    text="下表是同一根弹簧的实验数据(见图),根据数据求这根弹簧的劲度系数 k?";
+    svg=chartSVG(q.pts);
+    unit="N/m";
+    explain="任取一组数据,k = F÷x = "+fmtNum(q.pts[0].F)+"÷"+fmtNum(q.pts[0].xM)+" = "+q.correct+" N/m,其余各组算出来的k值应该相同。";
+  } else if(subtype==='extrap_F'){
+    text="下图是同一根弹簧的实验数据。若继续按此规律,当伸长量 x = "+fmtNum(q.x4M)+" m 时,受力 F 应该是多少(单位:N)?";
+    svg=chartSVG(q.pts);
+    unit="N";
+    explain="先由已有数据求出 k,再代入 F = kx 计算 x = "+fmtNum(q.x4M)+" m 时的 F = "+fmtNum(q.correct)+" N。";
+  } else if(subtype==='extrap_x'){
+    text="下图是同一根弹簧的实验数据。若继续按此规律,当受力 F = "+fmtNum(q.F4)+" N 时,伸长量应该是多少(单位:cm)?";
+    svg=chartSVG(q.pts);
+    unit="cm";
+    explain="先由已有数据求出 k,再代入 x = F÷k 计算,并把答案从 m 换算成 cm,得 "+q.correct+" cm。";
+  } else {
+    text="下图是同一根弹簧的4组实验数据,哪一组数据显示弹簧可能已经超过了弹性限度?";
+    svg=chartSVG(q.pts.slice(0,3), q.pts[3], 3);
+    unit="";
+    explain="前三组数据的 F÷x 比值都相同,唯独第4组比值明显不同,说明这组数据可能已经超过了弹性限度,不再遵守胡克定律。";
+    options=[
+      {text:"第1组", isCorrect:false},
+      {text:"第2组", isCorrect:false},
+      {text:"第3组", isCorrect:false},
+      {text:"第4组", isCorrect:true}
+    ];
+    return {level:6, text, svg, unit, explain, fixedOptions:options};
+  }
+  return {level:6, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+}
+
+/* =========================================================
+   状态变量
+========================================================= */
+let queue=[];
+let qi=0, lives=5, score=0, streak=0, maxStreak=0, wrongCount=0;
+let qTimes=[], qStartTime=0, gameStartTime=0, currentOptions=[];
+let levelWrongMap={};
+let achievements=new Set();
+
+function buildQueue(){
+  queue=[];
+  LEVELS.forEach(lv=>{
+    for(let i=0;i<4;i++){
+      const q=buildQuestion(lv.id);
+      // 每关最后一题(第4题)当作"过关考核",改成手动输入答案,不能靠排除法蒙——
+      // 但第6关的"哪一组超过弹性限度"是选组别,没有数字答案,维持选择题。
+      if(i===3 && !q.fixedOptions){ q.inputMode=true; }
+      queue.push(q);
+    }
+  });
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+document.getElementById("start-btn").addEventListener("click", startGame);
+document.getElementById("retry-btn").addEventListener("click", startGame);
+
+function startGame(){
+  buildQueue();
+  qi=0; lives=5; score=0; streak=0; maxStreak=0; wrongCount=0;
+  qTimes=[]; achievements=new Set(); levelWrongMap={};
+  gameStartTime=Date.now();
+  renderHearts(); updateScorePill();
+  showScreen("game-screen");
+  renderQuestion();
+}
+
+function renderHearts(){
+  const box=document.getElementById("hearts-box");
+  box.innerHTML="";
+  for(let i=0;i<5;i++){
+    const span=document.createElement("span");
+    span.className="heart"+(i<lives?"":" lost");
+    span.textContent="❤️";
+    box.appendChild(span);
+  }
+}
+function updateScorePill(){ document.getElementById("score-pill").textContent=score+" 分"; }
+
+/* 数字输入的归一化:兼容全角数字/全角小数点/逗号/空格,手机上很容易打出这些 */
+function normalizeNumInput(s){
+  if(s===undefined || s===null) return NaN;
+  s = String(s).trim();
+  s = s.replace(/[\uFF10-\uFF19]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFF10+48));
+  s = s.replace(/[\uFF0E\uFF0C,\s]/g, m=> (m==='\uFF0E'?'.':''));
+  s = s.replace(/[^0-9.\-]/g,'');
+  if(s==='' ) return NaN;
+  return parseFloat(s);
+}
+
+function renderQuestion(){
+  const q=queue[qi];
+  const lv=LEVELS.find(l=>l.id===q.level);
+
+  document.getElementById("level-num").textContent=lv.id;
+  document.getElementById("level-name").textContent=lv.name;
+  document.getElementById("level-sub").textContent=lv.sub;
+  document.getElementById("q-index-tag").textContent="题目 "+(qi+1)+"/"+queue.length;
+  document.getElementById("progress-fill").style.width=Math.round((qi/queue.length)*100)+"%";
+  document.getElementById("q-text").textContent=q.text;
+  document.getElementById("explain-box").classList.remove("show");
+  document.getElementById("explain-box").textContent="";
+  document.getElementById("next-btn").style.display="none";
+  document.getElementById("q-svg-wrap").innerHTML = q.svg || "";
+
+  const unitSuffix = q.unit ? (" "+q.unit) : "";
+  const ob=document.getElementById("options-box");
+  const ib=document.getElementById("input-answer-box");
+
+  if(q.inputMode){
+    ob.style.display="none"; ob.innerHTML="";
+    ib.style.display="block";
+    const input=document.getElementById("answer-input");
+    input.value=""; input.disabled=false;
+    input.classList.remove("correct","wrong");
+    document.getElementById("input-unit").textContent=q.unit||"";
+    document.getElementById("submit-answer-btn").disabled=false;
+    document.getElementById("submit-answer-btn").style.display="block";
+    setTimeout(()=>input.focus(), 50);
+  } else {
+    ib.style.display="none";
+    ob.style.display="flex";
+    let optsSource;
+    if(q.fixedOptions){
+      optsSource = q.fixedOptions.map(o=>({text:o.text, isCorrect:o.isCorrect}));
+    } else {
+      optsSource = [{text: fmtNum(q.correct)+unitSuffix, isCorrect:true}]
+        .concat(q.distractors.map(d=>({text: fmtNum(d)+unitSuffix, isCorrect:false})));
+    }
+    currentOptions = shuffle(optsSource);
+    ob.innerHTML="";
+    currentOptions.forEach(opt=>{
+      const btn=document.createElement("button");
+      btn.className="opt-btn";
+      btn.textContent=opt.text;
+      btn.addEventListener("click", ()=>handleAnswer(btn, opt, q));
+      ob.appendChild(btn);
+    });
+  }
+
+  qStartTime=Date.now();
+}
+
+/* 答对/答错的通用结算逻辑,选择题和输入题共用 */
+function resolveAnswer(isCorrect, q, correctDisplayText){
+  const timeTaken=(Date.now()-qStartTime)/1000;
+  qTimes.push(timeTaken);
+  const lv=LEVELS.find(l=>l.id===q.level);
+  const explainBox=document.getElementById("explain-box");
+
+  if(isCorrect){
+    streak++; maxStreak=Math.max(maxStreak, streak);
+    let gained=lv.base, comboBonus=0, speedBonus=0;
+    if(streak>=3){ comboBonus=Math.round(lv.base*0.05*(streak-2)); gained+=comboBonus; }
+    if(timeTaken<=10){ speedBonus=5; gained+=speedBonus; }
+    score+=gained; updateScorePill();
+    if(streak>=3){
+      const flag=document.getElementById("combo-flag");
+      flag.textContent="🔥 连击 x"+streak;
+      flag.classList.add("show");
+      setTimeout(()=>flag.classList.remove("show"), 900);
+    }
+    let msg="✅ 答对了!基础分 +"+lv.base;
+    if(comboBonus>0) msg+=" · 连击加成 +"+comboBonus;
+    if(speedBonus>0) msg+=" · 速度加分 +"+speedBonus;
+    msg+="\n"+q.explain;
+    explainBox.textContent=msg;
+    explainBox.classList.add("show");
+  } else {
+    streak=0; wrongCount++; lives--;
+    renderHearts();
+    levelWrongMap[q.level]=(levelWrongMap[q.level]||0)+1;
+    explainBox.textContent="💡 正确答案是 "+correctDisplayText+"。"+q.explain;
+    explainBox.classList.add("show");
+  }
+  document.getElementById("next-btn").style.display="block";
+}
+
+function handleAnswer(btn, opt, q){
+  const allBtns=document.querySelectorAll(".opt-btn");
+  allBtns.forEach(b=>b.classList.add("disabled"));
+  if(opt.isCorrect){
+    btn.classList.add("correct");
+  } else {
+    btn.classList.add("wrong");
+    const correctIdx=currentOptions.findIndex(o=>o.isCorrect);
+    allBtns[correctIdx].classList.add("correct");
+  }
+  resolveAnswer(opt.isCorrect, q, currentOptions.find(o=>o.isCorrect).text);
+}
+
+function submitInputAnswer(){
+  const q=queue[qi];
+  if(!q || !q.inputMode) return;
+  const input=document.getElementById("answer-input");
+  if(input.disabled) return;
+  const val=normalizeNumInput(input.value);
+  const unitSuffix = q.unit ? (" "+q.unit) : "";
+  const correctDisplay = fmtNum(q.correct)+unitSuffix;
+  if(isNaN(val)){
+    input.classList.add("wrong");
+    input.focus();
+    return;
+  }
+  input.disabled=true;
+  document.getElementById("submit-answer-btn").disabled=true;
+  // 容差0.005,只是为了兼容学生手动输入时四舍五入的最后一位,不改变"算对才算对"的判定
+  const isCorrect = Math.abs(val - q.correct) < 0.005;
+  input.classList.add(isCorrect?"correct":"wrong");
+  resolveAnswer(isCorrect, q, correctDisplay);
+}
+
+document.getElementById("submit-answer-btn").addEventListener("click", submitInputAnswer);
+document.getElementById("answer-input").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter"){ submitInputAnswer(); }
+});
+
+document.getElementById("next-btn").addEventListener("click", ()=>{
+  if(lives<=0){ endGame(false); return; }
+  qi++;
+  if(qi>=queue.length){ endGame(true); } else { renderQuestion(); }
+});
+
+/* 峇株吧辖蔡逸众制作 */
+function endGame(success){
+  if(!success){
+
+    document.getElementById("fail-score").textContent=score+" 分";
+    showScreen("fail-screen");
+    return;
+  }
+  const totalTimeSec=Math.round((Date.now()-gameStartTime)/1000);
+  const mins=Math.floor(totalTimeSec/60), secs=totalTimeSec%60;
+  const timeStr=mins+":"+(secs<10?"0":"")+secs;
+  const correctCount=queue.length-wrongCount;
+  const acc=Math.round((correctCount/queue.length)*100);
+  const avgTime=qTimes.reduce((a,b)=>a+b,0)/qTimes.length;
+
+  if(wrongCount===0) achievements.add("🎯 满分达人");
+  if(avgTime<8) achievements.add("⚡ 极速王");
+  if(maxStreak>=8) achievements.add("🔥 连击王");
+  if(!levelWrongMap[5]) achievements.add("🧮 两步高手");
+  if(!levelWrongMap[6]) achievements.add("📊 图表大师");
+
+  document.getElementById("stat-score").textContent=score;
+  document.getElementById("stat-acc").textContent=acc+"%";
+  document.getElementById("stat-time").textContent=timeStr;
+  document.getElementById("stat-combo").textContent=maxStreak;
+
+  const badgesBox=document.getElementById("badges-box");
+  badgesBox.innerHTML="";
+  if(achievements.size===0){
+    const b=document.createElement("span"); b.className="badge"; b.textContent="继续加油,争取解锁成就!";
+    badgesBox.appendChild(b);
+  } else {
+    achievements.forEach(a=>{ const b=document.createElement("span"); b.className="badge"; b.textContent=a; badgesBox.appendChild(b); });
+  }
+
+  window.__certData={score, acc, timeStr, achievements:[...achievements]};
+  document.getElementById("post-cert-row").style.display="none";
+  document.getElementById("cert-preview").style.display="none";
+  document.getElementById("gen-cert-btn").style.display="block";
+  showScreen("result-screen");
+}
+
+document.getElementById("replay-btn").addEventListener("click", startGame);
+
+/* =========================================================
+   证书生成
+========================================================= */
+document.getElementById("gen-cert-btn").addEventListener("click", generateCertificate);
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function generateCertificate(){
+  const nameInput=document.getElementById("name-input");
+  const name=nameInput.value.trim();
+  if(!name){
+    nameInput.style.borderColor="#e0645a";
+    nameInput.placeholder="请先输入姓名哦!";
+    nameInput.focus();
+    return;
+  }
+  nameInput.style.borderColor="";
+  const data=window.__certData;
+  const canvas=document.getElementById("cert-canvas");
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width, H=canvas.height;
+
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,"#1c2740"); grad.addColorStop(1,"#141c2e");
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle="#e2a542"; ctx.lineWidth=6; ctx.strokeRect(40,40,W-80,H-80);
+  ctx.strokeStyle="rgba(226,165,66,0.4)"; ctx.lineWidth=2; ctx.strokeRect(58,58,W-116,H-116);
+
+  ctx.beginPath(); ctx.arc(W/2,220,78,0,Math.PI*2);
+  const bg2=ctx.createLinearGradient(W/2-78,140,W/2+78,300);
+  bg2.addColorStop(0,"#e2a542"); bg2.addColorStop(1,"#b97f1f");
+  ctx.fillStyle=bg2; ctx.fill();
+  ctx.font="72px sans-serif"; ctx.textAlign="center"; ctx.fillStyle="#1a2440"; ctx.fillText("🔧",W/2,246);
+
+  ctx.fillStyle="#f3ede1"; ctx.font="bold 54px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.textAlign="center";
+  ctx.fillText("胡克定律认证证书",W/2,400);
+  ctx.font="24px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#a9b4cc";
+  ctx.fillText("Hooke's Law Certificate of Achievement",W/2,445);
+
+  ctx.strokeStyle="rgba(226,165,66,0.5)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W/2-260,490); ctx.lineTo(W/2+260,490); ctx.stroke();
+
+  ctx.font="28px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  ctx.fillText("兹证明",W/2,560);
+
+  ctx.font="bold 64px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+  ctx.fillText(name,W/2,650);
+
+  ctx.font="26px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  ctx.fillText("已成功完成「胡克定律闯关大冒险 2.0」全部计算挑战",W/2,705);
+
+  const stats=[["总分",data.score+" 分"],["正确率",data.acc+"%"],["通关时间",data.timeStr]];
+  const cardW=300,cardH=150,gap=40,totalW=cardW*3+gap*2,startX=W/2-totalW/2,cardY=780;
+  stats.forEach((s,i)=>{
+    const x=startX+i*(cardW+gap);
+    ctx.fillStyle="#233252"; roundRect(ctx,x,cardY,cardW,cardH,16); ctx.fill();
+    ctx.strokeStyle="#3a4a70"; ctx.lineWidth=2; roundRect(ctx,x,cardY,cardW,cardH,16); ctx.stroke();
+    ctx.fillStyle="#e2a542"; ctx.font="bold 46px sans-serif"; ctx.fillText(s[1],x+cardW/2,cardY+70);
+    ctx.fillStyle="#9aa6bf"; ctx.font="22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillText(s[0],x+cardW/2,cardY+110);
+  });
+
+  let badgeY=cardY+cardH+70;
+  ctx.font="24px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  if(data.achievements.length>0){
+    ctx.fillText("解锁成就",W/2,badgeY);
+    ctx.font="26px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+    ctx.fillText(data.achievements.join("   "),W/2,badgeY+50);
+    badgeY+=90;
+  } else { badgeY+=20; }
+
+  ctx.font="bold 34px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#f3ede1";
+  ctx.fillText("Excellent Work! 计算小达人!",W/2,badgeY+60);
+
+  const now=new Date();
+  const dateStr=now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日 "+
+    String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  ctx.font="22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#9aa6bf";
+  ctx.fillText("颁发日期:"+dateStr,W/2,H-140);
+
+  ctx.font="18px sans-serif"; ctx.fillStyle="rgba(255,255,255,0.35)";
+  ctx.fillText("峇株吧辖蔡逸众制作 · Made by ecchua79",W/2,H-90);
+
+  const dataUrl=canvas.toDataURL("image/png");
+  const preview=document.getElementById("cert-preview");
+  preview.src=dataUrl; preview.style.display="block";
+  document.getElementById("gen-cert-btn").style.display="none";
+  document.getElementById("post-cert-row").style.display="flex";
+  window.__certDataUrl=dataUrl;
+}
+
+document.getElementById("download-cert-btn").addEventListener("click", ()=>{
+  if(!window.__certDataUrl) return;
+  const a=document.createElement("a");
+  a.href=window.__certDataUrl; a.download="胡克定律认证证书.png";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+});
+
+document.getElementById("name-input").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter"){ generateCertificate(); }
+});
+
+})();
+</script>
+</body>
+</html>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
