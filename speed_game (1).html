@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<!-- 速度公式闯关游戏 | 制作：蔡逸众老师 (ecchua79) | 华仁中学 Chinese High School -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="author" content="蔡逸众老师 ecchua79 华仁中学 Chinese High School">
+<title>速度公式闯关 · v=s/t 星际导航站</title>
+<style>
+/* watermark: 蔡逸众老师 / ecchua79 / 华仁中学 Chinese High School */
+:root{
+  --bg:#070b16; --panel:#0d1428; --panel2:#111a35;
+  --cyan:#2ee6e6; --cyan-dim:#1a8f8f; --purple:#a45bff; --purple-dim:#6d3aa8;
+  --gold:#ffd166; --text:#dfe9ff; --muted:#7f8db3; --danger:#ff5470; --good:#3ee68a;
+  --glow-cyan:0 0 12px rgba(46,230,230,.55); --glow-purple:0 0 14px rgba(164,91,255,.55);
+  --glow-gold:0 0 14px rgba(255,209,102,.6);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;overflow-x:hidden;}
+canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;}
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding:24px 16px 90px;}
+.screen{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;gap:18px;}
+.hidden{display:none !important;}
+h1{font-size:clamp(22px,5vw,32px);letter-spacing:2px;margin:6px 0 0;text-align:center;
+  color:var(--cyan);text-shadow:var(--glow-cyan);}
+h2{font-size:clamp(18px,4vw,24px);letter-spacing:1px;color:var(--purple);text-shadow:var(--glow-purple);margin:0;}
+p.sub{color:var(--muted);text-align:center;line-height:1.7;margin:0;font-size:14px;}
+.card{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid rgba(46,230,230,.25);
+  border-radius:16px;padding:22px;width:100%;box-shadow:0 0 30px rgba(0,0,0,.4), inset 0 0 30px rgba(46,230,230,.03);}
+.btn{cursor:pointer;border:none;border-radius:10px;padding:14px 20px;font-size:15px;font-weight:700;
+  letter-spacing:1px;color:#031014;background:linear-gradient(135deg,var(--cyan),#7ee8e8);
+  box-shadow:var(--glow-cyan);transition:transform .12s,box-shadow .12s;}
+.btn:active{transform:scale(.96);}
+.btn.secondary{background:linear-gradient(135deg,var(--purple),#c98bff);color:#170526;box-shadow:var(--glow-purple);}
+.btn.gold{background:linear-gradient(135deg,var(--gold),#fff3d0);color:#3a2600;box-shadow:var(--glow-gold);}
+.btn.ghost{background:transparent;border:1px solid var(--muted);color:var(--muted);box-shadow:none;}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btnRow{display:flex;gap:12px;width:100%;}
+.btnRow .btn{flex:1;}
+#levelMap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+.nodeBtn{position:relative;aspect-ratio:1;border-radius:14px;border:2px solid var(--cyan-dim);
+  background:radial-gradient(circle at 30% 30%,#132244,#070b16);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--cyan);
+  cursor:pointer;transition:transform .15s;padding:6px;text-align:center;}
+.nodeBtn:active{transform:scale(.94);}
+.nodeBtn.locked{border-color:#33395a;color:#454f74;cursor:not-allowed;}
+.nodeBtn.finalNode{border-color:var(--gold);color:var(--gold);box-shadow:var(--glow-gold);grid-column:span 3;aspect-ratio:auto;padding:14px;flex-direction:row;gap:10px;font-size:16px;}
+.nodeBtn.finalNode.locked{border-color:#4a3f22;color:#5a5238;box-shadow:none;}
+.nodeBtn small{font-size:9px;font-weight:400;color:var(--muted);margin-top:2px;letter-spacing:0;}
+.starRow{font-size:11px;letter-spacing:1px;color:#3a4568;}
+.starRow .filled{color:var(--gold);}
+.progressStars{display:flex;gap:8px;justify-content:center;font-size:22px;}
+.progressStars .star{color:#233052;transition:color .2s, transform .2s;}
+.progressStars .star.on{color:var(--gold);text-shadow:var(--glow-gold);transform:scale(1.15);}
+.progressStars .star.off-wrong{color:var(--danger);opacity:.6;}
+.progressStars .star.current{color:var(--cyan);}
+#qText{font-size:17px;line-height:1.7;margin:4px 0 6px;}
+.qSvgWrap{width:100%;display:flex;justify-content:center;margin-bottom:6px;}
+.options{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:6px;}
+.optBtn{text-align:left;padding:13px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:#101a35;color:var(--text);font-size:15px;cursor:pointer;transition:all .15s;}
+.optBtn:active{transform:scale(.98);}
+.optBtn.correct{background:rgba(62,230,138,.18);border-color:var(--good);color:var(--good);}
+.optBtn.wrong{background:rgba(255,84,112,.18);border-color:var(--danger);color:var(--danger);}
+.optBtn.disabledOpt{pointer-events:none;opacity:.55;}
+.inputRow{display:flex;gap:10px;width:100%;margin-top:6px;}
+.inputRow input{flex:1;padding:13px 14px;border-radius:10px;border:1px solid var(--cyan-dim);
+  background:#0a1226;color:var(--cyan);font-size:17px;text-align:center;letter-spacing:1px;}
+.inputRow input:focus{outline:none;border-color:var(--cyan);box-shadow:var(--glow-cyan);}
+.feedback{font-size:14px;line-height:1.6;padding:10px 12px;border-radius:10px;width:100%;margin-top:10px;}
+.feedback.correct{background:rgba(62,230,138,.12);color:var(--good);border:1px solid rgba(62,230,138,.4);}
+.feedback.wrong{background:rgba(255,84,112,.12);color:var(--danger);border:1px solid rgba(255,84,112,.4);}
+.explainBox{background:rgba(46,230,230,.08);border:1px solid rgba(46,230,230,.3);border-radius:10px;
+  padding:10px 12px;font-size:13.5px;line-height:1.7;color:#bfeaea;width:100%;margin-top:8px;}
+.explainBox b{color:var(--cyan);}
+.scoreLine{display:flex;justify-content:space-between;width:100%;color:var(--muted);font-size:13px;}
+.bigScore{font-size:42px;font-weight:800;color:var(--cyan);text-shadow:var(--glow-cyan);}
+footer{position:fixed;bottom:0;left:0;right:0;text-align:center;padding:8px;font-size:11px;
+  color:#3a4568;background:rgba(7,11,22,.85);z-index:2;letter-spacing:.5px;}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;}
+.badge.pass{background:rgba(62,230,138,.15);color:var(--good);border:1px solid var(--good);}
+.badge.mid{background:rgba(255,209,102,.15);color:var(--gold);border:1px solid var(--gold);}
+.badge.fail{background:rgba(255,84,112,.15);color:var(--danger);border:1px solid var(--danger);}
+.nameInput{width:100%;padding:14px;border-radius:10px;border:1px solid var(--cyan-dim);
+  background:#0a1226;color:var(--cyan);font-size:18px;text-align:center;letter-spacing:1px;}
+.certificate{width:100%;background:linear-gradient(160deg,#0d1428,#161033);border:2px solid var(--gold);
+  border-radius:18px;padding:34px 24px;text-align:center;box-shadow:var(--glow-gold), inset 0 0 40px rgba(255,209,102,.06);}
+.certificate .certTitle{font-size:26px;letter-spacing:4px;color:var(--gold);text-shadow:var(--glow-gold);font-weight:800;}
+.certificate .certSub{color:var(--muted);font-size:12px;letter-spacing:2px;margin-top:4px;}
+.certificate .certName{font-size:30px;color:var(--cyan);text-shadow:var(--glow-cyan);margin:22px 0 6px;font-weight:800;}
+.certificate .certLine{color:var(--text);font-size:14px;line-height:1.8;}
+.certStats{display:flex;justify-content:space-around;margin:20px 0;}
+.certStats div{display:flex;flex-direction:column;gap:4px;}
+.certStats .val{font-size:22px;font-weight:800;color:var(--gold);}
+.certStats .lab{font-size:11px;color:var(--muted);letter-spacing:1px;}
+.certFoot{margin-top:18px;font-size:11px;color:var(--muted);letter-spacing:1px;}
+@media print{
+  #bg, footer, .btn, #screen-final .sub, .btnRow{display:none !important;}
+  #app{padding:0;}
+  body{background:#fff;}
+  .certificate{box-shadow:none;border-color:#333;background:#fff;color:#111;}
+  .certificate .certTitle, .certificate .certName, .certStats .val{color:#111 !important;text-shadow:none !important;}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="app">
+
+  <!-- 封面 -->
+  <div class="screen" id="screen-cover">
+    <h1>⚡ 速度公式闯关 ⚡</h1>
+    <p class="sub">v = s / t &nbsp;·&nbsp; 星际导航训练站<br>5 个基础关卡可自由挑战，每关 5 题（前 4 题选择，第 5 题作答）<br>每关答对 3 题以上（含）即可获得解锁终极挑战所需的星星</p>
+    <div class="card" style="text-align:center;">
+      <h2 style="margin-bottom:10px;">训练须知</h2>
+      <p class="sub" style="text-align:left;">
+        1. v 表示速度，s 表示路程/距离，t 表示时间<br>
+        2. 请留意单位是否需要换算（1 km/h = 1/3.6 m/s）<br>
+        3. 输入题请只填写数字，可保留一位或两位小数<br>
+        4. 每答对一题获得一颗星，每关满分 5 颗星<br>
+        5. 五个关卡都拿到 3 星以上，即可解锁「终极挑战」并领取结业证书
+      </p>
+    </div>
+    <button class="btn" style="width:100%;" onclick="enterStation()">🚀 进入训练站</button>
+  </div>
+
+  <!-- 关卡地图 -->
+  <div class="screen hidden" id="screen-map">
+    <h1>选择关卡</h1>
+    <div id="levelMap"></div>
+    <div class="card" id="levelInfoCard" style="text-align:center;"></div>
+  </div>
+
+  <!-- 答题界面 -->
+  <div class="screen hidden" id="screen-game">
+    <div style="width:100%;display:flex;justify-content:space-between;align-items:center;">
+      <h2 id="gameTitleLabel"></h2>
+      <span class="scoreLine" id="scoreLabel"></span>
+    </div>
+    <div class="progressStars" id="progressStars"></div>
+    <div class="card">
+      <div class="qSvgWrap" id="qSvgWrap"></div>
+      <div id="qText"></div>
+      <div class="options hidden" id="optionsBox"></div>
+      <div class="inputRow hidden" id="inputBox">
+        <input type="number" step="0.01" id="answerInput" placeholder="请输入数字答案">
+        <button class="btn" onclick="submitInputAnswer()">提交</button>
+      </div>
+      <div class="feedback hidden" id="feedbackBox"></div>
+      <div class="explainBox hidden" id="explainBox"></div>
+    </div>
+    <button class="btn secondary hidden" id="nextBtn" style="width:100%;" onclick="nextQuestion()">下一题 →</button>
+  </div>
+
+  <!-- 单关结算 -->
+  <div class="screen hidden" id="screen-levelresult">
+    <h1 id="resultTitle"></h1>
+    <div class="card" style="text-align:center;">
+      <div class="bigScore" id="resultScore"></div>
+      <p class="sub" id="resultBadgeWrap" style="margin-top:10px;"></p>
+    </div>
+    <div class="btnRow" id="resultBtnRow"></div>
+  </div>
+
+  <!-- 姓名输入 -->
+  <div class="screen hidden" id="screen-nameinput">
+    <h1>🎓 训练完成！</h1>
+    <div class="card" style="text-align:center;display:flex;flex-direction:column;gap:14px;">
+      <p class="sub">请输入你的姓名，生成专属结业证书</p>
+      <input type="text" class="nameInput" id="studentName" placeholder="请输入姓名" maxlength="20">
+      <button class="btn gold" onclick="generateCertificate()">生成结业证书 🏅</button>
+    </div>
+  </div>
+
+  <!-- 证书 -->
+  <div class="screen hidden" id="screen-certificate">
+    <div class="certificate" id="certCard">
+      <div class="certTitle">结 业 证 书</div>
+      <div class="certSub">CERTIFICATE OF COMPLETION</div>
+      <div class="certName" id="certName"></div>
+      <div class="certLine">已完成「速度公式闯关 v = s / t」全部训练任务，特此证明</div>
+      <div class="certStats">
+        <div><span class="val" id="certScore"></span><span class="lab">正确率</span></div>
+        <div><span class="val" id="certTime"></span><span class="lab">总用时</span></div>
+        <div><span class="val" id="certDate"></span><span class="lab">日期</span></div>
+      </div>
+      <div class="certFoot">颁发：蔡逸众老师 · 华仁中学 Chinese High School</div>
+    </div>
+    <div class="btnRow">
+      <button class="btn ghost" onclick="window.print()">🖨️ 打印/保存证书</button>
+      <button class="btn" onclick="restartGame()">🔁 重新挑战</button>
+    </div>
+  </div>
+
+</div>
+<footer>© 蔡逸众老师 ecchua79 · 华仁中学 Chinese High School · Speed Formula Challenge</footer>
+
+<script>
+/* watermark: 制作 蔡逸众老师 (ecchua79) · 华仁中学 Chinese High School */
+console.log("速度公式闯关游戏 | 制作：蔡逸众老师 (ecchua79) | 华仁中学 Chinese High School");
+
+/* ---------- 工具函数 ---------- */
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function pick(arr){return arr[randInt(0,arr.length-1)];}
+function roundTo(n,d){const f=Math.pow(10,d);return Math.round((n+Number.EPSILON)*f)/f;}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=randInt(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function fmt(n){
+  if(Math.abs(n-Math.round(n))<1e-6) return String(Math.round(n));
+  return String(roundTo(n,2));
+}
+function uniquePush(pool,val){ if(!pool.some(p=>Math.abs(p-val)<1e-6)) pool.push(val); }
+
+function buildMC(text, correct, distractorPool, unit, decimals, extra){
+  let pool=[];
+  distractorPool.forEach(v=>uniquePush(pool, roundTo(v,decimals)));
+  pool = pool.filter(v=>Math.abs(v-roundTo(correct,decimals))>1e-6 && v>=0);
+  while(pool.length<3){ uniquePush(pool, roundTo(Math.max(0.1,correct + pick([-3,-2,-1,1,2,3])*Math.max(1,Math.abs(correct)*0.1)),decimals)); }
+  pool = shuffle(pool).slice(0,3);
+  const values = shuffle([roundTo(correct,decimals), ...pool]);
+  const options = values.map(v=>({label:`${fmt(v)} ${unit}`, correct:Math.abs(v-roundTo(correct,decimals))<1e-6}));
+  return Object.assign({type:'mc', text, options, correctValue:roundTo(correct,decimals), unit}, extra||{});
+}
+function buildInput(text, correct, unit, decimals, tolerance, extra){
+  return Object.assign({type:'input', text, correctValue:roundTo(correct,decimals), unit,
+    tolerance: tolerance!==undefined?tolerance:Math.max(0.05, Math.abs(correct)*0.02)}, extra||{});
+}
+
+/* ---------- SVG 图像题绘制（支持 m/s 或 km/h 两种坐标单位） ---------- */
+function svgGraph(t1,s1,t2,s2,sUnit,tUnit){
+  sUnit = sUnit||'m'; tUnit = tUnit||'s';
+  const W=280,H=200,pad=40;
+  const maxT=t2*1.15||1, maxS=s2*1.15||1;
+  const X=(t)=>pad+(t/maxT)*(W-pad-14);
+  const Y=(s)=>H-pad-(s/maxS)*(H-pad-14);
+  const x1=X(t1),y1=Y(s1),x2=X(t2),y2=Y(s2);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <line x1="${pad}" y1="${H-pad}" x2="${W-8}" y2="${H-pad}" stroke="#3a4b7a" stroke-width="1.5"/>
+    <line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="8" stroke="#3a4b7a" stroke-width="1.5"/>
+    <text x="${W-46}" y="${H-pad+16}" fill="#7f8db3" font-size="11">时间/${tUnit}</text>
+    <text x="${pad-32}" y="14" fill="#7f8db3" font-size="11">路程/${sUnit}</text>
+    <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#2ee6e6" stroke-width="2.5"/>
+    <circle cx="${x1}" cy="${y1}" r="4" fill="#a45bff"/>
+    <circle cx="${x2}" cy="${y2}" r="4" fill="#a45bff"/>
+    <text x="${x1+6}" y="${y1-8}" fill="#a45bff" font-size="11">(${fmt(t1)}, ${fmt(s1)})</text>
+    <text x="${x2+6}" y="${y2-8}" fill="#a45bff" font-size="11">(${fmt(t2)}, ${fmt(s2)})</text>
+  </svg>`;
+}
+
+/* ---------- 第一关 · 公式启航 ---------- */
+function genLevel1(){
+  const qs=[];
+  const typeOrder = ['ms','ms','kmh','kmh', pick(['ms','kmh'])];
+  typeOrder.forEach((type,i)=>{
+    if(type==='ms'){
+      const t = pick([2,4,5,8,10,20,25,40]);
+      const v = pick([2,3,4,5,6,8,10,12,15,20,25]);
+      const s = t*v;
+      const text = `一物体在 ${t} 秒内运动了 ${s} 米，求它的平均速度。`;
+      const distractors = [s*t, roundTo(t/s,2), v*2, v/2, t-v];
+      const explanation = `v = s ÷ t = ${s} ÷ ${t} = ${v} m/s`;
+      i<4 ? qs.push(buildMC(text, v, distractors, "m/s", 1, {explanation})) : qs.push(buildInput(text, v, "m/s", 1, undefined, {explanation}));
+    } else {
+      const skm = pick([2,3,4,5,6,8,10,12]);
+      const th = pick([0.5,1,1.5,2,3,4]);
+      const vkmh = roundTo(skm/th,2);
+      const text = `一辆汽车在 ${th} 小时内行驶了 ${skm} 千米，求它的平均速度。`;
+      const distractors = [roundTo(skm*th,2), roundTo(th/skm,2), roundTo(vkmh*2,2), roundTo(vkmh/2,2)];
+      const explanation = `v = s ÷ t = ${skm} ÷ ${th} = ${vkmh} km/h`;
+      i<4 ? qs.push(buildMC(text, vkmh, distractors, "km/h", 2, {explanation})) : qs.push(buildInput(text, vkmh, "km/h", 2, undefined, {explanation}));
+    }
+  });
+  return qs;
+}
+
+/* ---------- 第二关 · 单位换算 ---------- */
+function genLevel2(){
+  const qs=[];
+  const types=['toMs','toKmh','sKmTHr','sMTMin'];
+  const order = shuffle([...types, pick(types)]);
+  order.forEach((type,i)=>{
+    if(type==='toMs'){
+      const vkmh = pick([18,36,54,72,90,108,126]);
+      const vms = roundTo(vkmh/3.6,2);
+      const text = `某高铁的速度为 ${vkmh} km/h，换算成 m/s 是多少？`;
+      const distractors = [roundTo(vkmh*3.6,2), vkmh, roundTo(vkmh/3.6/3.6,2), roundTo(vkmh*3.6*3.6,2)];
+      const explanation = `km/h 换算成 m/s 要 ÷3.6：${vkmh} ÷ 3.6 = ${vms} m/s`;
+      i<4 ? qs.push(buildMC(text, vms, distractors, "m/s", 1, {explanation})) : qs.push(buildInput(text, vms, "m/s", 1, undefined, {explanation}));
+    } else if(type==='toKmh'){
+      const vms = pick([5,10,15,20,25,30,8,12]);
+      const vkmh = roundTo(vms*3.6,2);
+      const text = `一辆汽车的速度为 ${vms} m/s，换算成 km/h 是多少？`;
+      const distractors = [roundTo(vms/3.6,2), vms, roundTo(vms*3.6*3.6,2), roundTo(vms/3.6/3.6,2)];
+      const explanation = `m/s 换算成 km/h 要 ×3.6：${vms} × 3.6 = ${vkmh} km/h`;
+      i<4 ? qs.push(buildMC(text, vkmh, distractors, "km/h", 1, {explanation})) : qs.push(buildInput(text, vkmh, "km/h", 1, undefined, {explanation}));
+    } else if(type==='sKmTHr'){
+      const t = pick([0.5,1,1.5,2,3]);
+      const vkmhTarget = pick([36,54,72,90]);
+      const s = roundTo(vkmhTarget*t,1);
+      const vkmhCalc = roundTo(s/t,2);
+      const vms = roundTo(vkmhCalc/3.6,2);
+      const text = `一辆巴士在 ${t} 小时内行驶了 ${s} 千米，求它的速度（单位：m/s）。`;
+      const distractors = [roundTo(s/t,2), roundTo((s/t)*3.6,2), roundTo(s/t/3.6/3.6,2), roundTo(s*t,2)];
+      const explanation = `先求 v(km/h) = s ÷ t = ${s} ÷ ${t} = ${vkmhCalc} km/h；再 ÷3.6 换算成 m/s = ${vms} m/s`;
+      i<4 ? qs.push(buildMC(text, vms, distractors, "m/s", 2, {explanation})) : qs.push(buildInput(text, vms, "m/s", 2, undefined, {explanation}));
+    } else {
+      const t = pick([2,3,5,6,10]);
+      const vmsTarget = pick([5,10,15,20]);
+      const s = vmsTarget * (t*60);
+      const vmsCalc = roundTo(s/(t*60),2);
+      const vkmh = roundTo(vmsCalc*3.6,1);
+      const text = `一名骑手在 ${t} 分钟内骑行了 ${s} 米，求它的速度（单位：km/h）。`;
+      const distractors = [roundTo(s/t,2), roundTo((s/t)*3.6,2), roundTo(s/(t*60),2), roundTo(vkmh/3.6,2)];
+      const explanation = `把时间换算成秒：${t} 分钟 = ${t*60} 秒；v(m/s) = ${s} ÷ ${t*60} = ${vmsCalc} m/s；再 ×3.6 换算成 km/h = ${vkmh} km/h`;
+      i<4 ? qs.push(buildMC(text, vkmh, distractors, "km/h", 1, {explanation})) : qs.push(buildInput(text, vkmh, "km/h", 1, undefined, {explanation}));
+    }
+  });
+  return qs;
+}
+
+/* ---------- 第三关 · 公式变形 ---------- */
+function genLevel3(){
+  const qs=[];
+  for(let i=0;i<5;i++){
+    const askS = i%2===0;
+    const v = pick([2,3,4,5,6,8,10,12,15,20]);
+    const t = pick([2,3,4,5,6,8,10]);
+    if(askS){
+      const s = v*t;
+      const text = `一物体以 ${v} m/s 的速度匀速运动了 ${t} 秒，求它行驶的路程 s。`;
+      const distractors = [roundTo(v/t,2), roundTo(t/v,2), v+t, s*2];
+      const explanation = `s = v × t = ${v} × ${t} = ${s} m`;
+      i<4 ? qs.push(buildMC(text, s, distractors, "m", 1, {explanation})) : qs.push(buildInput(text, s, "m", 1, undefined, {explanation}));
+    } else {
+      const s = v*t;
+      const text = `一物体以 ${v} m/s 的速度匀速运动，行驶了 ${s} 米，求所需时间 t。`;
+      const distractors = [roundTo(s*v,2), roundTo(v/s,2), s+v, t*2];
+      const explanation = `t = s ÷ v = ${s} ÷ ${v} = ${t} s`;
+      i<4 ? qs.push(buildMC(text, t, distractors, "s", 1, {explanation})) : qs.push(buildInput(text, t, "s", 1, undefined, {explanation}));
+    }
+  }
+  return qs;
+}
+
+/* ---------- 图像题生成（第四关 / 终极挑战共用） ---------- */
+function genGraphQuestion(useOrigin, forceKm){
+  const useKm = forceKm!==undefined ? forceKm : Math.random()<0.5;
+  const sUnit = useKm?'km':'m';
+  const tUnit = useKm?'h':'s';
+  const vUnit = `${sUnit}/${tUnit}`;
+  let v,t1,s1,t2,s2,decimals;
+  if(useKm){
+    v = pick([20,40,60,80,100]);
+    t1 = useOrigin?0:pick([0.5,1,1.5]);
+    s1 = roundTo(v*t1,2);
+    t2 = roundTo(t1+pick([1,1.5,2,2.5]),2);
+    s2 = roundTo(v*t2,2);
+    decimals=2;
+  } else {
+    v = pick([2,4,5,6,8,10]);
+    t1 = useOrigin?0:pick([2,3,4]);
+    s1 = roundTo(v*t1,1);
+    t2 = t1+pick([4,5,6,8]);
+    s2 = roundTo(v*t2,1);
+    decimals=1;
+  }
+  const svg = svgGraph(t1,s1,t2,s2,sUnit,tUnit);
+  const text = `根据图像中两点的坐标，求物体在这段时间内的运动速度。`;
+  const distractors = [roundTo((s2-s1)*(t2-t1),2), roundTo((t2-t1)/Math.max(s2-s1,0.01),2), roundTo(s2/Math.max(t2,0.1),2), roundTo(s1/Math.max(t1,0.1),2)];
+  const explanation = `v = (s₂-s₁) ÷ (t₂-t₁) = (${fmt(s2)}-${fmt(s1)}) ÷ (${fmt(t2)}-${fmt(t1)}) = ${fmt(v)} ${vUnit}`;
+  return Object.assign(buildMC(text, v, distractors, vUnit, decimals, {explanation}), {svg});
+}
+
+/* ---------- 第四关 · 图像与情境 ---------- */
+function genLevel4(){
+  const qs=[];
+  qs.push(genGraphQuestion(true));
+  qs.push(genGraphQuestion(false));
+  qs.push(genGraphQuestion(false));
+  {
+    const t = pick([10,15,20,25]);
+    const v = pick([4,5,6,8]);
+    const s = v*t;
+    const irrelevant = pick(["当天气温 28°C，", "沿途经过了 3 个红绿灯，", "他戴着一顶蓝色的帽子，", "路旁有一排椰子树，"]);
+    const text = `小明在放学后步行回家，${irrelevant}他用了 ${t} 秒走完了 ${s} 米的路程，求他的步行速度。`;
+    const distractors = [s*t, roundTo(t/s,2), v*2, v/2];
+    const explanation = `v = s ÷ t = ${s} ÷ ${t} = ${v} m/s`;
+    qs.push(buildMC(text, v, distractors, "m/s", 1, {explanation}));
+  }
+  {
+    const tKm = pick([1.5,2,2.5,3,4]);
+    const speedLimit = pick([50,60,70,80]);
+    const t = pick([3,5,6,10]);
+    const s = tKm*1000;
+    const v = roundTo(s/(t*60),2);
+    const text = `一辆汽车沿着限速 ${speedLimit} km/h 的道路行驶，在 ${t} 分钟内行驶了 ${tKm} 千米。求它的实际速度（单位：m/s）。`;
+    const explanation = `把时间换算成秒：${t} 分钟 = ${t*60} 秒；把千米换算成米：${tKm} km = ${s} m；v = s ÷ t = ${s} ÷ ${t*60} = ${v} m/s`;
+    qs.push(buildInput(text, v, "m/s", 2, undefined, {explanation}));
+  }
+  return qs;
+}
+
+/* ---------- 第五关 · 综合应用 ---------- */
+function genLevel5(){
+  const qs=[];
+  const types = ['walk','walk','car','car', pick(['walk','car'])];
+  types.forEach((type,i)=>{
+    if(type==='walk'){
+      const v1 = pick([2,4,5,6,8]);
+      const v2 = pick([3,5,6,9,10]);
+      const t1 = pick([4,5,6,8,10]);
+      const t2 = pick([4,5,6,8,10]);
+      const s1=v1*t1, s2=v2*t2, totalS=s1+s2, totalT=t1+t2, avg=roundTo(totalS/totalT,2);
+      const naiveAvg = roundTo((v1+v2)/2,2);
+      const text = `小华上坡时以 ${v1} m/s 的速度走了 ${t1} 秒，下坡时以 ${v2} m/s 的速度走了 ${t2} 秒。求他这整段路程的平均速度。`;
+      const distractors = [naiveAvg, roundTo(totalT/totalS,2), v1, v2];
+      const explanation = `s₁=v₁×t₁=${v1}×${t1}=${s1}m；s₂=v₂×t₂=${v2}×${t2}=${s2}m；总路程=${totalS}m，总时间=${totalT}s；平均速度=${totalS}÷${totalT}=${avg} m/s（注意：不是把两个速度直接相加除以2！）`;
+      i<4 ? qs.push(buildMC(text, avg, distractors, "m/s", 2, {explanation})) : qs.push(buildInput(text, avg, "m/s", 2, undefined, {explanation}));
+    } else {
+      const v1 = pick([40,50,60,70]);
+      const v2 = pick([80,90,100,110,120]);
+      const t1min = pick([15,30,45,60,90]);
+      const t2min = pick([15,30,45,60,90]);
+      const t1h = roundTo(t1min/60,3), t2h = roundTo(t2min/60,3);
+      const s1 = roundTo(v1*t1h,2), s2 = roundTo(v2*t2h,2);
+      const totalS = roundTo(s1+s2,2), totalT = roundTo(t1h+t2h,3);
+      const avg = roundTo(totalS/totalT,2);
+      const naiveAvg = roundTo((v1+v2)/2,2);
+      const text = `一辆车先在市区以 ${v1} km/h 的速度行驶了 ${t1min} 分钟，再在高速公路上以 ${v2} km/h 的速度行驶了 ${t2min} 分钟。求整段路程的平均速度。`;
+      const distractors = [naiveAvg, roundTo(totalT/totalS,2), v1, v2];
+      const explanation = `把时间换算成小时：${t1min}分钟=${fmt(t1h)}h，${t2min}分钟=${fmt(t2h)}h；s₁=${v1}×${fmt(t1h)}=${fmt(s1)}km；s₂=${v2}×${fmt(t2h)}=${fmt(s2)}km；总路程=${fmt(totalS)}km，总时间=${fmt(totalT)}h；平均速度=${fmt(totalS)}÷${fmt(totalT)}=${avg} km/h`;
+      i<4 ? qs.push(buildMC(text, avg, distractors, "km/h", 2, {explanation})) : qs.push(buildInput(text, avg, "km/h", 2, undefined, {explanation}));
+    }
+  });
+  return qs;
+}
+
+/* ---------- 终极挑战 · 综合难题 ---------- */
+function genLevel6(){
+  const qs=[];
+  // Q1: 速度(km/h) + 时间(分钟) 求 路程(km)
+  {
+    const v = pick([72,90,108,120,144]);
+    const tmin = pick([15,30,45,60,90]);
+    const th = roundTo(tmin/60,3);
+    const s = roundTo(v*th,2);
+    const text = `一列火车以 ${v} km/h 的速度行驶了 ${tmin} 分钟，求它行驶的路程（单位：km）。`;
+    const distractors = [roundTo(v*tmin,2), roundTo(v/th,2), roundTo(s*3.6,2), roundTo(s/3.6,2)];
+    const explanation = `先把时间换算成小时：${tmin} 分钟 = ${fmt(th)} 小时；s = v × t = ${v} × ${fmt(th)} = ${s} km`;
+    qs.push(buildMC(text, s, distractors, "km", 2, {explanation}));
+  }
+  // Q2: 速度(km/h) + 路程(m) 求 时间(秒)
+  {
+    const vkmh = pick([36,54,72,90,108]);
+    const vms = roundTo(vkmh/3.6,2);
+    const t = pick([10,15,20,25,30]);
+    const s = roundTo(vms*t,1);
+    const text = `一物体以 ${vkmh} km/h 的速度行驶了 ${s} 米，求所需时间（单位：秒）。`;
+    const distractors = [roundTo(s/vkmh,2), roundTo(s*vkmh,2), roundTo(t*3.6,2), roundTo(t/3.6,2)];
+    const explanation = `先把速度换算成 m/s：${vkmh} ÷ 3.6 = ${vms} m/s；t = s ÷ v = ${s} ÷ ${vms} = ${t} s`;
+    qs.push(buildMC(text, t, distractors, "s", 1, {explanation}));
+  }
+  // Q3: 三段路程平均速度(km/h)
+  {
+    const v1=pick([60,70,80,90]), t1=pick([0.5,1,1.5,2]);
+    const v2=pick([40,50,60]), t2=pick([0.5,1,1.5]);
+    const v3=pick([90,100,110,120]), t3=pick([1,1.5,2]);
+    const s1=roundTo(v1*t1,2), s2=roundTo(v2*t2,2), s3=roundTo(v3*t3,2);
+    const totalS=roundTo(s1+s2+s3,2), totalT=roundTo(t1+t2+t3,2);
+    const avg=roundTo(totalS/totalT,2);
+    const naiveAvg = roundTo((v1+v2+v3)/3,2);
+    const text = `一辆车先以 ${v1} km/h 行驶了 ${t1} 小时，再以 ${v2} km/h 行驶了 ${t2} 小时，最后以 ${v3} km/h 行驶了 ${t3} 小时，求整个路程的平均速度（单位：km/h）。`;
+    const distractors = [naiveAvg, roundTo(totalT/totalS,2), v1, v3];
+    const explanation = `总路程 = ${s1}+${s2}+${s3} = ${totalS} km；总时间 = ${t1}+${t2}+${t3} = ${totalT} h；平均速度 = ${totalS} ÷ ${totalT} = ${avg} km/h`;
+    qs.push(buildMC(text, avg, distractors, "km/h", 2, {explanation}));
+  }
+  // Q4: 图像题（km/h 版，非原点）
+  qs.push(genGraphQuestion(false, true));
+  // Q5（输入题）: 已知平均速度与总时间，反推其中一段速度
+  {
+    const totalT = pick([3,4,5]);
+    const avg = pick([50,60,70,80]);
+    const t1 = pick([1,2]);
+    const v1 = pick([40,50,60]);
+    const totalS = roundTo(avg*totalT,2);
+    const s1 = roundTo(v1*t1,2);
+    const remainingT = roundTo(totalT-t1,2);
+    const s2 = roundTo(totalS-s1,2);
+    const v2 = roundTo(s2/remainingT,2);
+    const text = `一趟旅程共用了 ${totalT} 小时，全程平均速度为 ${avg} km/h。已知前 ${t1} 小时以 ${v1} km/h 行驶，求最后 ${remainingT} 小时的速度（单位：km/h）。`;
+    const explanation = `总路程 = 平均速度 × 总时间 = ${avg} × ${totalT} = ${totalS} km；已行驶路程 = ${v1} × ${t1} = ${s1} km；剩余路程 = ${totalS} - ${s1} = ${s2} km；剩余速度 = ${s2} ÷ ${remainingT} = ${v2} km/h`;
+    qs.push(buildInput(text, v2, "km/h", 2, undefined, {explanation}));
+  }
+  return shuffle(qs.slice(0,4)).concat(qs[4]); // 保持最后一题为输入题，前4题顺序打乱
+}
+
+/* ---------- 关卡配置 ---------- */
+const LEVELS = [
+  {id:1, name:"第一关 · 公式启航", short:"启航", desc:"直接代入 v=s/t，熟悉三个物理量与单位（含 km、h 换算）", gen: genLevel1},
+  {id:2, name:"第二关 · 单位换算", short:"换算", desc:"km/h 与 m/s 互相换算", gen: genLevel2},
+  {id:3, name:"第三关 · 公式变形", short:"变形", desc:"由 v 求 s（s=vt），由 v 求 t（t=s/v）", gen: genLevel3},
+  {id:4, name:"第四关 · 图像与情境", short:"图像", desc:"从 s-t 图像读取速度 + 生活情境应用", gen: genLevel4},
+  {id:5, name:"第五关 · 综合应用", short:"综合", desc:"分段运动的平均速度（含步行与车辆两种情境）", gen: genLevel5},
+  {id:6, name:"终极挑战 · 星际指挥官", short:"终极", desc:"融合单位换算、公式变形、多段平均速度与图像题，难度全面提升！", gen: genLevel6, isFinal:true},
+];
+
+/* ---------- 游戏状态 ---------- */
+let state = {
+  currentLevelId: 1,
+  levelStars: {1:0,2:0,3:0,4:0,5:0},
+  questions: [],
+  qIndex: 0,
+  correctCount: 0,
+  answerLog: [],
+  totalCorrectAllTime: 0,
+  totalAnsweredAllTime: 0,
+  sessionStartTime: null,
+  totalTimeMs: 0,
+};
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function enterStation(){
+  if(!state.sessionStartTime) state.sessionStartTime = Date.now();
+  goToMap();
+}
+
+function goToMap(){
+  renderMap();
+  show('screen-map');
+}
+
+function finalUnlocked(){
+  return [1,2,3,4,5].every(id => (state.levelStars[id]||0) >= 3);
+}
+
+function starString(n, max){
+  max = max||5;
+  return '★'.repeat(n) + '☆'.repeat(Math.max(0,max-n));
+}
+
+function renderMap(){
+  const map = document.getElementById('levelMap');
+  map.innerHTML='';
+  LEVELS.forEach(lv=>{
+    const btn = document.createElement('div');
+    if(lv.isFinal){
+      const unlocked = finalUnlocked();
+      btn.className = 'nodeBtn finalNode ' + (unlocked?'':'locked');
+      btn.innerHTML = unlocked
+        ? `🌟 <span>${lv.name}<br><small>点击挑战终极难题</small></span>`
+        : `🔒 <span>${lv.name}<br><small>需 5 个关卡皆达 3★ 才能解锁</small></span>`;
+      if(unlocked) btn.onclick = ()=>startLevel(lv.id);
+    } else {
+      const stars = state.levelStars[lv.id]||0;
+      btn.className = 'nodeBtn';
+      btn.innerHTML = `${lv.id}<small>${lv.short}</small><div class="starRow">${starString(stars)}</div>`;
+      btn.onclick = ()=>startLevel(lv.id);
+    }
+    map.appendChild(btn);
+  });
+  const infoCard = document.getElementById('levelInfoCard');
+  const need = [1,2,3,4,5].filter(id=>(state.levelStars[id]||0)<3);
+  if(finalUnlocked()){
+    infoCard.innerHTML = `<p class="sub">🎉 五个关卡都已达标！终极挑战已解锁，完成后即可领取结业证书。</p>`;
+  } else {
+    infoCard.innerHTML = `<p class="sub">五个关卡都需要达到 3★ 才能解锁终极挑战。${need.length?('还差第 '+need.join('、')+' 关'):''}</p>`;
+  }
+}
+
+function startLevel(levelId){
+  const lv = LEVELS.find(l=>l.id===levelId);
+  state.currentLevelId = levelId;
+  state.questions = lv.gen();
+  state.qIndex = 0;
+  state.correctCount = 0;
+  state.answerLog = [];
+  renderQuestion();
+  show('screen-game');
+}
+
+function renderProgressStars(){
+  const wrap = document.getElementById('progressStars');
+  wrap.innerHTML='';
+  for(let i=0;i<state.questions.length;i++){
+    const span = document.createElement('span');
+    let cls='star';
+    if(i<state.answerLog.length){ cls += state.answerLog[i]==='correct' ? ' on' : ' off-wrong'; }
+    else if(i===state.qIndex){ cls+=' current'; }
+    span.className=cls;
+    span.textContent = (i<state.answerLog.length && state.answerLog[i]==='correct') ? '★' : (i<state.answerLog.length ? '★' : '☆');
+    wrap.appendChild(span);
+  }
+}
+
+function renderQuestion(){
+  const lv = LEVELS.find(l=>l.id===state.currentLevelId);
+  document.getElementById('gameTitleLabel').textContent = lv.name;
+  document.getElementById('scoreLabel').textContent = `第 ${state.qIndex+1}/${state.questions.length} 题`;
+  renderProgressStars();
+  const q = state.questions[state.qIndex];
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('qSvgWrap').innerHTML = q.svg ? q.svg : '';
+  document.getElementById('feedbackBox').className='feedback hidden';
+  document.getElementById('feedbackBox').textContent='';
+  document.getElementById('explainBox').className='explainBox hidden';
+  document.getElementById('explainBox').innerHTML='';
+  document.getElementById('nextBtn').classList.add('hidden');
+
+  const optionsBox = document.getElementById('optionsBox');
+  const inputBox = document.getElementById('inputBox');
+  if(q.type==='mc'){
+    inputBox.classList.add('hidden');
+    optionsBox.classList.remove('hidden');
+    optionsBox.innerHTML='';
+    q.options.forEach(opt=>{
+      const b = document.createElement('button');
+      b.className='optBtn';
+      b.textContent = opt.label;
+      b.onclick = ()=>submitMCAnswer(opt, b);
+      optionsBox.appendChild(b);
+    });
+  } else {
+    optionsBox.classList.add('hidden');
+    inputBox.classList.remove('hidden');
+    document.getElementById('answerInput').value='';
+    document.getElementById('answerInput').disabled=false;
+    document.getElementById('answerInput').placeholder = `请输入数字（单位：${q.unit}）`;
+  }
+}
+
+function lockOptions(){
+  document.querySelectorAll('.optBtn').forEach(b=>b.classList.add('disabledOpt'));
+}
+
+function showFeedback(isCorrect, correctText){
+  const fb = document.getElementById('feedbackBox');
+  fb.classList.remove('hidden');
+  if(isCorrect){
+    fb.className='feedback correct';
+    fb.textContent = `✅ 回答正确！`;
+  } else {
+    fb.className='feedback wrong';
+    fb.textContent = `❌ 回答错误。正确答案是 ${correctText}`;
+  }
+}
+
+function showExplanation(explanation){
+  const box = document.getElementById('explainBox');
+  if(!explanation) return;
+  box.className='explainBox';
+  box.innerHTML = `<b>📘 解题过程：</b>${explanation}`;
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function recordAnswer(isCorrect){
+  state.answerLog.push(isCorrect?'correct':'wrong');
+  if(isCorrect) state.correctCount++;
+  state.totalAnsweredAllTime++;
+  if(isCorrect) state.totalCorrectAllTime++;
+  renderProgressStars();
+}
+
+function submitMCAnswer(opt, btnEl){
+  lockOptions();
+  const q = state.questions[state.qIndex];
+  document.querySelectorAll('.optBtn').forEach((b,i)=>{
+    if(q.options[i].correct) b.classList.add('correct');
+  });
+  if(!opt.correct) btnEl.classList.add('wrong');
+  const correctOpt = q.options.find(o=>o.correct);
+  playTone(opt.correct);
+  showFeedback(opt.correct, correctOpt.label);
+  showExplanation(q.explanation);
+  recordAnswer(opt.correct);
+}
+
+function submitInputAnswer(){
+  const input = document.getElementById('answerInput');
+  const val = parseFloat(input.value);
+  const q = state.questions[state.qIndex];
+  input.disabled = true;
+  const ok = !isNaN(val) && Math.abs(val - q.correctValue) <= q.tolerance;
+  playTone(ok);
+  showFeedback(ok, `${fmt(q.correctValue)} ${q.unit}`);
+  showExplanation(q.explanation);
+  recordAnswer(ok);
+}
+
+function nextQuestion(){
+  state.qIndex++;
+  if(state.qIndex>=state.questions.length){
+    finishLevel();
+  } else {
+    renderQuestion();
+  }
+}
+
+function finishLevel(){
+  const lv = LEVELS.find(l=>l.id===state.currentLevelId);
+  const btnRow = document.getElementById('resultBtnRow');
+  btnRow.innerHTML='';
+
+  if(lv.isFinal){
+    document.getElementById('resultTitle').textContent = '🌟 终极挑战完成！';
+    document.getElementById('resultScore').textContent = `${state.correctCount} / ${state.questions.length}`;
+    document.getElementById('resultBadgeWrap').innerHTML =
+      `<span class="badge ${state.correctCount>=4?'pass':(state.correctCount>=3?'mid':'fail')}">挑战完成</span>`;
+    const retryBtn = document.createElement('button');
+    retryBtn.className='btn ghost'; retryBtn.textContent='重新挑战';
+    retryBtn.onclick = ()=>startLevel(6);
+    const certBtn = document.createElement('button');
+    certBtn.className='btn gold'; certBtn.textContent='领取结业证书 🎓';
+    certBtn.onclick = ()=>{ state.totalTimeMs = Date.now()-state.sessionStartTime; show('screen-nameinput'); };
+    btnRow.appendChild(retryBtn); btnRow.appendChild(certBtn);
+  } else {
+    const prevStars = state.levelStars[lv.id]||0;
+    state.levelStars[lv.id] = Math.max(prevStars, state.correctCount);
+    document.getElementById('resultTitle').textContent = state.correctCount>=4 ? '🎉 表现优异！' : (state.correctCount>=3 ? '👍 达标了！' : '再接再厉');
+    document.getElementById('resultScore').textContent = starString(state.correctCount);
+    const badgeClass = state.correctCount>=4?'pass':(state.correctCount>=3?'mid':'fail');
+    const badgeText = state.correctCount>=3 ? `获得 ${state.correctCount} 颗星` : `仅 ${state.correctCount} 颗星，未达 3 星门槛`;
+    document.getElementById('resultBadgeWrap').innerHTML = `<span class="badge ${badgeClass}">${badgeText}</span>` +
+      (finalUnlocked() ? `<br><br>🎉 终极挑战已解锁！` : '');
+    const mapBtn = document.createElement('button');
+    mapBtn.className='btn ghost'; mapBtn.textContent='返回地图';
+    mapBtn.onclick = goToMap;
+    const retryBtn = document.createElement('button');
+    retryBtn.className='btn'; retryBtn.textContent='重新挑战本关';
+    retryBtn.onclick = ()=>startLevel(lv.id);
+    btnRow.appendChild(mapBtn); btnRow.appendChild(retryBtn);
+  }
+  show('screen-levelresult');
+}
+
+function generateCertificate(){
+  const nameInput = document.getElementById('studentName');
+  const name = (nameInput.value||'').trim() || '同学';
+  const pct = state.totalAnsweredAllTime ? roundTo(100*state.totalCorrectAllTime/state.totalAnsweredAllTime,0) : 0;
+  const totalSec = Math.max(1, Math.round(state.totalTimeMs/1000));
+  const mm = Math.floor(totalSec/60), ss = totalSec%60;
+  const timeStr = `${mm}分${ss.toString().padStart(2,'0')}秒`;
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
+  document.getElementById('certName').textContent = name;
+  document.getElementById('certScore').textContent = `${pct}%`;
+  document.getElementById('certTime').textContent = timeStr;
+  document.getElementById('certDate').textContent = dateStr;
+  show('screen-certificate');
+}
+
+function restartGame(){
+  state = {currentLevelId:1, levelStars:{1:0,2:0,3:0,4:0,5:0}, questions:[], qIndex:0, correctCount:0, answerLog:[],
+    totalCorrectAllTime:0, totalAnsweredAllTime:0, sessionStartTime: Date.now(), totalTimeMs:0};
+  goToMap();
+}
+
+/* ---------- 音效（Web Audio 合成，无需外部文件）---------- */
+let audioCtx;
+function playTone(isCorrect){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value = isCorrect ? 880 : 220;
+    o.type = isCorrect ? 'sine' : 'sawtooth';
+    g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.25);
+    o.start(); o.stop(audioCtx.currentTime+0.25);
+  }catch(e){/* 静默失败，不影响游戏 */}
+}
+
+/* ---------- 背景星空动画 ---------- */
+(function starfield(){
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let stars=[], w,h;
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const count = Math.floor((w*h)/9000);
+    stars = Array.from({length:count}, ()=>({
+      x:Math.random()*w, y:Math.random()*h, r:Math.random()*1.4+0.2,
+      speed:Math.random()*0.3+0.05, hue: Math.random()<0.5?'46,230,230':'164,91,255'
+    }));
+  }
+  function draw(){
+    ctx.fillStyle='#070b16';
+    ctx.fillRect(0,0,w,h);
+    stars.forEach(s=>{
+      s.y += s.speed;
+      if(s.y>h){ s.y=0; s.x=Math.random()*w; }
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${s.hue},${0.5+Math.random()*0.5})`;
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize(); draw();
+})();
+</script>
+</body>
+</html>
