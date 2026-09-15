@@ -38,6 +38,47 @@
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
+            transition: padding 0.3s ease;
+        }
+        #ui-container.collapsed {
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        #panel-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-height: 500px;
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+        }
+        #ui-container.collapsed #panel-content {
+            max-height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #panel-toggle {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            padding: 5px 18px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #bae6fd;
+            z-index: 11;
+            user-select: none;
+            white-space: nowrap;
+        }
+        #panel-toggle:hover {
+            color: #ffffff;
         }
         .controls-row {
             display: flex;
@@ -167,6 +208,8 @@
     <div id="attribution-mark" style="position:fixed; top:6px; right:10px; z-index:10; font-size:0.55rem; color:rgba(56,189,248,0.18); pointer-events:none; user-select:none;">峇株吧辖华仁中学蔡逸众制作</div>
 
     <div id="ui-container">
+        <div id="panel-toggle">▼ 收起面板</div>
+        <div id="panel-content">
         <div id="moon-info" style="width:100%; max-width:1000px; text-align:center; font-size:0.75rem; color:#bae6fd; opacity:0.9; margin-bottom:10px; letter-spacing:0.3px;">
             🌙 月球逆时针公转地球 · 白道与黄道成 <strong>5°</strong> 夹角 · 每公转 <strong>3</strong> 圈（约91天）地球恰好进入下一季节 · 本季进度：第 <span id="moon-lap-count">1</span> / 3 圈
             <span id="eclipse-status" style="display:inline-block; margin-left:8px; color:#fbbf24; font-weight:700;"></span>
@@ -188,6 +231,7 @@
             <!-- Markers injected via JS to ensure exact alignment -->
             <div id="timeline-markers"></div>
             <input type="range" id="time-slider" min="0" max="365" step="0.5" value="0">
+        </div>
         </div>
     </div>
 
@@ -509,6 +553,16 @@
         playBtn.addEventListener('click', () => {
             isPlaying = !isPlaying;
             playBtn.innerText = isPlaying ? "暂停 (Pause)" : "播放 (Play)";
+        });
+
+        // Collapsible control panel: the tab above the panel toggles it open/closed
+        const uiContainer = document.getElementById('ui-container');
+        const panelToggleBtn = document.getElementById('panel-toggle');
+        let panelCollapsed = false;
+        panelToggleBtn.addEventListener('click', () => {
+            panelCollapsed = !panelCollapsed;
+            uiContainer.classList.toggle('collapsed', panelCollapsed);
+            panelToggleBtn.innerText = panelCollapsed ? '▲ 展开面板' : '▼ 收起面板';
         });
 
         // Toggle Moon + its orbit ring (and the ecliptic reference ring) on/off
