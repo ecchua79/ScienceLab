@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成语历史风云录 - 狮虎拔河对决</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lion: {
+                            light: '#fef2f2',
+                            DEFAULT: '#dc2626',
+                            dark: '#991b1b',
+                            accent: '#f59e0b'
+                        },
+                        tiger: {
+                            light: '#eff6ff',
+                            DEFAULT: '#2563eb',
+                            dark: '#1e40af',
+                            accent: '#06b6d4'
+                        }
+                    },
+                    keyframes: {
+                        shockwave: {
+                            '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.8)' },
+                            '70%': { transform: 'scale(1.05)', boxShadow: '0 0 0 20px rgba(255, 255, 255, 0)' },
+                            '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' }
+                        },
+                        vibrate: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '20%, 60%': { transform: 'translateX(-4px)' },
+                            '40%, 80%': { transform: 'translateX(4px)' }
+                        },
+                        pulseWarning: {
+                            '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                            '50%': { opacity: 0.4, transform: 'scale(1.1)' }
+                        }
+                    },
+                    animation: {
+                        shockwave: 'shockwave 0.6s ease-out',
+                        vibrate: 'vibrate 0.3s ease-in-out infinite',
+                        pulseWarning: 'pulseWarning 0.8s ease-in-out infinite'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .font-serif-title {
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .tug-bar-shadow {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+        }
+
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
+        }
+
+        /* Responsive custom scrollbar for panel inner containers */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden bg-slate-950">
+
+    <!-- Top Tug-of-War Header Bar -->
+    <header class="w-full bg-slate-900 border-b border-slate-800 p-2 sm:p-3 px-2 sm:px-4 shadow-2xl relative z-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex flex-col gap-1.5 sm:gap-2">
+            <!-- Top info bar -->
+            <div class="flex justify-between items-center text-xs sm:text-sm md:text-base font-bold">
+                <!-- Left Lion Team Info -->
+                <div id="lion-header-info" class="flex items-center gap-1 sm:gap-2 text-red-500 transition-all duration-300">
+                    <span class="text-base sm:text-2xl">🦁</span>
+                    <span id="lion-team-display-name" class="font-serif-title text-sm sm:text-lg md:text-xl tracking-wider truncate max-w-[70px] sm:max-w-none">狮队</span>
+                    <span id="lion-warning-badge" class="hidden animate-pulseWarning text-amber-400 text-xs sm:text-lg">⚠️</span>
+                    <span class="bg-red-950/80 border border-red-700/60 px-2 sm:px-3 py-0.5 rounded-full text-red-300 text-[10px] sm:text-xs md:text-sm">
+                        比分: <span id="lion-score-text" class="text-sm sm:text-lg font-black text-red-400">0</span>
+                    </span>
+                </div>
+
+                <!-- Center Status & Target Badge -->
+                <div class="text-center flex flex-col items-center px-1">
+                    <span class="text-[9px] sm:text-xs text-slate-400 uppercase tracking-widest font-semibold hidden sm:inline">成语双人拔河赛</span>
+                    <div id="diff-status-badge" class="bg-slate-800 border border-slate-700 text-amber-300 px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow-md whitespace-nowrap">
+                        分差: 0 (领先5分胜)
+                    </div>
+                </div>
+
+                <!-- Right Tiger Team Info -->
+                <div id="tiger-header-info" class="flex items-center gap-1 sm:gap-2 text-blue-500 transition-all duration-300">
+                    <span id="tiger-warning-badge" class="hidden animate-pulseWarning text-amber-400 text-xs sm:text-lg">⚠️</span>
+                    <span class="bg-blue-950/80 border border-blue-700/60 px-2 sm:px-3 py-0.5 rounded-full text-blue-300 text-[10px] sm:text-xs md:text-sm">
+                        比分: <span id="tiger-score-text" class="text-sm sm:text-lg font-black text-blue-400">0</span>
+                    </span>
+                    <span id="tiger-team-display-name" class="font-serif-title text-sm sm:text-lg md:text-xl tracking-wider truncate max-w-[70px] sm:max-w-none">虎队</span>
+                    <span class="text-base sm:text-2xl">🐯</span>
+                </div>
+            </div>
+
+            <!-- Health/Tug-of-War Bar Container -->
+            <div class="relative w-full h-5 sm:h-7 bg-slate-950 rounded-full p-0.5 sm:p-1 border-2 border-slate-800 tug-bar-shadow overflow-hidden flex items-center">
+                <!-- Red Progress Fill -->
+                <div id="tug-red-fill" class="h-full bg-gradient-to-r from-red-700 via-red-600 to-rose-500 rounded-l-full transition-all duration-500 ease-out flex justify-end items-center pr-1 sm:pr-2" style="width: 50%;">
+                    <i class="fa-solid fa-angle-left text-white/50 text-[10px] sm:text-xs animate-pulse"></i>
+                </div>
+                
+                <!-- Center Dynamic Divider Line -->
+                <div id="tug-divider" class="absolute top-0 bottom-0 w-1.5 sm:w-2 bg-white shadow-[0_0_12px_#fff] z-10 transition-all duration-500 ease-out transform -translate-x-1/2 flex items-center justify-center" style="left: 50%;">
+                    <div class="w-3 h-3 sm:w-4 sm:h-4 bg-amber-400 rounded-full border-2 border-slate-900 shadow-md"></div>
+                </div>
+
+                <!-- Blue Progress Fill -->
+                <div id="tug-blue-fill" class="h-full bg-gradient-to-l from-blue-700 via-blue-600 to-cyan-500 rounded-r-full transition-all duration-500 ease-out flex justify-start items-center pl-1 sm:pl-2" style="width: 50%;">
+                    <i class="fa-solid fa-angle-right text-white/50 text-[10px] sm:text-xs animate-pulse"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Interactive Area: Always Split Screen Side-by-Side (2 Columns) -->
+    <main class="flex-1 grid grid-cols-2 gap-1.5 sm:gap-3 p-1.5 sm:p-3 overflow-hidden relative min-h-0">
+        
+        <!-- ================= LEFT: LION TEAM PANEL ================= -->
+        <section id="lion-panel" class="bg-slate-900/90 border-2 border-red-900/60 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 flex flex-col justify-between shadow-xl relative overflow-hidden transition-all duration-300 min-h-0 h-full">
+            <!-- Background Decorative Watermark -->
+            <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none text-red-500 font-serif-title text-7xl sm:text-9xl">狮</div>
+            
+            <!-- Intrusion Roar Overlay (Triggered when Tiger achieves 3+ streak) -->
+            <div id="lion-roar-overlay" class="hidden absolute inset-0 bg-blue-950/85 backdrop-blur-sm z-40 flex flex-col items-center justify-center p-4 rounded-xl border-4 border-blue-500 animate-fadeIn pointer-events-none text-center">
+                <div class="text-7xl sm:text-9xl transform -scale-x-1 animate-bounce">🐯</div>
+                <div class="bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-black text-sm sm:text-xl px-4 py-2 rounded-2xl shadow-2xl border-2 border-cyan-300 mt-2 font-serif-title animate-vibrate">
+                    🐯 猛虎咆哮！对方连对 3 题！
+                </div>
+            </div>
+
+            <!-- Top Team Header -->
+            <div class="flex justify-between items-center border-b border-red-900/40 pb-1.5 mb-1.5 flex-shrink-0">
+                <div class="min-w-0 flex-1 pr-1">
+                    <h2 class="text-sm sm:text-lg font-bold text-red-400 font-serif-title flex items-center gap-1 truncate">
+                        <span>🦁</span> <span id="lion-team-name-card" class="truncate">狮队</span>
+                        <span id="lion-streak-badge" class="hidden bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🔥 3连对</span>
+                    </h2>
+                    <div id="lion-players-list" class="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">队员: 未填写</div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span id="lion-round-badge" class="bg-red-950 border border-red-800 text-red-300 text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 rounded-full font-semibold">
+                        第 1 轮
+                    </span>
+                    <div class="text-[10px] sm:text-xs text-slate-400 mt-0.5">进度: <span id="lion-q-num" class="text-red-400 font-bold">1</span>/50</div>
+                </div>
+            </div>
+
+            <!-- Question & Scrollable Options Area -->
+            <div class="flex-1 min-h-0 flex flex-col my-1 relative overflow-y-auto custom-scrollbar pr-0.5">
+                <!-- Question Box -->
+                <div id="lion-q-box" class="bg-slate-950/80 border border-slate-800 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 shadow-inner mb-2 flex-shrink-0">
+                    <span class="text-[10px] sm:text-xs font-bold text-red-400 tracking-wider uppercase mb-0.5 block">历史典故</span>
+                    <p id="lion-q-text" class="text-xs sm:text-sm md:text-base text-slate-100 font-medium leading-relaxed">
+                        加载题目中...
+                    </p>
+                </div>
+
+                <!-- Choices Grid (Single column inside split screen for readability) -->
+                <div id="lion-options-container" class="grid grid-cols-1 gap-1.5 sm:gap-2 pb-1">
+                    <!-- Dynamic option buttons inserted here -->
+                </div>
+
+                <!-- Locking / Countdown Overlay for Wrong Answer -->
+                <div id="lion-lock-overlay" class="hidden absolute inset-0 bg-slate-950/95 rounded-xl border-2 border-red-600/80 p-2.5 sm:p-4 flex flex-col justify-between z-30 animate-fadeIn overflow-y-auto custom-scrollbar">
+                    <div class="space-y-1.5 overflow-y-auto pr-0.5">
+                        <div class="flex items-center gap-1.5 text-red-400 font-bold text-xs sm:text-sm border-b border-red-900/50 pb-1">
+                            <i class="fa-solid fa-circle-xmark text-sm sm:text-base"></i>
+                            <span>回答错误！冻结 10 秒</span>
+                        </div>
+                        <div class="text-xs text-slate-300">
+                            <span class="text-slate-400">正确答案:</span> 
+                            <span id="lion-correct-ans-text" class="font-bold text-emerald-400 text-xs sm:text-sm">--</span>
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                            <span class="font-bold text-amber-400 block mb-0.5">💡 典故解析：</span>
+                            <p id="lion-explanation-text">解析加载中...</p>
+                        </div>
+                    </div>
+
+                    <!-- Countdown Progress Bar -->
+                    <div class="mt-2 flex-shrink-0">
+                        <div class="flex justify-between text-[10px] sm:text-xs text-slate-400 mb-0.5 font-semibold">
+                            <span>等待恢复作答...</span>
+                            <span id="lion-countdown-num" class="text-red-400 font-bold">10s</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full overflow-hidden">
+                            <div id="lion-countdown-bar" class="bg-red-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 50 Questions Completed Reload Modal -->
+                <div id="lion-reload-overlay" class="hidden absolute inset-0 bg-slate-950/95 rounded-xl border-2 border-amber-500/80 p-4 flex flex-col items-center justify-center text-center z-30">
+                    <div class="text-3xl sm:text-4xl mb-1">🎉</div>
+                    <h3 class="text-sm sm:text-lg font-bold text-amber-400 font-serif-title mb-1">50题答完！</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-300 mb-4 leading-relaxed">
+                        重答将继续为团队贡献！<br>
+                        <span class="text-rose-400 font-semibold">注意：对手加 1 分！</span>
+                    </p>
+                    <button id="lion-reload-btn" onclick="game.reloadTeam('lion')" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg border border-amber-400/30 transition transform active:scale-95 text-xs">
+                        重新答题 (对手+1分)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer indicator -->
+            <div class="text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800/80 pt-1 flex-shrink-0 flex justify-between items-center">
+                <span id="lion-round-footer" class="truncate max-w-[50%]">狮队战力全开</span>
+                <span id="lion-status-tag" class="text-red-400/80 font-medium truncate">答对即推进</span>
+            </div>
+        </section>
+
+
+        <!-- ================= RIGHT: TIGER TEAM PANEL ================= -->
+        <section id="tiger-panel" class="bg-slate-900/90 border-2 border-blue-900/60 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 flex flex-col justify-between shadow-xl relative overflow-hidden transition-all duration-300 min-h-0 h-full">
+            <!-- Background Decorative Watermark -->
+            <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none text-blue-500 font-serif-title text-7xl sm:text-9xl">虎</div>
+
+            <!-- Intrusion Roar Overlay (Triggered when Lion achieves 3+ streak) -->
+            <div id="tiger-roar-overlay" class="hidden absolute inset-0 bg-red-950/85 backdrop-blur-sm z-40 flex flex-col items-center justify-center p-4 rounded-xl border-4 border-red-500 animate-fadeIn pointer-events-none text-center">
+                <div class="text-7xl sm:text-9xl animate-bounce">🦁</div>
+                <div class="bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-sm sm:text-xl px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-300 mt-2 font-serif-title animate-vibrate">
+                    🦁 雄狮咆哮！对方连对 3 题！
+                </div>
+            </div>
+
+            <!-- Top Team Header -->
+            <div class="flex justify-between items-center border-b border-blue-900/40 pb-1.5 mb-1.5 flex-shrink-0">
+                <div class="min-w-0 flex-1 pr-1">
+                    <h2 class="text-sm sm:text-lg font-bold text-blue-400 font-serif-title flex items-center gap-1 truncate">
+                        <span>🐯</span> <span id="tiger-team-name-card" class="truncate">虎队</span>
+                        <span id="tiger-streak-badge" class="hidden bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🔥 3连对</span>
+                    </h2>
+                    <div id="tiger-players-list" class="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">队员: 未填写</div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span id="tiger-round-badge" class="bg-blue-950 border border-blue-800 text-blue-300 text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5 rounded-full font-semibold">
+                        第 1 轮
+                    </span>
+                    <div class="text-[10px] sm:text-xs text-slate-400 mt-0.5">进度: <span id="tiger-q-num" class="text-blue-400 font-bold">1</span>/50</div>
+                </div>
+            </div>
+
+            <!-- Question & Scrollable Options Area -->
+            <div class="flex-1 min-h-0 flex flex-col my-1 relative overflow-y-auto custom-scrollbar pr-0.5">
+                <!-- Question Box -->
+                <div id="tiger-q-box" class="bg-slate-950/80 border border-slate-800 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 shadow-inner mb-2 flex-shrink-0">
+                    <span class="text-[10px] sm:text-xs font-bold text-blue-400 tracking-wider uppercase mb-0.5 block">历史典故</span>
+                    <p id="tiger-q-text" class="text-xs sm:text-sm md:text-base text-slate-100 font-medium leading-relaxed">
+                        加载题目中...
+                    </p>
+                </div>
+
+                <!-- Choices Grid -->
+                <div id="tiger-options-container" class="grid grid-cols-1 gap-1.5 sm:gap-2 pb-1">
+                    <!-- Dynamic option buttons inserted here -->
+                </div>
+
+                <!-- Locking / Countdown Overlay for Wrong Answer -->
+                <div id="tiger-lock-overlay" class="hidden absolute inset-0 bg-slate-950/95 rounded-xl border-2 border-blue-600/80 p-2.5 sm:p-4 flex flex-col justify-between z-30 animate-fadeIn overflow-y-auto custom-scrollbar">
+                    <div class="space-y-1.5 overflow-y-auto pr-0.5">
+                        <div class="flex items-center gap-1.5 text-blue-400 font-bold text-xs sm:text-sm border-b border-blue-900/50 pb-1">
+                            <i class="fa-solid fa-circle-xmark text-sm sm:text-base"></i>
+                            <span>回答错误！冻结 10 秒</span>
+                        </div>
+                        <div class="text-xs text-slate-300">
+                            <span class="text-slate-400">正确答案:</span> 
+                            <span id="tiger-correct-ans-text" class="font-bold text-emerald-400 text-xs sm:text-sm">--</span>
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                            <span class="font-bold text-amber-400 block mb-0.5">💡 典故解析：</span>
+                            <p id="tiger-explanation-text">解析加载中...</p>
+                        </div>
+                    </div>
+
+                    <!-- Countdown Progress Bar -->
+                    <div class="mt-2 flex-shrink-0">
+                        <div class="flex justify-between text-[10px] sm:text-xs text-slate-400 mb-0.5 font-semibold">
+                            <span>等待恢复作答...</span>
+                            <span id="tiger-countdown-num" class="text-blue-400 font-bold">10s</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full overflow-hidden">
+                            <div id="tiger-countdown-bar" class="bg-blue-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 50 Questions Completed Reload Modal -->
+                <div id="tiger-reload-overlay" class="hidden absolute inset-0 bg-slate-950/95 rounded-xl border-2 border-amber-500/80 p-4 flex flex-col items-center justify-center text-center z-30">
+                    <div class="text-3xl sm:text-4xl mb-1">🎉</div>
+                    <h3 class="text-sm sm:text-lg font-bold text-amber-400 font-serif-title mb-1">50题答完！</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-300 mb-4 leading-relaxed">
+                        重答将继续为团队贡献！<br>
+                        <span class="text-rose-400 font-semibold">注意：对手加 1 分！</span>
+                    </p>
+                    <button id="tiger-reload-btn" onclick="game.reloadTeam('tiger')" class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg border border-cyan-400/30 transition transform active:scale-95 text-xs">
+                        重新答题 (对手+1分)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer indicator -->
+            <div class="text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800/80 pt-1 flex-shrink-0 flex justify-between items-center">
+                <span id="tiger-round-footer" class="truncate max-w-[50%]">虎队气贯长虹</span>
+                <span id="tiger-status-tag" class="text-blue-400/80 font-medium truncate">答对即推进</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Controls & Quick Nav -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-1.5 px-3 flex justify-between items-center text-[11px] sm:text-xs text-slate-400 z-10 flex-shrink-0">
+        <button onclick="ui.showModal('instructions-modal')" class="hover:text-amber-300 transition flex items-center gap-1">
+            <i class="fa-solid fa-circle-info"></i> <span class="hidden sm:inline">玩法说明 &</span> 队员设置
+        </button>
+        <span class="hidden sm:inline text-slate-500">成语典故拔河赛 · 领先5分斩获胜利</span>
+        <button onclick="game.confirmReset()" class="hover:text-rose-400 transition flex items-center gap-1">
+            <i class="fa-solid fa-rotate-left"></i> 重置对局
+        </button>
+    </footer>
+
+    <!-- MODAL 1: Instructions & Name Entry Modal -->
+    <div id="instructions-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold font-serif-title text-amber-400 mb-4 text-center border-b border-slate-800 pb-3">
+                ⚔️ 游戏规则与队伍设置
+            </h2>
+            
+            <!-- Rules Text -->
+            <div class="space-y-3 text-xs md:text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 mb-6">
+                <p class="flex items-start gap-2">
+                    <span class="text-amber-400 font-bold">1. 左右独立分屏：</span>
+                    狮队（红）与虎队（蓝）各自独立答题，互不干涉。
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-amber-400 font-bold">2. 拔河推进机制：</span>
+                    狮队答对，分界线向右推进（对手失地）；虎队答对，分界线向左推进。
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-amber-400 font-bold">3. 胜负与告急：</span>
+                    率先<strong class="text-amber-300">领先对方 5 分</strong>即可夺得最终胜利！分差达3分时落后方触发 ⚠️ 告急警报！
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-amber-400 font-bold">4. 答错惩罚：</span>
+                    答错将展示正确答案与解析，并进入<strong class="text-rose-400">10秒冻结倒计时</strong>。
+                </p>
+                <p class="flex items-start gap-2">
+                    <span class="text-amber-400 font-bold">5. 50题轮换：</span>
+                    答完50题后可点击「重新答题」，对手获得1分，己方题目重新打乱开启新一轮。
+                </p>
+            </div>
+
+            <!-- Player Names Form -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Lion Team Inputs -->
+                <div class="bg-red-950/30 border border-red-900/60 p-4 rounded-xl">
+                    <h3 class="text-red-400 font-bold font-serif-title text-base mb-3 flex items-center gap-2">
+                        🦁 狮队 (红色) 队员设置
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="lion-p1" placeholder="队员 1 姓名" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <input type="text" id="lion-p2" placeholder="队员 2 姓名 (可选)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <input type="text" id="lion-p3" placeholder="队员 3 姓名 (可选)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                    </div>
+                </div>
+
+                <!-- Tiger Team Inputs -->
+                <div class="bg-blue-950/30 border border-blue-900/60 p-4 rounded-xl">
+                    <h3 class="text-blue-400 font-bold font-serif-title text-base mb-3 flex items-center gap-2">
+                        🐯 虎队 (蓝色) 队员设置
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="tiger-p1" placeholder="队员 1 姓名" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="tiger-p2" placeholder="队员 2 姓名 (可选)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                        <input type="text" id="tiger-p3" placeholder="队员 3 姓名 (可选)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start / Save Buttons -->
+            <div class="flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button onclick="ui.saveNamesAndStart()" class="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-8 py-2.5 rounded-xl shadow-lg transition transform active:scale-95 text-sm">
+                    保存设置并开始比赛 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL 2: Victory Screen Overlay -->
+    <div id="victory-modal" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-xl w-full p-8 shadow-2xl text-center relative overflow-hidden">
+            <!-- Background victory aura -->
+            <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="text-6xl mb-3 animate-bounce">🏆</div>
+            <h2 id="winner-team-title" class="text-3xl md:text-4xl font-black font-serif-title text-amber-400 mb-1">
+                狮队 获得最终胜利！
+            </h2>
+            <p id="winner-score-display" class="text-slate-300 font-bold text-lg mb-4">
+                最终比分: 15 - 10
+            </p>
+
+            <!-- Winning Team Players Display -->
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-6">
+                <span class="text-xs text-amber-400/80 font-bold uppercase tracking-wider block mb-1">获胜战队功臣</span>
+                <p id="winner-members-text" class="text-base text-slate-200 font-semibold">
+                    张三, 李四, 王五
+                </p>
+            </div>
+
+            <!-- Inspirational Quotes Box -->
+            <div class="space-y-2 mb-8 text-left bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                <div class="text-xs md:text-sm">
+                    <span class="text-emerald-400 font-bold">🌟 胜者嘉奖：</span>
+                    <span id="quote-winner" class="text-slate-200 italic">"博古通今，独占鳌头！"</span>
+                </div>
+                <div class="text-xs md:text-sm border-t border-slate-800/80 pt-2">
+                    <span class="text-amber-400 font-bold">💪 败者励志：</span>
+                    <span id="quote-loser" class="text-slate-300 italic">"胜败乃兵家常事，百折不挠方显英雄本色！"</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Reset Names, Replay, Instructions -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button onclick="game.resetNames()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold py-2.5 px-3 rounded-xl transition text-xs md:text-sm">
+                    重置姓名
+                </button>
+                <button onclick="game.restartMatch()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 px-3 rounded-xl shadow-lg transition transform active:scale-95 text-xs md:text-sm">
+                    再来一局
+                </button>
+                <button onclick="ui.showModal('instructions-modal')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold py-2.5 px-3 rounded-xl transition text-xs md:text-sm">
+                    玩法说明
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        /* Web Audio API Synthesizer for retro arcade sound effects */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playRoar(team) {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                // Core low-frequency growl oscillator
+                const osc = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                
+                // LFO for growl vibration
+                const lfo = this.ctx.createOscillator();
+                const lfoGain = this.ctx.createGain();
+                
+                lfo.frequency.value = 24; // 24Hz rumble
+                lfoGain.gain.value = team === 'lion' ? 55 : 70;
+                
+                lfo.connect(osc.frequency);
+                
+                osc.type = 'sawtooth';
+                const startFreq = team === 'lion' ? 190 : 230;
+                const endFreq = team === 'lion' ? 65 : 80;
+                
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(endFreq, now + 1.2);
+                
+                oscGain.gain.setValueAtTime(0.01, now);
+                oscGain.gain.linearRampToValueAtTime(0.6, now + 0.12);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+                
+                osc.connect(oscGain);
+                oscGain.connect(this.ctx.destination);
+                
+                lfo.start(now);
+                osc.start(now);
+                
+                lfo.stop(now + 1.2);
+                osc.stop(now + 1.2);
+            }
+
+            playCorrect() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.2); // C6
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playWrong() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playVictory() {
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const now = this.ctx.currentTime + (i * 0.12);
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                });
+            }
+        }
+
+        const sound = new SoundFX();
+
+        const QUESTION_BANK = [
+            { id: 1, story: "巨鹿之战中，项羽率领楚军渡过漳河后，破沉船只，砸碎炊具，烧毁营舍，以示有进无退、决一死战的决心。", options: ["破釜沉舟", "背水一战", "背城借一", "孤注一掷"], correct: "破釜沉舟", explanation: "出自《史记·项羽本纪》。项羽以此激发士气，最终大破秦军主力。" },
+            { id: 2, story: "春秋时期，越王勾践被吴国击败后，睡觉睡在柴草上，悬挂苦胆随时品尝，时刻提醒自己不忘国耻。", options: ["卧薪尝胆", "闻鸡起舞", "悬梁刺股", "苦心孤诣"], correct: "卧薪尝胆", explanation: "出自《史记·越王勾践世家》。形容人刻苦自励，立志发愤图强。" },
+            { id: 3, story: "战国时赵国名将赵奢之子赵括，自幼熟读兵书，谈论兵法头头是道，但在长平之战中缺乏实战经验，致使赵军惨败。", options: ["纸上谈兵", "盲人摸象", "画饼充饥", "闭门造车"], correct: "纸上谈兵", explanation: "出自《史记·廉颇蔺相如列传》。比喻空谈理论，不能解决实际问题。" },
+            { id: 4, story: "楚汉相争后期，项羽被刘邦大军困于垓下，夜间听到四周汉营皆唱楚地民歌，以为楚地已全被汉军占领。", options: ["四面楚歌", "十面埋伏", "草木皆兵", "树倒猢狲散"], correct: "四面楚歌", explanation: "出自《史记·项羽本纪》。比喻陷入孤立无援、四面受敌的困境。" },
+            { id: 5, story: "东晋时期，祖逖与刘琨半夜听到公鸡鸣叫，便立即起床拔剑练武，誓言报效国家。", options: ["闻鸡起舞", "发愤图强", "枕戈待旦", "精忠报国"], correct: "闻鸡起舞", explanation: "出自《晋书·祖逖传》。形容有志之士及时奋发努力。" },
+            { id: 6, story: "战国时赵国名将廉颇因妒忌蔺相如位居己上，蔺相如为了国家利益屡屡退让。廉颇得知后深受感动，脱去上衣背负荆条登门请罪。", options: ["负荆请罪", "程门立雪", "完璧归赵", "退避三舍"], correct: "负荆请罪", explanation: "出自《史记·廉颇蔺相如列传》。表示真诚向人道歉并请求惩罚。" },
+            { id: 7, story: "蔺相如奉命携带和氏璧出使秦国，面对秦王的耍弄与不守信用，他凭借智谋与胆识将宝璧完整带回赵国。", options: ["完璧归赵", "买椟还珠", "价值连城", "价值千金"], correct: "完璧归赵", explanation: "出自《史记·廉颇蔺相如列传》。比喻把原物完好无损地归还给原主。" },
+            { id: 8, story: "宋代学者杨时和游酢去拜访老师程颐，正遇上程颐在打盹，两人便恭敬地站在门外静候，此时大雪纷飞，积雪一尺多厚。", options: ["程门立雪", "尊师重道", "尊师爱徒", "断臂求法"], correct: "程门立雪", explanation: "出自《宋史·杨时传》。形容尊敬师长、虔诚求学。" },
+            { id: 9, story: "战国时期楚国有人过江时宝剑掉入水中，他便在船舷上刻下记号，等船停靠后沿着记号下水寻找。", options: ["刻舟求剑", "按图索骥", "守株待兔", "缘木求鱼"], correct: "刻舟求剑", explanation: "出自《吕氏春秋·察今》。比喻不懂得根据客观情况的变化而灵活处理。" },
+            { id: 10, story: "齐宣王喜欢听吹竽，要求三百人合奏，南郭先生不会吹却混在队伍中充数；齐湣王即位后喜欢单奏，南郭先生便连夜逃走。", options: ["滥竽充数", "鱼目混珠", "以次充好", "挂羊头卖狗肉"], correct: "滥竽充数", explanation: "出自《韩非子·内储说上》。比喻没有真才实学的人混在同行中充数。" },
+            { id: 11, story: "曹操率领大军远征，行军途中士兵缺水十分口渴，曹操便指着前方说“前面有一片梅林”，士兵听后口中生津，解了干渴。", options: ["望梅止渴", "画饼充饥", "避暑消夏", "口吐莲花"], correct: "望梅止渴", explanation: "出自《世说新语·假谲》。比喻用空想来安慰自己。" },
+            { id: 12, story: "三国时期，刘邦后裔刘备为了请得隐居隆中的诸葛亮出山相助，亲自三次前往茅庐拜访。", options: ["三顾茅庐", "礼贤下士", "程门立雪", "求贤若渴"], correct: "三顾茅庐", explanation: "出自《三国志·蜀志·诸葛亮传》。比喻诚心诚意一再邀请。" },
+            { id: 13, story: "曹丕即位后嫉妒弟弟曹植的才华，逼他在七步之内作诗一首，曹植吟出了“煮豆燃豆萁，豆在釜中泣”的名句。", options: ["煮豆燃萁", "同室操戈", "骨肉相残", "手足之争"], correct: "煮豆燃萁", explanation: "出自《世说新语·文学》。比喻骨肉兄弟自相残害。" },
+            { id: 14, story: "西汉学者匡衡幼时家贫买不起蜡烛，便在墙上凿穿小孔，引隔壁家的一丝烛光来夜读。", options: ["凿壁偷光", "囊萤映雪", "悬梁刺股", "韦编三绝"], correct: "凿壁偷光", explanation: "出自《西京杂记》。形容家境贫寒但勤奋好学。" },
+            { id: 15, story: "战国苏秦读书困倦时用锥子刺大腿，汉代孙敬读书瞌睡时用绳子系头发绑在房梁上，两人最终都成为大儒。", options: ["悬梁刺股", "凿壁偷光", "囊萤映雪", "废寝忘食"], correct: "悬梁刺股", explanation: "出自《战国策》与《太平御览》。形容刻苦读书、发奋图强。" },
+            { id: 16, story: "秦朝丞相赵高为了测试朝臣是否服从自己，将一只鹿献给秦二世，并坚持声称这是一匹马。", options: ["指鹿为马", "颠倒黑白", "混淆视听", "颠倒是非"], correct: "指鹿为马", explanation: "出自《史记·秦始皇本纪》。比喻故意颠倒黑白，混淆是非。" },
+            { id: 17, story: "淝水之战中，前秦皇帝苻坚登城远眺，看到东晋军队阵容整齐，甚至把八公山上的草木都误认作是晋军伏兵。", options: ["草木皆兵", "风声鹤唳", "杯弓蛇影", "心惊肉跳"], correct: "草木皆兵", explanation: "出自《晋书·苻坚载记》。形容极度惊恐疑神疑鬼。" },
+            { id: 18, story: "东晋书法家王羲之在木板上写字，刻字工人发现墨迹渗入木板三分深，足见其笔力遒劲。", options: ["入木三分", "铁画银钩", "力透纸背", "苍劲有力"], correct: "入木三分", explanation: "出自《法书要录》。形容书法笔力极其强劲，也比喻见解深刻。" },
+            { id: 19, story: "西晋文学家左思历时十年写成《三都赋》，京城豪贵争相抄阅，导致洛阳城内的纸张一时间供不应求、价格大涨。", options: ["洛阳纸贵", "妙笔生花", "掷地有声", "誉满天下"], correct: "洛阳纸贵", explanation: "出自《晋书·左思传》。形容著作极其风行传诵一时。" },
+            { id: 20, story: "西晋赵王司马伦篡位后滥封官爵，连侍中等高官的貂尾帽子都不够用，只好用狗尾巴来凑数。", options: ["狗尾续貂", "佛头着粪", "滥竽充数", "尾大不掉"], correct: "狗尾续貂", explanation: "出自《晋书·赵王伦传》。比喻拿不好的东西接到好的东西后面，显得不相称。" },
+            { id: 21, story: "公元前209年，陈胜、吴广在大泽乡起义，砍伐树木作为兵器，举起竹竿作为旗帜，拉开了反秦序幕。", options: ["揭竿而起", "斩木为兵", "揭竿而立", "破釜沉舟"], correct: "揭竿而起", explanation: "出自《过秦论》。指人民起义反抗暴政。" },
+            { id: 22, story: "刘邦攻入咸阳后，为了安抚民心，召集关中父老宣布废除秦朝严刑峻法，只规定“杀人者死，伤人及盗抵罪”等三条法则。", options: ["约法三章", "奉公守法", "规行矩步", "令行禁止"], correct: "约法三章", explanation: "出自《史记·高祖本纪》。泛指订立简明易行的规章条款。" },
+            { id: 23, story: "战国末期平原君门客毛遂在赵国危急时自告奋勇，跟随平原君前往楚国谈判并成功促成合纵。", options: ["毛遂自荐", "自告奋勇", "当仁不让", "挺身而出"], correct: "毛遂自荐", explanation: "出自《史记·平原君虞卿列传》。比喻自告奋勇承担重任。" },
+            { id: 24, story: "汉代晋阳车胤家贫无油点灯，夏夜捕捉数十只萤火虫装入白绢囊中借光读书；孙康冬天利用雪地反射的月光夜读。", options: ["囊萤映雪", "凿壁偷光", "悬梁刺股", "牛角挂书"], correct: "囊萤映雪", explanation: "出自《晋书》。形容夜以继日勤学不倦。" },
+            { id: 25, story: "春秋时期楚国有一位叶公非常喜欢画龙，家里梁柱全刻着龙，真龙知道后亲自降临其家，叶公却吓得吓落魂魄逃跑。", options: ["叶公好龙", "表里不一", "名不副实", "口是心非"], correct: "叶公好龙", explanation: "出自《新序·杂事》。比喻表面上爱好某种事物，实际上并非真正喜爱。" },
+            { id: 26, story: "战国时杞国有个人总是担心天会塌下来、地会陷下去，整天忧心忡忡，饭吃不下，觉睡不好。", options: ["杞人忧天", "庸人自扰", "患得患失", "心惊胆战"], correct: "杞人忧天", explanation: "出自《列子·天瑞》。比喻不必要的或毫无根据的忧虑。" },
+            { id: 27, story: "战国时期燕国寿陵有一个青年到赵国邯郸去学习走路姿势，结果不仅没学会邯郸人走路，反倒把原来的步法也全忘了。", options: ["邯郸学步", "东施效颦", "削足适履", "数典忘祖"], correct: "邯郸学步", explanation: "出自《庄子·秋水》。比喻模仿别人不成，反而把原本的手艺也丢失了。" },
+            { id: 28, story: "郑国有人想去买鞋，先在家里量好了脚的尺码，到了集市上发现忘了带尺码，宁可跑回家拿尺码也不愿用脚试鞋。", options: ["郑人买履", "按图索骥", "刻舟求剑", "胶柱鼓瑟"], correct: "郑人买履", explanation: "出自《韩非子·外储说左上》。讽刺只信死条理而不顾实际的人。" },
+            { id: 29, story: "一只狐狸行走在老虎前面，借助老虎威风吓跑了森林里的百兽，而老虎却以为野兽是害怕狐狸。", options: ["狐假虎威", "仗势欺人", "狗仗人势", "羊质虎皮"], correct: "狐假虎威", explanation: "出自《战国策·楚策一》。比喻倚仗别人的势力来欺压恐吓他人。" },
+            { id: 30, story: "春秋时范氏灭亡，有人偷盗范氏的大钟，因钟太大抱不走，想砸碎钟，怕敲钟声被人听到，便捂住自己的耳朵去砸。", options: ["掩耳盗铃", "自欺欺人", "画饼充饥", "避重就轻"], correct: "掩耳盗铃", explanation: "出自《吕氏春秋·自知》。比喻自己欺骗自己。" },
+            { id: 31, story: "一只生活在废井里的青蛙对来自东海的大鳖夸耀井里的舒适，东海大鳖告诉它大海的广阔后，青蛙惊呆了。", options: ["井底之蛙", "孤陋寡闻", "夜郎自大", "盲人摸象"], correct: "井底之蛙", explanation: "出自《庄子·秋水》。比喻见识狭隘的人。" },
+            { id: 32, story: "楚国人举行祭祀比赛画蛇，一人先画完蛇，见别人还没画完，便给蛇添画上了脚，结果反而失去了奖品酒。", options: ["画蛇添足", "弄巧成拙", "多此一举", "适得其反"], correct: "画蛇添足", explanation: "出自《战国策·齐策二》。比喻做了多余的事，反而把事情办坏。" },
+            { id: 33, story: "春秋西施心口痛时皱着眉头抚摸胸口，同村丑妇东施觉得姿势很美也模仿起来，结果村里人见到了纷纷关门避开。", options: ["东施效颦", "邯郸学步", "削足适履", "生搬硬套"], correct: "东施效颦", explanation: "出自《庄子·天运》。比喻盲目模仿别人，结果适得其反。" },
+            { id: 34, story: "北山一位九十岁的老老人决心率全家挖平阻挡出行的太行、王屋两座大山，河曲智叟嘲笑他，他却说子子孙孙无穷尽。", options: ["愚公移山", "水滴石穿", "精卫填海", "坚持不懈"], correct: "愚公移山", explanation: "出自《列子·汤问》。比喻坚持不懈、不怕困难地奋斗。" },
+            { id: 35, story: "边塞一位老人的马无故逃入胡人境内，众人来慰问，老人却说“焉知非福”；后来马带回骏马，儿子骑马摔断腿，又因残疾免服兵役保全性命。", options: ["塞翁失马", "祸福相依", "因祸得福", "失之东隅"], correct: "塞翁失马", explanation: "出自《淮南子·人间训》。形容坏事在一定条件下可以变为好事。" },
+            { id: 36, story: "宋国有一个农夫在田里干活，看到一只兔子撞在树桩上折断脖子死了，便放下农具天天守在树桩旁等待再捡兔子。", options: ["守株待兔", "刻舟求剑", "按图索骥", "坐享其成"], correct: "守株待兔", explanation: "出自《韩非子·五蠹》。比喻死守狭隘经验、不知变通或企图侥幸获利。" },
+            { id: 37, story: "木工鼻祖鲁班手艺精湛绝伦，如果在鲁班门前摆弄斧头显摆木工技术，就会让人觉得不知天高地厚。", options: ["班门弄斧", "关公面前耍大刀", "自不量力", "贻笑大方"], correct: "班门弄斧", explanation: "出自《与梅圣俞书》。比喻在行家面前卖弄本领。" },
+            { id: 38, story: "唐太宗问魏征如何才能成为明君，魏征回答：“兼听则明，偏信则暗”，意指广泛听取多方意见才能看清事实。", options: ["兼听则明", "择善而从", "虚怀若谷", "集思广益"], correct: "兼听则明", explanation: "出自《资治通鉴》。指听取各方面意见才能明辨是非。" },
+            { id: 39, story: "唐太宗时期，大臣房玄龄擅长谋划决策，杜如晦擅长果断决断，二人同心协同，成为一代贤相典范。", options: ["房谋杜断", "珠联璧合", "相得益彰", "同心协力"], correct: "房谋杜断", explanation: "出自《新唐书·房玄龄传》。比喻各具专长，互相配合得当。" },
+            { id: 40, story: "春秋时期吴王阖闾让孙武训练宫女为兵，宫女们不听号令笑成一片，孙武申明军纪后果断斩杀违令的队长，最终军纪严明。", options: ["三令五申", "令行禁止", "赏罚分明", "军令如山"], correct: "三令五申", explanation: "出自《史记·孙子吴起列传》。指再三叮咛告诫。" },
+            { id: 41, story: "晋献公借道虞国去灭虢国，虞国大夫宫之奇劝谏说虞虢两国唇齿相依，“唇亡则齿寒”，虞国若失去屏障必定紧接着灭亡。", options: ["唇亡齿寒", "息息相关", "休戚与共", "覆巢之下"], correct: "唇亡齿寒", explanation: "出自《左传·僖公五年》。比喻双方利益密切相关，互相依存。" },
+            { id: 42, story: "齐鲁长勺之战中，曹刿指出打仗靠士气：第一次击鼓能振作士气，第二次击鼓士气衰退，第三次击鼓士气耗尽，因此要在“一鼓作气”时反击。", options: ["一鼓作气", "乘胜追击", "乘虚而入", "势如破竹"], correct: "一鼓作气", explanation: "出自《左传·庄公十年》。比喻趁着士气高涨时一口气把事情做完。" },
+            { id: 43, story: "春秋晋国公子重耳流亡楚国时受到楚成王礼遇，重耳承诺若两国交战将“退避三舍”（九十里）以报答厚意，后在城濮之战中兑现承诺。", options: ["退避三舍", "礼让三先", "委曲求全", "退一步海阔天空"], correct: "退避三舍", explanation: "出自《左传·僖公二十三年》。比喻对人让步或主动回避。" },
+            { id: 44, story: "商朝末年姜子牙在渭水河畔用直钩钓鱼，离水面三尺且不用鱼饵，并说“愿者上钩”，最终等到周文王拜其为相。", options: ["姜太公钓鱼", "愿者上钩", "稳操胜券", "水到渠成"], correct: "姜太公钓鱼", explanation: "出自《武王伐纣平话》。比喻自愿入圈套或等待时机。" },
+            { id: 45, story: "三国时期诸葛亮为了平定南中，对蜀汉南中叛军首领孟获实行“心战”，七次生擒孟获又七次将其释放，最终让孟获心悦诚服。", options: ["七擒七纵", "欲擒故纵", "攻心为上", "以德服人"], correct: "七擒七纵", explanation: "出自《三国志·蜀志·诸葛亮传》注引《汉晋春秋》。比喻运用策略使对方彻底服气。" },
+            { id: 46, story: "秦朝末年韩信率汉军在井陉口与赵军交战，韩信将万余精兵背靠河流列阵，背水一战激发了汉军拼死搏杀的斗志大获全胜。", options: ["背水一战", "置之死地而后生", "破釜沉舟", "孤注一掷"], correct: "背水一战", explanation: "出自《史记·淮阴侯列传》。比喻在绝境中决一死战。" },
+            { id: 47, story: "三国时代关羽镇守荆州被魏吴夹击，失守荆州后败走麦城最终遇害，留下了骄兵必败的沉痛教训。", options: ["骄兵必败", "大意失荆州", "关门大吉", "功亏一篑"], correct: "大意失荆州", explanation: "出自《三国演义》。比喻因粗心大意导致严重后果或惨败。" },
+            { id: 48, story: "战国赵国名将赵奢之子赵括死守书本兵法，而其父赵奢曾说“兵者死地也，奢言之易”，兵法千变万化不可拘泥。", options: ["兵不厌诈", "出奇制胜", "运筹帷幄", "神机妙算"], correct: "兵不厌诈", explanation: "出自《韩非子·难一》。指用兵作战不排斥使用诡诈的策略。" },
+            { id: 49, story: "东晋大将军桓温北伐看到自己年轻时种植的柳树已经长得很粗，感叹岁月流逝“木犹如此，人何以堪”。", options: ["木犹如此", "岁月如梭", "光阴似箭", "白驹过隙"], correct: "木犹如此", explanation: "出自《世说新语·语言》。形容对岁月流逝、物是人非的感叹。" },
+            { id: 50, story: "北宋沈括在《梦溪笔谈》中记载，磁针指向常微偏东，发现地磁偏角，比欧洲早了四百年，展现了古人的卓越智慧。", options: ["博古通今", "独具慧眼", "前无古人", "巧夺天工"], correct: "博古通今", explanation: "形容知识渊博，通晓古今历史与事理。" }
+        ];
+
+        const PRAISE_QUOTES = [
+            "智勇双全，气贯长虹！历史巨擘，名不虚传！",
+            "势如破竹，一鼓作气！成语典故运筹帷幄！",
+            "博古通今，独占鳌头！文韬武略冠绝群雄！",
+            "挥斥方遒，决胜千里！这才是真正的文史霸主！"
+        ];
+
+        const ENCOURAGE_QUOTES = [
+            "胜败乃兵家常事，百折不挠方显英雄本色！",
+            "卷土重来未可知，下局必能一雪前耻！",
+            "差之毫厘，虽败犹荣！总结经验再战江湖！",
+            "蓄力发劲，来日方长！下一轮定能惊天逆转！"
+        ];
+
+        class GameEngine {
+            constructor() {
+                this.scores = { lion: 0, tiger: 0 };
+                this.rounds = { lion: 1, tiger: 1 };
+                this.qIndices = { lion: 0, tiger: 0 };
+                this.streaks = { lion: 0, tiger: 0 };
+                
+                // Shuffle unique question order per team
+                this.teamQuestions = {
+                    lion: this.shuffleArray([...QUESTION_BANK]),
+                    tiger: this.shuffleArray([...QUESTION_BANK])
+                };
+
+                this.names = {
+                    lion: ["狮队选手1", "", ""],
+                    tiger: ["虎队选手1", "", ""]
+                };
+
+                this.lockouts = { lion: false, tiger: false };
+                this.timers = { lion: null, tiger: null };
+                this.isGameOver = false;
+            }
+
+            // 数组随机打乱函数
+            shuffleArray(array) {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            // 清理团队定时器
+            clearTimers(team) {
+                if (this.timers[team]) {
+                    clearInterval(this.timers[team]);
+                    this.timers[team] = null;
+                }
+                this.lockouts[team] = false;
+            }
+
+            init() {
+                this.scores = { lion: 0, tiger: 0 };
+                this.rounds = { lion: 1, tiger: 1 };
+                this.qIndices = { lion: 0, tiger: 0 };
+                this.streaks = { lion: 0, tiger: 0 };
+                this.isGameOver = false;
+                
+                this.teamQuestions.lion = this.shuffleArray([...QUESTION_BANK]);
+                this.teamQuestions.tiger = this.shuffleArray([...QUESTION_BANK]);
+
+                this.clearTimers('lion');
+                this.clearTimers('tiger');
+
+                document.getElementById('lion-lock-overlay').classList.add('hidden');
+                document.getElementById('tiger-lock-overlay').classList.add('hidden');
+
+                ui.updateAll();
+                ui.renderQuestion('lion');
+                ui.renderQuestion('tiger');
+            }
+
+            // User answered a question
+            handleAnswer(team, selectedOptionText, correctText, buttonEl) {
+                if (this.isGameOver || this.lockouts[team]) return;
+
+                const isCorrect = (selectedOptionText === correctText);
+
+                if (isCorrect) {
+                    sound.playCorrect();
+                    this.scores[team]++;
+                    this.streaks[team]++;
+                    
+                    // UI Effects for correct answer
+                    ui.triggerShockwave(team);
+                    
+                    // Trigger Roar Attack when team hits a streak of 3 or more (every 3 streak combo)
+                    if (this.streaks[team] >= 3 && this.streaks[team] % 3 === 0) {
+                        ui.triggerRoarAttack(team, this.streaks[team]);
+                    }
+
+                    // Next question
+                    this.qIndices[team]++;
+
+                    // Check win condition immediately
+                    if (this.checkWinCondition()) return;
+
+                    // Check if 50 questions finished
+                    if (this.qIndices[team] >= 50) {
+                        ui.show50QuestionsReload(team);
+                    } else {
+                        ui.renderQuestion(team);
+                    }
+
+                    ui.updateBarAndWarning();
+                } else {
+                    sound.playWrong();
+                    this.streaks[team] = 0; // Reset streak on wrong answer
+                    ui.updateStreakBadge(team);
+                    this.triggerLockout(team, correctText);
+                }
+            }
+
+            // Trigger 10-second penalty lockout
+            triggerLockout(team, correctText) {
+                this.lockouts[team] = true;
+                const overlay = document.getElementById(`${team}-lock-overlay`);
+                const countdownNum = document.getElementById(`${team}-countdown-num`);
+                const countdownBar = document.getElementById(`${team}-countdown-bar`);
+                const correctAnsEl = document.getElementById(`${team}-correct-ans-text`);
+                const explanationEl = document.getElementById(`${team}-explanation-text`);
+
+                const currentQ = this.teamQuestions[team][this.qIndices[team]];
+                correctAnsEl.innerText = correctText;
+                explanationEl.innerText = currentQ.explanation;
+
+                overlay.classList.remove('hidden');
+
+                let secondsLeft = 10;
+                countdownNum.innerText = `${secondsLeft}s`;
+                countdownBar.style.width = '100%';
+
+                this.timers[team] = setInterval(() => {
+                    secondsLeft--;
+                    countdownNum.innerText = `${secondsLeft}s`;
+                    countdownBar.style.width = `${(secondsLeft / 10) * 100}%`;
+
+                    if (secondsLeft <= 0) {
+                        this.clearTimers(team);
+                        overlay.classList.add('hidden');
+                        this.qIndices[team]++;
+                        if (this.qIndices[team] >= 50) {
+                            ui.show50QuestionsReload(team);
+                        } else {
+                            ui.renderQuestion(team);
+                        }
+                    }
+                }, 1000);
+            }
+
+            // Reload after 50 questions finished (Opposing team gets +1)
+            reloadTeam(team) {
+                const opponent = (team === 'lion') ? 'tiger' : 'lion';
+                this.scores[opponent]++;
+                this.rounds[team]++;
+                this.qIndices[team] = 0;
+                this.teamQuestions[team] = this.shuffleArray([...QUESTION_BANK]);
+
+                document.getElementById(`${team}-reload-overlay`).classList.add('hidden');
+                
+                // Check win condition in case opponent won by +1
+                if (this.checkWinCondition()) return;
+
+                ui.renderQuestion(team);
+                ui.updateAll();
+            }
+
+            checkWinCondition() {
+                const diff = this.scores.lion - this.scores.tiger;
+                if (Math.abs(diff) >= 5) {
+                    this.isGameOver = true;
+                    const winner = diff >= 5 ? 'lion' : 'tiger';
+                    sound.playVictory();
+                    ui.showVictoryModal(winner);
+                    return true;
+                }
+                return false;
+            }
+
+            confirmReset() {
+                if (confirm("确定要重置当前对局比分并重新开始吗？")) {
+                    this.init();
+                }
+            }
+
+            restartMatch() {
+                document.getElementById('victory-modal').classList.add('hidden');
+                this.init();
+            }
+
+            resetNames() {
+                document.getElementById('victory-modal').classList.add('hidden');
+                ui.showModal('instructions-modal');
+            }
+        }
+
+        class UIController {
+            updateAll() {
+                this.updateBarAndWarning();
+                this.updateScoresAndRounds();
+                this.updatePlayerNamesDisplay();
+                this.updateStreakBadge('lion');
+                this.updateStreakBadge('tiger');
+            }
+
+            updateStreakBadge(team) {
+                const badge = document.getElementById(`${team}-streak-badge`);
+                if (!badge) return;
+                const streak = game.streaks[team];
+                if (streak >= 3) {
+                    badge.innerText = `🔥 ${streak}连对`;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            triggerRoarAttack(team, streakCount) {
+                sound.playRoar(team);
+                this.updateStreakBadge(team);
+
+                const opponent = (team === 'lion') ? 'tiger' : 'lion';
+                const overlay = document.getElementById(`${opponent}-roar-overlay`);
+                const opponentPanel = document.getElementById(`${opponent}-panel`);
+
+                if (overlay && opponentPanel) {
+                    overlay.classList.remove('hidden');
+                    opponentPanel.classList.add('animate-vibrate');
+
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        opponentPanel.classList.remove('animate-vibrate');
+                    }, 1800);
+                }
+            }
+
+            updateScoresAndRounds() {
+                document.getElementById('lion-score-text').innerText = game.scores.lion;
+                document.getElementById('tiger-score-text').innerText = game.scores.tiger;
+
+                document.getElementById('lion-q-num').innerText = Math.min(game.qIndices.lion + 1, 50);
+                document.getElementById('tiger-q-num').innerText = Math.min(game.qIndices.tiger + 1, 50);
+
+                document.getElementById('lion-round-badge').innerText = `第 ${game.rounds.lion} 轮`;
+                document.getElementById('tiger-round-badge').innerText = `第 ${game.rounds.tiger} 轮`;
+
+                if (game.rounds.lion > 1) {
+                    document.getElementById('lion-round-footer').innerText = `已答完50题·第${game.rounds.lion}轮重玩`;
+                } else {
+                    document.getElementById('lion-round-footer').innerText = `狮队战力全开`;
+                }
+
+                if (game.rounds.tiger > 1) {
+                    document.getElementById('tiger-round-footer').innerText = `已答完50题·第${game.rounds.tiger}轮重玩`;
+                } else {
+                    document.getElementById('tiger-round-footer').innerText = `虎队气贯长虹`;
+                }
+            }
+
+            updateBarAndWarning() {
+                const diff = game.scores.lion - game.scores.tiger; // Positive -> Lion leading, Negative -> Tiger leading
+                
+                // Red Percentage: 0% to 100%. At diff = 0, pct = 50%. At diff = +5, pct = 100%. At diff = -5, pct = 0%.
+                let redPct = 50 + (diff / 5) * 50;
+                redPct = Math.max(0, Math.min(100, redPct));
+                
+                const bluePct = 100 - redPct;
+
+                // Animate bars
+                document.getElementById('tug-red-fill').style.width = `${redPct}%`;
+                document.getElementById('tug-blue-fill').style.width = `${bluePct}%`;
+                document.getElementById('tug-divider').style.left = `${redPct}%`;
+
+                // Diff status text
+                const statusBadge = document.getElementById('diff-status-badge');
+                if (diff > 0) {
+                    statusBadge.innerText = `狮队 领先 ${diff} 分 (还差 ${5 - diff} 分获胜)`;
+                    statusBadge.className = "bg-red-950 border border-red-700 text-red-300 px-3 py-0.5 rounded-full text-xs font-bold shadow-md";
+                } else if (diff < 0) {
+                    statusBadge.innerText = `虎队 领先 ${Math.abs(diff)} 分 (还差 ${5 - Math.abs(diff)} 分获胜)`;
+                    statusBadge.className = "bg-blue-950 border border-blue-700 text-blue-300 px-3 py-0.5 rounded-full text-xs font-bold shadow-md";
+                } else {
+                    statusBadge.innerText = `双方平手 (领先 5 分获胜)`;
+                    statusBadge.className = "bg-slate-800 border border-slate-700 text-amber-300 px-3 py-0.5 rounded-full text-xs font-bold shadow-md";
+                }
+
+                // Warning Mechanism (diff >= 3 or diff <= -3)
+                const lionWarning = document.getElementById('lion-warning-badge');
+                const tigerWarning = document.getElementById('tiger-warning-badge');
+                const lionPanel = document.getElementById('lion-panel');
+                const tigerPanel = document.getElementById('tiger-panel');
+
+                // Reset styles
+                lionWarning.classList.add('hidden');
+                tigerWarning.classList.add('hidden');
+                lionPanel.classList.remove('border-amber-500', 'glow-red', 'animate-pulse');
+                tigerPanel.classList.remove('border-amber-500', 'glow-blue', 'animate-pulse');
+
+                if (diff >= 3) {
+                    // Tiger lagging behind by 3+
+                    tigerWarning.classList.remove('hidden');
+                    tigerPanel.classList.add('border-amber-500');
+                } else if (diff <= -3) {
+                    // Lion lagging behind by 3+
+                    lionWarning.classList.remove('hidden');
+                    lionPanel.classList.add('border-amber-500');
+                }
+
+                this.updateScoresAndRounds();
+            }
+
+            renderQuestion(team) {
+                const qIndex = game.qIndices[team];
+                if (qIndex >= 50) return;
+
+                const qData = game.teamQuestions[team][qIndex];
+                
+                document.getElementById(`${team}-q-text`).innerText = qData.story;
+
+                // Shuffle options for display
+                const shuffledOpts = game.shuffleArray([...qData.options]);
+                const container = document.getElementById(`${team}-options-container`);
+                container.innerHTML = '';
+
+                const colors = team === 'lion' 
+                    ? 'bg-slate-800/90 hover:bg-red-900/40 border-slate-700 hover:border-red-500 text-slate-100'
+                    : 'bg-slate-800/90 hover:bg-blue-900/40 border-slate-700 hover:border-blue-500 text-slate-100';
+
+                shuffledOpts.forEach((optText, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = `${colors} border p-2 sm:p-2.5 rounded-lg text-xs md:text-sm font-semibold transition duration-200 transform active:scale-[0.98] text-left flex items-center justify-between shadow-md w-full my-0.5`;
+                    
+                    const prefix = ['A', 'B', 'C', 'D'][i];
+                    btn.innerHTML = `<span class="break-words flex-1 pr-1"><strong class="text-amber-400 mr-1.5">${prefix}.</strong>${optText}</span> <i class="fa-solid fa-chevron-right text-[10px] opacity-40 flex-shrink-0"></i>`;
+                    
+                    btn.onclick = () => game.handleAnswer(team, optText, qData.correct, btn);
+                    container.appendChild(btn);
+                });
+            }
+
+            triggerShockwave(team) {
+                const divider = document.getElementById('tug-divider');
+                divider.classList.remove('animate-shockwave', 'animate-vibrate');
+                void divider.offsetWidth; // Force reflow
+                divider.classList.add('animate-shockwave', 'animate-vibrate');
+            }
+
+            show50QuestionsReload(team) {
+                document.getElementById(`${team}-reload-overlay`).classList.remove('hidden');
+            }
+
+            saveNamesAndStart() {
+                const lionNames = [
+                    document.getElementById('lion-p1').value.trim(),
+                    document.getElementById('lion-p2').value.trim(),
+                    document.getElementById('lion-p3').value.trim()
+                ].filter(Boolean);
+
+                const tigerNames = [
+                    document.getElementById('tiger-p1').value.trim(),
+                    document.getElementById('tiger-p2').value.trim(),
+                    document.getElementById('tiger-p3').value.trim()
+                ].filter(Boolean);
+
+                game.names.lion = lionNames.length > 0 ? lionNames : ["狮队大将"];
+                game.names.tiger = tigerNames.length > 0 ? tigerNames : ["虎队先锋"];
+
+                this.hideModal('instructions-modal');
+                this.updatePlayerNamesDisplay();
+            }
+
+            updatePlayerNamesDisplay() {
+                document.getElementById('lion-team-display-name').innerText = "狮队";
+                document.getElementById('tiger-team-display-name').innerText = "虎队";
+
+                document.getElementById('lion-team-name-card').innerText = "狮队";
+                document.getElementById('tiger-team-name-card').innerText = "虎队";
+
+                document.getElementById('lion-players-list').innerText = "队员: " + game.names.lion.join('、');
+                document.getElementById('tiger-players-list').innerText = "队员: " + game.names.tiger.join('、');
+            }
+
+            showVictoryModal(winner) {
+                const isLion = (winner === 'lion');
+                const winColor = isLion ? 'text-red-400' : 'text-blue-400';
+                const teamTitle = isLion ? '狮队 夺得最终胜利！' : '虎队 夺得最终胜利！';
+                
+                document.getElementById('winner-team-title').innerText = teamTitle;
+                document.getElementById('winner-team-title').className = `text-3xl md:text-4xl font-black font-serif-title ${winColor} mb-1`;
+                
+                document.getElementById('winner-score-display').innerText = `最终比分: 狮队 ${game.scores.lion} - ${game.scores.tiger} 虎队`;
+                document.getElementById('winner-members-text').innerText = game.names[winner].join('、');
+
+                // Random quotes
+                const randWinQuote = PRAISE_QUOTES[Math.floor(Math.random() * PRAISE_QUOTES.length)];
+                const randLoseQuote = ENCOURAGE_QUOTES[Math.floor(Math.random() * ENCOURAGE_QUOTES.length)];
+
+                document.getElementById('quote-winner').innerText = `"${randWinQuote}"`;
+                document.getElementById('quote-loser').innerText = `"${randLoseQuote}"`;
+
+                this.showModal('victory-modal');
+
+                // Trigger Confetti Ribbons
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 120,
+                        spread: 80,
+                        origin: { y: 0.6 }
+                    });
+                }
+            }
+
+            showModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            hideModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            }
+        }
+
+        const game = new GameEngine();
+        const ui = new UIController();
+
+        window.onload = function() {
+            game.init();
+            // Show instruction modal on first load
+            ui.showModal('instructions-modal');
+        };
+    </script>
+</body>
+</html>
