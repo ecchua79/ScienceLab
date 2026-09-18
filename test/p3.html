@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 熊猫吃竹子 - Three.js</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            user-select: none;
+            background-color: #05130e;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .glass-panel {
+            background: rgba(18, 38, 25, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .btn-green {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            transition: all 0.2s ease;
+        }
+        .btn-green:hover {
+            background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D Render Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Header -->
+    <div class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
+        <div class="glass-panel text-white px-5 py-3 rounded-2xl flex items-center space-x-3 pointer-events-auto shadow-lg">
+            <div class="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg text-emerald-100 leading-tight">竹林国宝 · 熊猫之森</h1>
+                <p class="text-xs text-emerald-300/80">3D Interactive Scene with Three.js</p>
+            </div>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="glass-panel p-2 rounded-2xl flex space-x-2 pointer-events-auto shadow-lg">
+            <button id="btn-reset-cam" title="重置视角" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                <i class="fa-solid fa-video"></i>
+            </button>
+            <button id="btn-toggle-time" title="切换时间氛围" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-amber-300 flex items-center justify-center transition">
+                <i class="fa-solid fa-sun" id="time-icon"></i>
+            </button>
+            <button id="btn-action" title="暂停/继续动作" class="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-300 flex items-center justify-center transition">
+                <i class="fa-solid fa-pause" id="action-icon"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Instruction Hint Toast -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 glass-panel px-6 py-2.5 rounded-full text-emerald-100 text-xs md:text-sm flex items-center space-x-2 pointer-events-none shadow-xl border border-emerald-500/20">
+        <i class="fa-solid fa-hand-pointer text-emerald-400 animate-bounce"></i>
+        <span>单指/左键拖拽旋转 | 双指/右键平移 | 缩放调整距离</span>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script>
+        let scene, camera, renderer, controls;
+        let pandaGroup, headGroup, rightArmGroup, leftArmGroup, bambooInHand;
+        let bambooForest = [];
+        let particlesSystem;
+        let isAnimating = true;
+        let isNight = false;
+        let clock = new THREE.Clock();
+
+        // Color Palette
+        const COLORS = {
+            white: 0xf4f5f7,
+            black: 0x1a1a1d,
+            pink: 0xffa4b6,
+            pawPad: 0xe88a9c,
+            bambooGreen: 0x4caf50,
+            bambooDarkGreen: 0x2e7d32,
+            bambooNode: 0x81c784,
+            groundGreen: 0x1b4332,
+            grassLight: 0x2d6a4f,
+            sunLight: 0xfffbe6
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c2118);
+            scene.fog = new THREE.FogExp2(0x0c2118, 0.025);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 3.2, 8.5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+            controls.target.set(0, 1.6, 0);
+
+            setupLighting();
+            createPanda();
+            createBambooForest();
+            createTerrain();
+            createParticles();
+
+            window.addEventListener('resize', onWindowResize);
+            setupUIControls();
+
+            animate();
+        }
+
+        let dirLight, ambientLight, hemiLight;
+        function setupLighting() {
+            ambientLight = new THREE.AmbientLight(0xd8f3dc, 0.65);
+            scene.add(ambientLight);
+
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0x1b4332, 0.5);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+
+            dirLight = new THREE.DirectionalLight(COLORS.sunLight, 1.25);
+            dirLight.position.set(8, 12, 6);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 30;
+            dirLight.shadow.camera.left = -8;
+            dirLight.shadow.camera.right = 8;
+            dirLight.shadow.camera.top = 8;
+            dirLight.shadow.camera.bottom = -8;
+            dirLight.shadow.bias = -0.0005;
+            scene.add(dirLight);
+
+            const rimLight = new THREE.DirectionalLight(0x80ed99, 0.5);
+            rimLight.position.set(-8, 5, -6);
+            scene.add(rimLight);
+        }
+
+        function createPanda() {
+            pandaGroup = new THREE.Group();
+            pandaGroup.position.set(0, 0, 0);
+
+            // Standard Materials
+            const whiteMat = new THREE.MeshStandardMaterial({
+                color: COLORS.white,
+                roughness: 0.85,
+                metalness: 0.02
+            });
+
+            const blackMat = new THREE.MeshStandardMaterial({
+                color: COLORS.black,
+                roughness: 0.88,
+                metalness: 0.05
+            });
+
+            const pinkMat = new THREE.MeshStandardMaterial({
+                color: COLORS.pink,
+                roughness: 0.6
+            });
+
+            const padMat = new THREE.MeshStandardMaterial({
+                color: COLORS.pawPad,
+                roughness: 0.5
+            });
+
+            const eyeMat = new THREE.MeshStandardMaterial({
+                color: 0x050505,
+                roughness: 0.1
+            });
+
+            // 1. TORSO / BODY (Chubby, teardrop sit shape)
+            const bodyGeo = new THREE.SphereGeometry(1.25, 32, 32);
+            bodyGeo.scale(1, 1.15, 0.95);
+            const body = new THREE.Mesh(bodyGeo, whiteMat);
+            body.position.set(0, 1.25, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            pandaGroup.add(body);
+
+            // Black Shoulder Cape / Mantle (Replaces awkward mid-ring)
+            const shoulderGeo = new THREE.SphereGeometry(1.22, 32, 32);
+            shoulderGeo.scale(1.02, 0.55, 0.98);
+            const shoulder = new THREE.Mesh(shoulderGeo, blackMat);
+            shoulder.position.set(0, 1.82, -0.02);
+            shoulder.rotation.x = 0.15;
+            shoulder.castShadow = true;
+            pandaGroup.add(shoulder);
+
+            // 2. HEAD
+            headGroup = new THREE.Group();
+            headGroup.position.set(0, 2.45, 0.15);
+
+            const headGeo = new THREE.SphereGeometry(0.98, 32, 32);
+            headGeo.scale(1.15, 0.95, 1.0);
+            const head = new THREE.Mesh(headGeo, whiteMat);
+            head.castShadow = true;
+            headGroup.add(head);
+
+            // Snout
+            const snoutGeo = new THREE.SphereGeometry(0.36, 24, 24);
+            snoutGeo.scale(1.25, 0.82, 0.9);
+            const snout = new THREE.Mesh(snoutGeo, whiteMat);
+            snout.position.set(0, -0.22, 0.82);
+            snout.castShadow = true;
+            headGroup.add(snout);
+
+            // Nose
+            const noseGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            noseGeo.scale(1.4, 0.8, 0.9);
+            const nose = new THREE.Mesh(noseGeo, blackMat);
+            nose.position.set(0, -0.15, 1.14);
+            headGroup.add(nose);
+
+            // Mouth
+            const mouthGeo = new THREE.TorusGeometry(0.07, 0.02, 8, 16, Math.PI);
+            const mouth = new THREE.Mesh(mouthGeo, blackMat);
+            mouth.position.set(0, -0.29, 1.1);
+            mouth.rotation.x = Math.PI;
+            headGroup.add(mouth);
+
+            // Eye Patches
+            const patchGeo = new THREE.SphereGeometry(0.28, 20, 20);
+            patchGeo.scale(0.8, 1.12, 0.4);
+
+            const leftPatch = new THREE.Mesh(patchGeo, blackMat);
+            leftPatch.position.set(-0.42, 0.08, 0.8);
+            leftPatch.rotation.set(0.1, 0.2, -0.35);
+            headGroup.add(leftPatch);
+
+            const rightPatch = new THREE.Mesh(patchGeo, blackMat);
+            rightPatch.position.set(0.42, 0.08, 0.8);
+            rightPatch.rotation.set(0.1, -0.2, 0.35);
+            headGroup.add(rightPatch);
+
+            // Eyes & Glints
+            const eyeGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const glintGeo = new THREE.SphereGeometry(0.025, 8, 8);
+            const glintMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.4, 0.08, 0.93);
+            const leftGlint = new THREE.Mesh(glintGeo, glintMat);
+            leftGlint.position.set(-0.38, 0.11, 1.0);
+            headGroup.add(leftEye);
+            headGroup.add(leftGlint);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.4, 0.08, 0.93);
+            const rightGlint = new THREE.Mesh(glintGeo, glintMat);
+            rightGlint.position.set(0.38, 0.11, 1.0);
+            headGroup.add(rightEye);
+            headGroup.add(rightGlint);
+
+            // Ears
+            const earGeo = new THREE.SphereGeometry(0.32, 24, 24);
+            earGeo.scale(1, 1.1, 0.55);
+
+            const leftEar = new THREE.Mesh(earGeo, blackMat);
+            leftEar.position.set(-0.85, 0.8, 0.08);
+            leftEar.rotation.set(-0.1, 0.2, -0.5);
+            leftEar.castShadow = true;
+            headGroup.add(leftEar);
+
+            const rightEar = new THREE.Mesh(earGeo, blackMat);
+            rightEar.position.set(0.85, 0.8, 0.08);
+            rightEar.rotation.set(-0.1, -0.2, 0.5);
+            rightEar.castShadow = true;
+            headGroup.add(rightEar);
+
+            // Cute Blush Cheeks
+            const cheekGeo = new THREE.SphereGeometry(0.14, 12, 12);
+            cheekGeo.scale(1, 0.6, 0.2);
+            const leftCheek = new THREE.Mesh(cheekGeo, pinkMat);
+            leftCheek.position.set(-0.6, -0.15, 0.78);
+            leftCheek.rotation.set(0.2, 0.3, 0);
+            headGroup.add(leftCheek);
+
+            const rightCheek = new THREE.Mesh(cheekGeo, pinkMat);
+            rightCheek.position.set(0.6, -0.15, 0.78);
+            rightCheek.rotation.set(0.2, -0.3, 0);
+            headGroup.add(rightCheek);
+
+            pandaGroup.add(headGroup);
+
+            // 3. RESTRUCTURED LIMBS (Natural & Organic Shapes)
+
+            // Helper to build smooth limb segment using compound spheres
+            function createRoundedLimb(radiusTop, radiusBottom, length) {
+                const limbGroup = new THREE.Group();
+                const count = 12;
+                for (let i = 0; i < count; i++) {
+                    const t = i / (count - 1);
+                    const r = THREE.MathUtils.lerp(radiusTop, radiusBottom, t);
+                    const segGeo = new THREE.SphereGeometry(r, 16, 16);
+                    const seg = new THREE.Mesh(segGeo, blackMat);
+                    seg.position.y = -t * length;
+                    seg.castShadow = true;
+                    limbGroup.add(seg);
+                }
+                return limbGroup;
+            }
+
+            // --- LEGS & FEET (Sitting flat & forward) ---
+            // Left Leg Group
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(-0.7, 0.55, 0.3);
+            leftLegGroup.rotation.set(-0.4, -0.3, 0.6); // Negative X tilts leg forward to front
+
+            const leftLegUpper = createRoundedLimb(0.42, 0.38, 0.75);
+            leftLegGroup.add(leftLegUpper);
+
+            // Foot Paw
+            const pawFootGeo = new THREE.SphereGeometry(0.38, 20, 20);
+            pawFootGeo.scale(0.85, 0.6, 1.15);
+            const leftFoot = new THREE.Mesh(pawFootGeo, blackMat);
+            leftFoot.position.set(0, -0.8, 0.2);
+            leftFoot.rotation.set(0.2, 0.1, -0.1);
+            leftFoot.castShadow = true;
+            leftLegGroup.add(leftFoot);
+
+            // Pink Paw Pad Details on Sole
+            const mainPadGeo = new THREE.SphereGeometry(0.15, 12, 12);
+            mainPadGeo.scale(1.1, 0.2, 1);
+            const leftMainPad = new THREE.Mesh(mainPadGeo, padMat);
+            leftMainPad.position.set(0, -0.85, 0.3);
+            leftMainPad.rotation.set(0.5, 0, 0);
+            leftLegGroup.add(leftMainPad);
+
+            pandaGroup.add(leftLegGroup);
+
+            // Right Leg Group
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(0.7, 0.55, 0.3);
+            rightLegGroup.rotation.set(-0.4, 0.3, -0.6); // Negative X tilts leg forward to front
+
+            const rightLegUpper = createRoundedLimb(0.42, 0.38, 0.75);
+            rightLegGroup.add(rightLegUpper);
+
+            const rightFoot = new THREE.Mesh(pawFootGeo, blackMat);
+            rightFoot.position.set(0, -0.8, 0.2);
+            rightFoot.rotation.set(0.2, -0.1, 0.1);
+            rightFoot.castShadow = true;
+            rightLegGroup.add(rightFoot);
+
+            const rightMainPad = new THREE.Mesh(mainPadGeo, padMat);
+            rightMainPad.position.set(0, -0.85, 0.3);
+            rightMainPad.rotation.set(0.5, 0, 0);
+            rightLegGroup.add(rightMainPad);
+
+            pandaGroup.add(rightLegGroup);
+
+            // --- ARMS & HANDS (Both brought forward in front of chest/tummy) ---
+            // Left Arm
+            leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.85, 1.75, 0.25);
+            leftArmGroup.rotation.set(-0.75, -0.3, -0.35); // Reaching forward to tummy
+
+            const leftArmMesh = createRoundedLimb(0.36, 0.28, 0.75);
+            leftArmGroup.add(leftArmMesh);
+
+            const handGeo = new THREE.SphereGeometry(0.28, 16, 16);
+            handGeo.scale(0.9, 0.8, 1.0);
+            const leftHand = new THREE.Mesh(handGeo, blackMat);
+            leftHand.position.set(0, -0.8, 0.1);
+            leftHand.castShadow = true;
+            leftArmGroup.add(leftHand);
+
+            pandaGroup.add(leftArmGroup);
+
+            // Right Arm (Holding bamboo in front of mouth/chest)
+            rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.85, 1.75, 0.25);
+            rightArmGroup.rotation.set(-0.75, 0.3, 0.35); // Reaching forward
+
+            const rightArmMesh = createRoundedLimb(0.36, 0.28, 0.75);
+            rightArmGroup.add(rightArmMesh);
+
+            const rightHand = new THREE.Mesh(handGeo, blackMat);
+            rightHand.position.set(0, -0.8, 0.1);
+            rightHand.castShadow = true;
+            rightArmGroup.add(rightHand);
+
+            // 4. BAMBOO BRANCH IN HAND (Slanted horizontally across front of mouth)
+            bambooInHand = createBambooStalk(1.8, 0.05, true);
+            bambooInHand.position.set(-0.1, -0.82, 0.25);
+            bambooInHand.rotation.set(0.3, -0.2, 1.35);
+            rightArmGroup.add(bambooInHand);
+
+            pandaGroup.add(rightArmGroup);
+
+            scene.add(pandaGroup);
+        }
+
+        function createBambooStalk(height = 6, radius = 0.12, isFood = false) {
+            const group = new THREE.Group();
+
+            const bambooMat = new THREE.MeshStandardMaterial({
+                color: isFood ? 0x66bb6a : COLORS.bambooGreen,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+
+            const nodeMat = new THREE.MeshStandardMaterial({
+                color: COLORS.bambooNode,
+                roughness: 0.3
+            });
+
+            const leafMat = new THREE.MeshStandardMaterial({
+                color: isFood ? 0x81c784 : COLORS.bambooDarkGreen,
+                roughness: 0.5,
+                side: THREE.DoubleSide
+            });
+
+            const segmentCount = Math.floor(height / 0.75);
+            const segmentHeight = height / segmentCount;
+
+            for (let i = 0; i < segmentCount; i++) {
+                const segGeo = new THREE.CylinderGeometry(
+                    radius * (1 - i * 0.012),
+                    radius * (1 - (i - 1) * 0.012),
+                    segmentHeight - 0.03,
+                    16
+                );
+                const seg = new THREE.Mesh(segGeo, bambooMat);
+                seg.position.y = i * segmentHeight + segmentHeight / 2;
+                seg.castShadow = true;
+                seg.receiveShadow = true;
+                group.add(seg);
+
+                const ringGeo = new THREE.TorusGeometry(radius * (1 - i * 0.012) + 0.01, 0.018, 8, 16);
+                const ring = new THREE.Mesh(ringGeo, nodeMat);
+                ring.position.y = i * segmentHeight;
+                ring.rotation.x = Math.PI / 2;
+                ring.castShadow = true;
+                group.add(ring);
+
+                if (i >= 1 && (i % 2 === 0 || isFood)) {
+                    const leafCount = isFood ? 3 : Math.floor(Math.random() * 3) + 2;
+                    for (let l = 0; l < leafCount; l++) {
+                        const leafGroup = new THREE.Group();
+                        leafGroup.position.set(0, i * segmentHeight, 0);
+                        leafGroup.rotation.y = (l * Math.PI * 2) / leafCount + Math.random() * 0.5;
+
+                        const branchGeo = new THREE.CylinderGeometry(0.012, 0.018, 0.35, 8);
+                        const branch = new THREE.Mesh(branchGeo, bambooMat);
+                        branch.position.set(0.12, 0.05, 0);
+                        branch.rotation.z = -Math.PI / 3;
+                        leafGroup.add(branch);
+
+                        const leafShape = new THREE.Shape();
+                        leafShape.moveTo(0, 0);
+                        leafShape.quadraticCurveTo(0.08, 0.18, 0.06, 0.7);
+                        leafShape.quadraticCurveTo(0, 0.8, -0.06, 0.7);
+                        leafShape.quadraticCurveTo(-0.08, 0.18, 0, 0);
+
+                        const leafGeo = new THREE.ShapeGeometry(leafShape);
+                        const leaf = new THREE.Mesh(leafGeo, leafMat);
+                        leaf.position.set(0.24, 0.1, 0);
+                        leaf.rotation.set(-Math.PI / 2 + 0.2, 0, -Math.PI / 3);
+                        leaf.scale.set(0.75, 0.75, 0.75);
+                        leaf.castShadow = true;
+                        leafGroup.add(leaf);
+
+                        group.add(leafGroup);
+                    }
+                }
+            }
+
+            return group;
+        }
+
+        function createBambooForest() {
+            const forestGroup = new THREE.Group();
+            const count = 50;
+
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                // Keep clear radius > 3.0 around panda to ensure zero clipping
+                const dist = 3.2 + Math.random() * 11;
+
+                if (dist < 5.5 && angle > Math.PI * 0.2 && angle < Math.PI * 0.8) {
+                    continue;
+                }
+
+                const x = Math.sin(angle) * dist;
+                const z = Math.cos(angle) * dist;
+
+                const height = 7.5 + Math.random() * 5.5;
+                const radius = 0.09 + Math.random() * 0.06;
+                const bamboo = createBambooStalk(height, radius);
+
+                bamboo.position.set(x, 0, z);
+                bamboo.rotation.x = (Math.random() - 0.5) * 0.08;
+                bamboo.rotation.z = (Math.random() - 0.5) * 0.08;
+
+                bamboo.userData = {
+                    initialRotX: bamboo.rotation.x,
+                    initialRotZ: bamboo.rotation.z,
+                    swayOffset: Math.random() * Math.PI * 2,
+                    swaySpeed: 0.8 + Math.random() * 0.6
+                };
+
+                forestGroup.add(bamboo);
+                bambooForest.push(bamboo);
+            }
+
+            scene.add(forestGroup);
+        }
+
+        function createTerrain() {
+            const groundGeo = new THREE.CylinderGeometry(14, 16, 1.5, 64);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: COLORS.groundGreen,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -0.75;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grass Mounds
+            const tuftGeo = new THREE.DodecahedronGeometry(0.3, 1);
+            const grassMat = new THREE.MeshStandardMaterial({
+                color: COLORS.grassLight,
+                roughness: 0.9
+            });
+
+            for (let i = 0; i < 65; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 1.2 + Math.random() * 10.5;
+                const tuft = new THREE.Mesh(tuftGeo, grassMat);
+
+                const scaleX = 0.6 + Math.random() * 0.8;
+                const scaleY = 0.2 + Math.random() * 0.3;
+                tuft.scale.set(scaleX, scaleY, scaleX);
+
+                tuft.position.set(
+                    Math.cos(angle) * radius,
+                    0.02,
+                    Math.sin(angle) * radius
+                );
+                tuft.receiveShadow = true;
+                scene.add(tuft);
+            }
+
+            // Pebbles
+            const stoneGeo = new THREE.DodecahedronGeometry(0.2, 1);
+            const stoneMat = new THREE.MeshStandardMaterial({
+                color: 0x5a6b5c,
+                roughness: 0.8
+            });
+
+            for (let i = 0; i < 15; i++) {
+                const stone = new THREE.Mesh(stoneGeo, stoneMat);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 1.8 + Math.random() * 3.5;
+                stone.scale.set(
+                    0.5 + Math.random() * 0.5,
+                    0.3 + Math.random() * 0.3,
+                    0.5 + Math.random() * 0.5
+                );
+                stone.position.set(Math.cos(angle) * dist, 0.05, Math.sin(angle) * dist);
+                stone.rotation.set(Math.random(), Math.random(), Math.random());
+                stone.castShadow = true;
+                stone.receiveShadow = true;
+                scene.add(stone);
+            }
+        }
+
+        function createParticles() {
+            const particleCount = 120;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 20;
+                positions[i * 3 + 1] = Math.random() * 8;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            gradient.addColorStop(0.4, 'rgba(168, 230, 180, 0.5)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 32, 32);
+
+            const pTexture = new THREE.CanvasTexture(canvas);
+
+            const material = new THREE.PointsMaterial({
+                size: 0.15,
+                map: pTexture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particlesSystem = new THREE.Points(geometry, material);
+            scene.add(particlesSystem);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            if (isAnimating) {
+                // Chewing and head tilt
+                headGroup.rotation.z = Math.sin(elapsedTime * 1.5) * 0.04;
+                headGroup.rotation.x = Math.sin(elapsedTime * 3.5) * 0.02 + 0.04;
+                headGroup.rotation.y = Math.cos(elapsedTime * 1.2) * 0.06;
+
+                // Subtle forward arm movement (holding & chewing bamboo)
+                rightArmGroup.rotation.x = -0.75 + Math.sin(elapsedTime * 3.5) * 0.03;
+                rightArmGroup.rotation.y = 0.3 + Math.cos(elapsedTime * 3.5) * 0.02;
+
+                // Left arm resting balance movement in front
+                leftArmGroup.rotation.x = -0.75 + Math.sin(elapsedTime * 1.8) * 0.02;
+
+                // Wind sway in forest
+                bambooForest.forEach((bamboo) => {
+                    const sway = Math.sin(elapsedTime * bamboo.userData.swaySpeed + bamboo.userData.swayOffset);
+                    bamboo.rotation.x = bamboo.userData.initialRotX + sway * 0.025;
+                    bamboo.rotation.z = bamboo.userData.initialRotZ + sway * 0.015;
+                });
+
+                // Floating particles
+                if (particlesSystem) {
+                    const positions = particlesSystem.geometry.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 3) {
+                        positions[i + 1] += Math.sin(elapsedTime + positions[i]) * 0.003 - 0.001;
+                        positions[i] += Math.cos(elapsedTime + positions[i + 2]) * 0.002;
+
+                        if (positions[i + 1] < 0) positions[i + 1] = 8;
+                        if (positions[i + 1] > 8) positions[i + 1] = 0;
+                    }
+                    particlesSystem.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function setupUIControls() {
+            document.getElementById('btn-reset-cam').addEventListener('click', () => {
+                gsapCameraMove(0, 3.2, 8.5, 0, 1.6, 0);
+            });
+
+            document.getElementById('btn-toggle-time').addEventListener('click', () => {
+                isNight = !isNight;
+                const icon = document.getElementById('time-icon');
+
+                if (isNight) {
+                    icon.className = 'fa-solid fa-moon';
+                    icon.parentElement.classList.remove('text-amber-300');
+                    icon.parentElement.classList.add('text-indigo-300');
+
+                    scene.background.setHex(0x050c1a);
+                    scene.fog.color.setHex(0x050c1a);
+                    ambientLight.color.setHex(0x1d2a44);
+                    ambientLight.intensity = 0.35;
+                    dirLight.color.setHex(0x7692ff);
+                    dirLight.intensity = 0.55;
+                } else {
+                    icon.className = 'fa-solid fa-sun';
+                    icon.parentElement.classList.remove('text-indigo-300');
+                    icon.parentElement.classList.add('text-amber-300');
+
+                    scene.background.setHex(0x0c2118);
+                    scene.fog.color.setHex(0x0c2118);
+                    ambientLight.color.setHex(0xd8f3dc);
+                    ambientLight.intensity = 0.65;
+                    dirLight.color.setHex(COLORS.sunLight);
+                    dirLight.intensity = 1.25;
+                }
+            });
+
+            document.getElementById('btn-action').addEventListener('click', () => {
+                isAnimating = !isAnimating;
+                const icon = document.getElementById('action-icon');
+                if (isAnimating) {
+                    icon.className = 'fa-solid fa-pause';
+                } else {
+                    icon.className = 'fa-solid fa-play';
+                }
+            });
+        }
+
+        function gsapCameraMove(px, py, pz, tx, ty, tz) {
+            const startPos = camera.position.clone();
+            const endPos = new THREE.Vector3(px, py, pz);
+            const startTarget = controls.target.clone();
+            const endTarget = new THREE.Vector3(tx, ty, tz);
+
+            let progress = 0;
+            const duration = 1000;
+            const startTime = performance.now();
+
+            function updateCam() {
+                const now = performance.now();
+                progress = Math.min((now - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+
+                camera.position.lerpVectors(startPos, endPos, ease);
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                controls.update();
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCam);
+                }
+            }
+            requestAnimationFrame(updateCam);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
