@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兄弟姐妹情 - 文章理解互动测试</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        /* Custom scrollbar for better side-by-side reading */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .article-content p { text-indent: 2em; margin-bottom: 1.25rem; line-height: 1.8; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-amber-100 selection:text-amber-900">
+
+    <!-- Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+                    <i class="fa-solid fa-book-open text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">兄弟姐妹情 · 阅读理解测试</h1>
+                    <p class="text-xs text-slate-500">双视角对照答题 & 深度解析</p>
+                </div>
+            </div>
+
+            <!-- Header Controls & Progress -->
+            <div class="flex items-center gap-4">
+                <div id="quiz-progress-badge" class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600">
+                    <span>已完成:</span>
+                    <span id="answered-count" class="text-amber-600 font-bold">0</span> / <span>10</span>
+                </div>
+                <button id="mobile-text-toggle" onclick="toggleMobileArticle()" class="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span id="toggle-btn-text">查看原文</span>
+                </button>
+                <button onclick="restartQuiz()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="重新开始">
+                    <i class="fa-solid fa-rotate-right text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
+        
+        <!-- LEFT PANEL: Original Article (Sticky & Continuously Visible) -->
+        <section id="article-panel" class="hidden lg:flex flex-col w-full lg:w-1/2 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden h-[calc(100vh-8rem)]">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-slate-700 font-semibold">
+                    <i class="fa-solid fa-feather-pointed text-amber-600"></i>
+                    <span>阅读原文</span>
+                </div>
+                <span class="text-xs text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-md">约 850 字</span>
+            </div>
+            
+            <div class="p-6 overflow-y-auto font-serif-sc text-slate-700 text-base leading-relaxed article-content flex-1">
+                <h2 class="text-xl font-bold text-center text-slate-900 mb-6 font-sans">手足之情</h2>
+                <div id="article-text-body">
+                    <!-- Article dynamically populated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: Quiz & Analysis Container -->
+        <section id="quiz-panel" class="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden h-[calc(100vh-8rem)]">
+            
+            <!-- Quiz View Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-slate-700 font-semibold">
+                    <i class="fa-solid fa-list-check text-rose-500"></i>
+                    <span id="panel-title">阅读理解选择题 (10题)</span>
+                </div>
+                <div id="status-tag" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    选项已随机打乱
+                </div>
+            </div>
+
+            <!-- Quiz Main Scroll Container -->
+            <div id="questions-container" class="p-6 overflow-y-auto flex-1 space-y-8">
+                <!-- Questions dynamically rendered here -->
+            </div>
+
+            <!-- Quiz Sticky Footer / Action Bar -->
+            <div id="quiz-footer" class="p-4 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between">
+                <div class="text-xs text-slate-500 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-amber-500"></i>
+                    <span>点击选项作答，随时可在左侧对照原文</span>
+                </div>
+                <button id="submit-btn" onclick="submitQuiz()" class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-medium rounded-xl shadow-md shadow-rose-500/20 transition duration-150 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    提交试卷并查看分析
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Article Drawer Overlay -->
+    <div id="mobile-article-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex flex-col justify-end lg:hidden transition-opacity">
+        <div class="bg-white rounded-t-2xl max-h-[85vh] flex flex-col w-full overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center gap-2 font-semibold text-slate-800">
+                    <i class="fa-solid fa-book-open text-amber-600"></i>
+                    <span>对照原文</span>
+                </div>
+                <button onclick="toggleMobileArticle()" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto font-serif-sc text-slate-700 text-base leading-relaxed article-content">
+                <h2 class="text-lg font-bold text-center text-slate-900 mb-4 font-sans">手足之情</h2>
+                <div id="mobile-article-text-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Article Raw Data
+        const articleParagraphs = [
+            "老家里那张掉了漆的红木餐桌上，至今还留着一道深深的划痕。",
+            "那是十二岁那年，我和弟弟抢最后一块红烧排骨时划出来的。彼时我们像两只占领领地的幼兽，抢遥控器、抢零食、争论谁才是爸妈更偏爱的那一个。我们曾无数次发誓“再也不理对方”，可往往不过半个小时，又会因为发现了一只古怪的虫子，或者电视里播放的动画片而重新凑在一起。",
+            "童年的兄弟姐妹情，总是裹挟着噼里啪啦的火药味，却又带着最天然的无条件信任。",
+            "后来，我们顺着岁月的河流各自奔赴远方。上了不同的大学，去了不同的城市，交了不同的朋友。不知从何时起，那个曾经每天跟在我身后吵闹打架的人，变成了微信聊天框里很久才闪烁一次的名字。偶尔通个电话，问候也变得客套起来：“最近工作忙吗？”“爸妈那边你联系了吗？”",
+            "我们好像在不知不觉中变成了最熟悉的陌生人。成年人的世界拥挤而疲惫，每个人都在自己的生活里泥足深陷，曾经共享一个屋檐的血脉至亲，也终究要学会独自面对风浪。",
+            "直到那年我跳槽失利，在异乡的租房里烧到三十九度。那是一个暴雨如注的周末，我蜷缩在被窝里，浑身酸痛，连爬起来倒杯水的力气都没有。迷迷糊糊中，我在朋友圈发了一句仅自己可见的抱怨，却不小心错按成了公开。",
+            "不到两个小时，门铃突然响了。",
+            "我艰难地去开门，门外站着浑身湿透的弟弟。他手里提着一大袋退烧药和刚买的温热粥品，气喘吁吁地靠在门框上。他从隔壁城市坐了半个多小时的高铁过来，又在暴雨里跑了几百米。",
+            "看见我憔悴的样子，他没有像小时候那样嘲笑我，只是皱着眉头骂了一句：“烧成这样也不打电话，真以为自己是铁打的？”",
+            "那一晚，他熟练地给我敷冰毛巾，帮我收拾乱七八糟的客厅，就像小时候我帮他挡下父亲的怒火、替他在成绩单上签名一样。",
+            "那一刻我突然明白，兄弟姐妹是这世上最奇妙的一种存在。",
+            "我们拥有相同的基因，见过彼此最邋遢、最幼稚的模样，在漫长的岁月里一同见证了父母的衰老与家庭的变迁。虽然成年后我们沿着各自的方向渐行渐远，甚至很久都不曾深度沟通，但那种刻在骨血里的本能，永远不会因为距离和时间而褪色。",
+            "朋友可能会因为志不同而道不合，爱人可能会因为缘尽而散场，唯有兄弟姐妹，是生命最初就为你配备的“后盾”。",
+            "我们或许不再像小时候那样形影不离，但只要你需要，回头看，那个人始终站在那里。那是血脉相连的默契，也是漫长人生路上，父母留给我们最珍贵的礼物。"
+        ];
+
+        // Raw Question Bank with Explanations
+        const rawQuestions = [
+            {
+                id: 1,
+                question: "文章开头提到红木餐桌上的划痕，其主要写作作用是什么？",
+                options: [
+                    "引出对童年手足相处时光的回忆",
+                    "暗示家庭经济条件的窘迫与沧桑",
+                    "说明父母管教严厉导致兄弟隔阂",
+                    "渲染悲凉压抑的家庭氛围"
+                ],
+                correctIndex: 0,
+                explanation: "文章第1-2段通过餐桌上的划痕作为触发点，顺理成章地引出了十二岁时与弟弟抢排骨的往事，属于典型的触物思人、引出下文的写作手法。"
+            },
+            {
+                id: 2,
+                question: "根据文章第三段，童年时“我”和弟弟的关系具有什么特点？",
+                options: [
+                    "表面经常争吵却相互信任",
+                    "始终形同陌路、漠不关心",
+                    "只有竞争与嫉妒，没有真情",
+                    "兄友弟恭、从来不发生矛盾"
+                ],
+                correctIndex: 0,
+                explanation: "文章第三段明确指出：“童年的兄弟姐妹情，总是裹挟着噼里啪啦的火药味，却又带着最天然的无条件信任。”"
+            },
+            {
+                id: 3,
+                question: "成年之后，“我”和弟弟的关系发生了怎样的变化？",
+                options: [
+                    "变得客套且日常联系变少",
+                    "彻底绝交不再往来",
+                    "比童年时更加黏人、每天通电话",
+                    "因财产继承问题产生严重隔阂"
+                ],
+                correctIndex: 0,
+                explanation: "第四段写道“变成了微信聊天框里很久才闪烁一次的名字”、“问候也变得客套起来”，体现了成年后距离拉远、联系减少和语气客套的变化。"
+            },
+            {
+                id: 4,
+                question: "弟弟得知“我”生病后赶来照顾，其契机是什么？",
+                options: [
+                    "“我”误将抱怨发到了公开朋友圈",
+                    "父母打电话通知了弟弟",
+                    "弟弟正好休假前来看望“我”",
+                    "隔壁邻居打电话通知了弟弟"
+                ],
+                correctIndex: 0,
+                explanation: "第6段写道：“迷迷糊糊中，我在朋友圈发了一句仅自己可见的抱怨，却不小心错按成了公开”，随后弟弟看到后迅速赶来。"
+            },
+            {
+                id: 5,
+                question: "弟弟赶到“我”的住处时，其言行（如责备“真以为自己是铁打的”）主要体现了怎样的情感？",
+                options: [
+                    "责备背后的关切与血肉亲情",
+                    "对“我”打扰其生活的厌烦与愤怒",
+                    "证明自己比“我”更强壮的虚荣心",
+                    "敷衍了事的冷漠态度"
+                ],
+                correctIndex: 0,
+                explanation: "弟弟冒雨跨城赶来送药煮粥，表面上的责备口吻实则是急切与心疼的表现，体现了深沉的关切。"
+            },
+            {
+                id: 6,
+                question: "文中“我”照顾生病的弟弟与弟弟照顾生病的“我”，两组场景构成了什么写作手法？",
+                options: [
+                    "前后照应",
+                    "欲扬先抑",
+                    "虚实结合",
+                    "对比讽刺"
+                ],
+                correctIndex: 0,
+                explanation: "第10段提到“就像小时候我帮他挡下父亲的怒火...一样”，与弟弟冒雨照顾“我”前后呼应，体现了手足间相互扶持的承袭与默契。"
+            },
+            {
+                id: 7,
+                question: "作者将“兄弟姐妹”与“朋友”“爱人”进行对比，意在强调兄弟姐妹情的什么特点？",
+                options: [
+                    "稳定性与不可替代性",
+                    "脆弱性与易变性",
+                    "功利性与互惠性",
+                    "偶然性与不确定性"
+                ],
+                correctIndex: 0,
+                explanation: "第13段提到“朋友可能会因为志不同而道不合，爱人可能会因为缘尽而散场，唯有兄弟姐妹...”，突出手足亲情的稳定与不可替代。"
+            },
+            {
+                id: 8,
+                question: "文章后半部分将兄弟姐妹比作“后盾”，具体指的是什么？",
+                options: [
+                    "随时能为你撑腰的血脉依靠",
+                    "经济上的绝对保障与来源",
+                    "父母偏爱时唯一的挡箭牌",
+                    "避开社交压力的防空洞"
+                ],
+                correctIndex: 0,
+                explanation: "结合上下文，后盾指的是即便平日疏于联系，但在关键时刻随时能够出现并给予支持与依靠的血脉至亲。"
+            },
+            {
+                id: 9,
+                question: "下列对文章语言与情感基调的赏析，正确的一项是？",
+                options: [
+                    "笔触细腻平实，情感真挚深沉",
+                    "语言华丽堆砌，充满夸张词藻",
+                    "情感冷酷理性，注重逻辑推理",
+                    "语气幽默诙谐，全篇以嬉笑怒骂为主"
+                ],
+                correctIndex: 0,
+                explanation: "全篇采用生活化而细腻的叙事语言，从生活琐事切入，情感真挚感人，符合“笔触细腻平实，情感真挚深沉”的赏析。"
+            },
+            {
+                id: 10,
+                question: "文章结尾总结“父母留给我们最珍贵的礼物”，这句话的深刻内涵是什么？",
+                options: [
+                    "血脉相连的亲情是陪伴一生的精神财富",
+                    "父母留给子女的物质遗产十分丰富",
+                    "手足之间应当互相计较得失",
+                    "只有小时候的亲情才是真挚的"
+                ],
+                correctIndex: 0,
+                explanation: "结尾将兄弟姐妹升华为“父母留给我们最珍贵的礼物”，强调血脉亲情是贯穿一生、能够给予力量的精神依靠与财富。"
+            }
+        ];
+
+        // State Variables
+        let processedQuestions = [];
+        let userAnswers = {};
+        let isSubmitted = false;
+
+        // Shuffle helper (Fisher-Yates)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Initialize and setup randomized question dataset
+        function setupData() {
+            // Shuffle questions list
+            const shuffledQList = shuffleArray(rawQuestions);
+
+            processedQuestions = shuffledQList.map((q, qIdx) => {
+                // Get correct option string
+                const correctOptionText = q.options[q.correctIndex];
+                
+                // Shuffle options
+                const shuffledOptions = shuffleArray(q.options);
+                const newCorrectIndex = shuffledOptions.indexOf(correctOptionText);
+
+                return {
+                    originalId: q.id,
+                    displayNum: qIdx + 1,
+                    question: q.question,
+                    options: shuffledOptions,
+                    correctIndex: newCorrectIndex,
+                    explanation: q.explanation
+                };
+            });
+
+            userAnswers = {};
+            isSubmitted = false;
+        }
+
+        // Render Article in Left Container
+        function renderArticle() {
+            const container = document.getElementById('article-text-body');
+            const mobileContainer = document.getElementById('mobile-article-text-body');
+            
+            const html = articleParagraphs.map(p => `<p class="hover:bg-amber-50/50 p-1 rounded transition">${p}</p>`).join('');
+            
+            container.innerHTML = html;
+            mobileContainer.innerHTML = html;
+        }
+
+        // Render Questions in Right Container
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            processedQuestions.forEach((q, qIndex) => {
+                const qCard = document.createElement('div');
+                qCard.className = 'bg-slate-50/80 rounded-xl p-5 border border-slate-200/80 transition duration-200 hover:border-slate-300';
+                qCard.id = `q-card-${qIndex}`;
+
+                const optionLetters = ['A', 'B', 'C', 'D'];
+                
+                let optionsHtml = q.options.map((opt, optIdx) => {
+                    const letter = optionLetters[optIdx];
+                    const isSelected = userAnswers[qIndex] === optIdx;
+                    
+                    let btnStyle = 'bg-white border-slate-200 text-slate-700 hover:bg-amber-50/50 hover:border-amber-300';
+                    let letterStyle = 'bg-slate-100 text-slate-500';
+
+                    if (isSelected) {
+                        btnStyle = 'bg-amber-50 border-amber-500 text-amber-900 shadow-sm font-medium';
+                        letterStyle = 'bg-amber-500 text-white font-bold';
+                    }
+
+                    if (isSubmitted) {
+                        const isCorrectOpt = optIdx === q.correctIndex;
+                        const isUserSelectedOpt = userAnswers[qIndex] === optIdx;
+
+                        if (isCorrectOpt) {
+                            btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-semibold';
+                            letterStyle = 'bg-emerald-500 text-white font-bold';
+                        } else if (isUserSelectedOpt && !isCorrectOpt) {
+                            btnStyle = 'bg-rose-50 border-rose-400 text-rose-900';
+                            letterStyle = 'bg-rose-500 text-white font-bold';
+                        } else {
+                            btnStyle = 'bg-slate-50 border-slate-200 text-slate-400 opacity-60';
+                            letterStyle = 'bg-slate-100 text-slate-400';
+                        }
+                    }
+
+                    return `
+                        <button 
+                            onclick="selectOption(${qIndex}, ${optIdx})" 
+                            ${isSubmitted ? 'disabled' : ''} 
+                            class="w-full text-left p-3.5 rounded-xl border flex items-center gap-3 transition-all duration-150 ${btnStyle}"
+                        >
+                            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs flex-shrink-0 transition-colors ${letterStyle}">
+                                ${letter}
+                            </span>
+                            <span class="text-sm leading-snug flex-1">${opt}</span>
+                            ${isSubmitted && optIdx === q.correctIndex ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg ml-2"></i>' : ''}
+                            ${isSubmitted && isSelected && optIdx !== q.correctIndex ? '<i class="fa-solid fa-circle-xmark text-rose-500 text-lg ml-2"></i>' : ''}
+                        </button>
+                    `;
+                }).join('');
+
+                let feedbackHtml = '';
+                if (isSubmitted) {
+                    const isUserCorrect = userAnswers[qIndex] === q.correctIndex;
+                    feedbackHtml = `
+                        <div class="mt-4 p-4 rounded-xl ${isUserCorrect ? 'bg-emerald-50/80 border border-emerald-200' : 'bg-rose-50/80 border border-rose-200'}">
+                            <div class="flex items-center gap-2 font-semibold text-xs ${isUserCorrect ? 'text-emerald-700' : 'text-rose-700'} mb-1.5">
+                                <i class="fa-solid ${isUserCorrect ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i>
+                                <span>${isUserCorrect ? '回答正确！' : '回答错误'}</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed"><strong class="text-slate-800">解析：</strong>${q.explanation}</p>
+                        </div>
+                    `;
+                }
+
+                qCard.innerHTML = `
+                    <div class="flex items-start justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold">
+                                ${q.displayNum}
+                            </span>
+                            <h3 class="text-base font-semibold text-slate-800 leading-snug">${q.question}</h3>
+                        </div>
+                    </div>
+                    <div class="space-y-2.5">
+                        ${optionsHtml}
+                    </div>
+                    ${feedbackHtml}
+                `;
+
+                container.appendChild(qCard);
+            });
+
+            updateProgress();
+        }
+
+        // Handle option click
+        function selectOption(qIdx, optIdx) {
+            if (isSubmitted) return;
+            userAnswers[qIdx] = optIdx;
+            renderQuestions();
+        }
+
+        // Update progress badge
+        function updateProgress() {
+            const count = Object.keys(userAnswers).length;
+            document.getElementById('answered-count').innerText = count;
+        }
+
+        // Mobile article viewer toggle
+        function toggleMobileArticle() {
+            const modal = document.getElementById('mobile-article-modal');
+            const btnText = document.getElementById('toggle-btn-text');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                btnText.innerText = '隐藏原文';
+            } else {
+                modal.classList.add('hidden');
+                btnText.innerText = '查看原文';
+            }
+        }
+
+        // Submit Quiz Function
+        function submitQuiz() {
+            const answeredCount = Object.keys(userAnswers).length;
+            if (answeredCount < processedQuestions.length) {
+                if (!confirm(`您还有 ${processedQuestions.length - answeredCount} 道题未回答，确定要提交吗？`)) {
+                    return;
+                }
+            }
+
+            isSubmitted = true;
+            
+            // Calculate Score
+            let correctCount = 0;
+            processedQuestions.forEach((q, idx) => {
+                if (userAnswers[idx] === q.correctIndex) {
+                    correctCount++;
+                }
+            });
+
+            const score = correctCount * 10;
+
+            // Render Questions with answers & feedback
+            renderQuestions();
+
+            // Render Analysis Header Dashboard at the top of questions container
+            renderResultsHeader(score, correctCount);
+
+            // Scroll to top of panel
+            document.getElementById('questions-container').scrollTop = 0;
+
+            // Update footer UI
+            document.getElementById('quiz-footer').innerHTML = `
+                <div class="text-xs text-slate-500">
+                    测试已完成 · 得分：<span class="font-bold text-rose-600 text-sm">${score}</span> / 100
+                </div>
+                <button onclick="restartQuiz()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-xl transition">
+                    <i class="fa-solid fa-rotate-right mr-1.5"></i>重新测试 (重新打乱)
+                </button>
+            `;
+        }
+
+        // Render Score Header & Analysis Summary
+        function renderResultsHeader(score, correctCount) {
+            const container = document.getElementById('questions-container');
+            
+            let badgeColor = 'bg-emerald-500';
+            let titleText = '深刻洞察，完美解读！';
+            let commentText = '您不仅精准捕捉到了文章的细节，更深刻理解了作者关于“血脉手足”与“人生后盾”的情感升华。';
+
+            if (score < 60) {
+                badgeColor = 'bg-rose-500';
+                titleText = '仍需努力，建议对照原文再读一遍';
+                commentText = '部分细节与写作手法的理解还有偏差，可以通过左侧对照原文，重点阅读文中描写兄弟二人情感转折的段落。';
+            } else if (score < 90) {
+                badgeColor = 'bg-amber-500';
+                titleText = '表现不错，细节理解较准确！';
+                commentText = '对全篇主题和情感脉络有较好的把握，个别关于对比手法和深层比喻的题目可结合下方解析再做强化。';
+            }
+
+            const summaryCard = document.createElement('div');
+            summaryCard.className = 'bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-6 shadow-xl mb-6 relative overflow-hidden';
+            summaryCard.innerHTML = `
+                <div class="absolute -right-6 -bottom-6 text-slate-700/30 text-9xl pointer-events-none">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/80 pb-5 mb-5">
+                        <div>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${badgeColor} text-white mb-2">
+                                测试结果报告
+                            </span>
+                            <h2 class="text-2xl font-bold">${titleText}</h2>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-4xl font-extrabold text-amber-400">${score}</span>
+                            <span class="text-slate-400 text-sm">/ 100 分</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center mb-4">
+                        <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/50">
+                            <div class="text-xs text-slate-400 mb-1">答对题数</div>
+                            <div class="text-lg font-bold text-emerald-400">${correctCount} 题</div>
+                        </div>
+                        <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/50">
+                            <div class="text-xs text-slate-400 mb-1">答错题数</div>
+                            <div class="text-lg font-bold text-rose-400">${processedQuestions.length - correctCount} 题</div>
+                        </div>
+                        <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/50 col-span-2 sm:col-span-1">
+                            <div class="text-xs text-slate-400 mb-1">正确率</div>
+                            <div class="text-lg font-bold text-amber-400">${(correctCount / processedQuestions.length * 100).toFixed(0)}%</div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        <strong class="text-white">总体分析：</strong>${commentText}
+                    </p>
+                </div>
+            `;
+
+            container.insertBefore(summaryCard, container.firstChild);
+        }
+
+        // Restart / Re-shuffle Quiz
+        function restartQuiz() {
+            setupData();
+            renderQuestions();
+            
+            // Reset footer button
+            document.getElementById('quiz-footer').innerHTML = `
+                <div class="text-xs text-slate-500 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-amber-500"></i>
+                    <span>点击选项作答，随时可在左侧对照原文</span>
+                </div>
+                <button id="submit-btn" onclick="submitQuiz()" class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-medium rounded-xl shadow-md shadow-rose-500/20 transition duration-150 transform active:scale-95">
+                    提交试卷并查看分析
+                </button>
+            `;
+
+            document.getElementById('questions-container').scrollTop = 0;
+        }
+
+        // Initial Launch
+        window.onload = function() {
+            renderArticle();
+            setupData();
+            renderQuestions();
+        };
+    </script>
+</body>
+</html>
