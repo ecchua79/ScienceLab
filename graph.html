@@ -3,358 +3,694 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交互式图表生成器</title>
-    <!-- 引入 Chart.js 图表库 -->
+    <title>GeoGebra 风格交互图表绘制器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f7fb;
-            color: #333;
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
         }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
-        /* 控制面板样式 */
-        .control-panel {
-            flex: 1;
-            min-width: 320px;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        /* 图表展示区样式 */
-        .chart-panel {
-            flex: 2;
-            min-width: 400px;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        h2 {
-            margin-top: 0;
-            color: #2c3e50;
-            font-size: 1.2rem;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #666;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-        .input-row {
-            display: flex;
-            gap: 10px;
-        }
-        /* 表格样式 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            margin-bottom: 15px;
-        }
-        th, td {
-            padding: 8px;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-        }
-        th {
-            background-color: #f8f9fa;
-        }
-        .btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            padding: 4px 8px;
-            font-size: 0.8rem;
-        }
-        .btn-danger:hover {
-            background-color: #bd2130;
-        }
-        .btn-block {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
 
-<div class="container">
-    <!-- 左侧：输入与控制区域 -->
-    <div class="control-panel">
-        <h2>图表设置</h2>
-        
-        <!-- 图表主题设置 -->
-        <div class="form-group">
-            <label for="chartTitle">图表主题 (标题)</label>
-            <input type="text" id="chartTitle" value="时间与速度关系图" placeholder="例如：时间与速度关系">
+    <!-- 顶栏 Header -->
+    <header class="bg-slate-900 text-white px-6 py-3 flex justify-between items-center shadow-md shrink-0">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid font-bold fa-chart-line text-indigo-400 text-xl"></i>
+            <h1 class="text-lg font-bold tracking-wide">GeoGraph Studio 绘图工作台</h1>
         </div>
-
-        <div class="form-group">
-            <label for="chartType">图表类型</label>
-            <select id="chartType">
-                <option value="line">折线图 (Line)</option>
-                <option value="bar">柱状图 (Bar)</option>
-                <option value="scatter">散点图 (Scatter)</option>
-            </select>
+        <div class="flex items-center space-x-3">
+            <button onclick="exportImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center space-x-1 shadow-sm">
+                <i class="fa-solid fa-download"></i>
+                <span>导出图表图片</span>
+            </button>
         </div>
+    </header>
 
-        <!-- X 轴设置 -->
-        <div class="form-group">
-            <label>X 轴 (横轴)</label>
-            <div class="input-row">
-                <input type="text" id="xLabel" value="时间" placeholder="名称 (如: 时间)">
-                <input type="text" id="xUnit" value="s" placeholder="单位 (如: s)">
+    <!-- 主工作区 Layout -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- 左侧：数据与设置侧边栏 -->
+        <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col h-full z-10 shadow-sm shrink-0">
+            
+            <!-- 侧边栏头部标签页 / 标题 -->
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                <h2 class="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-500"></i> 数据与控制面板
+                </h2>
+                <button onclick="resetData()" class="text-xs text-slate-500 hover:text-red-600 transition" title="重置数据">
+                    <i class="fa-solid fa-rotate-right"></i> 重置
+                </button>
             </div>
-        </div>
 
-        <!-- Y 轴设置 -->
-        <div class="form-group">
-            <label>Y 轴 (纵轴)</label>
-            <div class="input-row">
-                <input type="text" id="yLabel" value="速度" placeholder="名称 (如: 速度)">
-                <input type="text" id="yUnit" value="m/s" placeholder="单位 (如: m/s)">
+            <!-- 可滚动表单区域 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-5">
+
+                <!-- 1. 图表主题与模式 -->
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">图表主题与样式</label>
+                    
+                    <div>
+                        <span class="text-xs text-slate-600 font-medium">图表主题名称</span>
+                        <input type="text" id="chartTitle" value="函数与试验数据变化图" oninput="updateChartDebounced()"
+                            class="w-full mt-1 px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">图表类型</span>
+                            <select id="chartType" onchange="updateChart()" class="w-full mt-1 px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="line">折线图 (Line)</option>
+                                <option value="bar">柱状图 (Bar)</option>
+                                <option value="scatter">散点图 (Scatter)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">主题颜色</span>
+                            <input type="color" id="chartColor" value="#4f46e5" onchange="updateChart()"
+                                class="w-full h-8 mt-1 p-0.5 border border-slate-300 rounded-lg cursor-pointer bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 坐标轴与单位设置 -->
+                <div class="space-y-3 pt-3 border-t border-slate-100">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">坐标轴与单位</label>
+                    
+                    <!-- X轴 -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">X 轴名称</span>
+                            <input type="text" id="xLabel" value="时间" oninput="updateChartDebounced()"
+                                class="w-full mt-1 px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">X 轴单位</span>
+                            <input type="text" id="xUnit" value="s" oninput="updateChartDebounced()"
+                                class="w-full mt-1 px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Y轴 -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">Y 轴名称</span>
+                            <input type="text" id="yLabel" value="位移" oninput="updateChartDebounced()"
+                                class="w-full mt-1 px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-600 font-medium">Y 轴单位</span>
+                            <input type="text" id="yUnit" value="m" oninput="updateChartDebounced()"
+                                class="w-full mt-1 px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 显示选项 -->
+                <div class="space-y-2 pt-3 border-t border-slate-100">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">高级显示开关</label>
+                    
+                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="showPointLabels" checked onchange="updateChart()" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                        <span>在每个点上直接标注 (X, Y) 坐标值</span>
+                    </label>
+
+                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="smoothCurve" checked onchange="updateChart()" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                        <span>平滑曲线过渡 (Tension)</span>
+                    </label>
+
+                    <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="fillArea" onchange="updateChart()" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                        <span>开启下方区域填充色</span>
+                    </label>
+                </div>
+
+                <!-- 4. 数据输入表格 -->
+                <div class="space-y-3 pt-3 border-t border-slate-100">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block">坐标数据点</label>
+                        <button onclick="addRow()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded transition flex items-center space-x-1 border border-emerald-200">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>添加行</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-hidden border border-slate-200 rounded-lg shadow-sm">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-2 text-center w-2/5">X 轴</th>
+                                    <th class="p-2 text-center w-2/5">Y 轴</th>
+                                    <th class="p-2 text-center w-1/5">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-slate-200 bg-white">
+                                <!-- 动态生成的表格行 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
-        </div>
 
-        <h2>数据列表</h2>
-        <!-- 数据表格 -->
-        <table id="dataTable">
-            <thead>
-                <tr>
-                    <th>X 值</th>
-                    <th>Y 值</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- 默认预填一些数据 -->
-                <tr>
-                    <td><input type="text" class="x-val" value="0"></td>
-                    <td><input type="number" class="y-val" value="0"></td>
-                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
-                </tr>
-                <tr>
-                    <td><input type="text" class="x-val" value="5"></td>
-                    <td><input type="number" class="y-val" value="12"></td>
-                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
-                </tr>
-                <tr>
-                    <td><input type="text" class="x-val" value="10"></td>
-                    <td><input type="number" class="y-val" value="25"></td>
-                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
-                </tr>
-                <tr>
-                    <td><input type="text" class="x-val" value="15"></td>
-                    <td><input type="number" class="y-val" value="18"></td>
-                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
-                </tr>
-            </tbody>
-        </table>
+            <!-- 侧边栏底部操作 -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200 text-center">
+                <button onclick="updateChart()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow transition text-xs flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span>立即更新并重新绘图</span>
+                </button>
+            </div>
+        </aside>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button class="btn" onclick="addRow()" style="background-color: #28a745;">+ 添加一行</button>
-        </div>
+        <!-- 右侧：超大图形绘制区域 -->
+        <main class="flex-1 bg-slate-50 p-4 md:p-6 flex flex-col justify-center items-center overflow-hidden relative">
+            
+            <!-- Canvas 外层大容器：修复 flexbox 容器尺寸计算问题 -->
+            <div class="w-full h-full bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col relative overflow-hidden min-h-[350px]">
+                <div class="relative w-full h-full flex-1 min-h-0">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
 
-        <button class="btn btn-block" onclick="generateChart()">生成 / 更新图表</button>
+            <!-- 底部提示文字 -->
+            <div class="absolute bottom-2 right-6 text-[10px] text-slate-400 select-none hidden md:block">
+                <i class="fa-solid fa-circle-info mr-1"></i> 支持悬停查看详细点数值 | 自动自适应屏幕尺寸
+            </div>
+        </main>
     </div>
 
-    <!-- 右侧：图表渲染区域 -->
-    <div class="chart-panel">
-        <canvas id="myChart"></canvas>
+    <!-- 导出图片预览弹窗 Modal -->
+    <div id="exportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-5 flex flex-col space-y-4 transform scale-95 transition-transform duration-300" id="exportModalContent">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-image text-indigo-600"></i> 图表导出成功
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 p-1 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="bg-slate-100 rounded-lg p-2 flex items-center justify-center border border-slate-200 overflow-hidden max-h-[60vh]">
+                <img id="exportPreviewImg" src="" alt="Exported Chart" class="max-w-full h-auto rounded shadow-sm object-contain" />
+            </div>
+            <div class="flex justify-between items-center pt-2">
+                <span class="text-xs text-slate-500"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i>如果自动下载未成功，可长按或右键另存图片</span>
+                <div class="flex gap-2">
+                    <a id="exportDownloadBtn" href="#" download="" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-download"></i> 保存图片
+                    </a>
+                    <button onclick="closeExportModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    let chartInstance = null;
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="fixed top-16 right-6 z-50 space-y-2 pointer-events-none"></div>
 
-    // 页面加载完成后自动绘制一次
-    window.onload = function() {
-        generateChart();
-    };
+    <script>
+        let chartInstance = null;
 
-    // 添加一行表格
-    function addRow() {
-        const tbody = document.querySelector('#dataTable tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" class="x-val" value=""></td>
-            <td><input type="number" class="y-val" value=""></td>
-            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
-        `;
-        tbody.appendChild(tr);
-    }
-
-    // 删除表格行
-    function deleteRow(btn) {
-        const row = btn.parentNode.parentNode;
-        const tbody = row.parentNode;
-        if (tbody.rows.length > 1) {
-            row.parentNode.removeChild(row);
-        } else {
-            alert("至少保留一行数据！");
+        // 防抖：输入频繁时延迟合并触发，减少重建图表的次数，避免卡顿
+        let updateChartDebounceTimer = null;
+        function updateChartDebounced(notify = false) {
+            clearTimeout(updateChartDebounceTimer);
+            updateChartDebounceTimer = setTimeout(() => updateChart(notify), 200);
         }
-    }
 
-    // 生成或更新图表
-    function generateChart() {
-        // 1. 获取基础配置信息
-        const title = document.getElementById('chartTitle').value;
-        const type = document.getElementById('chartType').value;
-        
-        const xLabel = document.getElementById('xLabel').value;
-        const xUnit = document.getElementById('xUnit').value;
-        const yLabel = document.getElementById('yLabel').value;
-        const yUnit = document.getElementById('yUnit').value;
+        // 默认数据点
+        const defaultData = [
+            { x: '0', y: 0 },
+            { x: '2', y: 4 },
+            { x: '4', y: 16 },
+            { x: '6', y: 36 },
+            { x: '8', y: 64 },
+            { x: '10', y: 100 }
+        ];
 
-        // 格式化带单位的轴标签
-        const xAxisTitle = xUnit ? `${xLabel} (${xUnit})` : xLabel;
-        const yAxisTitle = yUnit ? `${yLabel} (${yUnit})` : yLabel;
-
-        // 2. 提取表格中的数据
-        const xInputs = document.querySelectorAll('.x-val');
-        const yInputs = document.querySelectorAll('.y-val');
-
-        const xValues = [];
-        const yValues = [];
-
-        xInputs.forEach((input, index) => {
-            const x = input.value;
-            const y = parseFloat(yInputs[index].value);
-            if (x !== '' && !isNaN(y)) {
-                xValues.push(x);
-                yValues.push(y);
+        // 兼容性绘图：安全绘制圆角矩形，防止部分浏览器中 ctx.roundRect 报错
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(x, y, width, height, radius);
+            } else {
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
             }
-        });
-
-        // 3. 销毁旧图表（避免重叠渲染）
-        if (chartInstance) {
-            chartInstance.destroy();
         }
 
-        // 4. 创建新图表
-        const ctx = document.getElementById('myChart').getContext('2d');
-        
-        // 格式化 Dataset (如果是散点图需要特殊的 x/y 对象格式)
-        let datasetData = yValues;
-        if (type === 'scatter') {
-            datasetData = xValues.map((x, index) => ({ x: parseFloat(x) || x, y: yValues[index] }));
+        /**
+         * 自定义 Chart.js 插件：直接在点上方绘制 (X, Y) 标签气泡
+         */
+        const valueLabelsPlugin = {
+            id: 'valueLabelsPlugin',
+            afterDatasetsDraw(chart) {
+                const showLabels = document.getElementById('showPointLabels').checked;
+                if (!showLabels) return;
+
+                const { ctx } = chart;
+                const xUnit = document.getElementById('xUnit').value ? ` ${document.getElementById('xUnit').value}` : '';
+                const yUnit = document.getElementById('yUnit').value ? ` ${document.getElementById('yUnit').value}` : '';
+
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    if (!meta || !meta.data) return;
+                    
+                    meta.data.forEach((element, index) => {
+                        const rawX = chart.data.labels ? chart.data.labels[index] : dataset.data[index].x;
+                        const rawY = typeof dataset.data[index] === 'object' ? dataset.data[index].y : dataset.data[index];
+
+                        if (rawX !== undefined && rawY !== undefined && !isNaN(rawY)) {
+                            const { x, y } = element;
+
+                            ctx.save();
+                            ctx.font = '600 11px Inter, sans-serif';
+                            
+                            // 格式化为 (x, y) 标签文本
+                            const labelText = `(${rawX}${xUnit}, ${rawY}${yUnit})`;
+                            const textWidth = ctx.measureText(labelText).width;
+                            const paddingX = 6;
+                            const rectWidth = textWidth + paddingX * 2;
+                            const rectHeight = 18;
+                            const rectX = x - rectWidth / 2;
+                            const rectY = y - 26; // 在数据点正上方
+
+                            // 绘制气泡背景
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+                            ctx.shadowBlur = 4;
+                            ctx.shadowOffsetY = 2;
+                            
+                            drawRoundedRect(ctx, rectX, rectY, rectWidth, rectHeight, 4);
+                            ctx.fill();
+
+                            // 气泡边框
+                            ctx.shadowColor = 'transparent';
+                            ctx.strokeStyle = dataset.borderColor || '#4f46e5';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+
+                            // 绘制文本
+                            ctx.fillStyle = '#0f172a';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(labelText, x, rectY + rectHeight / 2);
+
+                            ctx.restore();
+                        }
+                    });
+                });
+            }
+        };
+
+        // 背景白色填充插件 (确保导出的 PNG 图像包含白色底色而非透明)
+        const whiteBackgroundPlugin = {
+            id: 'whiteBackgroundPlugin',
+            beforeDraw(chart) {
+                const { ctx, width, height } = chart;
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            }
+        };
+
+        window.onload = function() {
+            // 检查 Chart.js 库是否成功加载
+            if (typeof Chart === 'undefined') {
+                showToast('Chart.js 依赖加载失败，请检查网络连接', 'warning');
+                return;
+            }
+            // 初始化填充默认表格行
+            loadDefaultTable();
+            // 绘制图表
+            updateChart(false);
+        };
+
+        // 载入默认表格数据
+        function loadDefaultTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            defaultData.forEach(pt => {
+                createRowElement(pt.x, pt.y);
+            });
         }
 
-        chartInstance = new Chart(ctx, {
-            type: type,
-            data: {
-                labels: xValues, // X轴点名
-                datasets: [{
-                    label: yLabel || '数值',
-                    data: datasetData,
-                    borderColor: '#007bff',
-                    backgroundColor: type === 'bar' ? 'rgba(0, 123, 255, 0.5)' : 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    fill: type === 'line' ? true : false,
-                    tension: 0.2 // 让线条微微带一点平滑曲线效果
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    // 设置图表顶部主题标题
-                    title: {
-                        display: true,
-                        text: title,
-                        font: {
-                            size: 18,
-                            weight: 'bold'
-                        },
-                        padding: {
-                            bottom: 20
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `${yLabel}: ${context.parsed.y} ${yUnit}`;
-                            }
-                        }
+        // 添加单行表格 DOM
+        function createRowElement(xVal = '', yVal = '') {
+            const tbody = document.getElementById('tableBody');
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            tr.innerHTML = `
+                <td class="p-1.5">
+                    <input type="text" class="x-val w-full px-2 py-1 border border-slate-200 rounded text-center font-mono focus:ring-1 focus:ring-indigo-500 focus:outline-none" 
+                        value="${xVal}" oninput="updateChartDebounced(false)">
+                </td>
+                <td class="p-1.5">
+                    <input type="number" step="any" class="y-val w-full px-2 py-1 border border-slate-200 rounded text-center font-mono focus:ring-1 focus:ring-indigo-500 focus:outline-none" 
+                        value="${yVal}" oninput="updateChartDebounced(false)">
+                </td>
+                <td class="p-1.5 text-center">
+                    <button onclick="removeRow(this)" class="text-slate-400 hover:text-red-500 p-1 transition rounded">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // 按钮调用：添加一行
+        function addRow() {
+            createRowElement('', '');
+            updateChart(false);
+        }
+
+        // 删除一行
+        function removeRow(btn) {
+            const tbody = document.getElementById('tableBody');
+            if (tbody.rows.length <= 1) {
+                showToast('至少保留一组坐标数据点', 'warning');
+                return;
+            }
+            const row = btn.closest('tr');
+            row.remove();
+            updateChart(false);
+        }
+
+        // 重置数据
+        function resetData() {
+            loadDefaultTable();
+            updateChart(true);
+            showToast('已恢复默认坐标数据', 'info');
+        }
+
+        /**
+         * 重新计算与渲染 Graph 图表
+         * @param {boolean} notify - 是否弹出 Toast 操作反馈
+         */
+        function updateChart(notify = true) {
+            if (typeof Chart === 'undefined') {
+                showToast('无法绘图：Chart.js 库未加载', 'warning');
+                return;
+            }
+
+            // 获取表单值
+            const title = document.getElementById('chartTitle').value || '交互图表';
+            const type = document.getElementById('chartType').value;
+            const themeColor = document.getElementById('chartColor').value || '#4f46e5';
+            
+            const xLabel = document.getElementById('xLabel').value;
+            const xUnit = document.getElementById('xUnit').value;
+            const yLabel = document.getElementById('yLabel').value;
+            const yUnit = document.getElementById('yUnit').value;
+
+            const smoothCurve = document.getElementById('smoothCurve').checked;
+            const fillArea = document.getElementById('fillArea').checked;
+
+            // 轴名称拼接单位
+            const xAxisTitleStr = xUnit ? `${xLabel} (${xUnit})` : xLabel;
+            const yAxisTitleStr = yUnit ? `${yLabel} (${yUnit})` : yLabel;
+
+            // 收集数据
+            const xInputs = document.querySelectorAll('.x-val');
+            const yInputs = document.querySelectorAll('.y-val');
+
+            const xValues = [];
+            const yValues = [];
+            let invalidRowCount = 0;
+
+            xInputs.forEach((input, i) => {
+                const xVal = input.value.trim();
+                const yRaw = yInputs[i].value.trim();
+                const yVal = parseFloat(yRaw);
+                if (xVal !== '' && !isNaN(yVal)) {
+                    xValues.push(xVal);
+                    yValues.push(yVal);
+                    input.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    yInputs[i].classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                } else if (xVal !== '' || yRaw !== '') {
+                    // 只要这一行不是完全空白，就算作一条无效数据（帮助用户定位问题行）
+                    invalidRowCount++;
+                    input.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                    yInputs[i].classList.add(isNaN(yVal) ? 'border-red-400' : '');
+                    if (isNaN(yVal)) {
+                        yInputs[i].classList.add('border-red-400', 'ring-1', 'ring-red-300');
                     }
-                },
-                scales: {
-                    // 设置 X 轴名称与单位
-                    x: {
-                        title: {
-                            display: true,
-                            text: xAxisTitle,
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            color: '#e9ecef'
-                        }
-                    },
-                    // 设置 Y 轴名称与单位
-                    y: {
-                        title: {
-                            display: true,
-                            text: yAxisTitle,
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            color: '#e9ecef'
-                        },
-                        beginAtZero: true
-                    }
+                } else {
+                    input.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    yInputs[i].classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 }
-            }
-        });
-    }
-</script>
+            });
 
+            // 没有任何有效数据点：明确提示原因，不再静默绘制空图
+            if (yValues.length === 0) {
+                if (chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = null;
+                }
+                const canvas = document.getElementById('mainChart');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                showToast('没有可用的数据点：请确认每行 X 不为空、Y 是合法数字', 'warning');
+                return;
+            } else if (invalidRowCount > 0 && notify) {
+                showToast(`已忽略 ${invalidRowCount} 行无效数据（X 为空或 Y 非数字）`, 'warning');
+            }
+
+            // 销毁旧图表
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const canvas = document.getElementById('mainChart');
+            const ctx = canvas.getContext('2d');
+
+            // 散点图数据结构调整
+            let datasetData = yValues;
+            if (type === 'scatter') {
+                datasetData = xValues.map((x, i) => {
+                    const parsedX = parseFloat(x);
+                    return { x: Number.isNaN(parsedX) ? x : parsedX, y: yValues[i] };
+                });
+            }
+
+            // 颜色半透明转化
+            const bgRgba = hexToRgba(themeColor, fillArea ? 0.15 : 0.0);
+
+            try {
+                chartInstance = new Chart(ctx, {
+                    type: type,
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                            label: yLabel || 'Y 数值',
+                            data: datasetData,
+                            borderColor: themeColor,
+                            backgroundColor: type === 'bar' ? hexToRgba(themeColor, 0.6) : bgRgba,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: themeColor,
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,
+                            fill: fillArea,
+                            tension: smoothCurve ? 0.35 : 0
+                        }]
+                    },
+                    plugins: [whiteBackgroundPlugin, valueLabelsPlugin],
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                top: 35,
+                                right: 25,
+                                bottom: 10,
+                                left: 10
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: title,
+                                font: {
+                                    size: 18,
+                                    weight: 'bold',
+                                    family: 'Inter, sans-serif'
+                                },
+                                color: '#1e293b',
+                                padding: { bottom: 15 }
+                            },
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                padding: 10,
+                                titleFont: { size: 12 },
+                                bodyFont: { size: 13, weight: 'bold' },
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${yLabel || 'Y'}: ${context.parsed.y} ${yUnit}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: xAxisTitleStr,
+                                    font: { size: 13, weight: 'bold' },
+                                    color: '#475569'
+                                },
+                                grid: {
+                                    color: '#f1f5f9'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: yAxisTitleStr,
+                                    font: { size: 13, weight: 'bold' },
+                                    color: '#475569'
+                                },
+                                grid: {
+                                    color: '#e2e8f0'
+                                },
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+
+                if (notify) {
+                    showToast('图表已成功重新绘制！', 'success');
+                }
+            } catch (err) {
+                console.error('Chart error:', err);
+                showToast('绘制失败：请检查输入的坐标数值', 'warning');
+            }
+        }
+
+        // 导出图片
+        function exportImage() {
+            if (!chartInstance) {
+                showToast('图表尚未就绪，无法导出', 'warning');
+                return;
+            }
+
+            try {
+                // 渲染带有白色背景的高清 Base64 图片
+                const imageBase64 = chartInstance.toBase64Image('image/png', 1.0);
+                const titleStr = document.getElementById('chartTitle').value || 'chart';
+                const filename = `${titleStr.replace(/\s+/g, '_')}_graph.png`;
+
+                // 尝试通过 HTML 5 <a> 标签自动触发下载
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = imageBase64;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // 打开弹窗展示导出结果与备用手动下载
+                openExportModal(imageBase64, filename);
+                showToast('图表图片导出成功！', 'success');
+            } catch (e) {
+                console.error("Export error:", e);
+                showToast('导出图片时出错', 'warning');
+            }
+        }
+
+        // 打开导出图片预览 Modal
+        function openExportModal(imgSrc, filename) {
+            const modal = document.getElementById('exportModal');
+            const modalContent = document.getElementById('exportModalContent');
+            const previewImg = document.getElementById('exportPreviewImg');
+            const downloadBtn = document.getElementById('exportDownloadBtn');
+
+            previewImg.src = imgSrc;
+            downloadBtn.href = imgSrc;
+            downloadBtn.download = filename;
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }
+
+        // 关闭 Modal
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            const modalContent = document.getElementById('exportModalContent');
+
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        // HEX转RGBA辅助函数
+        function hexToRgba(hex, alpha) {
+            let c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(char => char + char).join('');
+            const num = parseInt(c, 16);
+            return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+        }
+
+        // 自定义 Toast 通知
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgStyle = 'bg-slate-800 text-white';
+            if (type === 'warning') bgStyle = 'bg-amber-500 text-white';
+            if (type === 'success') bgStyle = 'bg-emerald-600 text-white';
+
+            toast.className = `px-4 py-2.5 rounded-lg shadow-lg text-xs font-semibold flex items-center space-x-2 transition-all transform translate-y-2 opacity-0 pointer-events-auto ${bgStyle}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
 </body>
 </html>
