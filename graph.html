@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式图表生成器</title>
+    <!-- 引入 Chart.js 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fb;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* 控制面板样式 */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        /* 图表展示区样式 */
+        .chart-panel {
+            flex: 2;
+            min-width: 400px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+        .btn-danger:hover {
+            background-color: #bd2130;
+        }
+        .btn-block {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左侧：输入与控制区域 -->
+    <div class="control-panel">
+        <h2>图表设置</h2>
+        
+        <!-- 图表主题设置 -->
+        <div class="form-group">
+            <label for="chartTitle">图表主题 (标题)</label>
+            <input type="text" id="chartTitle" value="时间与速度关系图" placeholder="例如：时间与速度关系">
+        </div>
+
+        <div class="form-group">
+            <label for="chartType">图表类型</label>
+            <select id="chartType">
+                <option value="line">折线图 (Line)</option>
+                <option value="bar">柱状图 (Bar)</option>
+                <option value="scatter">散点图 (Scatter)</option>
+            </select>
+        </div>
+
+        <!-- X 轴设置 -->
+        <div class="form-group">
+            <label>X 轴 (横轴)</label>
+            <div class="input-row">
+                <input type="text" id="xLabel" value="时间" placeholder="名称 (如: 时间)">
+                <input type="text" id="xUnit" value="s" placeholder="单位 (如: s)">
+            </div>
+        </div>
+
+        <!-- Y 轴设置 -->
+        <div class="form-group">
+            <label>Y 轴 (纵轴)</label>
+            <div class="input-row">
+                <input type="text" id="yLabel" value="速度" placeholder="名称 (如: 速度)">
+                <input type="text" id="yUnit" value="m/s" placeholder="单位 (如: m/s)">
+            </div>
+        </div>
+
+        <h2>数据列表</h2>
+        <!-- 数据表格 -->
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>X 值</th>
+                    <th>Y 值</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 默认预填一些数据 -->
+                <tr>
+                    <td><input type="text" class="x-val" value="0"></td>
+                    <td><input type="number" class="y-val" value="0"></td>
+                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                </tr>
+                <tr>
+                    <td><input type="text" class="x-val" value="5"></td>
+                    <td><input type="number" class="y-val" value="12"></td>
+                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                </tr>
+                <tr>
+                    <td><input type="text" class="x-val" value="10"></td>
+                    <td><input type="number" class="y-val" value="25"></td>
+                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                </tr>
+                <tr>
+                    <td><input type="text" class="x-val" value="15"></td>
+                    <td><input type="number" class="y-val" value="18"></td>
+                    <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="btn" onclick="addRow()" style="background-color: #28a745;">+ 添加一行</button>
+        </div>
+
+        <button class="btn btn-block" onclick="generateChart()">生成 / 更新图表</button>
+    </div>
+
+    <!-- 右侧：图表渲染区域 -->
+    <div class="chart-panel">
+        <canvas id="myChart"></canvas>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    // 页面加载完成后自动绘制一次
+    window.onload = function() {
+        generateChart();
+    };
+
+    // 添加一行表格
+    function addRow() {
+        const tbody = document.querySelector('#dataTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="x-val" value=""></td>
+            <td><input type="number" class="y-val" value=""></td>
+            <td><button class="btn btn-danger" onclick="deleteRow(this)">删除</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    // 删除表格行
+    function deleteRow(btn) {
+        const row = btn.parentNode.parentNode;
+        const tbody = row.parentNode;
+        if (tbody.rows.length > 1) {
+            row.parentNode.removeChild(row);
+        } else {
+            alert("至少保留一行数据！");
+        }
+    }
+
+    // 生成或更新图表
+    function generateChart() {
+        // 1. 获取基础配置信息
+        const title = document.getElementById('chartTitle').value;
+        const type = document.getElementById('chartType').value;
+        
+        const xLabel = document.getElementById('xLabel').value;
+        const xUnit = document.getElementById('xUnit').value;
+        const yLabel = document.getElementById('yLabel').value;
+        const yUnit = document.getElementById('yUnit').value;
+
+        // 格式化带单位的轴标签
+        const xAxisTitle = xUnit ? `${xLabel} (${xUnit})` : xLabel;
+        const yAxisTitle = yUnit ? `${yLabel} (${yUnit})` : yLabel;
+
+        // 2. 提取表格中的数据
+        const xInputs = document.querySelectorAll('.x-val');
+        const yInputs = document.querySelectorAll('.y-val');
+
+        const xValues = [];
+        const yValues = [];
+
+        xInputs.forEach((input, index) => {
+            const x = input.value;
+            const y = parseFloat(yInputs[index].value);
+            if (x !== '' && !isNaN(y)) {
+                xValues.push(x);
+                yValues.push(y);
+            }
+        });
+
+        // 3. 销毁旧图表（避免重叠渲染）
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // 4. 创建新图表
+        const ctx = document.getElementById('myChart').getContext('2d');
+        
+        // 格式化 Dataset (如果是散点图需要特殊的 x/y 对象格式)
+        let datasetData = yValues;
+        if (type === 'scatter') {
+            datasetData = xValues.map((x, index) => ({ x: parseFloat(x) || x, y: yValues[index] }));
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: type,
+            data: {
+                labels: xValues, // X轴点名
+                datasets: [{
+                    label: yLabel || '数值',
+                    data: datasetData,
+                    borderColor: '#007bff',
+                    backgroundColor: type === 'bar' ? 'rgba(0, 123, 255, 0.5)' : 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: type === 'line' ? true : false,
+                    tension: 0.2 // 让线条微微带一点平滑曲线效果
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    // 设置图表顶部主题标题
+                    title: {
+                        display: true,
+                        text: title,
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: {
+                            bottom: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${yLabel}: ${context.parsed.y} ${yUnit}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    // 设置 X 轴名称与单位
+                    x: {
+                        title: {
+                            display: true,
+                            text: xAxisTitle,
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: '#e9ecef'
+                        }
+                    },
+                    // 设置 Y 轴名称与单位
+                    y: {
+                        title: {
+                            display: true,
+                            text: yAxisTitle,
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: '#e9ecef'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
