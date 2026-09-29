@@ -442,7 +442,7 @@ function genLayer6(subtype, hard){
     const x4Cm=randInt(21,30), x4M=x4Cm/100, F4=r2(k*x4M), correct=x4Cm;
     const candidates=[r2(x4M*100*100), r2(x4Cm/2), r2(x4Cm*2), r2(F4*k)];
     const distractors=uniquePositive(correct, shuffle(candidates), 3, 0.001);
-    return {level:6, subtype, pts, F4, correct, distractors};
+    return {level:6, subtype, pts, F4, x4M, correct, distractors};
   }
   const k2=pick(pool.filter(v=>v!==k));
   const outlierCm=randInt(21,28), outlierF=r2(k2*outlierCm/100);
@@ -698,8 +698,18 @@ function buildQuestion(level, hard){
     const rightLabel = {fText: q.hide==='F2'?undefined:fmtNum(q.F2), fUnknown:q.hide==='F2', xText:q.hide==='x2'?undefined:fmtNum(q.x2), xUnknown:q.hide==='x2', xNum:q.x2};
     const svg=pairSpringSVG(leftLabel, rightLabel, "第一次", "第二次");
     const unit = (q.hide==='F1'||q.hide==='F2')?"N":"m";
+    let explain2;
+    if(q.hide==='x2'){
+      explain2="利用 F₁×x₂=F₂×x₁,代入:"+fmtNum(q.F1)+"×x₂="+fmtNum(q.F2)+"×"+fmtNum(q.x1)+",解得 x₂="+fmtNum(q.F2)+"×"+fmtNum(q.x1)+"÷"+fmtNum(q.F1)+"="+fmtNum(q.correct)+" m。";
+    } else if(q.hide==='x1'){
+      explain2="利用 F₁×x₂=F₂×x₁,代入:"+fmtNum(q.F1)+"×"+fmtNum(q.x2)+"=F₂×x₁,解得 x₁="+fmtNum(q.F1)+"×"+fmtNum(q.x2)+"÷"+fmtNum(q.F2)+"="+fmtNum(q.correct)+" m。";
+    } else if(q.hide==='F2'){
+      explain2="利用 F₁×x₂=F₂×x₁,代入:"+fmtNum(q.F1)+"×"+fmtNum(q.x2)+"=F₂×"+fmtNum(q.x1)+",解得 F₂="+fmtNum(q.F1)+"×"+fmtNum(q.x2)+"÷"+fmtNum(q.x1)+"="+fmtNum(q.correct)+" N。";
+    } else {
+      explain2="利用 F₁×x₂=F₂×x₁,代入:F₁×"+fmtNum(q.x2)+"="+fmtNum(q.F2)+"×"+fmtNum(q.x1)+",解得 F₁="+fmtNum(q.F2)+"×"+fmtNum(q.x1)+"÷"+fmtNum(q.x2)+"="+fmtNum(q.correct)+" N。";
+    }
     return {level, text, svg, correct:q.correct, distractors:q.distractors, unit,
-      explain:"利用交叉相乘:F₁×x₂ = F₂×x₁,代入已知的三个数据求出 "+askLabel+" = "+fmtNum(q.correct)+" "+unit};
+      explain:explain2};
   }
 
   if(level===3){
@@ -772,6 +782,7 @@ function buildQuestion(level, hard){
   const subtype = pick(hard ? ["extrap_F","extrap_x","outlier"] : ["find_k","extrap_F","extrap_x","outlier"]);
   const q=genLayer6(subtype, hard);
   let text, svg, unit, explain, options, correctIsIndex=false;
+  const kCalc = fmtNum(q.pts[0].F/q.pts[0].xM);
   if(subtype==='find_k'){
     text="下表是同一根弹簧的实验数据(见图),根据数据求这根弹簧的劲度系数 k?";
     svg=chartSVG(q.pts);
@@ -781,17 +792,18 @@ function buildQuestion(level, hard){
     text="下图是同一根弹簧的实验数据。若继续按此规律,当伸长量 x = "+fmtNum(q.x4M)+" m 时,受力 F 应该是多少(单位:N)?";
     svg=chartSVG(q.pts);
     unit="N";
-    explain="先由已有数据求出 k,再代入 F = kx 计算 x = "+fmtNum(q.x4M)+" m 时的 F = "+fmtNum(q.correct)+" N。";
+    explain="先由已知数据求出 k = F÷x = "+fmtNum(q.pts[0].F)+"÷"+fmtNum(q.pts[0].xM)+" = "+kCalc+" N/m,再代入 F = kx = "+kCalc+"×"+fmtNum(q.x4M)+" = "+fmtNum(q.correct)+" N。";
   } else if(subtype==='extrap_x'){
     text="下图是同一根弹簧的实验数据。若继续按此规律,当受力 F = "+fmtNum(q.F4)+" N 时,伸长量应该是多少(单位:cm)?";
     svg=chartSVG(q.pts);
     unit="cm";
-    explain="先由已有数据求出 k,再代入 x = F÷k 计算,并把答案从 m 换算成 cm,得 "+q.correct+" cm。";
+    explain="先由已知数据求出 k = F÷x = "+fmtNum(q.pts[0].F)+"÷"+fmtNum(q.pts[0].xM)+" = "+kCalc+" N/m,再代入 x = F÷k = "+fmtNum(q.F4)+"÷"+kCalc+" = "+fmtNum(q.x4M)+" m,换算成 cm 得 "+q.correct+" cm。";
   } else {
+    const r0=fmtNum(q.pts[0].F/q.pts[0].xM), r1=fmtNum(q.pts[1].F/q.pts[1].xM), r2v=fmtNum(q.pts[2].F/q.pts[2].xM), r3=fmtNum(q.pts[3].F/q.pts[3].xM);
     text="下图是同一根弹簧的4组实验数据,哪一组数据显示弹簧可能已经超过了弹性限度?";
     svg=chartSVG(q.pts.slice(0,3), q.pts[3], 3);
     unit="";
-    explain="前三组数据的 F÷x 比值都相同,唯独第4组比值明显不同,说明这组数据可能已经超过了弹性限度,不再遵守胡克定律。";
+    explain="分别计算每组的 F÷x:第1组="+r0+"、第2组="+r1+"、第3组="+r2v+"、第4组="+r3+"。前三组数值相同,只有第4组明显不同,说明这组数据可能已经超过了弹性限度,不再遵守胡克定律。";
     options=[
       {text:"第1组", isCorrect:false},
       {text:"第2组", isCorrect:false},
