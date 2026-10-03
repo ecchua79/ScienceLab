@@ -1,1 +1,1648 @@
+<!DOCTYPE html>
+<!--
+  峇株吧辖华仁中学蔡逸众制作
+  功与功率闯关大冒险 - 计算驱动版(数字每局随机生成)
+  单文件离线版,无外部依赖
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>功与功率闯关大冒险</title>
+<style>
+:root{
+  --ink:#141c2e;
+  --panel:#1c2740;
+  --panel-2:#233252;
+  --panel-3:#31406a;
+  --coil:#c7cedd;
+  --brass:#e2a542;
+  --brass-deep:#b97f1f;
+  --ok:#5fb87a;
+  --bad:#e0645a;
+  --paper:#f3ede1;
+  --line:#3a4a70;
+  --text-dim-1:#a9b4cc;
+  --text-dim-2:#93a0bf;
+  --text-dim-3:#7c88a8;
+  --text-bright:#c3cce2;
+  --badge-text:#e6ecfb;
+  --bg-glow-1:#223256;
+  --bg-glow-2:#1a2440;
+  --diagram-bg:#1c2740;
+  --diagram-line:#2d3c60;
+}
+:root[data-theme="light"]{
+  --ink:#eef1f8;
+  --panel:#ffffff;
+  --panel-2:#eef1f8;
+  --panel-3:#dde6f5;
+  --coil:#5a6c8f;
+  --brass:#c07a1e;
+  --brass-deep:#9c6016;
+  --ok:#2f9e5c;
+  --bad:#c23f36;
+  --paper:#1a2440;
+  --line:#d7deea;
+  --text-dim-1:#52607e;
+  --text-dim-2:#5f6d8a;
+  --text-dim-3:#6b7897;
+  --text-bright:#2c3650;
+  --badge-text:#1a2440;
+  --bg-glow-1:#dbe4f5;
+  --bg-glow-2:#eef1f8;
+  --diagram-bg:#1c2740;
+  --diagram-line:#2d3c60;
+}
+/* 字体缩放:A-/A/A+ 三档,用 zoom 整体缩放卡片 */
+.stage.font-sm{ zoom:0.87; }
+.stage.font-md{ zoom:1; }
+.stage.font-lg{ zoom:1.18; }
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:"PingFang SC","Microsoft YaHei","Heiti SC",-apple-system,sans-serif;
+  background:
+    radial-gradient(circle at 20% 10%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(circle at 85% 85%, var(--bg-glow-2) 0%, transparent 50%),
+    var(--ink);
+  color:var(--paper);
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:16px;
+  touch-action:manipulation;
+}
+/* Made by ecchua79 */
+.stage{
+  width:100%;
+  max-width:540px;
+  min-height:680px;
+  background:var(--panel);
+  border-radius:22px;
+  border:1px solid var(--line);
+  box-shadow:0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+  padding:16px 20px 20px;
+  position:relative;
+}
+.screen{display:none;}
+.screen.active{display:flex; flex-direction:column; min-height:560px;}
+.top-toolbar{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding-bottom:12px; margin-bottom:10px; border-bottom:1px solid var(--line);
+}
+.tb-group{display:flex; gap:4px;}
+.tb-btn{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--paper);
+  border-radius:10px; padding:6px 11px; font-size:13px; cursor:pointer; font-weight:700;
+  font-family:inherit;
+}
+.tb-btn:active{transform:scale(0.95);}
+
+.coil-row{display:flex; justify-content:center; gap:6px; margin-bottom:14px;}
+.coil-dot{width:8px; height:8px; border-radius:50%; background:var(--coil); opacity:0.35;}
+.coil-dot:nth-child(3n){opacity:0.7;}
+
+/* ---------- START ---------- */
+#start-screen{align-items:center; text-align:center; justify-content:center; gap:12px;}
+.logo-badge{
+  width:82px; height:82px; border-radius:50%;
+  background:linear-gradient(145deg, var(--brass), var(--brass-deep));
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px;
+  box-shadow:0 8px 24px rgba(226,165,66,0.35);
+  margin-bottom:4px;
+}
+h1.title{font-size:24px; margin:0; letter-spacing:1px; color:var(--paper);}
+.subtitle{font-size:13.5px; color:var(--text-dim-1); margin:0 0 6px; line-height:1.6;}
+.brief-card{
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 15px;
+  font-size:12.5px;
+  color:var(--text-bright);
+  text-align:left;
+  line-height:1.75;
+  width:100%;
+}
+.brief-card b{color:var(--brass);}
+.level-list{font-size:11.5px; color:var(--text-dim-2); text-align:left; width:100%; line-height:1.8; margin-top:2px;}
+
+/* ---------- HUB (关卡列表) ---------- */
+#hub-screen{align-items:stretch;}
+.hub-section-title{font-size:13px; font-weight:800; color:var(--brass); margin:10px 0 8px; letter-spacing:0.5px;}
+.hub-section-title:first-of-type{margin-top:2px;}
+.hub-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; margin-bottom:6px;}
+.level-card{
+  background:var(--panel-2); border:1.5px solid var(--line); border-radius:14px;
+  padding:12px; text-align:left; cursor:pointer; color:inherit; font-family:inherit;
+}
+.level-card:active{transform:scale(0.97);}
+.level-card.passed{border-color:var(--ok);}
+.lc-name{font-size:13px; font-weight:700; color:var(--paper);}
+.lc-sub{font-size:9.5px; color:var(--text-dim-3); margin:2px 0 8px; line-height:1.4; min-height:24px;}
+.lc-status{font-size:11px; color:var(--text-dim-2);}
+.lc-status.passed{color:var(--ok); font-weight:700;}
+.lc-status.tried{color:var(--brass);}
+.final-card{
+  background:linear-gradient(145deg,var(--panel-3),var(--panel)); border:1.5px solid var(--brass); border-radius:16px;
+  padding:16px; text-align:center; margin:8px 0 6px; cursor:pointer; width:100%; color:inherit; font-family:inherit;
+}
+.final-card.locked{border-color:var(--line); opacity:0.6; cursor:not-allowed;}
+.final-card .fc-title{font-size:15px; font-weight:800; color:var(--paper); margin-bottom:4px;}
+.final-card .fc-sub{font-size:11.5px; color:var(--text-dim-1);}
+.final-card .fc-status{font-size:12px; color:var(--ok); font-weight:700; margin-top:6px;}
+
+.btn{
+  border:none;
+  border-radius:14px;
+  padding:15px 28px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+  color:#1a2440;
+  background:linear-gradient(145deg, var(--brass), var(--brass-deep));
+  box-shadow:0 8px 20px rgba(226,165,66,0.3);
+  transition:transform .15s ease;
+  width:100%;
+}
+.btn:active{transform:scale(0.97);}
+.btn.ghost{background:transparent; color:var(--paper); border:1px solid var(--line); box-shadow:none;}
+.footer-mark{margin-top:auto; padding-top:8px; font-size:10px; color:rgba(255,255,255,0.06); letter-spacing:0.5px;}
+
+/* ---------- HUD ---------- */
+.hud{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px;}
+.hud-back{background:var(--panel-2); border:1px solid var(--line); border-radius:20px; padding:6px 12px; font-size:12px; color:var(--text-bright); cursor:pointer; white-space:nowrap;}
+.hud-mid{flex:1; text-align:center; font-size:12.5px; color:var(--text-dim-1);}
+.hud-mid b{color:var(--paper); font-size:13.5px;}
+.score-pill{background:var(--panel-2); border:1px solid var(--line); border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:700; color:var(--brass); white-space:nowrap;}
+.progress-track{height:6px; border-radius:6px; background:var(--panel-2); overflow:hidden; margin-bottom:10px;}
+.progress-fill{height:100%; background:linear-gradient(90deg, var(--brass-deep), var(--brass)); width:0%; transition:width .35s ease;}
+.combo-flag{position:absolute; top:66px; right:20px; background:var(--brass); color:#1a2440; font-weight:800; font-size:13px; padding:5px 10px; border-radius:10px; opacity:0; transform:translateY(6px) scale(0.9); transition:all .25s ease; pointer-events:none;}
+.combo-flag.show{opacity:1; transform:translateY(0) scale(1);}
+
+/* ---------- QUESTION ---------- */
+.level-tag{font-size:11.5px; color:var(--brass); font-weight:700; margin-bottom:4px; letter-spacing:0.5px;}
+.level-sub{font-size:10.5px; color:var(--text-dim-3); margin-bottom:8px;}
+.q-text{font-size:15px; line-height:1.6; margin:0 0 10px; color:var(--paper); white-space:pre-line;}
+.q-svg-wrap{width:100%; display:flex; justify-content:center; margin-bottom:10px; background:var(--diagram-bg); border:1px solid var(--diagram-line); border-radius:14px; padding:8px 4px;}
+.q-svg-wrap svg{width:100%; max-width:250px; height:auto; display:block;}
+.q-table{width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:12.5px; background:var(--panel-2); border-radius:10px; overflow:hidden;}
+.q-table th,.q-table td{border:1px solid var(--line); padding:6px 5px; text-align:center; color:#dbe2f2;}
+.q-table th{background:#2a3a5e; color:var(--brass);}
+.options{display:flex; flex-direction:column; gap:9px; margin-bottom:10px;}
+.opt-btn{text-align:left; background:var(--panel-2); border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; font-size:14.5px; color:var(--paper); cursor:pointer; line-height:1.4;}
+.opt-btn:active{transform:scale(0.985);}
+.opt-btn.correct{background:rgba(95,184,122,0.18); border-color:var(--ok); color:#bdf0cc;}
+.opt-btn.wrong{background:rgba(224,100,90,0.18); border-color:var(--bad); color:#f7c9c5;}
+.opt-btn.disabled{pointer-events:none; opacity:0.65;}
+.opt-btn:not(.disabled):hover{border-color:var(--brass);}
+.input-answer-box{margin-bottom:10px;}
+.input-tag{font-size:12px; color:var(--brass); font-weight:700; margin-bottom:8px;}
+.input-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+.answer-input{flex:1; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:var(--panel-2); color:var(--paper); font-size:16px; font-family:inherit;}
+.answer-input:focus{outline:none; border-color:var(--brass);}
+.answer-input.correct{border-color:var(--ok); background:rgba(95,184,122,0.12);}
+.answer-input.wrong{border-color:var(--bad); background:rgba(224,100,90,0.12);}
+.input-unit{font-size:14px; color:var(--text-dim-1); min-width:36px;}
+.explain-box{background:var(--panel-2); border-left:3px solid var(--brass); border-radius:8px; padding:10px 12px; font-size:12.5px; color:var(--text-bright); line-height:1.6; margin-bottom:10px; display:none;}
+.explain-box.show{display:block;}
+.next-wrap{margin-top:auto;}
+
+/* ---------- ATTEMPT / RESULT ---------- */
+#attempt-result-screen, #result-screen{align-items:center; text-align:center; gap:10px; justify-content:center;}
+.result-emoji{font-size:48px;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px; width:100%; margin:6px 0;}
+.stat-box{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:11px 8px;}
+.stat-box .num{font-size:19px; font-weight:800; color:var(--brass);}
+.stat-box .lbl{font-size:10.5px; color:var(--text-dim-2); margin-top:2px;}
+.badges{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:4px 0;}
+.badge{background:linear-gradient(145deg,var(--panel-3),var(--panel-2)); border:1px solid var(--line); border-radius:20px; padding:6px 12px; font-size:11.5px; color:var(--badge-text);}
+.name-input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--line); background:var(--panel-2); color:var(--paper); font-size:15px; margin:6px 0; font-family:inherit;}
+.name-input:focus{outline:none; border-color:var(--brass);}
+#cert-canvas{display:none;}
+.cert-preview{width:100%; border-radius:14px; margin:6px 0; border:1px solid var(--line); display:none;}
+.btn-row{display:flex; gap:10px; width:100%;}
+</style>
+</head>
+<body>
+<div class="stage font-md" id="stage-root">
+  <div class="top-toolbar">
+    <button class="tb-btn" id="home-btn" title="返回关卡列表">🏠 主页</button>
+    <div class="tb-group">
+      <button class="tb-btn" id="font-dec-btn" title="缩小字体">A-</button>
+      <button class="tb-btn" id="font-inc-btn" title="放大字体">A+</button>
+      <button class="tb-btn" id="theme-toggle-btn" title="切换日夜模式">🌙</button>
+    </div>
+  </div>
+
+  <!-- ============ START ============ -->
+  <div id="start-screen" class="screen active">
+    <div class="coil-row">
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div>
+    </div>
+    <div class="logo-badge">⚡</div>
+    <h1 class="title">功与功率闯关大冒险</h1>
+    <p class="subtitle">每一局的数字都是现场随机生成的,答案不能死背,只能真正会算!</p>
+    <div class="brief-card">
+      🎯 <b>玩法</b>:「功」与「功率」两大板块,共12关,自由挑选、不分先后<br>
+      ✅ <b>过关</b>:每关5题(4选择+1手动输入),答对3题(60%)即过关,可重复挑战<br>
+      ⭐ <b>加分</b>:连击奖励 + 10秒内作答速度加分<br>
+      🏁 <b>终极测验</b>:两大板块全部过关后解锁,14题更难的综合挑战<br>
+      🏆 <b>证书</b>:通过终极测验后,获得专属认证证书
+      <div class="level-list">
+        【功 W=Fs】基础代入・单位换算・是否做功・多力合成・重力做功・图表判读<br>
+        【功率 P=W/t】基础代入・单位换算・两步综合・比较功率・效率・图表判读
+      </div>
+    </div>
+    <button class="btn" id="start-btn">进入关卡列表 →</button>
+    <div class="footer-mark">Made by ecchua79</div>
+  </div>
+
+  <!-- ============ HUB ============ -->
+  <div id="hub-screen" class="screen">
+    <div class="coil-row">
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div><div class="coil-dot"></div><div class="coil-dot"></div>
+      <div class="coil-dot"></div>
+    </div>
+    <h1 class="title" style="text-align:center; font-size:20px;">关卡列表</h1>
+    <p class="subtitle" style="text-align:center;">挑一关开始吧,每关都能重复挑战刷更快的时间</p>
+    <div class="hub-section-title">⚙️ 功 (Work)</div>
+    <div class="hub-grid" id="hub-grid-work"></div>
+    <div class="hub-section-title">🔋 功率 (Power)</div>
+    <div class="hub-grid" id="hub-grid-power"></div>
+    <div class="final-card" id="final-card"></div>
+  </div>
+
+  <!-- ============ GAME ============ -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <button class="hud-back" id="back-to-hub-btn">← 返回</button>
+      <div class="hud-mid"><b id="level-name">基础代入</b></div>
+      <div class="score-pill" id="score-pill">0 分</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="combo-flag" id="combo-flag">🔥 连击 x0</div>
+
+    <div class="level-tag" id="q-index-tag">题目 1/5</div>
+    <div class="level-sub" id="level-sub">W = Fs</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="q-svg-wrap" id="q-svg-wrap"></div>
+    <div id="q-table-wrap"></div>
+    <div class="options" id="options-box"></div>
+    <div class="input-answer-box" id="input-answer-box" style="display:none;">
+      <div class="input-tag">🏁 关卡考核题:请手动输入答案,不能用猜的!</div>
+      <div class="input-row">
+        <input type="text" inputmode="decimal" id="answer-input" class="answer-input" placeholder="请输入数值" autocomplete="off">
+        <span class="input-unit" id="input-unit"></span>
+      </div>
+      <button class="btn" id="submit-answer-btn">提交答案 ✓</button>
+    </div>
+    <div class="explain-box" id="explain-box"></div>
+
+    <div class="next-wrap">
+      <button class="btn" id="next-btn" style="display:none;">下一题 →</button>
+    </div>
+  </div>
+
+  <!-- ============ ATTEMPT RESULT ============ -->
+  <div id="attempt-result-screen" class="screen">
+    <div class="result-emoji" id="attempt-emoji">🎉</div>
+    <h1 class="title" id="attempt-title">过关!</h1>
+    <p class="subtitle" id="attempt-sub"></p>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="attempt-acc">0/5</div><div class="lbl">正确率</div></div>
+      <div class="stat-box"><div class="num" id="attempt-time">0:00</div><div class="lbl">用时</div></div>
+    </div>
+    <div class="btn-row" id="attempt-btn-row">
+      <button class="btn ghost" id="attempt-back-btn">返回列表</button>
+      <button class="btn" id="attempt-retry-btn">再挑战一次 🔁</button>
+    </div>
+    <button class="btn" id="attempt-cert-btn" style="display:none; margin-top:10px;">领取证书 🏆</button>
+  </div>
+
+  <!-- ============ RESULT / CERTIFICATE ============ -->
+  <div id="result-screen" class="screen">
+    <div class="result-emoji">🏆</div>
+    <h1 class="title">全部通关!</h1>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" id="stat-totaltime">0:00</div><div class="lbl">总用时</div></div>
+      <div class="stat-box"><div class="num" id="stat-examacc">0/14</div><div class="lbl">终极测验正确率</div></div>
+    </div>
+    <div class="badges" id="badges-box"></div>
+
+    <input class="name-input" id="name-input" type="text" placeholder="请输入你的姓名 / Name" maxlength="16">
+    <img id="cert-preview" class="cert-preview" alt="证书预览">
+    <div class="btn-row">
+      <button class="btn" id="gen-cert-btn">生成证书 🏅</button>
+    </div>
+    <div class="btn-row" id="post-cert-row" style="display:none;">
+      <button class="btn" id="download-cert-btn">下载证书 ⬇️</button>
+      <button class="btn ghost" id="replay-btn">返回关卡列表 🔁</button>
+    </div>
+  </div>
+
+  <canvas id="cert-canvas" width="1240" height="2100"></canvas>
+</div>
+
+<script>
+/* 华仁中学蔡逸众制作 */
+(function(){
+"use strict";
+
+/* =========================================================
+   工具函数
+========================================================= */
+function r2(n){ let v=Math.round((n+Number.EPSILON)*100)/100; if(Object.is(v,-0)) v=0; return v; }
+function fmtNum(n){
+  let v=r2(n);
+  let s=v.toFixed(2);
+  s=s.replace(/0+$/,'').replace(/\.$/,'');
+  return s;
+}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function uniquePositive(correct, candidates, count, minVal){
+  minVal = minVal===undefined?0.01:minVal;
+  const correctR=r2(correct);
+  const seen=new Set([correctR]);
+  const result=[];
+  for(const c of candidates){
+    const v=r2(c);
+    if(v>minVal && !seen.has(v)){ seen.add(v); result.push(v); }
+    if(result.length>=count) break;
+  }
+  let tries=0;
+  while(result.length<count && tries<80){
+    tries++;
+    const scale=0.5+Math.random()*1.6;
+    const v=r2(correctR*scale + (Math.random()<0.5?-1:1)*randInt(1,9)/10);
+    if(v>minVal && !seen.has(v)){ seen.add(v); result.push(v); }
+  }
+  return result.slice(0,count);
+}
+/* 允许correct=0(不做功的情形)安全生成干扰项 */
+function uniqueNonNeg(correct, candidates, count){
+  const correctR=r2(correct);
+  const seen=new Set([correctR]);
+  const result=[];
+  for(const c of candidates){
+    const v=r2(Math.abs(c));
+    if(v>=0 && !seen.has(v)){ seen.add(v); result.push(v); }
+    if(result.length>=count) break;
+  }
+  let tries=0;
+  while(result.length<count && tries<80){
+    tries++;
+    const base = correctR===0? randInt(1,50) : correctR*(0.5+Math.random()*1.6);
+    const v=r2(Math.abs(base + (Math.random()<0.5?-1:1)*randInt(1,9)/10));
+    if(!seen.has(v)){ seen.add(v); result.push(v); }
+  }
+  return result.slice(0,count);
+}
+
+/* 峇株吧辖蔡逸众制作 */
+
+const FORCE_POOL=[5,8,10,12,15,20,25,30,40,50,60,75,80,100,120,150];
+const HARD_FORCE_POOL=FORCE_POOL.concat([180,200,250,300,400]);
+const FRICTION_POOL=[2,4,5,6,8,10,12,15,20,25];
+const MASS_POOL=[2,4,5,6,8,10,12,15,20,25,30,40,50,60,80,100];
+const TIME_POOL=[2,4,5,6,8,10,12,15,20,24,25,30,40,50,60];
+const HARD_TIME_POOL=TIME_POOL.concat([75,80,90,100,120]);
+const POWER_POOL=[10,15,20,25,30,40,50,60,75,80,100,120,150,200,250];
+const HARD_POWER_POOL=POWER_POOL.concat([300,350,400,500,600]);
+const EFF_TOTAL_POOL=[100,200,250,300,400,500,600,800,1000];
+const EFF_PERCENT_POOL=[20,25,40,50,60,75,80,90];
+
+/* =========================================================
+   功 (Work) W = Fs —— 6个生成器,已跑过4万次随机验证
+========================================================= */
+function genWork1(hard){
+  const pool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  const F=pick(pool), s=randInt(1, hard?40:20), W=r2(F*s);
+  const hide=pick(['W','F','s']);
+  let correct, candidates;
+  if(hide==='W'){ correct=W; candidates=[r2(F+s), r2(F/s), r2(s/F), r2(F*s*10), r2(F*s/10)]; }
+  else if(hide==='F'){ correct=F; candidates=[r2(W*s), r2(s/W), r2(W+s), r2(W/s*10), r2(W/s/10)]; }
+  else { correct=s; candidates=[r2(W*F), r2(F/W), Math.abs(r2(W-F)), r2(W/F*10), r2(W/F/10)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {hide, F, s, W, correct, distractors};
+}
+
+function genWork2(hard){
+  const pool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  const F=pick(pool);
+  const sCm=randInt(5, hard?450:250)*10;
+  const sM=sCm/100, W=r2(F*sM);
+  const hide=pick(['W','F','s']);
+  let correct, candidates, correctUnit;
+  if(hide==='W'){ correct=W; correctUnit='J'; candidates=[r2(F+sM), r2(F/sM), r2(sM/F), r2(W*100), r2(W/100)]; }
+  else if(hide==='F'){ correct=F; correctUnit='N'; candidates=[r2(W*sM), r2(sM/W), r2(F*100), r2(F/100), r2(W+sCm)]; }
+  else { correct=sCm; correctUnit='cm'; candidates=[r2(sM), r2(sCm*100), r2(sCm/100), r2(W*F)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3, 0.001);
+  return {hide, F, s:sM, sCm, W, correct, correctUnit, distractors};
+}
+
+const W3_PARALLEL_TEXTS=[
+  {orient:'horizontal', tpl:(F,s)=>"某人用 "+F+" N 的力沿水平方向推箱子,箱子沿力的方向移动了 "+s+" m,他对箱子做的功是多少?"},
+  {orient:'vertical', tpl:(F,s)=>"起重机用 "+F+" N 的拉力,把重物沿力的方向竖直吊起 "+s+" m,起重机对重物做的功是多少?"},
+  {orient:'horizontal', tpl:(F,s)=>"某人用 "+F+" N 的力拉动雪橇,雪橇沿力的方向滑行了 "+s+" m,他做的功是多少?"}
+];
+const W3_PERP_TEXTS=[
+  (F,s)=>"某人用 "+F+" N 的力提着行李,沿水平方向走了 "+s+" m(手臂的力方向向上,与移动方向垂直),他对行李做的功是多少?",
+  (F,s)=>"某人头顶着 "+F+" N 重的书本,沿水平方向走了 "+s+" m(支持力向上,与移动方向垂直),他对书本做的功是多少?"
+];
+const W3_STATIONARY_TEXTS=[
+  {orient:'vertical', tpl:(F)=>"某人用 "+F+" N 的力举着一桶水站着不动,他对水桶做的功是多少?"},
+  {orient:'horizontal', tpl:(F)=>"某人用 "+F+" N 的力顶着一块木板靠在墙上,木板完全没有移动,他做的功是多少?"}
+];
+function genWork3(hard){
+  const pool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  const F=pick(pool), s=randInt(1, hard?30:15);
+  const scenario = pick(hard?['perpendicular','stationary','parallel']:['parallel','parallel','perpendicular','stationary']);
+  let text, correct, candidates, orient='horizontal';
+  if(scenario==='parallel'){
+    const chosen = pick(W3_PARALLEL_TEXTS);
+    text = chosen.tpl(F,s); orient = chosen.orient;
+    correct = r2(F*s);
+    candidates=[r2(F+s), r2(F/s), r2(s/F), r2(F*s/10)];
+  } else if(scenario==='perpendicular'){
+    text = pick(W3_PERP_TEXTS)(F,s);
+    correct = 0;
+    candidates=[r2(F*s), F, s, r2(F+s)];
+  } else {
+    const chosen = pick(W3_STATIONARY_TEXTS);
+    text = chosen.tpl(F); orient = chosen.orient;
+    correct = 0;
+    candidates=[F, r2(F*2), r2(F/2), r2(F*10)];
+  }
+  const distractors=uniqueNonNeg(correct, shuffle(candidates), 3);
+  return {scenario, orient, F, s, text, correct, distractors};
+}
+
+function genWork4(hard){
+  const pool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  let Fa=pick(pool), Ff=pick(FRICTION_POOL);
+  while(Ff>=Fa) Ff=pick(FRICTION_POOL);
+  const s=randInt(1, hard?30:15);
+  const Fnet=Fa-Ff, Wnet=r2(Fnet*s), Wf=r2(Ff*s), Wa=r2(Fa*s);
+  const subtype = pick(['net','friction_only']);
+  let correct, candidates;
+  if(subtype==='net'){ correct=Wnet; candidates=[Wa, Wf, r2((Fa+Ff)*s)]; }
+  else { correct=Wf; candidates=[Wa, Wnet, r2(Fa*s)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {subtype, Fa, Ff, s, Fnet, Wnet, Wf, correct, distractors};
+}
+
+function genWork5(hard){
+  const m=pick(MASS_POOL), h=randInt(1, hard?25:12), g=10;
+  const W=r2(m*g*h);
+  const hide=pick(['W','m','h']);
+  let correct, candidates;
+  if(hide==='W'){ correct=W; candidates=[r2(m*h), r2(m+h), r2(m*9.8*h), r2(m*g*h/10)]; }
+  else if(hide==='m'){ correct=m; candidates=[r2(W/h), r2(W*h), r2(W/(g*h)/10), r2(W/9.8/h)]; }
+  else { correct=h; candidates=[r2(W/m), r2(W*m), r2(W/(m*g)*10), r2(W/m/9.8)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {hide, m, h, g, W, correct, distractors};
+}
+
+function genWork6(hard){
+  const pool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  const subtype = pick(['read_area','find_missing_s','compare_two']);
+  if(subtype==='read_area'){
+    const F=pick(pool), s=randInt(1,hard?25:15), correct=r2(F*s);
+    const candidates=[r2(F+s), r2(F/s), r2(s/F), r2(F*s*2)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {subtype, F, s, correct, distractors};
+  }
+  if(subtype==='find_missing_s'){
+    const F=pick(pool), s=randInt(1,hard?25:15), W=r2(F*s), correct=s;
+    const candidates=[r2(W*F), r2(W/F*10), r2(W/F/10), r2(F)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {subtype, F, s, W, correct, distractors};
+  }
+  let F1=pick(pool), s1=randInt(1,hard?20:12), F2=pick(pool), s2=randInt(1,hard?20:12);
+  let W1=r2(F1*s1), W2=r2(F2*s2), tries=0;
+  // F1必须≠F2(不只是面积W不同),否则图上两条"F="高度标签会叠在同一位置,看起来像少了一个
+  while((W1===W2 || F1===F2) && tries<20){ F2=pick(pool); s2=randInt(1,hard?20:12); W2=r2(F2*s2); tries++; }
+  return {subtype, F1, s1, W1, F2, s2, W2, correctIndex: W1>W2?0:1};
+}
+
+/* =========================================================
+   功率 (Power) P = W/t
+========================================================= */
+function genPower1(hard){
+  const pPool = hard?HARD_POWER_POOL:POWER_POOL, tPool = hard?HARD_TIME_POOL:TIME_POOL;
+  const t=pick(tPool), P=pick(pPool), W=r2(P*t);
+  const hide=pick(['W','P','t']);
+  let correct, candidates;
+  if(hide==='W'){ correct=W; candidates=[r2(P+t), r2(P/t), r2(t/P), r2(P*t*10), r2(P*t/10)]; }
+  else if(hide==='P'){ correct=P; candidates=[r2(W*t), r2(t/W), r2(P*10), r2(P/10), r2(W+t)]; }
+  else { correct=t; candidates=[r2(W*P), r2(P/W), r2(t*10), r2(t/10), Math.abs(r2(W-P))]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {hide, P, t, W, correct, distractors};
+}
+
+function genPower2(hard){
+  const pPool = hard?HARD_POWER_POOL:POWER_POOL;
+  const tMin=randInt(1, hard?15:8), tSec=tMin*60, P=pick(pPool), W=r2(P*tSec);
+  const hide=pick(['W','P','t']);
+  let correct, candidates, correctUnit;
+  if(hide==='W'){ correct=W; correctUnit='J'; candidates=[r2(P*tMin), r2(P+tSec), r2(W/60), r2(W*60)]; }
+  else if(hide==='P'){ correct=P; correctUnit='W'; candidates=[r2(W/tMin), r2(W*tMin), r2(P*60), r2(P/60)]; }
+  else { correct=tMin; correctUnit='min'; candidates=[r2(tSec), r2(W/P), r2(W/P/60/60), r2(tMin*60)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3, 0.001);
+  return {hide, P, t:tSec, tMin, W, correct, correctUnit, distractors};
+}
+
+function genPower3(hard){
+  const fPool = hard?HARD_FORCE_POOL:FORCE_POOL;
+  let F,s,W,t,divisors;
+  let tries=0;
+  do{
+    F=pick(fPool); s=randInt(1, hard?25:15); W=F*s;
+    divisors=[];
+    for(let d=2; d<=60; d++){ if(W%d===0) divisors.push(d); }
+    tries++;
+  } while(divisors.length===0 && tries<30);
+  t = divisors.length===0 ? 1 : pick(divisors);
+  const P=r2(W/t);
+  const correct=P;
+  const candidates=[r2(W*t), r2(F*s*t), r2(F/s), r2(t/W)];
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {F, s, W, t, P, correct, distractors};
+}
+
+function genPower4(hard){
+  const pPool = hard?HARD_POWER_POOL:POWER_POOL, tPool = hard?HARD_TIME_POOL:TIME_POOL;
+  const t1=pick(tPool), P1=pick(pPool), W1=r2(P1*t1);
+  let t2=pick(tPool), P2=pick(pPool);
+  while(P2===P1) P2=pick(pPool);
+  const W2=r2(P2*t2);
+  const askType=pick(['compare','diff']);
+  if(askType==='compare'){
+    return {askType, P1, t1, W1, P2, t2, W2, correctIndex: P1>P2?0:1};
+  }
+  const correct=Math.abs(r2(P1-P2));
+  const candidates=[r2(P1+P2), P1, P2, r2(Math.abs(W1-W2))];
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {askType, P1, t1, W1, P2, t2, W2, correct, distractors};
+}
+
+function genPower5(hard){
+  const totalPool = hard? EFF_TOTAL_POOL.concat([1200,1500,2000]) : EFF_TOTAL_POOL;
+  const total=pick(totalPool), percent=pick(EFF_PERCENT_POOL), useful=r2(total*percent/100);
+  const hide=pick(['useful','total','percent']);
+  let correct, candidates, correctUnit;
+  if(hide==='useful'){ correct=useful; correctUnit='W'; candidates=[r2(total/percent), r2(total*percent), r2(total-percent), r2(total*percent/1000)]; }
+  else if(hide==='total'){ correct=total; correctUnit='W'; candidates=[r2(useful*percent/100), r2(useful/percent), r2(useful*percent), r2(useful+percent)]; }
+  else { correct=percent; correctUnit='%'; candidates=[r2(total/useful), r2(useful/total), r2((total/useful)*100), r2(useful*100/total/10)]; }
+  const distractors=uniquePositive(correct, shuffle(candidates), 3);
+  return {hide, total, percent, useful, correct, correctUnit, distractors};
+}
+
+function genPower6(hard){
+  const pPool = hard?HARD_POWER_POOL:POWER_POOL;
+  const subtype = pick(['read_area','find_missing_t','compare_two']);
+  if(subtype==='read_area'){
+    const P=pick(pPool), t=randInt(1,hard?40:20), correct=r2(P*t);
+    const candidates=[r2(P+t), r2(P/t), r2(t/P), r2(P*t*2)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {subtype, P, t, correct, distractors};
+  }
+  if(subtype==='find_missing_t'){
+    const P=pick(pPool), t=randInt(1,hard?40:20), W=r2(P*t), correct=t;
+    const candidates=[r2(W*P), r2(W/P*10), r2(W/P/10), r2(P)];
+    const distractors=uniquePositive(correct, shuffle(candidates), 3);
+    return {subtype, P, t, W, correct, distractors};
+  }
+  let P1=pick(pPool), t1=randInt(1,hard?30:15), P2=pick(pPool), t2=randInt(1,hard?30:15);
+  let W1=r2(P1*t1), W2=r2(P2*t2), tries=0;
+  // P1必须≠P2(不只是能量W不同),否则图上两条"P="高度标签会叠在同一位置,看起来像少了一个
+  while((W1===W2 || P1===P2) && tries<20){ P2=pick(pPool); t2=randInt(1,hard?30:15); W2=r2(P2*t2); tries++; }
+  return {subtype, P1, t1, W1, P2, t2, W2, correctIndex: W1>W2?0:1};
+}
+
+/* =========================================================
+   关卡元信息
+========================================================= */
+const WORK_LEVELS=[
+  {id:'w1', group:'work', name:"基础代入", sub:"W = Fs  知二求一", base:10},
+  {id:'w2', group:'work', name:"单位换算", sub:"cm 与 m 混合", base:15},
+  {id:'w3', group:'work', name:"是否做功", sub:"力与位移方向判断", base:20},
+  {id:'w4', group:'work', name:"多力合成", sub:"含摩擦力的净功", base:25},
+  {id:'w5', group:'work', name:"重力做功", sub:"W = mgh", base:20},
+  {id:'w6', group:'work', name:"图表判读", sub:"F-s 图,面积=功", base:25}
+];
+const POWER_LEVELS=[
+  {id:'p1', group:'power', name:"基础代入", sub:"P = W/t  知二求一", base:10},
+  {id:'p2', group:'power', name:"单位换算", sub:"分钟与秒混合", base:15},
+  {id:'p3', group:'power', name:"两步综合", sub:"先求W,再求P", base:25},
+  {id:'p4', group:'power', name:"比较功率", sub:"谁的功率更大", base:20},
+  {id:'p5', group:'power', name:"效率", sub:"有用功率÷总功率×100%", base:20},
+  {id:'p6', group:'power', name:"图表判读", sub:"P-t 图,面积=能量", base:25}
+];
+const ALL_LEVELS=WORK_LEVELS.concat(POWER_LEVELS);
+function levelMeta(id){ return ALL_LEVELS.find(l=>l.id===id); }
+
+/* =========================================================
+   SVG 视觉组件:方块+力箭头+位移括号(功),额外加秒表图标(功率)
+========================================================= */
+function labelSpan(text,isUnknown){
+  const color=isUnknown?"#e2a542":"#dbe2f2";
+  const weight=isUnknown?"800":"600";
+  return '<tspan fill="'+color+'" font-weight="'+weight+'">'+text+'</tspan>';
+}
+function svgDefs(){
+  return '<defs><linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">'+
+    '<stop offset="0%" stop-color="#f0b95a"/><stop offset="100%" stop-color="#b97f1f"/>'+
+    '</linearGradient></defs>';
+}
+function groundHatch(x1,x2,y){
+  let s='<line x1="'+x1+'" y1="'+y+'" x2="'+x2+'" y2="'+y+'" stroke="#3a4a70" stroke-width="2"/>';
+  for(let x=x1; x<x2; x+=14){ s+='<line x1="'+x+'" y1="'+y+'" x2="'+(x-8)+'" y2="'+(y+9)+'" stroke="#233252" stroke-width="2"/>'; }
+  return s;
+}
+function wallHatch(x,y1,y2){
+  let s='<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="#3a4a70" stroke-width="2"/>';
+  for(let y=y1; y<y2; y+=14){ s+='<line x1="'+x+'" y1="'+y+'" x2="'+(x+9)+'" y2="'+(y+8)+'" stroke="#233252" stroke-width="2"/>'; }
+  return s;
+}
+function boxSVG(cx,top,w,h,dashed){
+  const x=cx-w/2;
+  if(dashed){
+    return '<rect x="'+x+'" y="'+top+'" width="'+w+'" height="'+h+'" rx="6" fill="none" stroke="#7c88a8" stroke-width="2" stroke-dasharray="5,4"/>';
+  }
+  return '<rect x="'+x+'" y="'+top+'" width="'+w+'" height="'+h+'" rx="6" fill="url(#boxGrad)" stroke="#8a5c14" stroke-width="1.5"/>'+
+    '<line x1="'+(x+8)+'" y1="'+(top+h*0.35)+'" x2="'+(x+w-8)+'" y2="'+(top+h*0.35)+'" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>';
+}
+function arrowSVG(x1,y1,x2,y2,color){
+  color=color||"#e0645a";
+  const dx=x2-x1, dy=y2-y1, len=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+  const bx=x2-ux*10, by=y2-uy*10;
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-width="4" stroke-linecap="round"/>'+
+    '<polygon points="'+x2+','+y2+' '+(bx+px*6)+','+(by+py*6)+' '+(bx-px*6)+','+(by-py*6)+'" fill="'+color+'"/>';
+}
+function bracketSVG(x1,y1,x2,y2,color){
+  color=color||"#8b96b3";
+  const dx=x2-x1, dy=y2-y1;
+  const tick = Math.abs(dx)>Math.abs(dy) ? {x:0,y:5} : {x:5,y:0};
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-width="1.5"/>'+
+    '<line x1="'+(x1-tick.x)+'" y1="'+(y1-tick.y)+'" x2="'+(x1+tick.x)+'" y2="'+(y1+tick.y)+'" stroke="'+color+'" stroke-width="1.5"/>'+
+    '<line x1="'+(x2-tick.x)+'" y1="'+(y2-tick.y)+'" x2="'+(x2+tick.x)+'" y2="'+(y2+tick.y)+'" stroke="'+color+'" stroke-width="1.5"/>';
+}
+function clockIconSVG(cx,cy,r,label){
+  let s='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#233252" stroke="#7c88a8" stroke-width="2"/>';
+  s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+cx+'" y2="'+(cy-r*0.6)+'" stroke="#e2a542" stroke-width="2" stroke-linecap="round"/>';
+  s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*0.45)+'" y2="'+cy+'" stroke="#e2a542" stroke-width="2" stroke-linecap="round"/>';
+  s+='<text x="'+cx+'" y="'+(cy+r+16)+'" font-size="12" text-anchor="middle" fill="#c3cce2">'+label+'</text>';
+  return s;
+}
+
+/* 单一场景:方块+力箭头+位移括号(dispDir: 'horizontal'|'vertical'|null静止) */
+function sceneSVG(cfg){
+  const {arrowDir, dispDir, fLabel, fUnknown, sLabel, sUnknown, sSymbol, clockLabel} = cfg;
+  const sym = sSymbol || 's';
+  let s='<svg viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">'+svgDefs();
+
+  if(dispDir==='horizontal'){
+    const boxCx=85, boxTop=150, boxW=54, boxH=40, box2Cx=195;
+    s+=groundHatch(15,245,190);
+    s+=boxSVG(box2Cx, boxTop, boxW, boxH, true);
+    s+=boxSVG(boxCx, boxTop, boxW, boxH, false);
+    s+=bracketSVG(boxCx, 212, box2Cx, 212, "#8b96b3");
+    s+='<text x="'+((boxCx+box2Cx)/2)+'" y="228" font-size="13" text-anchor="middle">'+labelSpan(sym+"="+(sLabel||"?"), sUnknown)+'</text>';
+    if(arrowDir==='right'){
+      s+=arrowSVG(boxCx+boxW/2+4, boxTop+14, boxCx+boxW/2+38, boxTop+14, "#e0645a");
+      s+='<text x="'+(boxCx+boxW/2+42)+'" y="'+(boxTop+8)+'" font-size="13" text-anchor="start">'+labelSpan("F="+(fLabel||"?"), fUnknown)+'</text>';
+    } else {
+      s+=arrowSVG(boxCx, boxTop-4, boxCx, boxTop-40, "#e0645a");
+      s+='<text x="'+(boxCx+14)+'" y="'+(boxTop-20)+'" font-size="13" text-anchor="start">'+labelSpan("F="+(fLabel||"?"), fUnknown)+'</text>';
+    }
+  } else if(dispDir==='vertical'){
+    const boxCx=110, boxBottom=190, boxW=50, boxH=40, box1Top=boxBottom-boxH, box2Top=50;
+    s+=groundHatch(75,150,190);
+    s+=boxSVG(boxCx, box2Top, boxW, boxH, true);
+    s+=boxSVG(boxCx, box1Top, boxW, boxH, false);
+    const bx=boxCx+boxW/2+22;
+    s+=bracketSVG(bx, box1Top+boxH/2, bx, box2Top+boxH/2, "#8b96b3");
+    s+='<text x="'+(bx+8)+'" y="'+((box1Top+box2Top)/2+18)+'" font-size="13" text-anchor="start">'+labelSpan(sym+"="+(sLabel||"?"), sUnknown)+'</text>';
+    s+=arrowSVG(boxCx, box1Top-4, boxCx, box1Top-42, "#e0645a");
+    s+='<text x="'+(boxCx-42)+'" y="'+(box1Top-24)+'" font-size="13" text-anchor="start">'+labelSpan("F="+(fLabel||"?"), fUnknown)+'</text>';
+  } else if(arrowDir==='right'){
+    // 静止不动 + 水平顶住墙壁的情形(比如用力顶着木板靠墙):力是横向的,旁边要画一面墙
+    const boxCx=110, boxTop=150, boxW=54, boxH=40, wallX=215;
+    s+=groundHatch(55,wallX,190);
+    s+=wallHatch(wallX, 55, 190);
+    s+=boxSVG(boxCx, boxTop, boxW, boxH, false);
+    s+=arrowSVG(boxCx+boxW/2+4, boxTop+boxH/2, wallX-6, boxTop+boxH/2, "#e0645a");
+    s+='<text x="'+(boxCx+boxW/2+6)+'" y="'+(boxTop+boxH/2-10)+'" font-size="13" text-anchor="start">'+labelSpan("F="+(fLabel||"?"), fUnknown)+'</text>';
+    s+='<text x="'+boxCx+'" y="220" font-size="12.5" text-anchor="middle" fill="#93a0bf">'+sym+' = 0(静止不动)</text>';
+  } else {
+    const boxCx=130, boxTop=150, boxW=54, boxH=40;
+    s+=groundHatch(95,165,190);
+    s+=boxSVG(boxCx, boxTop, boxW, boxH, false);
+    s+=arrowSVG(boxCx, boxTop-4, boxCx, boxTop-42, "#e0645a");
+    s+='<text x="'+(boxCx+14)+'" y="'+(boxTop-24)+'" font-size="13" text-anchor="start">'+labelSpan("F="+(fLabel||"?"), fUnknown)+'</text>';
+    s+='<text x="'+boxCx+'" y="220" font-size="12.5" text-anchor="middle" fill="#93a0bf">'+sym+' = 0(静止不动)</text>';
+  }
+  if(clockLabel){ s+=clockIconSVG(230,38,20,clockLabel); }
+  s+='</svg>';
+  return s;
+}
+
+/* 双力场景(功L4:施力+摩擦力) */
+function dualForceSceneSVG(cfg){
+  const {faLabel, faUnknown, ffLabel, ffUnknown, sLabel, sUnknown} = cfg;
+  const boxCx=125, boxTop=140, boxW=58, boxH=42, box2Cx=195;
+  let s='<svg viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">'+svgDefs();
+  s+=groundHatch(20,240,184);
+  s+=boxSVG(box2Cx, boxTop, boxW, boxH, true);
+  s+=boxSVG(boxCx, boxTop, boxW, boxH, false);
+  s+=arrowSVG(boxCx+boxW/2+4, boxTop+14, boxCx+boxW/2+38, boxTop+14, "#e0645a");
+  s+='<text x="'+(boxCx+boxW/2+6)+'" y="'+(boxTop-2)+'" font-size="12" text-anchor="start">'+labelSpan("F推="+(faLabel||"?"), faUnknown)+'</text>';
+  s+=arrowSVG(boxCx-boxW/2-4, boxTop+boxH-10, boxCx-boxW/2-26, boxTop+boxH-10, "#5a6c95");
+  s+='<text x="'+(boxCx-boxW/2-6)+'" y="'+(boxTop+boxH+20)+'" font-size="12" text-anchor="end">'+labelSpan("f摩="+(ffLabel||"?"), ffUnknown)+'</text>';
+  s+=bracketSVG(boxCx, 208, box2Cx, 208, "#8b96b3");
+  s+='<text x="'+((boxCx+box2Cx)/2)+'" y="226" font-size="13" text-anchor="middle">'+labelSpan("s="+(sLabel||"?"), sUnknown)+'</text>';
+  s+='</svg>';
+  return s;
+}
+
+/* 两个场景并排比较(功率L4) */
+function pairSceneSVG(left,right,leftTitle,rightTitle){
+  function one(o,xOffset,title){
+    let p='<g transform="translate('+xOffset+',0)">';
+    p+='<text x="60" y="14" text-anchor="middle" font-size="12" fill="#93a0bf">'+title+'</text>';
+    p+=groundHatch(15,110,150);
+    p+=boxSVG(60,110,44,32,false);
+    p+=arrowSVG(60,106,60,80,"#e0645a");
+    p+='<text x="60" y="176" text-anchor="middle" font-size="12">'+labelSpan("W="+(o.wLabel||"?"), o.wUnknown)+'</text>';
+    p+=clockIconSVG(60,205,16,"t="+(o.tLabel||"?"));
+    p+='</g>';
+    return p;
+  }
+  let svg='<svg viewBox="0 0 260 250" xmlns="http://www.w3.org/2000/svg">'+svgDefs();
+  svg+=one(left,0,leftTitle);
+  svg+=one(right,140,rightTitle);
+  svg+='</svg>';
+  return svg;
+}
+
+/* 图表判读:矩形面积=功(或能量),axisX/axisY为坐标轴单位文字 */
+function rectAreaSVG(rects, xUnit, yUnit){
+  const W=260,H=220, padL=62, padB=40, padT=14, padR=14;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const maxX=Math.max(...rects.map(r=>r.x))*1.18;
+  const maxY=Math.max(...rects.map(r=>r.y))*1.18;
+  function px(x){ return padL+(x/maxX)*plotW; }
+  function py(y){ return H-padB-(y/maxY)*plotH; }
+  let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  s+='<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="#7c88a8" stroke-width="1.5"/>';
+  s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'" stroke="#7c88a8" stroke-width="1.5"/>';
+  s+='<text x="'+(padL-8)+'" y="'+padT+'" font-size="10" fill="#93a0bf" text-anchor="end">'+yUnit+'</text>';
+  s+='<text x="'+(W-padR)+'" y="'+(H-padB+16)+'" font-size="10" fill="#93a0bf" text-anchor="end">'+xUnit+'</text>';
+  const x0=padL, y0=H-padB;
+  const geo = rects.map(r=>({r, x1:px(r.x), y1:py(r.y)}));
+  // 防御性修正:就算两个矩形的高度刚好相近(不只是完全相等),纵轴标签也可能挤在一起——
+  // 检测到距离太近时,各自往上下错开一点,确保两条标签都看得到。
+  const yLabelOffset = geo.map(()=>0);
+  for(let i=0;i<geo.length;i++){
+    for(let j=i+1;j<geo.length;j++){
+      if(Math.abs(geo[i].y1-geo[j].y1) < 16){
+        yLabelOffset[i]-=8; yLabelOffset[j]+=8;
+      }
+    }
+  }
+  geo.forEach((g,i)=>{
+    const r=g.r, x1=g.x1, y1=g.y1;
+    s+='<rect x="'+x0+'" y="'+y1+'" width="'+(x1-x0)+'" height="'+(y0-y1)+'" fill="'+(r.color||"rgba(226,165,66,0.28)")+'" stroke="'+(r.stroke||"#e2a542")+'" stroke-width="2"/>';
+    // 两个矩形对比时,x轴标签按序错开垂直位置,避免宽度相近时文字重叠
+    const xLabelY = rects.length>1 ? (y0+16+i*14) : (y0+16);
+    s+='<text x="'+((x0+x1)/2)+'" y="'+xLabelY+'" font-size="11" text-anchor="middle">'+labelSpan(r.xLabel, r.xUnknown)+'</text>';
+    s+='<text x="'+(x0-6)+'" y="'+((y0+y1)/2+4+yLabelOffset[i])+'" font-size="11" text-anchor="end">'+labelSpan(r.yLabel, r.yUnknown)+'</text>';
+  });
+  s+='</svg>';
+  return s;
+}
+
+/* 效率长条图 */
+function efficiencyBarSVG(percent, totalLabel, usefulLabel, percentLabel, hide){
+  const W=260,H=140, barX=18, barY=54, barW=224, barH=32;
+  const usefulW=barW*(Math.min(100,Math.max(0,percent))/100);
+  let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  s+='<text x="'+(barX+barW/2)+'" y="24" font-size="13" text-anchor="middle">'+labelSpan("总功率="+totalLabel, hide==='total')+'</text>';
+  s+='<rect x="'+barX+'" y="'+barY+'" width="'+barW+'" height="'+barH+'" rx="6" fill="#233252" stroke="#3a4a70" stroke-width="1.5"/>';
+  s+='<rect x="'+barX+'" y="'+barY+'" width="'+usefulW+'" height="'+barH+'" rx="6" fill="rgba(95,184,122,0.5)" stroke="#5fb87a" stroke-width="1.5"/>';
+  if(usefulW>34){ s+='<text x="'+(barX+usefulW/2)+'" y="'+(barY+barH/2+4)+'" font-size="10.5" text-anchor="middle" fill="#eafff0">有用</text>'; }
+  if(barW-usefulW>34){ s+='<text x="'+(barX+barW-(barW-usefulW)/2)+'" y="'+(barY+barH/2+4)+'" font-size="10.5" text-anchor="middle" fill="#f7c9c5">损耗</text>'; }
+  s+='<text x="'+(barX+usefulW/2)+'" y="'+(barY+barH+22)+'" font-size="12" text-anchor="middle">'+labelSpan("有用="+usefulLabel, hide==='useful')+'</text>';
+  s+='<text x="'+(barX+barW/2)+'" y="'+(barY+barH+42)+'" font-size="12" text-anchor="middle">'+labelSpan("效率="+percentLabel+"%", hide==='percent')+'</text>';
+  s+='</svg>';
+  return s;
+}
+
+/* 重力做功专用示意图:方块标质量,括号标高度 */
+function gravityLiftSVG(mLabel,mUnknown,hLabel,hUnknown){
+  const boxCx=110, boxBottom=190, boxW=54, boxH=40, box1Top=boxBottom-boxH, box2Top=50;
+  let s='<svg viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">'+svgDefs();
+  s+=groundHatch(75,150,190);
+  s+=boxSVG(boxCx, box2Top, boxW, boxH, true);
+  s+=boxSVG(boxCx, box1Top, boxW, boxH, false);
+  const bx=boxCx+boxW/2+22;
+  s+=bracketSVG(bx, box1Top+boxH/2, bx, box2Top+boxH/2, "#8b96b3");
+  s+='<text x="'+(bx+8)+'" y="'+((box1Top+box2Top)/2+18)+'" font-size="13" text-anchor="start">'+labelSpan("h="+(hLabel||"?"), hUnknown)+'</text>';
+  s+=arrowSVG(boxCx, box1Top-4, boxCx, box1Top-42, "#e0645a");
+  s+='<text x="'+(boxCx-34)+'" y="'+(box1Top-46)+'" font-size="10.5" text-anchor="start" fill="#93a0bf">g=10N/kg</text>';
+  s+='<text x="'+boxCx+'" y="'+(box1Top+boxH+18)+'" font-size="13" text-anchor="middle">'+labelSpan("m="+(mLabel||"?"), mUnknown)+'</text>';
+  s+='</svg>';
+  return s;
+}
+
+/* 功率单场景:方块+箭头+W标签+秒表 */
+function powerSceneSVG(wLabel,wUnknown,tLabel,tUnknown){
+  const boxCx=110, boxTop=110, boxW=60, boxH=44;
+  let s='<svg viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">'+svgDefs();
+  s+=groundHatch(60,160,150);
+  s+=boxSVG(boxCx, boxTop, boxW, boxH, false);
+  s+=arrowSVG(boxCx+boxW/2+4, boxTop+18, boxCx+boxW/2+34, boxTop+18, "#e0645a");
+  s+='<text x="'+boxCx+'" y="180" text-anchor="middle" font-size="13">'+labelSpan("W="+(wLabel||"?"), wUnknown)+'</text>';
+  s+=clockIconSVG(215,50,22, labelSpan("t="+(tLabel||"?"), tUnknown));
+  s+='</svg>';
+  return s;
+}
+
+/* =========================================================
+   buildQuestion:12个关卡的题目文字/图解/解析生成
+========================================================= */
+function buildQuestion(levelId, hard){
+  hard = !!hard;
+
+  if(levelId==='w1'){
+    const q=genWork1(hard);
+    let text, svg, explain;
+    if(q.hide==='W'){
+      text="某物体在 F = "+q.F+" N 的拉力作用下,沿力的方向移动了 s = "+q.s+" m。\n求这个力对物体做的功 W 是多少?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sLabel:q.s});
+      explain="公式:W = Fs = "+q.F+"×"+q.s+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.hide==='F'){
+      text="某物体沿力的方向移动了 s = "+q.s+" m,力对它做的功是 W = "+fmtNum(q.W)+" J。\n求这个力 F 是多少?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fUnknown:true, sLabel:q.s});
+      explain="F = W÷s = "+fmtNum(q.W)+"÷"+q.s+" = "+fmtNum(q.correct)+" N。";
+    } else {
+      text="某物体在 F = "+q.F+" N 的拉力作用下沿力的方向移动,力对它做的功是 W = "+fmtNum(q.W)+" J。\n求移动的距离 s 是多少?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sUnknown:true});
+      explain="s = W÷F = "+fmtNum(q.W)+"÷"+q.F+" = "+fmtNum(q.correct)+" m。";
+    }
+    const unit = q.hide==='W'?'J':q.hide==='F'?'N':'m';
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(levelId==='w2'){
+    const q=genWork2(hard);
+    let text, svg, explain;
+    if(q.hide==='W'){
+      text="某物体在 F = "+q.F+" N 的拉力作用下,沿力的方向移动了 "+q.sCm+" cm。\n求这个力对物体做的功 W 是多少(单位:J)?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sLabel:q.sCm+"cm"});
+      explain="先把 cm 换算成 m:"+q.sCm+" cm = "+fmtNum(q.s)+" m。再算 W = Fs = "+q.F+"×"+fmtNum(q.s)+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.hide==='F'){
+      text="某物体沿力的方向移动了 "+q.sCm+" cm,力对它做的功是 W = "+fmtNum(q.W)+" J。\n求这个力 F 是多少(单位:N)?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fUnknown:true, sLabel:q.sCm+"cm"});
+      explain="先把 cm 换算成 m:"+q.sCm+" cm = "+fmtNum(q.s)+" m。再算 F = W÷s = "+fmtNum(q.W)+"÷"+fmtNum(q.s)+" = "+fmtNum(q.correct)+" N。";
+    } else {
+      text="某物体在 F = "+q.F+" N 的拉力作用下,力对它做的功是 W = "+fmtNum(q.W)+" J。\n求移动的距离 s 是多少(单位:cm)?";
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sUnknown:true});
+      explain="先求 s(m) = W÷F = "+fmtNum(q.W)+"÷"+q.F+" = "+fmtNum(q.s)+" m,再换算成 cm:"+fmtNum(q.s)+" m = "+q.correct+" cm。别忘了单位换算!";
+    }
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit:q.correctUnit, explain};
+  }
+
+  if(levelId==='w3'){
+    const q=genWork3(hard);
+    let svg, explain;
+    if(q.scenario==='parallel'){
+      svg=sceneSVG(q.orient==='vertical'
+        ? {dispDir:'vertical', arrowDir:'up', fLabel:q.F, sLabel:q.s}
+        : {dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sLabel:q.s});
+      explain="力的方向与位移方向一致,所以 W = Fs = "+q.F+"×"+q.s+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.scenario==='perpendicular'){
+      svg=sceneSVG({dispDir:'horizontal', arrowDir:'up', fLabel:q.F, sLabel:q.s});
+      explain="力的方向(竖直向上)与位移方向(水平)互相垂直,这种情况下力没有对物体做功,W = 0 J。别看到数字就直接相乘!";
+    } else {
+      svg=sceneSVG({dispDir:null, arrowDir: q.orient==='horizontal'?'right':'up', fLabel:q.F});
+      explain="物体完全没有移动(位移 s = 0),即使用了很大的力,也没有做功,W = 0 J。";
+    }
+    return {level:levelId, text:q.text, svg, correct:q.correct, distractors:q.distractors, unit:'J', explain};
+  }
+
+  if(levelId==='w4'){
+    const q=genWork4(hard);
+    const svg=dualForceSceneSVG({faLabel:q.Fa, ffLabel:q.Ff, sLabel:q.s});
+    let text, explain, correct;
+    if(q.subtype==='net'){
+      text="物体受到推力 Fa = "+q.Fa+" N,同时受到摩擦力 Ff = "+q.Ff+" N 的阻碍,沿推力方向移动了 s = "+q.s+" m。\n求合力对物体做的总功是多少?";
+      explain="先求净力:F净 = Fa − Ff = "+q.Fa+" − "+q.Ff+" = "+q.Fnet+" N。再求 W = F净×s = "+q.Fnet+"×"+q.s+" = "+fmtNum(q.correct)+" J。";
+      correct=q.Wnet;
+    } else {
+      text="物体受到推力 Fa = "+q.Fa+" N,同时受到摩擦力 Ff = "+q.Ff+" N 的阻碍,沿推力方向移动了 s = "+q.s+" m。\n求摩擦力对物体做的功大小是多少?";
+      explain="摩擦力做的功大小 = Ff×s = "+q.Ff+"×"+q.s+" = "+fmtNum(q.correct)+" J(摩擦力方向与位移相反,实际是负功,这里只看大小)。";
+      correct=q.Wf;
+    }
+    return {level:levelId, text, svg, correct, distractors:q.distractors, unit:'J', explain};
+  }
+
+  if(levelId==='w5'){
+    const q=genWork5(hard);
+    let text, svg, explain;
+    if(q.hide==='W'){
+      text="质量为 m = "+q.m+" kg 的物体被竖直提升了 h = "+q.h+" m(g = 10 N/kg)。\n求克服重力所做的功 W 是多少?";
+      svg=gravityLiftSVG(q.m, false, q.h, false);
+      explain="W = mgh = "+q.m+"×10×"+q.h+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.hide==='m'){
+      text="某物体被竖直提升了 h = "+q.h+" m,克服重力做的功是 W = "+fmtNum(q.W)+" J(g = 10 N/kg)。\n求这个物体的质量 m 是多少?";
+      svg=gravityLiftSVG(undefined, true, q.h, false);
+      explain="m = W÷(gh) = "+fmtNum(q.W)+"÷(10×"+q.h+") = "+fmtNum(q.correct)+" kg。";
+    } else {
+      text="质量为 m = "+q.m+" kg 的物体被竖直提升,克服重力做的功是 W = "+fmtNum(q.W)+" J(g = 10 N/kg)。\n求提升的高度 h 是多少?";
+      svg=gravityLiftSVG(q.m, false, undefined, true);
+      explain="h = W÷(mg) = "+fmtNum(q.W)+"÷("+q.m+"×10) = "+fmtNum(q.correct)+" m。";
+    }
+    const unit = q.hide==='W'?'J':q.hide==='m'?'kg':'m';
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(levelId==='w6'){
+    const q=genWork6(hard);
+    let text, svg, unit, explain;
+    if(q.subtype==='read_area'){
+      text="下图是 F-s 图,物体在恒定的力 F = "+q.F+" N 作用下移动了 s = "+q.s+" m。\n求这个力做的功(即图中矩形的面积)是多少?";
+      svg=rectAreaSVG([{x:q.s,y:q.F,xLabel:q.s+"m",yLabel:q.F+"N"}], "s/m","F/N");
+      unit='J';
+      explain="面积 = 长×宽 = F×s = "+q.F+"×"+q.s+" = "+fmtNum(q.correct)+" J,这就是力做的功。";
+    } else if(q.subtype==='find_missing_s'){
+      text="下图是 F-s 图,力 F = "+q.F+" N 做的功是 W = "+fmtNum(q.W)+" J。\n求对应的移动距离 s(矩形的宽)是多少?";
+      svg=rectAreaSVG([{x:q.s,y:q.F,xLabel:"?",xUnknown:true,yLabel:q.F+"N"}], "s/m","F/N");
+      unit='m';
+      explain="s = W÷F = "+fmtNum(q.W)+"÷"+q.F+" = "+fmtNum(q.correct)+" m。";
+    } else {
+      text="下图两个矩形分别代表两次不同的做功过程,哪一个做的功比较多?";
+      svg=rectAreaSVG([
+        {x:q.s1,y:q.F1,xLabel:"s₁="+q.s1+"m",yLabel:"F₁="+q.F1+"N",color:"rgba(226,165,66,0.28)",stroke:"#e2a542"},
+        {x:q.s2,y:q.F2,xLabel:"s₂="+q.s2+"m",yLabel:"F₂="+q.F2+"N",color:"rgba(95,184,122,0.22)",stroke:"#5fb87a"}
+      ], "s/m","F/N");
+      explain="矩形A面积 = "+q.F1+"×"+q.s1+" = "+fmtNum(q.W1)+" J;矩形B面积 = "+q.F2+"×"+q.s2+" = "+fmtNum(q.W2)+" J。面积较大的那个做的功更多。";
+      return {level:levelId, text, svg, unit:'', explain, fixedOptions:[
+        {text:"矩形A(第一个)", isCorrect:q.correctIndex===0},
+        {text:"矩形B(第二个)", isCorrect:q.correctIndex===1}
+      ]};
+    }
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(levelId==='p1'){
+    const q=genPower1(hard);
+    let text, svg, explain;
+    if(q.hide==='W'){
+      text="某机器的功率是 P = "+q.P+" W,工作了 t = "+q.t+" s。\n求它做的功(输出的能量)W 是多少?";
+      svg=powerSceneSVG(undefined, true, q.t, false);
+      explain="W = Pt = "+q.P+"×"+q.t+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.hide==='P'){
+      text="某机器工作了 t = "+q.t+" s,做的功是 W = "+fmtNum(q.W)+" J。\n求它的功率 P 是多少?";
+      svg=powerSceneSVG(q.W, false, q.t, false);
+      explain="P = W÷t = "+fmtNum(q.W)+"÷"+q.t+" = "+fmtNum(q.correct)+" W。";
+    } else {
+      text="某机器的功率是 P = "+q.P+" W,做的功是 W = "+fmtNum(q.W)+" J。\n求所需的时间 t 是多少?";
+      svg=powerSceneSVG(q.W, false, undefined, true);
+      explain="t = W÷P = "+fmtNum(q.W)+"÷"+q.P+" = "+fmtNum(q.correct)+" s。";
+    }
+    const unit = q.hide==='W'?'J':q.hide==='P'?'W':'s';
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+  }
+
+  if(levelId==='p2'){
+    const q=genPower2(hard);
+    let text, svg, explain;
+    if(q.hide==='W'){
+      text="某机器的功率是 P = "+q.P+" W,工作了 "+q.tMin+" 分钟。\n求它做的功 W 是多少(单位:J)?";
+      svg=powerSceneSVG(undefined, true, q.tMin+"分", false);
+      explain="先把分钟换算成秒:"+q.tMin+" 分 = "+q.tMin+"×60 = "+q.t+" 秒。再算 W = Pt = "+q.P+"×"+q.t+" = "+fmtNum(q.correct)+" J。";
+    } else if(q.hide==='P'){
+      text="某机器工作了 "+q.tMin+" 分钟,做的功是 W = "+fmtNum(q.W)+" J。\n求它的功率 P 是多少(单位:W)?";
+      svg=powerSceneSVG(q.W, false, q.tMin+"分", false);
+      explain="先换算:"+q.tMin+" 分 = "+q.t+" 秒。再算 P = W÷t = "+fmtNum(q.W)+"÷"+q.t+" = "+fmtNum(q.correct)+" W。";
+    } else {
+      text="某机器的功率是 P = "+q.P+" W,做的功是 W = "+fmtNum(q.W)+" J。\n求所需的时间是多少(单位:分钟)?";
+      svg=powerSceneSVG(q.W, false, undefined, true);
+      explain="先求 t(秒) = W÷P = "+fmtNum(q.W)+"÷"+q.P+" = "+q.t+" 秒,再换算成分钟:"+q.t+"÷60 = "+q.correct+" 分钟。";
+    }
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit:q.correctUnit, explain};
+  }
+
+  if(levelId==='p3'){
+    const q=genPower3(hard);
+    const text="物体受到 F = "+q.F+" N 的拉力,沿力的方向移动了 s = "+q.s+" m,共用时 t = "+q.t+" s。\n先求这个力做的功 W,再求功率 P 是多少?";
+    const svg=sceneSVG({dispDir:'horizontal', arrowDir:'right', fLabel:q.F, sLabel:q.s, clockLabel:"t="+q.t});
+    const explain="第一步:W = Fs = "+q.F+"×"+q.s+" = "+fmtNum(q.W)+" J。第二步:P = W÷t = "+fmtNum(q.W)+"÷"+q.t+" = "+fmtNum(q.correct)+" W。";
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit:'W', explain};
+  }
+
+  if(levelId==='p4'){
+    const q=genPower4(hard);
+    const svg=pairSceneSVG({wLabel:q.W1,tLabel:q.t1},{wLabel:q.W2,tLabel:q.t2},"甲","乙");
+    const P1=r2(q.W1/q.t1), P2=r2(q.W2/q.t2);
+    if(q.askType==='compare'){
+      const text="甲机器在 t₁ = "+q.t1+" s 内做了 W₁ = "+fmtNum(q.W1)+" J 的功;乙机器在 t₂ = "+q.t2+" s 内做了 W₂ = "+fmtNum(q.W2)+" J 的功。\n哪一台机器的功率更大?";
+      const explain="P甲 = W₁÷t₁ = "+fmtNum(q.W1)+"÷"+q.t1+" = "+fmtNum(P1)+" W;P乙 = W₂÷t₂ = "+fmtNum(q.W2)+"÷"+q.t2+" = "+fmtNum(P2)+" W。"+(q.correctIndex===0?"甲":"乙")+"的功率更大。";
+      return {level:levelId, text, svg, unit:'', explain, fixedOptions:[
+        {text:"甲机器", isCorrect:q.correctIndex===0},
+        {text:"乙机器", isCorrect:q.correctIndex===1}
+      ]};
+    }
+    const text="甲机器在 t₁ = "+q.t1+" s 内做了 W₁ = "+fmtNum(q.W1)+" J 的功;乙机器在 t₂ = "+q.t2+" s 内做了 W₂ = "+fmtNum(q.W2)+" J 的功。\n两者的功率相差多少 W(取绝对值)?";
+    const explain="P甲 = "+fmtNum(P1)+" W,P乙 = "+fmtNum(P2)+" W,相差 |"+fmtNum(P1)+" − "+fmtNum(P2)+"| = "+fmtNum(q.correct)+" W。";
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit:'W', explain};
+  }
+
+  if(levelId==='p5'){
+    const q=genPower5(hard);
+    let text, svg, explain;
+    if(q.hide==='useful'){
+      text="某机器的总功率是 "+q.total+" W,效率是 "+q.percent+"%。\n求它的有用功率是多少?";
+      svg=efficiencyBarSVG(q.percent, q.total, "?", q.percent, 'useful');
+      explain="有用功率 = 总功率×效率 = "+q.total+"×"+q.percent+"% = "+fmtNum(q.correct)+" W。";
+    } else if(q.hide==='total'){
+      text="某机器的有用功率是 "+q.useful+" W,效率是 "+q.percent+"%。\n求它的总功率是多少?";
+      svg=efficiencyBarSVG(q.percent, "?", q.useful, q.percent, 'total');
+      explain="总功率 = 有用功率÷效率 = "+q.useful+"÷"+q.percent+"% = "+fmtNum(q.correct)+" W。";
+    } else {
+      text="某机器的总功率是 "+q.total+" W,有用功率是 "+q.useful+" W。\n求它的效率是多少(单位:%)?";
+      svg=efficiencyBarSVG(q.percent, q.total, q.useful, "?", 'percent');
+      explain="效率 = 有用功率÷总功率×100% = "+q.useful+"÷"+q.total+"×100% = "+fmtNum(q.correct)+"%。";
+    }
+    return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit:q.correctUnit, explain};
+  }
+
+  // p6
+  const q=genPower6(hard);
+  let text, svg, unit, explain;
+  if(q.subtype==='read_area'){
+    text="下图是 P-t 图,某机器以恒定功率 P = "+q.P+" W 工作了 t = "+q.t+" s。\n求它输出的总能量(即图中矩形的面积)是多少?";
+    svg=rectAreaSVG([{x:q.t,y:q.P,xLabel:q.t+"s",yLabel:q.P+"W"}], "t/s","P/W");
+    unit='J';
+    explain="面积 = P×t = "+q.P+"×"+q.t+" = "+fmtNum(q.correct)+" J。";
+  } else if(q.subtype==='find_missing_t'){
+    text="下图是 P-t 图,某机器以恒定功率 P = "+q.P+" W 工作,输出的总能量是 W = "+fmtNum(q.W)+" J。\n求工作时间 t(矩形的宽)是多少?";
+    svg=rectAreaSVG([{x:q.t,y:q.P,xLabel:"?",xUnknown:true,yLabel:q.P+"W"}], "t/s","P/W");
+    unit='s';
+    explain="t = W÷P = "+fmtNum(q.W)+"÷"+q.P+" = "+fmtNum(q.correct)+" s。";
+  } else {
+    text="下图两个矩形分别代表两台机器的 P-t 图,哪一个输出的能量比较多?";
+    svg=rectAreaSVG([
+      {x:q.t1,y:q.P1,xLabel:"t₁="+q.t1+"s",yLabel:"P₁="+q.P1+"W",color:"rgba(226,165,66,0.28)",stroke:"#e2a542"},
+      {x:q.t2,y:q.P2,xLabel:"t₂="+q.t2+"s",yLabel:"P₂="+q.P2+"W",color:"rgba(95,184,122,0.22)",stroke:"#5fb87a"}
+    ], "t/s","P/W");
+    explain="矩形A能量 = "+q.P1+"×"+q.t1+" = "+fmtNum(q.W1)+" J;矩形B能量 = "+q.P2+"×"+q.t2+" = "+fmtNum(q.W2)+" J。面积较大的那个能量较多。";
+    return {level:levelId, text, svg, unit:'', explain, fixedOptions:[
+      {text:"矩形A(第一个)", isCorrect:q.correctIndex===0},
+      {text:"矩形B(第二个)", isCorrect:q.correctIndex===1}
+    ]};
+  }
+  return {level:levelId, text, svg, correct:q.correct, distractors:q.distractors, unit, explain};
+}
+
+/* =========================================================
+   终极测验组成:功较难的关卡(方向判断、多力合成)各抽2题,
+   其余关卡各抽1题,复用同一套生成器但开困难模式(hard=true)
+========================================================= */
+const FINAL_EXAM_COMPOSITION=['w1','w2','w3','w3','w4','w4','w5','w6','p1','p2','p3','p4','p5','p6'];
+
+/* =========================================================
+   状态变量
+========================================================= */
+let levelStats={};
+let finalExam={passed:false, bestTime:null, bestAccuracy:0, bestCorrect:0, attempts:0};
+let mode='level'; // 'level' | 'final'
+let currentLevelId=null;
+let queue=[];
+let qi=0, score=0, streak=0, maxStreak=0, correctCount=0;
+let qTimes=[], qStartTime=0, attemptStartTime=0, currentOptions=[];
+
+function initStats(){
+  levelStats={};
+  ALL_LEVELS.forEach(lv=>{ levelStats[lv.id]={passed:false, bestTime:null, bestAccuracy:0, bestCorrect:0, attempts:0}; });
+}
+initStats();
+
+function fmtTime(sec){
+  if(sec===null || sec===undefined) return "--:--";
+  const m=Math.floor(sec/60), s=Math.round(sec%60);
+  return m+":"+(s<10?"0":"")+s;
+}
+
+function buildLevelQueue(levelId){
+  queue=[];
+  for(let i=0;i<5;i++){
+    const q=buildQuestion(levelId, false);
+    if(i===4 && !q.fixedOptions){ q.inputMode=true; }
+    queue.push(q);
+  }
+}
+
+function buildFinalExamQueue(){
+  queue=[];
+  shuffle(FINAL_EXAM_COMPOSITION).forEach(lvId=>{
+    queue.push(buildQuestion(lvId, true));
+  });
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* =========================================================
+   关卡列表(hub)
+========================================================= */
+function renderLevelCards(gridId, levels){
+  const grid=document.getElementById(gridId);
+  grid.innerHTML="";
+  levels.forEach(lv=>{
+    const st=levelStats[lv.id];
+    const card=document.createElement("button");
+    card.className="level-card"+(st.passed?" passed":"");
+    let statusText, statusClass="";
+    if(st.passed){ statusText="✅ 已过关 · "+fmtTime(st.bestTime); statusClass="passed"; }
+    else if(st.attempts>0){ statusText="尝试过 "+st.attempts+" 次,还没过关"; statusClass="tried"; }
+    else { statusText="尚未挑战"; }
+    card.innerHTML='<div class="lc-name">'+lv.name+'</div>'+
+      '<div class="lc-sub">'+lv.sub+'</div>'+
+      '<div class="lc-status '+statusClass+'">'+statusText+'</div>';
+    card.addEventListener("click", ()=>startLevelAttempt(lv.id));
+    grid.appendChild(card);
+  });
+}
+
+function renderHub(){
+  renderLevelCards("hub-grid-work", WORK_LEVELS);
+  renderLevelCards("hub-grid-power", POWER_LEVELS);
+
+  const allPassed = ALL_LEVELS.every(lv=>levelStats[lv.id].passed);
+  const fc=document.getElementById("final-card");
+  if(!allPassed){
+    fc.className="final-card locked";
+    fc.innerHTML='<div class="fc-title">🔒 终极测验</div><div class="fc-sub">先通过「功」与「功率」全部12关才能解锁</div>';
+    fc.onclick=null;
+  } else if(finalExam.passed){
+    fc.className="final-card";
+    fc.innerHTML='<div class="fc-title">🏁 终极测验</div><div class="fc-sub">14题综合挑战,答对9题以上过关</div>'+
+      '<div class="fc-status">✅ 已通过 · '+fmtTime(finalExam.bestTime)+' · 点击领取证书</div>';
+    fc.onclick=()=>showCertificateScreen();
+  } else {
+    fc.className="final-card";
+    const tried = finalExam.attempts>0 ? '<div class="fc-status" style="color:var(--brass);">尝试过 '+finalExam.attempts+' 次,还没通关</div>' : '';
+    fc.innerHTML='<div class="fc-title">🏁 终极测验</div><div class="fc-sub">14题综合挑战,答对9题以上过关</div>'+tried;
+    fc.onclick=()=>startFinalExamAttempt();
+  }
+}
+
+document.getElementById("start-btn").addEventListener("click", ()=>{ renderHub(); showScreen("hub-screen"); });
+document.getElementById("back-to-hub-btn").addEventListener("click", ()=>{ renderHub(); showScreen("hub-screen"); });
+document.getElementById("home-btn").addEventListener("click", ()=>{ renderHub(); showScreen("hub-screen"); });
+
+/* 字体大小:A-/A+ 三档(小/中/大),用 zoom 整体缩放卡片,不分页面全局生效 */
+const FONT_LEVELS=["font-sm","font-md","font-lg"];
+let fontLevelIdx=1;
+function applyFontLevel(){
+  const stageEl=document.getElementById("stage-root");
+  FONT_LEVELS.forEach(c=>stageEl.classList.remove(c));
+  stageEl.classList.add(FONT_LEVELS[fontLevelIdx]);
+}
+document.getElementById("font-dec-btn").addEventListener("click", ()=>{
+  fontLevelIdx=Math.max(0, fontLevelIdx-1); applyFontLevel();
+});
+document.getElementById("font-inc-btn").addEventListener("click", ()=>{
+  fontLevelIdx=Math.min(FONT_LEVELS.length-1, fontLevelIdx+1); applyFontLevel();
+});
+
+/* 日夜模式切换:数据存在 <html data-theme> 上,图解统一用深色底板所以不用跟着换 */
+let isDarkTheme=true;
+document.getElementById("theme-toggle-btn").addEventListener("click", ()=>{
+  isDarkTheme=!isDarkTheme;
+  document.documentElement.setAttribute("data-theme", isDarkTheme?"dark":"light");
+  document.getElementById("theme-toggle-btn").textContent = isDarkTheme?"🌙":"☀️";
+});
+
+function startLevelAttempt(levelId){
+  mode='level'; currentLevelId=levelId;
+  buildLevelQueue(levelId);
+  qi=0; score=0; streak=0; maxStreak=0; correctCount=0; qTimes=[];
+  attemptStartTime=Date.now();
+  updateScorePill();
+  showScreen("game-screen");
+  renderQuestion();
+}
+
+function startFinalExamAttempt(){
+  mode='final'; currentLevelId=null;
+  buildFinalExamQueue();
+  qi=0; score=0; streak=0; maxStreak=0; correctCount=0; qTimes=[];
+  attemptStartTime=Date.now();
+  updateScorePill();
+  showScreen("game-screen");
+  renderQuestion();
+}
+
+function updateScorePill(){ document.getElementById("score-pill").textContent=score+" 分"; }
+
+/* 数字输入的归一化:兼容全角数字/全角小数点/逗号/空格,手机上很容易打出这些 */
+function normalizeNumInput(s){
+  if(s===undefined || s===null) return NaN;
+  s = String(s).trim();
+  s = s.replace(/[\uFF10-\uFF19]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFF10+48));
+  s = s.replace(/[\uFF0E\uFF0C,\s]/g, m=> (m==='\uFF0E'?'.':''));
+  s = s.replace(/[^0-9.\-]/g,'');
+  if(s==='' ) return NaN;
+  return parseFloat(s);
+}
+
+function renderQuestion(){
+  const q=queue[qi];
+  const lv=levelMeta(q.level);
+
+  document.getElementById("level-name").textContent=(mode==='final'?"终极测验 · ":"")+(lv?lv.name:q.level);
+  document.getElementById("level-sub").textContent=lv?lv.sub:"";
+  document.getElementById("q-index-tag").textContent="题目 "+(qi+1)+"/"+queue.length;
+  document.getElementById("progress-fill").style.width=Math.round((qi/queue.length)*100)+"%";
+  document.getElementById("q-text").textContent=q.text;
+  document.getElementById("explain-box").classList.remove("show");
+  document.getElementById("explain-box").textContent="";
+  document.getElementById("next-btn").style.display="none";
+  document.getElementById("q-svg-wrap").innerHTML = q.svg || "";
+
+  const unitSuffix = q.unit ? (" "+q.unit) : "";
+  const ob=document.getElementById("options-box");
+  const ib=document.getElementById("input-answer-box");
+
+  if(q.inputMode){
+    ob.style.display="none"; ob.innerHTML="";
+    ib.style.display="block";
+    const input=document.getElementById("answer-input");
+    input.value=""; input.disabled=false;
+    input.classList.remove("correct","wrong");
+    document.getElementById("input-unit").textContent=q.unit||"";
+    document.getElementById("submit-answer-btn").disabled=false;
+    document.getElementById("submit-answer-btn").style.display="block";
+    setTimeout(()=>input.focus(), 50);
+  } else {
+    ib.style.display="none";
+    ob.style.display="flex";
+    let optsSource;
+    if(q.fixedOptions){
+      optsSource = q.fixedOptions.map(o=>({text:o.text, isCorrect:o.isCorrect}));
+    } else {
+      optsSource = [{text: fmtNum(q.correct)+unitSuffix, isCorrect:true}]
+        .concat(q.distractors.map(d=>({text: fmtNum(d)+unitSuffix, isCorrect:false})));
+    }
+    currentOptions = shuffle(optsSource);
+    ob.innerHTML="";
+    currentOptions.forEach(opt=>{
+      const btn=document.createElement("button");
+      btn.className="opt-btn";
+      btn.textContent=opt.text;
+      btn.addEventListener("click", ()=>handleAnswer(btn, opt, q));
+      ob.appendChild(btn);
+    });
+  }
+
+  qStartTime=Date.now();
+}
+
+/* 答对/答错的通用结算逻辑,选择题和输入题共用。
+   没有扣命/淘汰这回事——每一关都是独立的一次尝试,
+   答错只是不给分、连击断掉,照样能把5题(或14题)答完。 */
+function resolveAnswer(isCorrect, q, correctDisplayText){
+  const timeTaken=(Date.now()-qStartTime)/1000;
+  qTimes.push(timeTaken);
+  const lv=levelMeta(q.level);
+  const explainBox=document.getElementById("explain-box");
+
+  if(isCorrect){
+    correctCount++;
+    streak++; maxStreak=Math.max(maxStreak, streak);
+    let gained=lv.base, comboBonus=0, speedBonus=0;
+    if(streak>=3){ comboBonus=Math.round(lv.base*0.05*(streak-2)); gained+=comboBonus; }
+    if(timeTaken<=10){ speedBonus=5; gained+=speedBonus; }
+    score+=gained; updateScorePill();
+    if(streak>=3){
+      const flag=document.getElementById("combo-flag");
+      flag.textContent="🔥 连击 x"+streak;
+      flag.classList.add("show");
+      setTimeout(()=>flag.classList.remove("show"), 900);
+    }
+    let msg="✅ 答对了!基础分 +"+lv.base;
+    if(comboBonus>0) msg+=" · 连击加成 +"+comboBonus;
+    if(speedBonus>0) msg+=" · 速度加分 +"+speedBonus;
+    msg+="\n"+q.explain;
+    explainBox.textContent=msg;
+    explainBox.classList.add("show");
+  } else {
+    streak=0;
+    explainBox.textContent="💡 正确答案是 "+correctDisplayText+"。"+q.explain;
+    explainBox.classList.add("show");
+  }
+  document.getElementById("next-btn").style.display="block";
+}
+
+function handleAnswer(btn, opt, q){
+  const allBtns=document.querySelectorAll(".opt-btn");
+  allBtns.forEach(b=>b.classList.add("disabled"));
+  if(opt.isCorrect){
+    btn.classList.add("correct");
+  } else {
+    btn.classList.add("wrong");
+    const correctIdx=currentOptions.findIndex(o=>o.isCorrect);
+    allBtns[correctIdx].classList.add("correct");
+  }
+  resolveAnswer(opt.isCorrect, q, currentOptions.find(o=>o.isCorrect).text);
+}
+
+function submitInputAnswer(){
+  const q=queue[qi];
+  if(!q || !q.inputMode) return;
+  const input=document.getElementById("answer-input");
+  if(input.disabled) return;
+  const val=normalizeNumInput(input.value);
+  const unitSuffix = q.unit ? (" "+q.unit) : "";
+  const correctDisplay = fmtNum(q.correct)+unitSuffix;
+  if(isNaN(val)){
+    input.classList.add("wrong");
+    input.focus();
+    return;
+  }
+  input.disabled=true;
+  document.getElementById("submit-answer-btn").disabled=true;
+  const isCorrect = Math.abs(val - q.correct) < 0.005;
+  input.classList.add(isCorrect?"correct":"wrong");
+  resolveAnswer(isCorrect, q, correctDisplay);
+}
+
+document.getElementById("submit-answer-btn").addEventListener("click", submitInputAnswer);
+document.getElementById("answer-input").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter"){ submitInputAnswer(); }
+});
+
+document.getElementById("next-btn").addEventListener("click", ()=>{
+  qi++;
+  if(qi>=queue.length){ finishAttempt(); } else { renderQuestion(); }
+});
+
+/* 峇株吧辖华仁中学蔡逸众制作 */
+
+/* =========================================================
+   单次挑战(关卡 或 终极测验)结束后的结算
+========================================================= */
+/* 峇株吧辖蔡逸众制作 */
+function finishAttempt(){
+  const timeTakenSec=(Date.now()-attemptStartTime)/1000;
+  const total=queue.length;
+  const neededCorrect=Math.ceil(total*0.6);
+  const passed = correctCount>=neededCorrect;
+
+  if(mode==='level'){
+    const st=levelStats[currentLevelId];
+    st.attempts++;
+    st.bestAccuracy=Math.max(st.bestAccuracy, correctCount/total);
+    st.bestCorrect=Math.max(st.bestCorrect, correctCount);
+    if(passed && (st.bestTime===null || timeTakenSec<st.bestTime)){
+      st.passed=true; st.bestTime=timeTakenSec;
+    }
+  } else {
+    finalExam.attempts++;
+    finalExam.bestAccuracy=Math.max(finalExam.bestAccuracy, correctCount/total);
+    finalExam.bestCorrect=Math.max(finalExam.bestCorrect, correctCount);
+    if(passed && (finalExam.bestTime===null || timeTakenSec<finalExam.bestTime)){
+      finalExam.passed=true; finalExam.bestTime=timeTakenSec;
+    }
+  }
+
+  showAttemptResult(passed, total, timeTakenSec);
+}
+
+function showAttemptResult(passed, total, timeTakenSec){
+  const emoji=document.getElementById("attempt-emoji");
+  const title=document.getElementById("attempt-title");
+  const sub=document.getElementById("attempt-sub");
+  const neededCorrect=Math.ceil(total*0.6);
+
+  if(passed){
+    emoji.textContent = mode==='final' ? "🏆" : "🎉";
+    title.textContent = mode==='final' ? "终极测验通过!" : "过关!";
+    sub.textContent = mode==='final' ? "恭喜完成全部挑战,可以领取证书了" : "答对"+correctCount+"/"+total+"题,已经解锁更快的用时记录";
+  } else {
+    emoji.textContent="💪";
+    title.textContent="还差一点点";
+    sub.textContent="需要答对"+neededCorrect+"题以上(60%)才能过关,再试一次吧!";
+  }
+  document.getElementById("attempt-acc").textContent=correctCount+"/"+total;
+  document.getElementById("attempt-time").textContent=fmtTime(timeTakenSec);
+
+  document.getElementById("attempt-cert-btn").style.display = (mode==='final' && passed) ? "block" : "none";
+  showScreen("attempt-result-screen");
+}
+
+document.getElementById("attempt-back-btn").addEventListener("click", ()=>{ renderHub(); showScreen("hub-screen"); });
+document.getElementById("attempt-retry-btn").addEventListener("click", ()=>{
+  if(mode==='level'){ startLevelAttempt(currentLevelId); } else { startFinalExamAttempt(); }
+});
+document.getElementById("attempt-cert-btn").addEventListener("click", showCertificateScreen);
+
+/* =========================================================
+   证书前的汇总屏幕
+========================================================= */
+function showCertificateScreen(){
+  const totalTimeSec = ALL_LEVELS.reduce((sum,lv)=>sum+(levelStats[lv.id].bestTime||0),0) + (finalExam.bestTime||0);
+  const totalQuestions = ALL_LEVELS.length*5 + 14;
+  const achievements=new Set();
+  const allOneShot = ALL_LEVELS.every(lv=>levelStats[lv.id].attempts===1) && finalExam.attempts===1;
+  const allPerfect = ALL_LEVELS.every(lv=>levelStats[lv.id].bestAccuracy>=0.999) && finalExam.bestAccuracy>=0.999;
+  if(allOneShot) achievements.add("🎯 一次过关全通关");
+  if(allPerfect) achievements.add("💯 满分选手");
+  if(finalExam.bestAccuracy>=0.999) achievements.add("🏆 终极测验满分");
+  if(totalTimeSec/totalQuestions < 8) achievements.add("⚡ 极速达人");
+
+  document.getElementById("stat-totaltime").textContent=fmtTime(totalTimeSec);
+  document.getElementById("stat-examacc").textContent=finalExam.bestCorrect+"/14";
+
+  const badgesBox=document.getElementById("badges-box");
+  badgesBox.innerHTML="";
+  if(achievements.size===0){
+    const b=document.createElement("span"); b.className="badge"; b.textContent="扎实通关,继续保持!";
+    badgesBox.appendChild(b);
+  } else {
+    achievements.forEach(a=>{ const b=document.createElement("span"); b.className="badge"; b.textContent=a; badgesBox.appendChild(b); });
+  }
+
+  window.__certData = {
+    totalTimeSec,
+    workTimes: WORK_LEVELS.map(lv=>({label:lv.name, time:levelStats[lv.id].bestTime})),
+    powerTimes: POWER_LEVELS.map(lv=>({label:lv.name, time:levelStats[lv.id].bestTime})),
+    examTime: finalExam.bestTime,
+    achievements:[...achievements]
+  };
+  document.getElementById("post-cert-row").style.display="none";
+  document.getElementById("cert-preview").style.display="none";
+  document.getElementById("gen-cert-btn").style.display="block";
+  showScreen("result-screen");
+}
+
+document.getElementById("replay-btn").addEventListener("click", ()=>{ renderHub(); showScreen("hub-screen"); });
+
+/* =========================================================
+   证书生成(两栏排版:左栏「功」6行,右栏「功率」6行)
+========================================================= */
+document.getElementById("gen-cert-btn").addEventListener("click", generateCertificate);
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function generateCertificate(){
+  const nameInput=document.getElementById("name-input");
+  const name=nameInput.value.trim();
+  if(!name){
+    nameInput.style.borderColor="#e0645a";
+    nameInput.placeholder="请先输入姓名哦!";
+    nameInput.focus();
+    return;
+  }
+  nameInput.style.borderColor="";
+  const data=window.__certData;
+  const canvas=document.getElementById("cert-canvas");
+  const ctx=canvas.getContext("2d");
+  const W=canvas.width, H=canvas.height;
+
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,"#1c2740"); grad.addColorStop(1,"#141c2e");
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle="#e2a542"; ctx.lineWidth=6; ctx.strokeRect(40,40,W-80,H-80);
+  ctx.strokeStyle="rgba(226,165,66,0.4)"; ctx.lineWidth=2; ctx.strokeRect(58,58,W-116,H-116);
+
+  ctx.beginPath(); ctx.arc(W/2,190,72,0,Math.PI*2);
+  const bg2=ctx.createLinearGradient(W/2-72,118,W/2+72,262);
+  bg2.addColorStop(0,"#e2a542"); bg2.addColorStop(1,"#b97f1f");
+  ctx.fillStyle=bg2; ctx.fill();
+  ctx.font="64px sans-serif"; ctx.textAlign="center"; ctx.fillStyle="#1a2440"; ctx.fillText("⚡",W/2,213);
+
+  ctx.fillStyle="#f3ede1"; ctx.font="bold 50px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.textAlign="center";
+  ctx.fillText("功与功率认证证书",W/2,345);
+  ctx.font="22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#a9b4cc";
+  ctx.fillText("Work & Power Certificate of Achievement",W/2,385);
+
+  ctx.strokeStyle="rgba(226,165,66,0.5)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(W/2-260,425); ctx.lineTo(W/2+260,425); ctx.stroke();
+
+  ctx.font="26px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  ctx.fillText("兹证明",W/2,485);
+
+  ctx.font="bold 58px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+  ctx.fillText(name,W/2,565);
+
+  ctx.font="24px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  ctx.fillText("已通过「功」与「功率」全部12关及终极测验,完成「功与功率闯关大冒险」",W/2,615);
+
+  // 两栏:左栏「功」,右栏「功率」
+  const colY=670, rowH=54, colLeftX=140, colRightX=W/2+40, colLabelW=300;
+  ctx.font="22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.textAlign="left"; ctx.fillStyle="#e2a542";
+  ctx.fillText("⚙️ 功", colLeftX, colY-14);
+  ctx.fillText("🔋 功率", colRightX, colY-14);
+  data.workTimes.forEach((r,i)=>{
+    const y=colY+22+i*rowH;
+    ctx.textAlign="left"; ctx.font="21px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+    ctx.fillText(r.label, colLeftX, y);
+    ctx.textAlign="right"; ctx.font="bold 22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+    ctx.fillText(fmtTime(r.time), colLeftX+colLabelW, y);
+  });
+  data.powerTimes.forEach((r,i)=>{
+    const y=colY+22+i*rowH;
+    ctx.textAlign="left"; ctx.font="21px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+    ctx.fillText(r.label, colRightX, y);
+    ctx.textAlign="right"; ctx.font="bold 22px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+    ctx.fillText(fmtTime(r.time), colRightX+colLabelW, y);
+  });
+
+  const listBottom = colY+22+6*rowH;
+  ctx.strokeStyle="rgba(255,255,255,0.08)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(120,listBottom+10); ctx.lineTo(W-120,listBottom+10); ctx.stroke();
+
+  const examY=listBottom+50;
+  ctx.textAlign="left"; ctx.font="23px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+  ctx.fillText("🏁 终极测验", colLeftX, examY);
+  ctx.textAlign="right"; ctx.font="bold 25px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+  ctx.fillText(fmtTime(data.examTime), W-colLeftX, examY);
+
+  const totalY=examY+80;
+  ctx.fillStyle="#233252"; roundRect(ctx, W/2-260, totalY-46, 520, 90, 16); ctx.fill();
+  ctx.strokeStyle="#e2a542"; ctx.lineWidth=2; roundRect(ctx, W/2-260, totalY-46, 520, 90, 16); ctx.stroke();
+  ctx.textAlign="center"; ctx.font="24px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#9aa6bf";
+  ctx.fillText("总用时", W/2, totalY-10);
+  ctx.font="bold 40px sans-serif"; ctx.fillStyle="#e2a542";
+  ctx.fillText(fmtTime(data.totalTimeSec), W/2, totalY+32);
+
+  let badgeY=totalY+110;
+  if(data.achievements.length>0){
+    ctx.font="24px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#c3cce2";
+    ctx.fillText("解锁成就",W/2,badgeY);
+    ctx.font="25px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#e2a542";
+    ctx.fillText(data.achievements.join("   "),W/2,badgeY+46);
+    badgeY+=86;
+  } else { badgeY+=20; }
+
+  ctx.font="bold 32px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#f3ede1";
+  ctx.fillText("Excellent Work! 计算小达人!",W/2,badgeY+50);
+
+  const now=new Date();
+  const dateStr=now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日 "+
+    String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+  ctx.font="21px 'PingFang SC','Microsoft YaHei',sans-serif"; ctx.fillStyle="#9aa6bf";
+  ctx.fillText("颁发日期:"+dateStr,W/2,H-140);
+
+  ctx.font="18px sans-serif"; ctx.fillStyle="rgba(255,255,255,0.35)";
+  ctx.fillText("峇株吧辖蔡逸众制作 · Made by ecchua79",W/2,H-90);
+
+  const dataUrl=canvas.toDataURL("image/png");
+  const preview=document.getElementById("cert-preview");
+  preview.src=dataUrl; preview.style.display="block";
+  document.getElementById("gen-cert-btn").style.display="none";
+  document.getElementById("post-cert-row").style.display="flex";
+  window.__certDataUrl=dataUrl;
+}
+
+document.getElementById("download-cert-btn").addEventListener("click", ()=>{
+  if(!window.__certDataUrl) return;
+  const a=document.createElement("a");
+  a.href=window.__certDataUrl; a.download="功与功率认证证书.png";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+});
+
+document.getElementById("name-input").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter"){ generateCertificate(); }
+});
+
+})();
+</script>
+</body>
+</html>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
 
