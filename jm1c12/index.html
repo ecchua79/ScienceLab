@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>时空领航员 2.0：物体的运动闯关</title>
+<style>
+/* 峇株吧辖华仁中学蔡逸众制作 */
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font:16px/1.6 "PingFang SC","Microsoft YaHei","Heiti SC",sans-serif;color:#eef2ff;background:linear-gradient(160deg,#070b1e,#1b1f5a) fixed;-webkit-tap-highlight-color:transparent}
+.w{max-width:640px;margin:0 auto;padding:14px}
+.card{background:rgba(25,32,80,.78);border:1px solid #6b74d633;border-radius:18px;padding:16px;margin:10px 0}
+.btn{display:block;width:100%;margin-top:10px;padding:13px;border:0;border-radius:14px;font:inherit;font-weight:700;color:#fff;background:#2b3680;cursor:pointer}
+.p{background:linear-gradient(90deg,#06b6d4,#8b5cf6)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.hide{display:none!important}
+.opt{display:block;width:100%;margin:8px 0;padding:12px;text-align:left;border-radius:12px;border:1px solid #6670d066;background:#1b2260;color:inherit;font:inherit;cursor:pointer}
+.good{background:#065f46!important;border-color:#34d399!important}
+.bad{background:#7f1d33!important;border-color:#fb7185!important}
+.chip{display:inline-block;margin:5px;padding:8px 12px;border-radius:20px;background:#3b4590;cursor:pointer}
+.sel{outline:3px solid #fbbf24}
+.bk{flex:1;min-height:96px;padding:8px;border:2px dashed #8b93e6;border-radius:14px;text-align:center;cursor:pointer}
+/* 峇株吧辖蔡逸众制作 */
+input,select{font:inherit;padding:6px;border-radius:8px;border:1px solid #8b93e6;background:#0e1440;color:#fff;width:6em}
+.wide{width:100%}
+#vis{background:#0b1430;border-radius:12px;margin-bottom:8px}
+#fb{border-left:4px solid #fbbf24;background:#2a2560}
+#to{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#000d;padding:10px 16px;border-radius:12px;max-width:90%;z-index:9}
+.wm{font-size:10px;color:#ffffff14;text-align:center;margin-top:16px}
+.star{font-size:2rem;color:#fbbf24}
+#ci{width:100%;border-radius:12px}
+small{color:#a5b0e8}
+</style>
+</head>
+<body>
+<div class="w">
+<!-- 华仁中学蔡逸众制作 -->
+<section id="s-start" class="card" style="text-align:center">
+<div style="font-size:3rem">🚀</div>
+<h1>时空领航员 2.0</h1>
+<p>初一科学 · 第12章《物体的运动》<br>4 种玩法、4 个关卡 + 终极挑战，修好时空飞船的引擎！</p>
+<div style="text-align:left;font-size:.92rem">
+<p>🎯 <b>目标</b>：通关 4 关 + 终极挑战，领取荣誉证书<br>
+❤️ <b>护盾</b>：答错扣 1 点，扣光就失败（可重来）<br>
+⚡ <b>得分</b>：答对 + 速度加分 + 🔥连击加成<br>
+💡 <b>解析</b>：每题作答后都有小讲解，错题会提醒你复习<br>
+🌟 <b>星星</b>：护盾剩得越多星越多，来刷满 15 颗吧！</p></div>
+<button class="btn p" onclick="hub()">开始探险 ▶</button>
+<div class="wm">峇株吧辖华仁中学蔡逸众制作 · Made by ecchua79</div>
+</section>
+<!-- Made by ecchua79 -->
+<section id="s-hub" class="hide"><h2>🗺️ 选择关卡</h2><div id="hl"></div><div id="hc"></div></section>
+<section id="s-play" class="hide">
+<div class="card row"><b id="ln"></b><span id="hh"></span><span id="sc"></span></div>
+<div class="card"><div class="row"><small id="cp"></small><b id="tm"></b></div>
+<div id="vis"></div><h3 id="q"></h3><div id="bd"></div></div>
+<div id="fb" class="card hide"></div>
+<button class="btn" onclick="hub()">🏠 退出本关</button>
+</section>
+<section id="s-result" class="hide"><div class="card" id="rs" style="text-align:center"></div></section>
+<!-- 峇株吧辖华仁中学蔡逸众制作 -->
+<section id="s-cert" class="hide">
+<div id="cf" class="card"><h3>🎓 领取你的荣誉证书</h3>
+<input id="nm" class="wide" maxlength="16" placeholder="请输入你的姓名">
+<button class="btn p" onclick="cert()">生成证书</button></div>
+<div id="co" class="hide"><img id="ci" alt="荣誉证书">
+<p><small>📱 手机：长按图片保存　💻 电脑：点下面按钮下载 PNG</small></p>
+<button class="btn p" onclick="dl()">⬇️ 下载证书（PNG）</button>
+<button class="btn" onclick="hub()">🏠 返回大厅</button></div>
+</section>
+<div id="to" class="hide"></div>
+</div>
+<script>
+// 峇株吧辖蔡逸众制作
+const $=i=>document.getElementById(i),R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),
+sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=R(0,i);[a[i],a[j]]=[a[j],a[i]]}return a},
+sg=n=>n<0?'−'+(-n):''+n,fm=n=>''+Math.round(n*100)/100;
+const SC=['start','hub','play','result','cert'];
+const scr=n=>{SC.forEach(s=>$('s-'+s).classList.toggle('hide',s!=n));scrollTo(0,0)};
+let r,tm,best={},toT;
+function tos(m){const e=$('to');e.textContent=m;e.classList.remove('hide');clearTimeout(toT);toT=setTimeout(()=>e.classList.add('hide'),2600)}
+function pn(s){s=String(s).trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).replace(/[，,。．]/g,'.').replace(/[−－–]/g,'-');return /^-?\d*\.?\d+$/.test(s)?parseFloat(s):NaN}
+function bp(f){try{const a=bp.a=bp.a||new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;g.gain.setValueAtTime(.15,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25);o.start();o.stop(a.currentTime+.25)}catch(e){}}
+// 华仁中学蔡逸众制作
+// ===== 题库：玩法①极速判断（对错题，每题限时）=====
+const TF=[
+['坐在行驶火车里的乘客，<b>以车厢为参照物</b>是静止的。',1,'乘客和车厢的相对位置一直没变，所以以车厢为参照物，乘客是<b>静止</b>的。'],
+['坐在行驶火车里的乘客，<b>以窗外的树为参照物</b>也是静止的。',0,'乘客相对树的位置不断变化，所以是<b>运动</b>的。参照物不同，结论就可能不同！'],
+['火车驶入车站时，<b>以火车为参照物</b>，车站是运动的。',1,'车站相对火车的位置在变化（越来越近），所以以火车为参照物，车站在运动。'],
+['科学上说的「运动」，就是物体的位置随时间发生变化。',1,'这种运动叫<b>机械运动</b>，一般由力的作用引起。'],
+['打羽毛球、跑步这种生活里的「运动」，和科学上的机械运动意思完全相同。',0,'生活中的运动指动态休闲活动；科学上的运动特指「位置随时间变化」，两者不同。'],
+['判断一个物体是否运动，必须先选一个参照物。',1,'没有比较的标准，就没法说物体是运动还是静止。'],
+['参照物只能选地面或静止的物体，运动的物体不能当参照物。',0,'任何物体都能当参照物。例如以行驶的火车为参照物，车里的乘客就是静止的。'],
+['汽车在笔直的公路上行驶属于曲线运动。',0,'机械运动分两类：直线运动（直路上的汽车、自由落体）和曲线运动（过山车、海盗船）。']];
+function mkTF(){return sh(TF).slice(0,6).map(x=>({t:'tf',c:'参照物与运动',q:x[0],a:x[1],e:x[2],lim:10}))}
+// Made by ecchua79
+// ===== 玩法②归类（点卡片 → 点框）=====
+function mkCls(){return[
+{t:'cls',c:'直线/曲线运动',q:'把这些运动放进正确的轨迹类型：',b:['➡️ 直线运动','🌀 曲线运动'],w:['轨迹是直线','轨迹是弯的'],h:'想一想它的轨迹是直的还是弯的',
+i:[['汽车在笔直公路上行驶',0],['自由落体的苹果',0],['电动扶梯匀速上行',0],['过山车盘旋',1],['海盗船摆动',1],['汽车绕圆环行驶',1]],
+e:'机械运动分两类：轨迹是直线的叫<b>直线运动</b>，轨迹是曲线的叫<b>曲线运动</b>。'},
+{t:'cls',c:'有无方向',q:'哪些量<b>只有大小</b>，哪些<b>还要看方向</b>？',b:['📏 只有大小','🧭 大小+方向'],w:['和路程有关，没有方向','和位移有关，有方向'],h:'路程没有方向，位移有方向；速率对应路程，速度对应位移',
+i:[['路程',0],['速率',0],['平均速率',0],['位移',1],['速度',1],['瞬时速度',1]],
+e:'路程、速率（平均/瞬时）只有大小；位移、速度（平均/瞬时）既有大小又有方向。'}]}
+// 峇株吧辖华仁中学蔡逸众制作
+// ===== 玩法③数轴小虫（动画 + 填数）=====
+function nl(a,b,c,two){const lo=Math.min(0,a,b,c)-1,hi=Math.max(0,a,b,c)+1,x=v=>20+(v-lo)/(hi-lo)*280;
+let s='<svg viewBox="0 0 320 120" width="100%"><line x1="10" y1="70" x2="310" y2="70" stroke="#aab" stroke-width="2"/>';
+for(let v=Math.ceil(lo);v<=hi;v++)s+=`<line x1="${x(v)}" y1="66" x2="${x(v)}" y2="74" stroke="#aab"/><text x="${x(v)}" y="86" font-size="9" fill="#cdd" text-anchor="middle">${sg(v)}</text>`;
+const d=two?`M${x(a)} 70Q${(x(a)+x(b))/2} 30 ${x(b)} 70Q${(x(b)+x(c))/2} 112 ${x(c)} 70`:`M${x(a)} 70Q${(x(a)+x(c))/2} 30 ${x(c)} 70`;
+s+=`<path d="${d}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="5 3"/>`;
+[[a,'A'],...(two?[[b,'B']]:[]),[c,'C']].forEach(p=>s+=`<circle cx="${x(p[0])}" cy="70" r="8" fill="#6366f1"/><text x="${x(p[0])}" y="74" font-size="10" fill="#fff" text-anchor="middle">${p[1]}</text>`);
+return s+`<text font-size="16">🐛<animateMotion dur="3s" fill="freeze" path="${d}"/></text><text x="12" y="18" font-size="10" fill="#9ab">← 西　　东 →（向东为正）</text></svg>`}
+// 峇株吧辖蔡逸众制作
+function mkNum(){return[0,1,1].map(q=>{let a,b,c,l1,l2,s;
+do{a=R(-4,3);s=R(0,1)?1:-1;l1=R(3,7);l2=R(2,9);b=a+s*l1;c=q?b-s*l2:b}while(q&&(l1==l2||Math.abs(b)>10||Math.abs(c)>10));
+const p=q?l1+l2:l1,d=c-a;
+return{t:'num',c:'路程与位移',v:nl(a,b,c,q),
+q:q?`小虫从 <b>A(${sg(a)} cm)</b> 爬到 <b>B(${sg(b)} cm)</b>，掉头再爬到 <b>C(${sg(c)} cm)</b>。`:`小虫从 <b>A(${sg(a)} cm)</b> 一路爬到 <b>C(${sg(c)} cm)</b>，中途没有回头。`,
+f:[['路程','cm',p],['位移','cm',d,1]],
+e:`路程 = 实际走过的长度 = ${q?l1+' + '+l2+' = ':''}<b>${p} cm</b>；位移 = 末位置 − 初位置 = ${sg(c)} − (${sg(a)}) = <b>${sg(d)} cm</b>（${d<0?'负号表示向西':'正号表示向东'}）。${q?'中间怎么绕都不影响位移！':'不回头时，路程的数值 = 位移的大小。'}`}})}
+// 华仁中学蔡逸众制作
+// ===== 玩法④赛道挑战（计算 / 概念 / 读图）=====
+function vtSVG(v,t){const X=20+t*26,Y=125-v*11;return`<svg viewBox="0 0 320 150" width="100%"><path d="M20 10V125H305" stroke="#aab" fill="none" stroke-width="2"/><rect x="20" y="${Y}" width="${t*26}" height="${v*11}" fill="#22d3ee55" stroke="#22d3ee"/><text x="${X/2+10}" y="${Y-5}" font-size="12" fill="#fbbf24" text-anchor="middle">v = ${v} m/s</text><text x="${X/2+10}" y="142" font-size="12" fill="#fbbf24" text-anchor="middle">t = ${t} s</text><text x="26" y="20" font-size="10" fill="#9ab">v (m/s)</text><text x="280" y="120" font-size="10" fill="#9ab">t (s)</text></svg>`}
+function mkRace(){const t1=[5,8,10,20,25][R(0,4)],v1=R(4,12),k=[18,36,54,72,90,108][R(0,5)],lp=[[400,50],[200,40],[300,60]][R(0,2)],lv=lp[0]/lp[1],vv=R(2,8),vt=R(3,8);
+return[
+{t:'num',c:'速率计算',q:`小华在直跑道上 <b>${t1} s</b> 跑了 <b>${v1*t1} m</b>，他的平均速率是多少？`,f:[['平均速率','m/s',v1]],e:`速率 = 路程 ÷ 时间 = ${v1*t1} ÷ ${t1} = <b>${v1} m/s</b>。`},
+{t:'num',c:'单位换算',q:`测速仪显示 <b>${k} km/h</b>，等于多少 m/s？`,f:[['速率','m/s',k/3.6]],e:`1 m/s = 3.6 km/h，所以 km/h ÷ 3.6 = m/s：${k} ÷ 3.6 = <b>${fm(k/3.6)} m/s</b>。`},
+{t:'mcq',c:'平均速率 vs 平均速度',q:`运动员在 ${lp[0]} m 的环形跑道上跑一圈回到起点，用时 ${lp[1]} s。他的平均速率和平均速度分别是？`,o:[[`速率 ${lv} m/s，速度 0 m/s`,1],[`速率 0 m/s，速度 ${lv} m/s`,0],[`速率 ${lv} m/s，速度 ${lv} m/s`,0],['速率 0 m/s，速度 0 m/s',0]],e:`平均速率 = 路程 ÷ 时间 = ${lp[0]} ÷ ${lp[1]} = ${lv} m/s；回到起点，位移 = 0，所以平均速度 = 0 m/s。<b>速率看路程，速度看位移。</b>`},
+R(0,1)?{t:'mcq',c:'瞬时速率',q:'高速公路的限速牌写着「限速 100 km/h」，它限制的是哪种速率？',o:[['瞬时速率',1],['平均速率',0],['平均速度',0],['位移',0]],e:'限速管的是<b>每一个瞬间</b>都不能超过的快慢，也就是<b>瞬时速率</b>（车上速度计显示的就是它）。'}
+:{t:'mcq',c:'平均速率',q:'爸爸开车上班，用全程路程除以总时间，得到的是什么？',o:[['平均速率',1],['瞬时速率',0],['位移',0],['瞬时速度',0]],e:'全程路程 ÷ 总时间 = <b>平均速率</b>。路上有快有慢，它只是一个平均值。'},
+{t:'num',c:'v-t 图像',v:vtSVG(vv,vt),q:'这是物体的 v-t 图（速度—时间）。阴影面积表示物体走过的距离，是多少 m？',f:[['距离','m',vv*vt]],e:`v-t 图中，线下方的矩形面积 = 速度 × 时间 = ${vv} × ${vt} = <b>${vv*vt} m</b>。`}]}
+// Made by ecchua79
+function mkFinal(){return[2,2,3,3,3].map(n=>{let v,t,ty,D,T;
+do{v=[];t=[];ty=[];for(let i=0;i<n;i++){v.push(R(3,12));t.push(R(2,8));ty.push(R(0,1))}D=v.reduce((a,x,i)=>a+x*t[i],0);T=t.reduce((a,x)=>a+x,0)}while(D%T||new Set(v).size<n||!ty.includes(0)||!ty.includes(1));
+const A=D/T,nm=['上坡','下坡','平路'],seg=v.map((x,i)=>(ty[i]?`${nm[i]}时以 <b>${x} m/s</b> 的速率走了 <b>${x*t[i]} m</b>`:`${nm[i]}时以 <b>${x} m/s</b> 的速率走了 <b>${t[i]} s</b>`));
+return{t:'num',c:'终极：分段平均速率',q:`小华${seg.join('，')}。求他这整段路程的平均速率。<br><small>（提示：有的路段给时间、有的给路程，先补全缺的量；也不能直接把速率相加再平均哦）</small>`,f:[['平均速率','m/s',A]],
+e:`平均速率 = 总路程 ÷ 总时间。各段：${v.map((x,i)=>ty[i]?`${nm[i]}已知路程 ${x*t[i]} m，时间 = 路程 ÷ 速率 = ${x*t[i]} ÷ ${x} = ${t[i]} s`:`${nm[i]}路程 = 速率 × 时间 = ${x} × ${t[i]} = ${x*t[i]} m`).join('；')}。总路程 = <b>${D} m</b>；总时间 = ${t.join(' + ')} = <b>${T} s</b>。所以平均速率 = ${D} ÷ ${T} = <b>${A} m/s</b>。`}})}
+const LV=[
+{n:'⚡ 极速判断',d:'每题 10 秒，快判「对 / 错」',h:3,mk:mkTF},
+{n:'🧲 运动归类',d:'点卡片再点框，给概念分类',h:4,mk:mkCls},
+{n:'🐛 数轴小虫',d:'看动画，算路程与位移',h:3,mk:mkNum},
+{n:'🏁 赛道挑战',d:'速率计算 · 单位换算 · v-t 图',h:3,mk:mkRace},
+{n:'👑 终极挑战',d:'分段路程的平均速率（通关前 4 关解锁）',h:3,mk:mkFinal}];
+function hub(){clearInterval(tm);
+$('hl').innerHTML=LV.map((l,i)=>{const b=best[i],lk=i==4&&![0,1,2,3].every(k=>best[k]);return`<button class="opt" style="${i==4?'border-color:#fbbf24':''}" onclick="${lk?'tos(\'先通关前面 4 关，终极挑战才会解锁！\')':'start('+i+')'}"><b>${l.n}</b>　${b?'★'.repeat(b.st)+'☆'.repeat(3-b.st)+' 最高 '+b.s:lk?'🔒 未解锁':'未通关'}<br><small>${l.d} · ❤️×${l.h}</small></button>`}).join('');
+$('hc').innerHTML=Object.keys(best).length==LV.length?'<button class="btn p" onclick="scr(\'cert\')">🎓 领取荣誉证书</button>':'<small>通关全部 4 关并完成终极挑战，才能领取荣誉证书（可重复挑战，刷高分和星星）</small>';scr('hub')}
+// 峇株吧辖华仁中学蔡逸众制作
+// ===== 游戏引擎：生命、分数、连击、解析 =====
+function start(i){r={i,L:LV[i],T:LV[i].mk(),k:0,h:LV[i].h,s:0,c:0,mc:0,ok:0,n:0,fast:0,t0:Date.now(),miss:[]};scr('play');hud();next()}
+function hud(){$('ln').textContent=r.L.n;$('hh').textContent='❤️'.repeat(r.h)+'🖤'.repeat(r.L.h-r.h);$('sc').textContent='⭐'+r.s+(r.c>1?' 🔥×'+r.c:'')}
+function next(){clearInterval(tm);r.lock=0;if(r.k>=r.T.length)return end();
+const t=r.T[r.k];r.st=Date.now();$('fb').classList.add('hide');$('cp').textContent=t.c+'　'+(r.k+1)+' / '+r.T.length;
+$('vis').innerHTML=t.v||'';$('q').innerHTML=t.q;const b=$('bd');b.innerHTML='';RD[t.t](t,b);
+if(t.lim){let l=t.lim;$('tm').textContent='⏰'+l;tm=setInterval(()=>{$('tm').textContent='⏰'+--l;if(l<=0)ans(0,'⏰ 时间到！')},1000)}else $('tm').textContent=''}
+function judge(ok){const sec=(Date.now()-r.st)/1000;r.st=Date.now();r.n++;bp(ok?660:200);
+if(ok){r.ok++;r.c++;r.mc=Math.max(r.mc,r.c);if(sec<4)r.fast++;r.s+=100+Math.max(0,Math.round(40-sec*2))+Math.min(r.c-1,5)*15}
+else{r.c=0;r.h--;r.miss.push(r.T[r.k].c)}hud()}
+function ans(ok,pre){if(r.lock)return;r.lock=1;clearInterval(tm);judge(ok);fb(ok,pre)}
+function fb(ok,pre){const t=r.T[r.k],dead=r.h<=0,last=r.k+1>=r.T.length;
+$('fb').innerHTML=`<b>${pre||''} ${dead?'💥 护盾耗尽':ok===null?'📘 本题小结':ok?'✅ 答对了！':'❌ 差一点～'}</b><p>💡 ${t.e}</p><button class="btn p" onclick="${dead||last?'end()':'r.k++,next()'}">${dead?'查看战报':last?'完成 🎉':'下一题 ▶'}</button>`;
+$('fb').classList.remove('hide');$('fb').scrollIntoView({behavior:'smooth',block:'nearest'})}
+// 峇株吧辖蔡逸众制作
+// ===== 四种题型的渲染 =====
+const RD={
+tf:(t,b)=>{b.innerHTML='<div class="row"><button class="opt" style="text-align:center">✅ 对</button><button class="opt" style="text-align:center">❌ 错</button></div>';
+[...b.querySelectorAll('button')].forEach((x,i)=>x.onclick=()=>{if(r.lock)return;const ok=(i==0)==!!t.a;x.classList.add(ok?'good':'bad');ans(ok)})},
+mcq:(t,b)=>{const o=sh(t.o);b.innerHTML=o.map((x,i)=>`<button class="opt">${'ABCD'[i]}. ${x[0]}</button>`).join('');
+[...b.children].forEach((x,i)=>x.onclick=()=>{if(r.lock)return;[...b.children].forEach((y,j)=>o[j][1]&&y.classList.add('good'));if(!o[i][1])x.classList.add('bad');ans(o[i][1])})},
+num:(t,b)=>{b.innerHTML=t.f.map((f,i)=>`<p>${f[0]}　<input id="i${i}" inputmode="decimal" placeholder="数值"> ${f[1]}${f[3]?`　<select id="d${i}"><option value="1">向东 ＋</option><option value="-1">向西 −</option></select>`:''}</p>`).join('')+'<button class="btn p" id="ok">确认 ✔</button>';
+$('ok').onclick=()=>{if(r.lock)return;let g=1;for(let i=0;i<t.f.length;i++){let v=pn($('i'+i).value);if(isNaN(v))return tos('先把数字填好哦～');if(t.f[i][3])v=Math.abs(v)*$('d'+i).value;if(Math.abs(v-t.f[i][2])>.01)g=0}ans(g)}},
+cls:(t,b)=>{let sel=null,left=t.i.length;
+b.innerHTML='<div class="row">'+t.b.map((x,i)=>`<div class="bk" data-b="${i}"><b>${x}</b><div></div></div>`).join('')+'</div><div id="pool"></div>';
+const P=b.querySelector('#pool');
+sh(t.i).forEach(it=>{const c=document.createElement('span');c.className='chip';c.textContent=it[0];c._b=it[1];
+c.onclick=()=>{if(r.lock)return;[...P.children].forEach(x=>x.classList.remove('sel'));sel=c;c.classList.add('sel')};P.appendChild(c)});
+b.querySelectorAll('.bk').forEach(k=>k.onclick=()=>{if(r.lock)return;if(!sel)return tos('先点一张卡片～');
+const bi=+k.dataset.b,ok=sel._b==bi,first=!sel._t;sel._t=1;
+if(ok){k.lastChild.appendChild(sel);sel.classList.remove('sel');sel.onclick=null;if(first)judge(1);tos('✅ '+sel.textContent+'：'+t.w[bi]);sel=null;if(!--left){r.lock=1;fb(null)}}
+else{judge(0);tos('❌ 提示：'+t.h);if(r.h<=0){r.lock=1;fb(false)}}})}};
+// 华仁中学蔡逸众制作
+// ===== 结算 & 证书 =====
+function end(){clearInterval(tm);const win=r.h>0,L=r.L.h,st=win?(r.h==L?3:r.h==L-1?2:1):0,sec=Math.round((Date.now()-r.t0)/1000),acc=r.n?Math.round(r.ok/r.n*100):0,o=best[r.i];
+if(win){if(!o)best[r.i]={s:r.s,t:sec,st};else{if(r.s>o.s){o.s=r.s;o.t=sec}o.st=Math.max(o.st,st)}}
+const bd=[st==3&&'🎯 满分达人',r.fast>=3&&'⚡ 极速王',r.mc>=4&&'🔥 连击大师'].filter(Boolean);
+$('rs').innerHTML=`<h2>${win?'🎉 通关成功！':'💥 护盾耗尽，再来一次！'}</h2><div class="star">${'★'.repeat(st)+'☆'.repeat(3-st)}</div><p>得分 <b>${r.s}</b>　正确率 <b>${acc}%</b>　用时 <b>${sec}s</b>　最高连击 <b>${r.mc}</b></p>${bd.length?`<p>🏅 成就：${bd.join('　')}</p>`:''}${r.miss.length?`<p>📌 需要复习：${[...new Set(r.miss)].join('、')}</p>`:'<p>👏 一题没错，太强了！</p>'}<button class="btn p" onclick="start(${r.i})">🔁 再挑战（刷更高分）</button><button class="btn" onclick="hub()">🏠 返回大厅</button>`;scr('result')}
+// Made by ecchua79
+function cert(){const nm=$('nm').value.trim()||'优秀领航员',c=document.createElement('canvas');c.width=600;c.height=840;
+const x=c.getContext('2d'),F='"PingFang SC","Microsoft YaHei","Heiti SC",sans-serif',g=x.createLinearGradient(0,0,600,840);
+g.addColorStop(0,'#0b1030');g.addColorStop(1,'#25206b');x.fillStyle=g;x.fillRect(0,0,600,840);
+x.lineWidth=5;x.strokeStyle='#fbbf24';x.strokeRect(18,18,564,804);x.lineWidth=2;x.strokeStyle='#6366f1';x.strokeRect(30,30,540,780);x.textAlign='center';
+const T=(s,y,z,col,w)=>{x.font=`${w||'normal'} ${z}px ${F}`;x.fillStyle=col;x.fillText(s,300,y)};
+const ks=Object.keys(best),tot=ks.reduce((a,k)=>a+best[k].s,0),tt=ks.reduce((a,k)=>a+best[k].t,0),ss=ks.reduce((a,k)=>a+best[k].st,0);
+T('🏆',105,56,'#fff');T('时空领航员 · 荣誉证书',165,32,'#fff','bold');T('CERTIFICATE OF ACHIEVEMENT',193,13,'#a5b4fc');T('兹授予',250,18,'#cbd5e1');
+let z=46;do{x.font=`bold ${z}px ${F}`;z-=2}while(x.measureText(nm).width>480&&z>14);T(nm,318,z+2,'#fbbf24','bold');
+T('完成《初一科学 第12章 物体的运动》全部闯关',372,17,'#e2e8f0');T('掌握参照物、路程与位移、速率与速度等核心知识',400,17,'#e2e8f0');
+T(`总分 ${tot}　　通关时间 ${Math.floor(tt/60)} 分 ${tt%60} 秒`,450,22,'#34d399','bold');
+LV.forEach((l,i)=>T(`${l.n}　${'★'.repeat(best[i].st)}${'☆'.repeat(3-best[i].st)}`,500+i*32,18,'#cbd5e1'));
+T(ss>=14?'Perfect! 满分领航员':ss>=11?'Excellent Work! 太棒了！':'Great Job! 继续加油！',670,28,'#fbbf24','bold');
+T('颁发时间：'+new Date().toLocaleString('zh-CN',{hour12:false}),740,16,'#94a3b8');T('Made by ecchua79',800,11,'#475569');
+$('ci').src=c.toDataURL('image/png');$('cf').classList.add('hide');$('co').classList.remove('hide')}
+function dl(){const a=document.createElement('a');a.href=$('ci').src;a.download='领航员证书.png';a.click()}
+// 峇株吧辖华仁中学蔡逸众制作
+</script>
+</body>
+</html>
