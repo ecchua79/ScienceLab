@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>立体消化系统 · 中文标注版</title>
+<style>
+  :root{
+    --panel:rgba(255,255,255,.86);
+    --line:rgba(20,40,70,.10);
+    --text:#1a2433;
+    --muted:#6b7a90;
+    --accent:#c0392b;
+    --accent-soft:rgba(192,57,43,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei",-apple-system,"Segoe UI",sans-serif;
+    background:radial-gradient(120% 100% at 50% 0%,#f9fbfd 0%,#e5ebf3 55%,#d4dce8 100%);
+    color:var(--text);
+  }
+  #app{position:fixed;inset:0}
+  canvas{display:block;outline:none}
+
+  .title{position:absolute;top:26px;left:30px;z-index:6;pointer-events:none}
+  .title h1{font-size:20px;font-weight:650;letter-spacing:.5px}
+  .title p{font-size:12px;color:var(--muted);margin-top:5px;letter-spacing:.3px}
+
+  /* ---------- 标注层 ---------- */
+  #labels{position:fixed;inset:0;z-index:4;pointer-events:none}
+  #leaders{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  #leaders line{stroke:rgba(60,80,110,.34);stroke-width:1;stroke-dasharray:3 3}
+  #leaders circle{fill:#fff;stroke:var(--accent);stroke-width:1.6}
+
+  .chip{
+    position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+    padding:5px 10px;border-radius:9px;white-space:nowrap;
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(20,40,70,.12);
+    box-shadow:0 3px 10px rgba(24,44,74,.10);
+    font-size:12px;color:#2b3a52;font-weight:500;
+    transition:background .16s,color .16s,box-shadow .16s,border-color .16s;
+    will-change:transform;
+  }
+  .chip::before{
+    content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none;opacity:.85;
+  }
+  .chip:hover{box-shadow:0 6px 16px rgba(24,44,74,.16);border-color:rgba(192,57,43,.35)}
+  .chip.sel{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(192,57,43,.30)}
+  .chip.sel::before{background:#fff}
+
+  .card{
+    position:absolute;z-index:9;width:250px;pointer-events:none;
+    background:rgba(255,255,255,.97);border:1px solid rgba(20,40,70,.12);
+    border-radius:12px;padding:11px 13px;
+    box-shadow:0 14px 34px rgba(24,44,74,.16);
+    opacity:0;transform:translateY(4px);transition:opacity .16s,transform .16s;
+  }
+  .card.show{opacity:1;transform:translateY(0)}
+  .card h3{font-size:13px;font-weight:650;margin-bottom:5px}
+  .card p{font-size:11.5px;line-height:1.65;color:#4c5b72}
+
+  /* ---------- 右侧面板 ---------- */
+  .panel{
+    position:absolute;top:26px;right:26px;width:288px;max-height:calc(100vh - 120px);z-index:6;
+    display:flex;flex-direction:column;
+    background:var(--panel);
+    backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 12px 34px rgba(24,44,74,.10);overflow:hidden;
+  }
+  .panel h2{
+    font-size:11px;font-weight:600;letter-spacing:1.4px;color:var(--muted);
+    padding:15px 16px 10px;flex:none;
+  }
+  .list{overflow-y:auto;padding:0 10px 12px}
+  .list::-webkit-scrollbar{width:6px}
+  .list::-webkit-scrollbar-thumb{background:rgba(20,40,70,.16);border-radius:3px}
+  .row{
+    padding:8px 9px;border-radius:9px;cursor:pointer;transition:background .16s;
+    border-left:2px solid transparent;
+  }
+  .row:hover{background:rgba(20,40,70,.045)}
+  .row.sel{background:var(--accent-soft);border-left-color:var(--accent)}
+  .row .n{font-size:12.5px;font-weight:600;color:#2b3a52;margin-bottom:2px}
+  .row.sel .n{color:var(--accent)}
+  .row .f{font-size:11px;line-height:1.6;color:#77869b}
+  .row.sel .f{color:#a4554c}
+
+  /* ---------- 工具条 ---------- */
+  .tools{position:absolute;left:30px;bottom:28px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;max-width:calc(100% - 360px)}
+  .btn{
+    display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:11px;
+    border:1px solid var(--line);background:var(--panel);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    font-size:12.5px;color:#33415a;cursor:pointer;font-family:inherit;
+    box-shadow:0 6px 18px rgba(24,44,74,.07);
+    transition:transform .14s,box-shadow .14s,background .16s,color .16s,border-color .16s;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(24,44,74,.12)}
+  .btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(192,57,43,.28)}
+
+  .hint{
+    position:absolute;left:30px;bottom:78px;z-index:6;font-size:11.5px;color:var(--muted);
+    line-height:1.75;pointer-events:none;
+  }
+  .hint kbd{background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px}
+
+  .loader{
+    position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;
+    background:rgba(240,244,249,.94);transition:opacity .6s;
+  }
+  .loader.hide{opacity:0;pointer-events:none}
+  .ring{width:38px;height:38px;border-radius:50%;border:3px solid rgba(192,57,43,.15);border-top-color:var(--accent);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader span{font-size:12.5px;color:var(--muted);letter-spacing:.5px}
+
+  @media (max-width:900px){
+    .panel{display:none}
+    .tools{max-width:calc(100% - 60px)}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="labels">
+  <svg id="leaders"></svg>
+</div>
+<div class="card" id="card"><h3></h3><p></p></div>
+
+<div class="title">
+  <h1>立体消化系统</h1>
+  <p>Digestive System · 器官中文标注与功能</p>
+</div>
+
+<aside class="panel">
+  <h2>器官与功能</h2>
+  <div class="list" id="list"></div>
+</aside>
+
+<div class="hint">
+  <kbd>拖拽</kbd> 旋转 · <kbd>滚轮</kbd> 缩放 · <kbd>右键</kbd> 平移<br />
+  悬停标注查看功能，点击可定位
+</div>
+
+<div class="tools">
+  <button class="btn" id="btnRotate">自动旋转</button>
+  <button class="btn" id="btnLabels">标注：显示</button>
+  <button class="btn" id="btnSkin">皮肤：透视</button>
+  <button class="btn" id="btnWire">线框</button>
+  <button class="btn" id="btnReset">重置视角</button>
+</div>
+
+<div class="loader" id="loader">
+  <div class="ring"></div>
+  <span id="loaderText">正在解析三维模型…</span>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/build/three.module.js",
+    "three/addons/": "./vendor/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =========================================================
+   器官标注数据（local 为模型内部局部坐标，由几何分岛质心测得）
+   ========================================================= */
+const ORGANS = [
+  { key:'mouth',  name:'口腔与咽', local:[-20, 3120, 640],  side:'left',
+    fn:'消化道起点。牙齿咀嚼、唾液初步分解淀粉，形成食团后经咽部吞咽进入食管。' },
+  { key:'tooth',  name:'牙齿',     local:[-20, 3023, 624],  side:'left',
+    fn:'切牙切断、尖牙撕裂、磨牙研磨，把食物嚼碎并与唾液充分混合，增大消化面积。' },
+  { key:'tongue', name:'舌',       local:[-20, 3181, 532],  side:'right',
+    fn:'搅拌食物、感受味觉，并把食团向后推送至咽部，协助完成吞咽动作。' },
+  { key:'gland',  name:'唾液腺',   local:[300, 3150, 520],  side:'right',
+    fn:'分泌唾液湿润食物、溶解呈味物质，唾液淀粉酶在此开始分解淀粉。' },
+  { key:'esoph',  name:'食管',     local:[-60, 1200, -700], side:'right',
+    fn:'长约 25 cm 的肌性管道，靠节律性蠕动把食团由咽送入胃，本身不消化也不吸收。' },
+  { key:'stomach',name:'胃',       local:[342, -560, -116], side:'right',
+    fn:'暂存并搅拌食物，分泌胃酸与胃蛋白酶原初步分解蛋白质，把食物变成半流质的食糜。' },
+  { key:'liver',  name:'肝脏',     local:[-194, -383, -24], side:'left',
+    fn:'人体最大的消化腺。分泌胆汁帮助脂肪乳化，并合成血浆蛋白、储存糖原、解毒。' },
+  { key:'gall',   name:'胆囊',     local:[-604, -900, -34], side:'left',
+    fn:'储存并浓缩肝脏分泌的胆汁；进食后收缩，把胆汁经胆管排入十二指肠帮助脂肪消化。' },
+  { key:'duct',   name:'胆管',     local:[-111, -1095, -204], side:'right',
+    fn:'把肝管汇合而成的胆汁输送到十二指肠（肝管 → 胆总管），是胆汁排出的通道。' },
+  { key:'pancreas',name:'胰腺',    local:[188, -1152, -208], side:'right',
+    fn:'横卧于胃后方、横结肠上方的狭长腺体。外分泌胰液（淀粉酶、脂肪酶、蛋白酶）经胰管排入十二指肠；内分泌胰岛素调节血糖。' },
+  { key:'small',  name:'小肠',     local:[150, -2100, -95], side:'right',
+    fn:'消化吸收的主要场所，全长 5–7 m。胰液、胆汁在此作用，绝大部分营养在此被吸收。' },
+  { key:'colon',  name:'大肠（结肠）', local:[-800, -1900, -60], side:'left',
+    fn:'吸收水分与电解质，把食物残渣浓缩成粪便；肠道菌群还能合成维生素 K 和部分 B 族维生素。' },
+  { key:'rectum', name:'直肠',     local:[-30, -3500, -880], side:'left',
+    fn:'暂存粪便，肠壁充盈时产生便意，通过排便反射经肛管排出体外。' }
+];
+
+const container = document.getElementById('app');
+const loaderEl = document.getElementById('loader');
+const loaderText = document.getElementById('loaderText');
+const labelsLayer = document.getElementById('labels');
+const svg = document.getElementById('leaders');
+const card = document.getElementById('card');
+const cardTitle = card.querySelector('h3');
+const cardText = card.querySelector('p');
+const listEl = document.getElementById('list');
+
+/* ---------- 场景 ---------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef2f7);
+
+const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.1, 100000);
+camera.position.set(0, 0, 300);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 0.8;
+
+/* ---------- 灯光 ---------- */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb6c4d6, 0.72));
+
+const key = new THREE.DirectionalLight(0xfff6ef, 1.95);
+key.position.set(240, 340, 420);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.bias = -0.0012;
+key.shadow.normalBias = 0.4;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xd8e6ff, 0.85);
+fill.position.set(-340, 140, -200);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xffe4d4, 0.85);
+rim.position.set(0, -240, -340);
+scene.add(rim);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.add(new THREE.Mesh(
+  new THREE.SphereGeometry(1, 32, 16),
+  new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0xffffff })
+));
+scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+scene.environmentIntensity = 0.32;
+
+/* ---------- 贴图 ---------- */
+const texLoader = new THREE.TextureLoader();
+const diffuse = texLoader.load('./assets/digestive_diffuse.jpg');
+diffuse.colorSpace = THREE.SRGBColorSpace;
+diffuse.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const bump = texLoader.load('./assets/digestive_bump.jpg');
+bump.colorSpace = THREE.NoColorSpace;
+
+/* ---------- 状态 ---------- */
+let organMesh = null;
+let skinMesh = null;
+let skinMode = 0;
+const SKIN_LABEL = ['皮肤：透视', '皮肤：实体', '皮肤：隐藏'];
+let labelsOn = true;
+let selected = null;
+const chips = new Map();
+
+/* ---------- 载入模型 ---------- */
+new FBXLoader().load(
+  './assets/digestive.fbx',
+  (object) => {
+    object.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      if (/skin|body/i.test(child.name)) {
+        skinMesh = child;
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0xe9c3ad, roughness: 0.72, metalness: 0,
+          clearcoat: 0.15, clearcoatRoughness: 0.8,
+          sheen: 0.6, sheenColor: new THREE.Color(0xffd9c6), sheenRoughness: 0.9,
+          transparent: true, opacity: 0.2, depthWrite: false, side: THREE.FrontSide
+        });
+        child.renderOrder = 2;
+      } else {
+        organMesh = child;
+        child.material = new THREE.MeshPhysicalMaterial({
+          map: diffuse, bumpMap: bump, bumpScale: 0.35,
+          roughness: 0.5, metalness: 0,
+          clearcoat: 0.3, clearcoatRoughness: 0.5,
+          sheen: 0.15, sheenColor: new THREE.Color(0xffb8a4), sheenRoughness: 0.7,
+          side: THREE.FrontSide
+        });
+        child.renderOrder = 1;
+      }
+    });
+
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    object.position.sub(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fitDist = maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360)) * 1.02;
+    camera.position.set(fitDist * 0.14, fitDist * 0.02, fitDist);
+    camera.near = maxDim / 400;
+    camera.far = maxDim * 40;
+    camera.updateProjectionMatrix();
+
+    controls.target.set(0, 0, 0);
+    controls.minDistance = maxDim * 0.3;
+    controls.maxDistance = maxDim * 4;
+    controls.update();
+
+    key.shadow.camera.left = -maxDim;
+    key.shadow.camera.right = maxDim;
+    key.shadow.camera.top = maxDim;
+    key.shadow.camera.bottom = -maxDim;
+    key.shadow.camera.far = maxDim * 6;
+    key.shadow.camera.updateProjectionMatrix();
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(maxDim * 1.2, 64),
+      new THREE.ShadowMaterial({ opacity: 0.12 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = box.min.y - center.y;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    scene.add(object);
+    object.updateMatrixWorld(true);
+
+    buildChips();
+    buildList();
+    applyHashState();
+    loaderEl.classList.add('hide');
+    window.__modelReady = true;
+  },
+  (e) => {
+    if (e.total) loaderText.textContent = `正在解析三维模型… ${Math.round((e.loaded / e.total) * 100)}%`;
+  },
+  (err) => {
+    console.error(err);
+    loaderText.textContent = '模型载入失败：' + err.message;
+  }
+);
+
+/* ---------- 标注 ---------- */
+const anchorWorld = new THREE.Vector3();
+
+function buildChips() {
+  ORGANS.forEach((org) => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = org.name;
+    el.onmouseenter = () => showCard(org, el);
+    el.onmouseleave = hideCard;
+    el.onclick = () => selectOrgan(org.key);
+    labelsLayer.appendChild(el);
+    chips.set(org.key, { el, org, x: 0, y: 0, ay: 0, behind: false });
+  });
+}
+
+function buildList() {
+  ORGANS.forEach((org) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.dataset.key = org.key;
+    row.innerHTML = `<div class="n">${org.name}</div><div class="f">${org.fn}</div>`;
+    row.onclick = () => selectOrgan(org.key);
+    listEl.appendChild(row);
+  });
+}
+
+function selectOrgan(key) {
+  selected = selected === key ? null : key;
+  chips.forEach((c, k) => c.el.classList.toggle('sel', k === selected));
+  [...listEl.children].forEach((r) => r.classList.toggle('sel', r.dataset.key === selected));
+  if (selected) {
+    const row = [...listEl.children].find((r) => r.dataset.key === selected);
+    if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function showCard(org, el) {
+  cardTitle.textContent = org.name;
+  cardText.textContent = org.fn;
+  const r = el.getBoundingClientRect();
+  let left = r.left - 262;
+  if (left < 12) left = r.right + 12;
+  card.style.left = left + 'px';
+  card.style.top = Math.min(innerHeight - 130, Math.max(12, r.top - 20)) + 'px';
+  card.classList.add('show');
+}
+function hideCard() { card.classList.remove('show'); }
+
+const GAP = 29;
+function layoutLabels() {
+  if (!organMesh) return;
+  const w = innerWidth, h = innerHeight;
+  const items = [];
+
+  ORGANS.forEach((org) => {
+    const c = chips.get(org.key);
+    anchorWorld.fromArray(org.local).applyMatrix4(organMesh.matrixWorld);
+    const p = anchorWorld.clone().project(camera);
+    c.x = (p.x * 0.5 + 0.5) * w;
+    c.ay = (-p.y * 0.5 + 0.5) * h;
+    c.behind = p.z > 1;
+    c.y = c.ay;
+    items.push(c);
+  });
+
+  ['left', 'right'].forEach((side) => {
+    const group = items.filter((c) => c.org.side === side).sort((a, b) => a.ay - b.ay);
+    let prev = -1e9;
+    group.forEach((c) => { c.y = Math.max(c.ay, prev + GAP); prev = c.y; });
+    if (group.length) {
+      const over = group[group.length - 1].y - (h - 26);
+      if (over > 0) group.forEach((c) => { c.y -= over; });
+      const under = 26 - group[0].y;
+      if (under > 0) group.forEach((c) => { c.y += under; });
+    }
+  });
+
+  svg.innerHTML = '';
+  items.forEach((c) => {
+    const { el, org } = c;
+    const dir = org.side === 'left' ? -1 : 1;
+    const chipX = c.x + dir * 34;
+    const edgeX = c.x + dir * 22;
+    el.style.transform = `translate(${chipX}px, ${c.y}px) translate(${dir === -1 ? '-100%' : '0'}, -50%)`;
+    el.style.opacity = c.behind ? 0.35 : 1;
+
+    if (labelsOn) {
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', c.x); ln.setAttribute('y1', c.ay);
+      ln.setAttribute('x2', edgeX); ln.setAttribute('y2', c.y);
+      svg.appendChild(ln);
+    }
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', c.x); dot.setAttribute('cy', c.ay); dot.setAttribute('r', 2.6);
+    svg.appendChild(dot);
+  });
+  svg.style.display = labelsOn ? '' : 'none';
+  chips.forEach((c) => { c.el.style.display = labelsOn ? '' : 'none'; });
+}
+
+/* ---------- 皮肤 / 线框 ---------- */
+function applySkin() {
+  if (!skinMesh) return;
+  const m = skinMesh.material;
+  skinMesh.visible = skinMode !== 2;
+  m.transparent = skinMode === 0;
+  m.opacity = skinMode === 0 ? 0.2 : 1;
+  m.depthWrite = skinMode !== 0;
+  m.needsUpdate = true;
+}
+
+document.getElementById('btnRotate').onclick = (e) => {
+  controls.autoRotate = !controls.autoRotate;
+  e.currentTarget.classList.toggle('active', controls.autoRotate);
+};
+document.getElementById('btnLabels').onclick = (e) => {
+  labelsOn = !labelsOn;
+  e.currentTarget.textContent = '标注：' + (labelsOn ? '显示' : '隐藏');
+  e.currentTarget.classList.toggle('active', !labelsOn);
+};
+document.getElementById('btnSkin').onclick = (e) => {
+  skinMode = (skinMode + 1) % 3;
+  e.currentTarget.textContent = SKIN_LABEL[skinMode];
+  e.currentTarget.classList.toggle('active', skinMode !== 0);
+  applySkin();
+};
+document.getElementById('btnWire').onclick = (e) => {
+  const on = !e.currentTarget.classList.contains('active');
+  if (organMesh) organMesh.material.wireframe = on;
+  if (skinMesh) skinMesh.material.wireframe = on;
+  e.currentTarget.classList.toggle('active', on);
+};
+document.getElementById('btnReset').onclick = () => {
+  skinMode = 0;
+  document.getElementById('btnSkin').textContent = SKIN_LABEL[0];
+  document.getElementById('btnSkin').classList.remove('active');
+  applySkin();
+  selectOrgan(null);
+  controls.reset();
+};
+
+/* ---------- URL 预设 ---------- */
+function applyHashState() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  if (h.has('rotate')) document.getElementById('btnRotate').click();
+  if (h.has('wire')) document.getElementById('btnWire').click();
+  if (h.has('nolabels')) document.getElementById('btnLabels').click();
+  if (h.has('skin')) {
+    const t = Math.max(0, Math.min(2, parseInt(h.get('skin'), 10) || 0));
+    while (skinMode !== t) document.getElementById('btnSkin').click();
+  }
+  if (h.has('select')) selectOrgan(h.get('select'));
+  if (h.has('az')) {
+    const a = parseFloat(h.get('az')) * Math.PI / 180;
+    const d = camera.position.length();
+    camera.position.set(Math.sin(a) * d, camera.position.y, Math.cos(a) * d);
+    camera.lookAt(controls.target);
+    controls.update();
+  }
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  scene.updateMatrixWorld();
+  layoutLabels();
+})();
+</script>
+</body>
+</html>
