@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>第4章 电路 · 互动学习</title>
+<style>
+:root{--bg:#050b1a;--card:#0d1b33;--card2:#12264a;--tx:#e6f0ff;--mu:#8fa6c8;--ac:#38bdf8;--ac2:#facc15;--ok:#22c55e;--bad:#ef4444;--wm:rgba(56,189,248,0.18);--fs:16px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="light"]{--bg:#eef5ff;--card:#fff;--card2:#dbeafe;--tx:#0f172a;--mu:#475569;--ac:#0284c7;--ac2:#b45309;--wm:rgba(2,132,199,0.2)}
+html{font-size:var(--fs);height:100%}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0,#0b2a55 0,var(--bg) 45%);background-color:var(--bg);color:var(--tx);font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7}
+:root[data-theme="light"] body{background:var(--bg)}
+.hero{text-align:center;padding:2.5rem 1rem 1rem}
+.hero h1{margin:.3rem 0;font-size:2rem;color:var(--ac);text-shadow:0 0 18px rgba(56,189,248,.5)}
+.hero p{margin:.2rem auto;max-width:640px;color:var(--mu)}
+.eel{max-width:640px;margin:1rem auto;background:var(--card);border:1px solid var(--ac);border-radius:14px;padding:.8rem 1rem;text-align:left;font-size:.92rem}
+.wm{text-align:center;font-size:.55rem;color:var(--wm);margin:.2rem 0 .6rem}
+.bar{position:sticky;top:0;z-index:9;background:var(--card);border-bottom:1px solid var(--card2);padding:.4rem;padding-top:calc(.4rem + env(safe-area-inset-top,0px));display:flex;gap:.4rem;align-items:center}
+#nav{display:flex;gap:.4rem;overflow-x:auto;flex:1}
+#nav button,.tool button{white-space:nowrap}
+button{background:var(--card2);color:var(--tx);border:1px solid var(--ac);border-radius:999px;padding:.35rem .9rem;font-size:.9rem;cursor:pointer}
+button.on,button:hover{background:var(--ac);color:#031326}
+main{max-width:900px;margin:0 auto;padding:1rem}
+.ch{display:none}
+.ch.show{display:block}
+h2{color:var(--ac);margin:.5rem 0}
+h3{color:var(--ac2);margin:1rem 0 .3rem}
+.card{background:var(--card);border:1px solid var(--card2);border-radius:14px;padding:1rem;margin:.8rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.6rem}
+.chip{background:var(--card2);border-radius:10px;padding:.6rem}
+.chip b{display:block;color:var(--ac2)}
+.chip span{font-size:.85rem;color:var(--mu)}
+.chip span b{display:inline;color:var(--ac2)}
+.fm{font-family:Consolas,monospace;background:var(--card2);border-left:4px solid var(--ac2);padding:.5rem .8rem;border-radius:6px;margin:.4rem 0}
+svg{width:100%;max-width:420px;display:block;margin:0 auto}
+.w{fill:none;stroke:var(--mu);stroke-width:3}
+.flow{fill:none;stroke:var(--ac2);stroke-width:4;stroke-dasharray:3 12;stroke-linecap:round;animation:fl var(--sp,1s) linear infinite}
+.flow.rev{animation-direction:reverse}
+.flow.cur{stroke:#fb923c;stroke-dasharray:12 12;stroke-width:5;animation-name:fl24}
+@keyframes fl24{to{stroke-dashoffset:-24}}
+.el{fill:none;stroke:#38bdf8;stroke-width:8;stroke-dasharray:0 16;stroke-linecap:round;animation:fl16 var(--sp,1.4s) linear infinite reverse}
+@keyframes fl16{to{stroke-dashoffset:-16}}
+@keyframes fl{to{stroke-dashoffset:-30}}
+.sh{stroke:var(--bad);stroke-width:4;fill:none;display:none}
+.lamp{stroke:var(--mu);stroke-width:2}
+.gap{fill:var(--card)}
+.sw{stroke:var(--tx);stroke-width:4;transform-origin:134px 30px;transition:transform .3s}
+.bt{stroke:var(--tx);stroke-width:3}
+.tool{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem 0}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--ac)}
+input[type=number],select{background:var(--card2);color:var(--tx);border:1px solid var(--ac);border-radius:8px;padding:.3rem;width:7rem}
+.out{color:var(--ac2);font-weight:bold}
+.bulb{width:46px;height:46px;border-radius:50%;border:2px solid var(--mu);display:inline-block;margin:4px}
+.tank{width:60px;height:140px;border:3px solid var(--ac);border-top:none;border-radius:0 0 12px 12px;position:relative;overflow:hidden;background:var(--card2)}
+.tank i{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(#38bdf8,#0369a1);transition:height .3s}
+.warn{color:var(--bad);font-weight:bold}
+.fan{font-size:3rem;display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+td,th{border:1px solid var(--card2);padding:.3rem;text-align:center}
+details{background:var(--card2);border-radius:8px;padding:.4rem .8rem;margin:.3rem 0}
+.op{display:block;width:100%;text-align:left;margin:.3rem 0;border-radius:10px}
+.quiz{border:2px dashed var(--ac);border-radius:14px;padding:.8rem;margin-top:1.2rem}
+.row{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div style="font-size:3rem">⚡🔌💡</div>
+  <h1>第4章 电路</h1>
+  <p>《科学》初三 · 互动学习课件 —— 动手玩一玩，电路原来这么有趣！</p>
+  <div class="eel"><b>🐟 科学发现：电鳗</b><br>电鳗尾部有 6000～10000 枚肌肉薄片，每枚像一个只产生 150 mV 的小电池，近万个“小电池”<b>串联</b>起来，电压可达 300～800 V！它在水中放电，电流走电阻最小的通路，所以不会电到自己。<br><b>本章提问：什么是电流？</b>学完本章，你来回答！</div>
+</header>
+<div class="wm">峇株吧辖华仁中学蔡逸众制作</div>
+<div class="bar">
+  <div id="nav"></div>
+  <button id="fs">A</button><button id="th">🌓</button>
+</div>
+<main>
+<section class="ch" id="c0">
+  <h2>4.1 电路由什么所构成？</h2>
+  <div class="card"><b>电路</b>：用导线把电源、用电器和开关等连接起来组成的<b>电流路径</b>。手电筒、手机、电脑里都有电路。
+    <div class="grid" style="margin-top:.6rem">
+      <div class="chip"><b>🔋 电源</b><span>电池、发电机，为电路提供电压</span></div>
+      <div class="chip"><b>💡 用电器</b><span>灯泡、电动机，利用电来工作</span></div>
+      <div class="chip"><b>🎚 开关</b><span>控制电路的通断</span></div>
+      <div class="chip"><b>〰 导线</b><span>导通电路</span></div>
+    </div></div>
+  <h3>4.1.1 电路的三种状态（点按钮试试！）</h3>
+  <div class="card circ" id="k0"></div>
+  <div class="tool" id="t0"><button data-s="on">✅ 通路（闭合）</button><button data-s="open">⛔ 开路（断开）</button><button data-s="short">🔥 短路</button></div>
+  <div class="card" id="st0"></div>
+  <h3>电路元件符号（对照课本）</h3>
+  <div class="grid" id="sym"></div>
+  <h3>动动脑</h3>
+  <details><summary>1. 为什么短路时电流会过大？</summary>短路时电流不经过用电器，电路中只有导线，电阻几乎为零，由 I = V/R 可知电流极大，会烧坏电源，甚至引发火灾。</details>
+  <details><summary>2. 一个灯泡两端并上导线，为什么它熄灭、另一个还亮？</summary>电流走电阻最小的路径。导线把该灯泡短路，电流几乎全走导线，灯泡熄灭；另一个灯泡仍在通路中，继续发光。</details>
+  <details><summary>📖 阅读：面包板</summary>免焊万用电路板，插孔可插拔元件，无需焊接，元件可重复使用，适合电子电路的组装、调试和训练。</details>
+  
+</section>
+
+<section class="ch" id="c1">
+  <h2>4.2 什么是电流？</h2>
+  <div class="card">金属里有大量<b>自由电荷</b>，平时杂乱无序地运动；接上电池后受到推动力，做<b>定向移动</b>，电荷的定向移动形成<b>电流</b>。</div>
+  <h3>4.2 电流的方向</h3>
+  <div class="card circ" id="k1"></div>
+  <div class="tool"><button id="dm0" class="on">👀 同时显示</button><button id="dm1">只看电流</button><button id="dm2">只看电子</button></div>
+  <div class="grid"><div class="chip" style="border-left:4px solid #fb923c"><b style="color:#fb923c">━ 橙色长条 = 电流</b><span>规定方向：正极 → 负极（正电荷移动的方向）</span></div><div class="chip" style="border-left:4px solid #38bdf8"><b style="color:#38bdf8">● 蓝色圆点 = 电子（带负电）</b><span>实际移动：负极 → 正极，与电流方向相反</span></div></div>
+  <div class="card">富兰克林规定：<b>正电荷从电源正极流向负极</b>的方向为电流方向。后来发现金属中是<b>电子</b>在移动，电子从<b>负极流向正极</b>，与规定的电流方向<b>相反</b>。</div>
+  <h3>4.2.1 电流的单位</h3>
+  <div class="card">电流强度（简称电流）符号 <b>I</b>，国际单位<b>安培</b>（A）。<div class="fm">1 A = 10³ mA　　1 mA = 10³ μA</div>
+    <div class="tool">输入 <input type="number" id="ua" value="0.25" step="any"> A = <span class="out" id="ub"></span></div></div>
+  <h3>⚠ 人体安全电流模拟</h3>
+  <div class="card"><div class="tool"><input type="range" id="ma" min="0" max="60" value="0"><span class="out" id="mt"></span></div><div id="mm"></div>
+    <small>安全电压上限 36 V，最大安全电流 10 mA。</small></div>
+  <h3>4.2.2 安培计</h3>
+  <div class="card"><b>安培计（电流表）</b>用来测量电流大小，符号 Ⓐ，<b>串联</b>在电路中。<br>📖 阅读：生物体内也有微弱电流，心电图（ECG）就是记录心脏电流随时间的变化曲线。</div>
+  <h3>🔌 安培计模拟：接线柱与量程</h3>
+  <div class="card" id="meter_amm"></div>
+  
+</section>
+
+<section class="ch" id="c2">
+  <h2>4.3 什么是电压？</h2>
+  <div class="card">要让一段电路产生电流，两端必须有<b>电压</b>（两点间的电势差）。<b>电源</b>就是提供电压的装置。<br>类比：水泵把水抽得越高，水压越大，水流越快；电源电压越大，电流越大，灯泡越亮。</div>
+  <h3>水压类比（拖动电压）</h3>
+  <div class="card"><div class="tool"><input type="range" id="vv" min="0" max="12" step="0.5" value="3"><span class="out" id="vt"></span></div>
+    <div class="tool"><button id="vs">🚰⏻ 阀门 / 开关：已打开（点击关闭）</button></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"><div><b>💧 水路：水泵 → 水轮机 → 流回水泵</b><div id="wsv"></div></div><div><b>🔌 电路：电池 → 灯泡 → 流回电池</b><div id="esv"></div></div></div>
+    <table><tr><th>水路</th><th>电路</th></tr><tr><td>水泵</td><td>电池（电源）</td></tr><tr><td>水压（水位差）</td><td>电压</td></tr><tr><td>水流</td><td>电流</td></tr><tr><td>水轮机</td><td>灯泡（用电器）</td></tr><tr><td>阀门</td><td>开关</td></tr><tr><td>水管</td><td>导线</td></tr></table></div>
+  <h3>4.3.1 电压的单位</h3>
+  <div class="card">符号 <b>V</b>，单位<b>伏特</b>（V，纪念伏打）。<div class="fm">1 kV = 1000 V　　1 mV = 0.001 V</div>
+    <div class="tool">输入 <input type="number" id="va" value="1.5" step="any"> V = <span class="out" id="vb2"></span></div>
+    <div class="grid"><div class="chip"><b>1.5 V</b><span>一节干电池</span></div><div class="chip"><b>240 V</b><span>TNB 家庭用电</span></div><div class="chip"><b>300～800 V</b><span>电鳗</span></div><div class="chip"><b>150 mV</b><span>电鳗一枚肌肉薄片</span></div></div></div>
+  <h3>4.3.2 伏特计</h3>
+  <div class="card"><b>伏特计（电压表）</b>用来测量电压，符号 Ⓥ，<b>并联</b>在被测电路两端。</div>
+  <h3>🔌 伏特计模拟：接线柱与量程</h3>
+  <div class="card" id="meter_vol"></div>
+  
+</section>
+
+<section class="ch" id="c3">
+  <h2>4.4 什么是电阻？</h2>
+  <div class="card"><b>电阻</b>（R）：导体对电流的阻碍作用。国际单位<b>欧姆</b>（Ω）。<div class="fm">1 kΩ = 10³ Ω　　1 MΩ = 10³ kΩ</div>
+    相同电压下，电阻越小，电流越大；电阻越大，电流越小。</div>
+  <h3>4.4.2 电阻大小的因素实验室</h3>
+  <div class="card">
+    <div class="tool">材料 <select id="rm"><option value="0.017">铜</option><option value="0.028">铝</option><option value="0.44">锰铜合金</option><option value="1.1" selected>镍铬合金</option></select></div>
+    <div class="tool">长度 <input type="range" id="rl" min="1" max="10" step="0.5" value="2"><span class="out" id="rlt"></span></div>
+    <div class="tool">横截面积 <input type="range" id="rs" min="0.5" max="5" step="0.5" value="1"><span class="out" id="rst"></span></div>
+    <div class="tool">温度 <input type="range" id="rt" min="20" max="300" step="10" value="20"><span class="out" id="rtt"></span></div>
+    <div class="row"><div>电阻 R = <span class="out" id="rr"></span></div><div>安培计 I = <span class="out" id="ri"></span></div><div class="bulb" id="rb"></div></div>
+    <div class="fm">材料相同：越长电阻越大；越细（横截面积越小）电阻越大；金属温度越高电阻越大。</div></div>
+  <h3>4.4.3 变阻器：调速风扇</h3>
+  <div class="card"><div class="tool">滑动变阻器 <input type="range" id="fr" min="0" max="50" value="10"><span class="out" id="frt"></span></div>
+    <div class="row"><span class="fan" id="fan">🌀</span><div>电流 I = <span class="out" id="fi"></span></div></div>
+    <small>电阻变大 → 电流变小 → 风扇变慢。变阻器分定值电阻器（阻值固定）和可变电阻器（电位器）；热敏、光敏电阻会随温度、光照改变阻值。</small></div>
+  
+</section>
+
+<section class="ch" id="c4">
+  <h2>4.5 电压、电流及电阻的关系</h2>
+  <div class="card"><b>欧姆定律</b>：通过导体的电流与导体两端的电压<b>成正比</b>，与导体的电阻<b>成反比</b>。<div class="fm">I = V ÷ R　　（V 用 V，R 用 Ω，I 用 A）</div></div>
+  <h3>欧姆定律计算器</h3>
+  <div class="card"><div class="tool">V <input type="range" id="ov" min="0" max="12" step="0.5" value="9"><span class="out" id="ovt"></span></div>
+    <div class="tool">R <input type="range" id="or" min="5" max="100" step="5" value="30"><span class="out" id="ort"></span></div>
+    <div class="fm" id="oi"></div>
+    <small>例题：9 V 电池接 30 Ω 灯丝，I = 9 ÷ 30 = 0.3 A。</small></div>
+  <h3>4.5.1 伏安法测电阻</h3>
+  <div class="card">用伏特计测电压、安培计测电流，再用 R = V ÷ I 算出电阻。每次调高电源电压并记录：
+    <div class="tool"><button id="mb">➕ 调高电压并测量</button><button id="mr">↺ 重置</button></div>
+    <table><thead><tr><th>电压 V (V)</th><th>电流 I (A)</th><th>R = V/I (Ω)</th></tr></thead><tbody id="mt2"></tbody></table>
+    <div id="mavg" class="out"></div></div>
+  <h3>📈 图表：它们的关系</h3>
+  <div class="card"><div class="grid"><div><b>电流 I — 电压 V</b>（R 不变）<div id="ch1"></div></div><div><b>电流 I — 电阻 R</b>（V 不变）<div id="ch2"></div></div></div>
+    <small>左图：每按一次「测量」就多一个点，点都落在过原点的直线上——I 与 V 成<b>正比</b>。右图：红点随上面计算器的 V、R 移动，曲线下降——I 与 R 成<b>反比</b>。</small></div>
+  <h3>🧮 知二求一计算器</h3>
+  <div class="card"><p>在 V、I、R 中任意填写<b>两个</b>，留空要求的那个，点「计算」。</p>
+    <div class="tool">V <input type="number" id="sv" step="any" placeholder="电压(V)"> I <input type="number" id="si" step="any" placeholder="电流(A)"> R <input type="number" id="sr" step="any" placeholder="电阻(Ω)"></div>
+    <div class="tool"><button id="sc">🧮 计算</button><button id="sx">↺ 清空</button></div>
+    <div class="fm" id="so">等待输入……</div></div>
+  
+</section>
+
+<section class="ch" id="c5">
+  <h2>4.6 电路中的元件怎样连接？</h2>
+  <div class="card">用电器的两种基本连接方式：<b>串联</b>（依次相连成一串）与<b>并联</b>（两端分别连在一起）。每个灯泡电阻 6 Ω，电源 6 V。</div>
+  <div class="card"><div class="tool"><button id="m1" class="on">串联</button><button id="m2">并联</button>灯泡数 <input type="range" id="nn" min="1" max="4" value="2" style="max-width:120px"><span class="out" id="nt"></span><button id="bk">↺ 所有开关复位</button></div>
+    <div class="tool"><button id="sw">⏻ 开关：已闭合（点击断开）</button></div>
+    <small>💡 点击电路图里的开关（总开关 S、S₁、S₂…）也可以直接切换。</small>
+    <div id="lamps" style="max-width:520px;margin:0 auto"></div>
+    <div class="grid" id="ro"></div><div class="fm" id="ff"></div></div>
+  <h3>串联 vs 并联</h3>
+  <div class="grid"><div class="chip"><b>串联</b><span>I = I₁ = I₂<br>V = V₁ + V₂<br>R = R₁ + R₂<br>一条路径，开关位置不影响控制</span></div>
+    <div class="chip"><b>并联</b><span>I = I₁ + I₂<br>V = V₁ = V₂<br>1/R = 1/R₁ + 1/R₂<br>干路开关控全部，支路开关只控本支路</span></div></div>
+  <details><summary>📖 推导：串联总电阻</summary>V = V₁+V₂，IR = IR₁ + IR₂，故 R = R₁ + R₂。</details>
+  <details><summary>📖 推导：并联总电阻</summary>I = I₁+I₂，V/R = V/R₁ + V/R₂，故 1/R = 1/R₁ + 1/R₂，总电阻小于任一支路电阻。</details>
+  
+</section>
+
+<section class="ch" id="c6">
+  <h2>总复习：本章学到了什么？</h2>
+  <div class="card"><b>🎯 我们找到的答案：</b>什么是电流？——电荷的<b>定向移动</b>形成电流，需要电压推动、构成闭合电路；单位安培（A），用安培计串联测量。</div>
+  <div class="grid">
+    <div class="chip"><b>电路</b><span>电源、用电器、开关、导线；通路、开路、短路</span></div>
+    <div class="chip"><b>电流 I (A)</b><span>电荷定向移动；电流方向与电子方向相反</span></div>
+    <div class="chip"><b>电压 V (V)</b><span>推动电荷的“水压”；伏特计并联</span></div>
+    <div class="chip"><b>电阻 R (Ω)</b><span>材料、长度、横截面积、温度；变阻器</span></div>
+    <div class="chip"><b>欧姆定律</b><span>I = V/R；伏安法测电阻</span></div>
+    <div class="chip"><b>串联/并联</b><span>电流、电压、电阻的规律</span></div></div>
+  <h3>📝 总复习测验</h3>
+  <div class="card"><div class="tool" id="qm"></div><div class="quiz" id="qa"></div><div class="out" id="score" style="margin-top:.5rem"></div></div>
+</section>
+</main>
+
+<script>
+var NAMES=['4.1 电路','4.2 电流','4.3 电压','4.4 电阻','4.5 欧姆定律','4.6 串并联','总复习'];
+var SVG='<svg viewBox="0 0 300 160"><path class="w" d="M40 30H260V130H40Z"/>'
+ +'<path class="flow" d="M40 30H260V130H40Z"/>'
+ +'<g class="sh"><path d="M200 30V130"/><circle cx="200" cy="30" r="4" style="fill:#ef4444"/><circle cx="200" cy="130" r="4" style="fill:#ef4444"/></g>'
+ +'<rect class="gap" x="28" y="60" width="24" height="40"/>'
+ +'<path class="bt" d="M28 66H52M36 76H44M28 86H52M36 96H44"/>'
+ +'<text x="56" y="70" fill="#ef4444" font-size="14">+</text>'
+ +'<g><rect class="gap" x="128" y="22" width="44" height="16"/><line class="sw" x1="134" y1="30" x2="172" y2="30"/><circle cx="130" cy="30" r="4" fill="var(--card)" stroke="#e6f0ff" stroke-width="2"/></g>'
+ +'<rect class="gap" x="238" y="62" width="44" height="36"/><circle class="lamp" cx="260" cy="80" r="18"/>'
+ +'<path d="M247 67L273 93M273 67L247 93" stroke="#8fa6c8" stroke-width="2"/></svg>';
+document.querySelectorAll('.circ').forEach(function(e){e.innerHTML=SVG;});
+function $(s,p){return (p||document).querySelector(s);}
+function glowSvg(el,b){
+  el.style.fill='rgba(255,214,10,'+(0.06+0.94*b)+')';
+//Made by ecchua79
+  el.style.filter='drop-shadow(0 0 '+Math.round(b*16)+'px rgba(255,214,10,'+b+'))';
+}
+function glowDiv(el,b){
+  b=Math.max(0,Math.min(1,b));
+  el.style.background='rgba(255,214,10,'+(0.05+0.95*b)+')';
+  el.style.boxShadow='0 0 '+Math.round(b*24)+'px rgba(255,214,10,'+b+')';
+}
+function fmt(x,d){return (Math.round(x*Math.pow(10,d||3))/Math.pow(10,d||3)).toString();}
+function setCirc(box,st,sp){
+  var open=(st==='open'),sh=(st==='short');
+  $('.sw',box).style.transform=open?'rotate(-35deg)':'none';
+  $('.flow',box).style.display=open?'none':'block';
+  $('.flow',box).setAttribute('d',sh?'M40 30H200V130H40Z':'M40 30H260V130H40Z');
+  $('.flow',box).style.stroke=sh?'#ef4444':'';
+  $('.flow',box).style.setProperty('--sp',sh?'.25s':(sp||'1s'));
+  $('.sh',box).style.display=sh?'block':'none';
+  glowSvg($('.lamp',box),st==='on'?1:0);
+}
+var MSG={on:'✅ <b>通路</b>：开关闭合，电路中有电流，灯泡发光。',
+ open:'⛔ <b>开路</b>：开关断开或某处断开，电路中没有电流，灯泡不亮。',
+ short:'<span class="warn">🔥 短路！</span>电流<b>仍然在流动</b>，只是改走这条短路导线，<b>不经过灯泡</b>（灯泡熄灭）。导线几乎没有电阻，电流过大，会烧坏电源，甚至引发火灾！'};
+function s0(s){setCirc($('#k0'),s);$('#st0').innerHTML=MSG[s];}
+document.querySelectorAll('#t0 button').forEach(function(b){b.onclick=function(){s0(b.dataset.s);};});
+s0('on');
+var SYS='stroke:var(--tx);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round';
+function st(x,y,t,z){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+z+'" style="fill:var(--tx);stroke:none">'+t+'</text>';}
+var SYM=[
+ ['电池','<path d="M6 38H52M52 28V48M62 20V56M62 38H114"/>'+st(30,26,'负极',11)+st(90,26,'正极',11),'<b>长线是正极，短线是负极</b>。'],
+ ['电池组','<path d="M4 30H24M24 21V39M31 12V48M31 30H36M84 30H88M88 21V39M95 12V48M95 30H116"/><path d="M36 30H84" style="stroke-dasharray:2 5"/>','几节电池串联；虚线表示省略中间的电池。'],
+ ['开关','<path d="M6 42H28M85 42H114M36 40L84 16"/><circle cx="32" cy="42" r="4" style="fill:var(--card2)"/>','小圆圈是转轴：斜线翘起＝<b>断开</b>，放平接触＝<b>闭合</b>。'],
+ ['电灯','<path d="M6 30H44M76 30H114"/><circle cx="60" cy="30" r="16"/><path d="M49 19L71 41M71 19L49 41"/>','圆圈加叉，用电器，通电发光。'],
+ ['电铃','<path d="M40 38A20 20 0 0 1 80 38Z"/><path d="M60 18V13M55 13H65M47 38V55M73 38V55"/>','通电发出声音的用电器。'],
+ ['电动机','<path d="M6 30H44M76 30H114"/><circle cx="60" cy="30" r="16"/>'+st(60,36,'M',18),'圆圈里写 M，把电能转化为动能。'],
+ ['交叉相连接的导线','<path d="M8 30H112M60 6V54"/><circle cx="60" cy="30" r="5" style="fill:var(--tx);stroke:none"/>','交叉处有<b>黑点</b>＝导线相连，电流可以通过。'],
+ ['交叉不相连的导线','<path d="M8 30H112M60 6V54"/>','交叉处<b>没有黑点</b>＝互不相连。'],
+ ['安培计','<path d="M6 30H44M76 30H114"/><circle cx="60" cy="30" r="16"/>'+st(60,36,'A',17),'测电流，<b>串联</b>在电路中。'],
+ ['伏特计','<path d="M6 30H44M76 30H114"/><circle cx="60" cy="30" r="16"/>'+st(60,36,'V',17),'测电压，<b>并联</b>在被测电路两端。'],
+//峇株吧辖蔡逸众制作
+ ['定值电阻器','<path d="M6 30H40M80 30H114"/><rect x="40" y="22" width="40" height="16"/>','长方形，阻值固定不变。'],
+ ['滑动变阻器','<path d="M6 38H40M80 38H114"/><rect x="40" y="30" width="40" height="16"/><path d="M60 6V30M54 22L60 30L66 22"/>','长方形加箭头，阻值可以调节。'],
+ ['发光二极管（LED）','<path d="M6 34H46M80 34H114"/><path d="M46 22V46L74 34ZM74 22V46"/><path d="M70 18L82 8M77 8H82V13M80 24L92 14M87 14H92V19"/>','只允许电流单向通过，通电发光。']
+];
+$('#sym').innerHTML=SYM.map(function(s){
+  return '<div class="chip" style="text-align:center"><svg viewBox="0 0 120 60" style="max-width:130px;'+SYS+'">'+s[1]+'</svg><b>'+s[0]+'</b><span>'+s[2]+'</span></div>';
+}).join('');
+var dmode='both';
+function setDir(){
+  var k=$('#k1'),cu=$('.flow',k),el=$('.el',k);
+  if(!el){
+    $('svg',k).insertAdjacentHTML('beforeend','<path class="el" d="M40 30H260V130H40Z" transform="translate(6,6)"/><text x="150" y="16" text-anchor="middle" font-size="11" fill="#fb923c">电流方向 ➜（正极→负极）</text><text x="150" y="154" text-anchor="middle" font-size="11" fill="#38bdf8">⬅ 电子移动方向（负极→正极）</text>');
+    el=$('.el',k);
+  }
+  setCirc(k,'on','1.4s');
+  cu.classList.add('cur');
+  el.style.setProperty('--sp','1.4s');
+  cu.style.display=(dmode==='e')?'none':'block';
+  el.style.display=(dmode==='i')?'none':'block';
+}
+['dm0','dm1','dm2'].forEach(function(id,j){
+  $('#'+id).onclick=function(){
+    dmode=['both','i','e'][j];
+    ['dm0','dm1','dm2'].forEach(function(x,m){$('#'+x).classList.toggle('on',m===j);});
+    setDir();
+  };
+});
+setDir();
+//华仁中学蔡逸众制作
+function unit(){
+  var a=parseFloat($('#ua').value)||0;
+  $('#ub').textContent=fmt(a*1000)+' mA = '+fmt(a*1e6)+' μA';
+}
+$('#ua').oninput=unit;unit();
+function body(){
+  var m=+$('#ma').value,t='';
+  $('#mt').textContent=m+' mA';
+  if(m<1)t='😌 没有感觉';
+  else if(m<10)t='🙂 轻微刺激（1 mA 开始有感觉）';
+  else if(m<15)t='😣 接近安全上限 10 mA';
+  else if(m<50)t='<span class="warn">😖 超过 15 mA，肌肉失去控制！</span>';
+  else t='<span class="warn">☠ ≥50 mA 有生命危险：心脏停搏、呼吸麻痹！</span>';
+  $('#mm').innerHTML=t;
+}
+$('#ma').oninput=body;body();
+var vOn=true;
+function waterSvg(v,on){
+  var h=Math.round(v/12*34),run=on&&v>0,sp=(3.2-2.8*v/12).toFixed(2),ws=(2.4-2.1*v/12).toFixed(2);
+  var s='<svg viewBox="0 0 300 190" style="max-width:380px"><path class="w" d="M40 150V50H260V150H40Z"/>';
+  if(run)s+='<path class="flow" style="stroke:#38bdf8;--sp:'+sp+'s" d="M40 150V50H260V150H40Z"/>';
+  s+='<rect class="gap" x="110" y="42" width="80" height="16"/>';
+  s+='<rect x="111" y="'+(56-h)+'" width="78" height="'+h+'" fill="#38bdf8" fill-opacity=".75"/>';
+  s+='<path d="M110 16V56H190V16" style="fill:none;stroke:var(--ac);stroke-width:2"/>';
+  s+='<rect class="gap" x="16" y="80" width="48" height="40"/><circle cx="40" cy="100" r="18" style="fill:var(--card2);stroke:var(--ac);stroke-width:2"/>'+T(40,104,'水泵 ↑');
+  s+='<rect class="gap" x="236" y="76" width="48" height="48"/><circle cx="260" cy="100" r="22" style="fill:var(--card2);stroke:var(--ac);stroke-width:2"/>';
+  s+='<g style="transform-origin:260px 100px;animation:spin '+ws+'s linear infinite;animation-play-state:'+(run?'running':'paused')+'"><path d="M260 82V118M242 100H278M247 87L273 113M273 87L247 113" style="stroke:#38bdf8;stroke-width:3"/></g>';
+  s+='<rect class="gap" x="128" y="140" width="44" height="20"/><path d="M134 142L166 158V142L134 158Z" style="fill:var(--card2);stroke:var(--tx);stroke-width:2"/>';
+  s+='<path d="M150 150V132M142 132H158" style="stroke:var(--tx);stroke-width:3"/>'+(on?'':'<path d="M150 140V160" style="stroke:#ef4444;stroke-width:5"/>');
+  s+=T(150,12,'高水位（水压大）')+T(40,140,'水泵把水抬高')+T(260,140,'水轮机')+T(150,178,'阀门');
+  return s+'</svg>';
+}
+//峇株吧辖华仁中学蔡逸众制作
+function elecSvg(v,on){
+  var run=on&&v>0,sp=(3.2-2.8*v/12).toFixed(2);
+  var s='<svg viewBox="0 0 300 190" style="max-width:380px"><path class="w" d="M40 150V50H260V150H40Z"/>';
+  if(run)s+='<path class="flow cur" style="--sp:'+sp+'s" d="M40 150V50H260V150H40Z"/>';
+  s+='<rect class="gap" x="26" y="76" width="28" height="48"/>';
+  s+='<path d="M26 86H54M33 96H47M26 106H54M33 116H47" style="stroke:var(--tx);stroke-width:3"/>';
+  s+='<text x="58" y="88" font-size="13" fill="#ef4444">+</text><text x="58" y="122" font-size="13" style="fill:var(--mu)">−</text>';
+  s+=lampSvg(260,100,run?v/12:0,false,'灯泡');
+  s+='<rect class="gap" x="122" y="140" width="56" height="20"/>';
+  s+=on?'<line x1="130" y1="150" x2="178" y2="150" style="stroke:var(--tx);stroke-width:3"/>':'<line x1="130" y1="150" x2="164" y2="132" style="stroke:var(--tx);stroke-width:3"/>';
+  s+='<circle cx="130" cy="150" r="4" style="fill:var(--card);stroke:var(--tx);stroke-width:2"/>';
+  s+=T(150,40,'+ 高电势（电压大）')+T(40,140,'电池 '+v+' V')+T(150,178,'开关');
+  return s+'</svg>';
+}
+function drawV(){
+  var v=+$('#vv').value,on=(vOn!==false);
+  $('#vt').textContent=v+' V';
+  $('#wsv').innerHTML=waterSvg(v,on);
+  $('#esv').innerHTML=elecSvg(v,on);
+}
+$('#vs').onclick=function(){
+  vOn=!(vOn!==false);
+  this.textContent=vOn?'🚰⏻ 阀门 / 开关：已打开（点击关闭）':'🚰⏻ 阀门 / 开关：已关闭（点击打开）';
+  drawV();
+};
+$('#vv').oninput=drawV;drawV();
+function vunit(){
+  var v=parseFloat($('#va').value)||0;
+  $('#vb2').textContent=fmt(v/1000,6)+' kV = '+fmt(v*1000)+' mV';
+}
+$('#va').oninput=vunit;vunit();
+function res(){
+  var rho=+$('#rm').value,L=+$('#rl').value,S=+$('#rs').value,T=+$('#rt').value;
+  var R=rho*L/S*(1+0.004*(T-20));
+  var I=6/(R+10);
+  $('#rlt').textContent=L+' m';
+  $('#rst').textContent=S+' mm²';
+  $('#rtt').textContent=T+' ℃';
+  $('#rr').textContent=fmt(R,2)+' Ω';
+  $('#ri').textContent=fmt(I,3)+' A';
+  glowDiv($('#rb'),I/0.6);
+}
+['rm','rl','rs','rt'].forEach(function(i){$('#'+i).oninput=res;});
+res();
+function fan(){
+  var R=+$('#fr').value,I=6/(R+10);
+  $('#frt').textContent=R+' Ω';
+  $('#fi').textContent=fmt(I,3)+' A';
+//峇株吧辖蔡逸众制作
+  $('#fan').style.animationDuration=(0.15/(I/0.6))+'s';
+}
+$('#fr').oninput=fan;fan();
+function ohm(){
+  var V=+$('#ov').value,R=+$('#or').value;
+  $('#ovt').textContent=V+' V';
+  $('#ort').textContent=R+' Ω';
+  $('#oi').innerHTML='I = V ÷ R = '+V+' ÷ '+R+' = <span class="out">'+fmt(V/R,3)+' A</span>';
+}
+$('#ov').oninput=ohm;$('#or').oninput=ohm;ohm();
+var mv=0;
+$('#mb').onclick=function(){
+  if(mv>=6)return;
+  mv++;
+  var I=mv*0.12,tr=document.createElement('tr');
+  tr.innerHTML='<td>'+mv+'.0</td><td>'+fmt(I,2)+'</td><td>'+fmt(mv/I,2)+'</td>';
+  $('#mt2').appendChild(tr);
+  if(mv>=3)$('#mavg').textContent='R 恒为 8.33 Ω：电流与电压成正比 ✔';
+};
+$('#mr').onclick=function(){mv=0;$('#mt2').innerHTML='';$('#mavg').textContent='';};
+var mode='s',broken=false,R0=6,VS=6;
+function connOld(){
+  var n=+$('#nn').value,i,html='',b=[],tot,Rt,It,Vi,Ii;
+  $('#nt').textContent=n+' 个';
+  var act=broken?n-1:n;
+  if(mode==='s'){
+    Rt=n*R0;It=broken?0:VS/Rt;Vi=broken?0:VS/n;Ii=It;
+    for(i=0;i<n;i++)b.push(broken?0:(Vi*Vi/R0)/6);
+    $('#ff').innerHTML=broken?'串联：一个灯泡断开 → <b>整个电路断开，所有灯泡都熄灭</b>':'串联：I 处处相等；V = V₁+V₂+…；R = R₁+R₂+… = '+Rt+' Ω';
+  }else{
+    Rt=act>0?R0/act:Infinity;It=act*VS/R0;Vi=VS;Ii=VS/R0;
+    for(i=0;i<n;i++)b.push((broken&&i===0)?0:1);
+    $('#ff').innerHTML=broken?'并联：一个灯泡断开 → <b>其他支路不受影响，仍然发光</b>':'并联：V 处处相等；I = I₁+I₂+…；1/R = 1/R₁+1/R₂+… → R = '+fmt(Rt,2)+' Ω';
+  }
+  for(i=0;i<n;i++)html+='<div class="bulb" data-b="'+b[i]+'" style="margin:'+(mode==='s'?'4px':'4px 4px')+'"></div>'+(mode==='s'&&i<n-1?'<span>—</span>':'');
+  $('#lamps').innerHTML=html;
+  document.querySelectorAll('#lamps .bulb').forEach(function(e){glowDiv(e,+e.dataset.b);});
+  $('#ro').innerHTML=[['总电压',VS+' V'],['总电流',fmt(It,3)+' A'],['总电阻',isFinite(Rt)?fmt(Rt,2)+' Ω':'∞（开路）'],['每灯电压',fmt(Vi,2)+' V'],['每灯电流',fmt(Ii||0,3)+' A']]
+   .map(function(x){return '<div class="chip"><b>'+x[0]+'</b>'+x[1]+'</div>';}).join('');
+}
+function setMode(m){
+  mode=m;broken=false;
+  $('#m1').classList.toggle('on',m==='s');
+  $('#m2').classList.toggle('on',m==='p');
+  conn();
+}
+$('#m1').onclick=function(){setMode('s');};
+$('#m2').onclick=function(){setMode('p');};
+$('#nn').oninput=function(){broken=false;conn();};
+$('#bk').onclick=function(){broken=!broken;this.textContent=broken?'🔩 装回灯泡':'🔧 拧掉一个灯泡';conn();};
+conn();
+var Q=[
+ [{q:'不经过用电器，直接用导线连接电源正负极，叫做？',o:['通路','开路','短路'],a:2,e:'短路电流过大，会烧坏电源，甚至引发火灾。'},
+  {q:'电路由哪些部分连接组成？',o:['电源、用电器、开关、导线','伏特计、安培计、电阻','电压、电流、电阻'],a:0,e:'电源、用电器、开关和导线连成电流路径。'}],
+ [{q:'金属导体中电子定向移动的方向与规定的电流方向？',o:['相同','相反','无关'],a:1,e:'电流方向规定为正电荷移动方向，电子从负极流向正极。'},
+  {q:'250 mA 等于多少安培？',o:['0.25 A','2.5 A','250 A'],a:0,e:'1 A = 1000 mA，250 ÷ 1000 = 0.25 A。'}],
+ [{q:'要让一段电路产生电流，它的两端必须有？',o:['电阻','电压','开关'],a:1,e:'电压是产生电流的原因。'},
+//峇株吧辖华仁中学蔡逸众制作
+  {q:'马来西亚 TNB 供给家庭电路的电压约为？',o:['1.5 V','36 V','240 V'],a:2,e:'家庭电路电压为 240 V。'}],
+ [{q:'材料和横截面积相同时，导体越长，电阻？',o:['越大','越小','不变'],a:0,e:'长度越长，电阻越大。'},
+  {q:'同样的金属灯丝，温度升高后，通过它的电流？',o:['变大','变小','不变'],a:1,e:'温度升高电阻变大，电流变小。'}],
+ [{q:'V = 12 V，R = 4 Ω，电流 I = ？',o:['3 A','48 A','0.33 A'],a:0,e:'I = V ÷ R = 12 ÷ 4 = 3 A。'},
+  {q:'电压不变，电阻变为原来的 2 倍，电流变为？',o:['2 倍','一半','不变'],a:1,e:'电流与电阻成反比。'}],
+ [{q:'串联电路中，哪个量处处相等？',o:['电压','电流','电阻'],a:1,e:'串联只有一条路径，电流处处相等。'},
+  {q:'并联电路的总电阻与任一支路电阻相比？',o:['更大','相等','更小'],a:2,e:'1/R = 1/R₁+1/R₂，总电阻小于任一支路电阻。'}]
+];
+var done=[];
+function upd(){
+  var t=0,n=0;
+  done.forEach(function(d){if(d!==undefined){t+=d;n++;}});
+  $('#score').textContent=n?('已完成 '+n+'/6 节，共答对 '+t+' 题（满分 12）'):'还没有做测验，去各章节底部挑战吧！';
+}
+function quiz(box,c){
+  var i=0,sc=0;
+  function r(){
+    if(i>=Q[c].length){
+      box.innerHTML='<b>🎉 本节完成！答对 '+sc+'/'+Q[c].length+'</b>';
+      done[c]=sc;upd();return;
+    }
+    var q=Q[c][i];
+    box.innerHTML='<h4>🧠 小测验 '+(i+1)+'/'+Q[c].length+'</h4><p>'+q.q+'</p>'
+     +q.o.map(function(o,k){return '<button class="op" data-k="'+k+'">'+o+'</button>';}).join('')+'<p class="fb"></p>';
+    var lock=false;
+    box.querySelectorAll('.op').forEach(function(b){
+      b.onclick=function(){
+        if(lock)return;lock=true;
+        var ok=(+b.dataset.k===q.a);
+        if(ok)sc++;
+        b.style.background=ok?'#22c55e':'#ef4444';
+        $('.fb',box).innerHTML=(ok?'✅ 答对了！':'❌ 再想想。')+q.e+' <button id="nx">下一题 ➜</button>';
+        $('#nx',box).onclick=function(){i++;r();};
+      };
+    });
+  }
+  r();
+}
+function sh(a){var i,j,t;for(i=a.length-1;i>0;i--){j=Math.floor(Math.random()*(i+1));t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function pk(a){return a[Math.floor(Math.random()*a.length)];}
+function fv(v,u){return fmt(v,3)+' '+u;}
+function wr(c,vals,u,extra){
+  var ok=fv(c,u),out=[],all=[],i,s;
+  vals.forEach(function(v){if(isFinite(v)&&v>0)all.push(fv(v,u));});
+  (extra||[]).forEach(function(x){all.push(x);});
+  [c*10,c/10,c*2,c/2,c*3].forEach(function(v){all.push(fv(v,u));});
+  for(i=0;i<all.length&&out.length<3;i++){s=all[i];if(s!==ok&&out.indexOf(s)<0)out.push(s);}
+  return out;
+}
+//华仁中学蔡逸众制作
+function mk(q,c,u,vals,extra,e,ch){
+  var ok=fv(c,u),o=sh([ok].concat(wr(c,vals,u,extra)));
+  return {q:q,o:o,a:o.indexOf(ok),e:e,ch:ch};
+}
+function mkc(x,ch){
+  var ok=x.o[x.a],o=sh(x.o.slice());
+  return {q:x.q,o:o,a:o.indexOf(ok),e:x.e,ch:ch};
+}
+var CTX=['灯泡','电热丝','小电动机','定值电阻器','手电筒小灯泡'];
+var PR=[[20,20],[30,60],[10,40],[12,12],[20,30],[15,30],[60,60],[10,15],[40,40],[20,60],[30,30]];
+var RS=[10,12,15,20,25,30,40,50,60];
+function gUA(){
+  var n=pk([20,50,120,250,300,500,750,1500]);
+  return mk(n+' mA = ？A',n/1000,'A',[n/100,n/10,n*10],[],'1 A = 1000 mA，所以 '+n+' mA = '+n+' ÷ 1000 = '+fmt(n/1000,3)+' A。',1);
+}
+function gUV(){
+  var n=pk([150,300,500,800,1500]);
+  return mk(n+' mV = ？V',n/1000,'V',[n/100,n/10,n*10],[],'1 V = 1000 mV，所以 '+n+' mV = '+fmt(n/1000,3)+' V。',2);
+}
+function gUR(){
+  var n=pk([1.5,2,4.7,10,22]);
+  return mk(n+' kΩ = ？Ω',n*1000,'Ω',[n*100,n*10,n/1000],[],'1 kΩ = 1000 Ω，所以 '+n+' kΩ = '+fmt(n*1000,3)+' Ω。',3);
+}
+function gI(){
+  var R=pk(RS),I=pk([0.1,0.2,0.25,0.3,0.4,0.5,0.6,0.8,1.5,2]),V=+fmt(I*R,2);
+  return mk('一个'+pk(CTX)+'的电阻是 '+R+' Ω，两端电压是 '+V+' V，通过它的电流是多少？',I,'A',[R/V,V*R],[fv(I,'mA')],'I = V ÷ R = '+V+' ÷ '+R+' = '+fmt(I,3)+' A。易错：把 V、R 的位置颠倒（R ÷ V），或把两者相乘。',4);
+}
+function gV(){
+  var R=pk(RS),I=pk([0.1,0.2,0.25,0.3,0.5,1.5,2]),V=+fmt(I*R,2);
+  return mk('通过一个 '+R+' Ω 用电器的电流是 '+I+' A，它两端的电压是多少？',V,'V',[R/I,I/R,I+R],[],'V = I × R = '+I+' × '+R+' = '+fmt(V,3)+' V。易错：用除法，或把 I 与 R 相加。',4);
+}
+function gR(){
+  var R=pk(RS),I=pk([0.1,0.2,0.25,0.3,0.4,0.5,0.6,1.2]),V=+fmt(I*R,2);
+//Made by ecchua79
+  return mk('伏安法测电阻：电压表读数 '+V+' V，电流表读数 '+I+' A，该电阻是多少？',R,'Ω',[V*I,I/V,V-I],[fv(R,'kΩ')],'R = V ÷ I = '+V+' ÷ '+I+' = '+fmt(R,3)+' Ω。易错：把 V 与 I 相乘，或颠倒成 I ÷ V。',4);
+}
+function gSerI(){
+  var a=pk([10,20,30,40,50]),b=pk([10,20,30,40,50]),I=pk([0.1,0.2,0.3,0.5]),V=+fmt(I*(a+b),2),p=a*b/(a+b);
+  return mk('将 '+a+' Ω 和 '+b+' Ω 的两个电阻串联后接在 '+V+' V 的电源上，电路中的电流是多少？',I,'A',[V/a,V/p,(a+b)/V],[],'串联总电阻 R = '+a+' + '+b+' = '+(a+b)+' Ω，I = V ÷ R = '+V+' ÷ '+(a+b)+' = '+fmt(I,3)+' A。易错：只用了其中一个电阻，或套用并联公式。',5);
+}
+function gSer(){
+  var a=pk([10,15,20,30]),b=pk([10,15,20,30]),c=pk([10,15,20,30]),s=a+b+c;
+  return mk(a+' Ω、'+b+' Ω、'+c+' Ω 三个电阻串联，总电阻是多少？',s,'Ω',[1/(1/a+1/b+1/c),s/3,Math.max(a,b,c)],[],'串联：R = R₁ + R₂ + R₃ = '+a+' + '+b+' + '+c+' = '+s+' Ω。易错：用了并联公式或取平均值。',5);
+}
+function gPar(){
+  var p=pk(PR),a=p[0],b=p[1],c=a*b/(a+b);
+  return mk(a+' Ω 和 '+b+' Ω 两个电阻并联，总电阻是多少？',c,'Ω',[a+b,(a+b)/2,1/a+1/b],[],'1/R = 1/'+a+' + 1/'+b+'，R = ('+a+' × '+b+') ÷ ('+a+' + '+b+') = '+fmt(c,3)+' Ω，总电阻小于任一支路电阻。易错：直接相加，或算出 1/R 后忘了取倒数。',5);
+}
+function gParI(){
+  var p=pk(PR),a=p[0],b=p[1],V=pk([6,12]),I=V/a+V/b;
+  return mk(a+' Ω 和 '+b+' Ω 两个电阻并联在 '+V+' V 的电源两端，干路总电流是多少？',I,'A',[V/(a+b),V/a,V/b],[],'并联各支路电压都是 '+V+' V：I₁ = '+fmt(V/a,3)+' A，I₂ = '+fmt(V/b,3)+' A，干路 I = I₁ + I₂ = '+fmt(I,3)+' A。易错：只算了一条支路，或当成串联。',5);
+}
+var G=[gUA,gUV,gUR,gI,gV,gR,gSerI,gSer,gPar,gParI];
+var qMode='all',scoreText='还没有做总复习测验。';
+function upd(){$('#score').textContent=scoreText;}
+function qRun(list){
+  var box=$('#qa'),i=0,sc=0;
+  function r(){
+    var q,h='',p,lock=false,bs;
+    if(i>=list.length){
+      p=Math.round(sc/list.length*100);
+      box.innerHTML='<h4>🎉 完成！答对 '+sc+' / '+list.length+'（'+p+'%）</h4><p>'+(p>=80?'太棒了，电路达人！':(p>=50?'不错，再复习一下错题的知识点吧。':'别气馁，回到对应章节再玩一玩互动实验！'))+'</p><button id="qr">🔁 再来一轮（题目、顺序、数字全部重新生成）</button>';
+      scoreText='最近一轮：答对 '+sc+' / '+list.length+' 题';upd();
+      $('#qr').onclick=function(){qStart(qMode);};
+      return;
+    }
+    q=list[i];
+    q.o.forEach(function(o,k){h+='<button class="op" data-k="'+k+'">'+'ABCD'.charAt(k)+'. '+o+'</button>';});
+    box.innerHTML='<h4>🧠 第 '+(i+1)+' / '+list.length+' 题</h4><p>'+q.q+'</p>'+h+'<p class="fb"></p>';
+    bs=box.querySelectorAll('.op');
+    bs.forEach(function(b){
+      b.onclick=function(){
+        var ok=(+b.dataset.k===q.a);
+        if(lock)return;lock=true;
+        if(ok)sc++;
+        bs[q.a].style.background='#22c55e';bs[q.a].style.color='#031326';
+        if(!ok)b.style.background='#ef4444';
+        $('.fb',box).innerHTML=(ok?'✅ 答对了！':'❌ 正确答案是 '+'ABCD'.charAt(q.a)+'。')+q.e+'<br><button id="nx">'+(i+1<list.length?'下一题 ➜':'查看成绩 ➜')+'</button>';
+        $('#nx',box).onclick=function(){i++;r();};
+      };
+    });
+  }
+  r();
+}
+function qStart(m){
+  var list=[],i,gs=G.map(function(f){return f();});
+  qMode=m;
+  if(m==='all'){
+    Q.forEach(function(a,c){a.forEach(function(x){list.push(mkc(x,c));});});
+    for(i=0;i<8;i++)list.push(pk(G)());
+  }else if(m==='calc'){
+    list=gs;
+  }else{
+    (Q[m]||[]).forEach(function(x){list.push(mkc(x,m));});
+    gs.forEach(function(x){if(x.ch===m)list.push(x);});
+  }
+  qRun(sh(list));
+}
+var QM=[['all','🏆 综合挑战'],['calc','🧮 计算专项']];
+NAMES.slice(0,6).forEach(function(n,c){QM.push([c,n]);});
+$('#qm').innerHTML=QM.map(function(m,i){return '<button data-i="'+i+'">'+m[1]+'</button>';}).join('');
+document.querySelectorAll('#qm button').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('#qm button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    qStart(QM[+b.dataset.i][0]);
+  };
+});
+$('#qa').innerHTML='👆 选一个模式开始。每次开始，题目顺序、选项位置和计算题的数字都会重新随机生成。';
+upd();
+var cur=0;
+function show(i){
+  cur=i;
+  document.querySelectorAll('.ch').forEach(function(s,k){s.classList.toggle('show',k===i);});
+  document.querySelectorAll('#nav button').forEach(function(b,k){b.classList.toggle('on',k===i);});
+  window.scrollTo(0,0);
+}
+$('#nav').innerHTML=NAMES.map(function(n,i){return '<button>'+n+'</button>';}).join('');
+document.querySelectorAll('#nav button').forEach(function(b,i){b.onclick=function(){show(i);};});
+show(0);
+var swOn=true;
+function lampSvg(cx,cy,b,off,lb){
+  var s='<rect class="gap" x="'+(cx-17)+'" y="'+(cy-17)+'" width="34" height="34"/>';
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="15" style="fill:rgba(255,214,10,'+(0.06+0.94*b)+');stroke:#8fa6c8;stroke-width:2;filter:drop-shadow(0 0 '+Math.round(b*14)+'px rgba(255,214,10,'+b+'))"/>';
+  s+='<path d="M'+(cx-10)+' '+(cy-10)+'L'+(cx+10)+' '+(cy+10)+'M'+(cx+10)+' '+(cy-10)+'L'+(cx-10)+' '+(cy+10)+'" stroke="'+(off?'#ef4444':'#8fa6c8')+'" stroke-width="2"'+(off?' stroke-dasharray="3 3"':'')+'/>';
+  s+='<text x="'+cx+'" y="'+(cy+32)+'" text-anchor="middle" font-size="12" style="fill:var(--mu)">'+lb+'</text>';
+  return s;
+}
+function swH(cx,cy,on,k,lb){
+  return '<g data-sw="'+k+'" style="cursor:pointer"><rect class="gap" x="'+(cx-15)+'" y="'+(cy-11)+'" width="30" height="22"/>'
+   +'<line x1="'+(cx-12)+'" y1="'+cy+'" x2="'+(on?cx+15:cx+8)+'" y2="'+(on?cy:cy-16)+'" style="stroke:'+(on?'var(--tx)':'#ef4444')+';stroke-width:3"/>'
+   +'<circle cx="'+(cx-12)+'" cy="'+cy+'" r="4" style="fill:var(--card);stroke:var(--tx);stroke-width:2"/>'
+   +'<rect x="'+(cx-18)+'" y="'+(cy-22)+'" width="36" height="44" style="fill:transparent"/>'+T(cx,cy+24,lb)+'</g>';
+}
+function swV(cx,cy,on,k,lb){
+  return '<g data-sw="'+k+'" style="cursor:pointer"><rect class="gap" x="'+(cx-11)+'" y="'+(cy-15)+'" width="22" height="30"/>'
+   +'<line x1="'+cx+'" y1="'+(cy-12)+'" x2="'+(on?cx:cx+15)+'" y2="'+(on?cy+15:cy+2)+'" style="stroke:'+(on?'var(--tx)':'#ef4444')+';stroke-width:3"/>'
+   +'<circle cx="'+cx+'" cy="'+(cy-12)+'" r="4" style="fill:var(--card);stroke:var(--tx);stroke-width:2"/>'
+   +'<rect x="'+(cx-34)+'" y="'+(cy-20)+'" width="52" height="40" style="fill:transparent"/>'+T(cx-14,cy+4,lb,'end')+'</g>';
+}
+function drawConn(n,st){
+  var s='<svg viewBox="0 0 460 215" style="max-width:520px">',i,xs=[],xm,xa=0,live,act=0;
+//华仁中学蔡逸众制作
+  for(i=0;i<n;i++)if(st.ls[i])act++;
+  if(mode==='s'){
+    live=st.on&&act===n;
+    for(i=0;i<n;i++)xs.push(Math.round(140+(i+0.5)*(300/n)));
+    s+='<path class="w" d="M40 40H440V180H40Z"/>';
+    if(live)s+='<path class="flow cur" d="M40 40H440V180H40Z"/>';
+  }else{
+    live=st.on&&act>0;
+    for(i=0;i<n;i++)xs.push(Math.round(150+(i+0.5)*(290/n)));
+    xm=xs[n-1];
+    for(i=0;i<n;i++)if(st.ls[i])xa=xs[i];
+    s+='<path class="w" d="M40 40H'+xm+'V180H40Z"/>';
+    for(i=0;i<n-1;i++)s+='<path class="w" d="M'+xs[i]+' 40V180"/>';
+    if(live){
+      s+='<path class="flow cur" d="M40 40H'+xa+'V180H40Z"/>';
+      for(i=0;i<n;i++)if(st.ls[i]&&xs[i]<xa)s+='<path class="flow cur" d="M'+xs[i]+' 40V180"/>';
+    }
+  }
+  s+='<rect class="gap" x="26" y="76" width="28" height="48"/>';
+  s+='<path d="M26 86H54M33 96H47M26 106H54M33 116H47" style="stroke:var(--tx);stroke-width:3"/>';
+  s+='<text x="58" y="88" font-size="13" fill="#ef4444">+</text><text x="58" y="122" font-size="13" style="fill:var(--mu)">−</text>';
+  s+=T(40,144,'电池 6V')+swH(90,40,st.on,'m','总开关 S');
+  for(i=0;i<n;i++){
+    if(mode==='s')s+=swH(xs[i]-18,40,st.ls[i],i,'S'+(i+1))+lampSvg(xs[i]+16,40,st.b[i],false,'L'+(i+1));
+    else s+='<circle cx="'+xs[i]+'" cy="40" r="3" style="fill:var(--tx)"/><circle cx="'+xs[i]+'" cy="180" r="3" style="fill:var(--tx)"/>'+swV(xs[i],82,st.ls[i],i,'S'+(i+1))+lampSvg(xs[i],138,st.b[i],false,'L'+(i+1));
+  }
+  return s+'</svg>';
+}
+var ls=[true,true,true,true];
+function syncSw(){
+  $('#sw').textContent=(swOn!==false)?'⏻ 总开关：已闭合（点击断开）':'⏻ 总开关：已断开（点击闭合）';
+}
+function conn(){
+  var n=+$('#nn').value,i,b=[],act=0,Rt,It,Vi,Ii,msg,open,on=(swOn!==false);
+  $('#nt').textContent=n+' 个';
+  ls=ls||[true,true,true,true];
+  for(i=0;i<n;i++)if(ls[i])act++;
+  if(mode==='s'){
+    open=!on||act<n;
+    Rt=n*R0;It=open?0:VS/Rt;Vi=It*R0;Ii=It;
+    for(i=0;i<n;i++)b.push((Vi*Vi/R0)/6);
+    msg=!on?'总开关断开：整个电路断开，所有灯泡熄灭。':(act<n?'串联：<b>任何一个开关断开，整个电路就断开，所有灯泡一起熄灭</b>（只有一条电流路径）。':'串联：I 处处相等；V = V₁+V₂+…；R = R₁+R₂+… = '+Rt+' Ω（灯越多，每盏分到的电压越小，越暗）');
+  }else{
+    open=!on||act===0;
+    Rt=act>0?R0/act:Infinity;It=on?act*VS/R0:0;Vi=on?VS:0;Ii=on?VS/R0:0;
+    for(i=0;i<n;i++)b.push((on&&ls[i])?1:0);
+    msg=!on?'总开关在干路上：断开后所有支路都没有电流，所有灯泡熄灭。':(act<n?'并联：<b>支路开关只控制自己那盏灯</b>，其余灯泡不受影响，仍然发光。':'并联：V 处处相等；I = I₁+I₂+…；1/R = 1/R₁+1/R₂+… → R = '+fmt(Rt,2)+' Ω（灯越多，总电阻越小，总电流越大）');
+  }
+  $('#ff').innerHTML=msg;
+  $('#lamps').innerHTML=drawConn(n,{on:on,ls:ls,b:b});
+  $('#ro').innerHTML=[['总电压',VS+' V'],['总电流',fmt(It,3)+' A'],['总电阻',open?'∞（开路）':fmt(Rt,2)+' Ω'],['每灯电压',fmt(Vi,2)+' V'],['每灯电流',fmt(Ii||0,3)+' A']]
+   .map(function(x){return '<div class="chip"><b>'+x[0]+'</b>'+x[1]+'</div>';}).join('');
+}
+$('#sw').onclick=function(){swOn=!(swOn!==false);syncSw();conn();};
+$('#bk').onclick=function(){ls=[true,true,true,true];swOn=true;syncSw();conn();};
+$('#lamps').onclick=function(e){
+  var g=e.target.closest('[data-sw]'),k;
+  if(!g)return;
+  k=g.getAttribute('data-sw');
+//Made by ecchua79
+  if(k==='m')swOn=!(swOn!==false);else ls[+k]=!ls[+k];
+  syncSw();conn();
+};
+syncSw();conn();
+function T(x,y,t,a){return '<text x="'+x+'" y="'+y+'" font-size="10" text-anchor="'+(a||'middle')+'" style="fill:var(--mu)">'+t+'</text>';}
+function axes(xl,yl){
+  return '<path d="M44 170H292M44 170V14" style="stroke:var(--mu);stroke-width:2;fill:none"/>'+T(292,190,xl,'end')+T(48,11,yl,'start');
+}
+function drawCharts(){
+  var V=+$('#ov').value,R=+$('#or').value,k,s,pts='',ym=Math.max(V,1)/5;
+  s='<svg viewBox="0 0 300 195">'+axes('V / 伏','I / 安');
+  for(k=0;k<=6;k++)s+=T(44+k*40,182,k);
+  for(k=0;k<=4;k++)s+=T(38,174-k*35,fmt(k*0.2,1),'end');
+  s+='<line x1="44" y1="170" x2="284" y2="44" style="stroke:var(--ac);stroke-width:2"/>';
+  for(k=1;k<=mv;k++)s+='<circle cx="'+(44+k*40)+'" cy="'+(170-k*0.12*175)+'" r="4" style="fill:var(--ac2)"/>';
+  $('#ch1').innerHTML=s+T(150,30,'R = 8.33 Ω，直线：I 与 V 成正比')+'</svg>';
+  for(k=5;k<=100;k+=5)pts+=(44+k*2.4)+','+(170-(V/k)/ym*140)+' ';
+  s='<svg viewBox="0 0 300 195">'+axes('R / 欧','I / 安');
+  for(k=0;k<=100;k+=20)s+=T(44+k*2.4,182,k);
+  s+=T(38,22,fmt(ym,2),'end')+T(38,174,'0','end');
+  s+='<polyline points="'+pts+'" style="fill:none;stroke:var(--ac);stroke-width:2"/>';
+  s+='<circle cx="'+(44+R*2.4)+'" cy="'+(170-(V/R)/ym*140)+'" r="5" style="fill:#ef4444"/>';
+  $('#ch2').innerHTML=s+T(170,30,'V = '+V+' V，曲线：I 与 R 成反比')+'</svg>';
+}
+$('#ov').oninput=$('#or').oninput=function(){ohm();drawCharts();};
+$('#mb').addEventListener('click',drawCharts);
+$('#mr').addEventListener('click',drawCharts);
+drawCharts();
+function solve(){
+  var f=[$('#sv').value.trim()!=='',$('#si').value.trim()!=='',$('#sr').value.trim()!==''],o=$('#so');
+  var n=f.filter(Boolean).length,V=parseFloat($('#sv').value),I=parseFloat($('#si').value),R=parseFloat($('#sr').value);
+  if(n<2){o.textContent='请至少填写两个数值。';return;}
+  if(n===3){o.textContent='请只填两个，把要求的那个留空。';return;}
+  if(f[2]&&!(R>0)){o.innerHTML='<span class="warn">电阻 R 必须大于 0 Ω</span>';return;}
+  if(!f[0]){o.innerHTML='V = I × R = '+I+' × '+R+' = <span class="out">'+fmt(I*R,4)+' V</span>';}
+  else if(!f[1]){o.innerHTML='I = V ÷ R = '+V+' ÷ '+R+' = <span class="out">'+fmt(V/R,4)+' A</span>';}
+  else{
+    if(I===0){o.innerHTML='<span class="warn">I = 0 时无法求 R（开路）</span>';return;}
+    if(V/I<0){o.innerHTML='<span class="warn">V 与 I 方向相反，R 不能为负</span>';return;}
+    o.innerHTML='R = V ÷ I = '+V+' ÷ '+I+' = <span class="out">'+fmt(V/I,4)+' Ω</span>';
+  }
+}
+$('#sc').onclick=solve;
+$('#sx').onclick=function(){$('#sv').value='';$('#si').value='';$('#sr').value='';$('#so').textContent='等待输入……';};
+var MT={};
+function arcPt(r,a){var t=a*Math.PI/180;return [160+r*Math.sin(t),185-r*Math.cos(t)];}
+function scaleSvg(r,sc){
+  var s='',v,a,p,q,k,mj,n=Math.round((sc.full-sc.neg)/sc.step);
+  for(k=0;k<=n;k++){
+    v=sc.neg+k*sc.step;a=-25+v/sc.full*75;
+//峇株吧辖华仁中学蔡逸众制作
+    mj=Math.abs(v/sc.major-Math.round(v/sc.major))<1e-6;
+    p=arcPt(r,a);q=arcPt(r-(mj?10:5),a);
+    s+='<line x1="'+p[0].toFixed(1)+'" y1="'+p[1].toFixed(1)+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" stroke="#222" stroke-width="'+(mj?1.6:0.8)+'"/>';
+    if(mj){p=arcPt(r+10,a);s+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+3).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#222">'+fmt(v,2)+'</text>';}
+  }
+  return s;
+}
+function meterSvg(id,m){
+  var s='<svg viewBox="0 0 320 350" style="max-width:340px">',tx=[70,160,250],k;
+  s+='<rect x="6" y="196" width="308" height="124" rx="12" fill="#141414"/>';
+  s+='<rect x="18" y="8" width="284" height="200" rx="8" fill="#f6f7f9" stroke="#333" stroke-width="3"/>';
+  s+='<g id="sc_'+id+'_b">'+scaleSvg(108,m.b)+'</g><g id="sc_'+id+'_s">'+scaleSvg(84,m.s)+'</g>';
+  s+='<text x="160" y="140" text-anchor="middle" font-size="26" font-weight="bold" fill="#222">'+m.sym+'</text><rect x="148" y="146" width="24" height="3" fill="#222"/>';
+  s+='<g id="nd_'+id+'" style="transform-origin:160px 185px;transition:transform .6s cubic-bezier(.3,1.6,.5,1);transform:rotate(-25deg)"><line x1="160" y1="185" x2="160" y2="80" stroke="#c0392b" stroke-width="1.8"/></g>';
+  s+='<rect x="120" y="170" width="80" height="34" rx="3" fill="#dfe5ec" stroke="#999"/><circle cx="160" cy="190" r="7" fill="#111"/>';
+  s+='<rect x="30" y="226" width="260" height="70" rx="4" fill="'+m.col+'"/>';
+  for(k=0;k<3;k++){
+    if(k>0)s+='<g data-r="'+k+'" style="cursor:pointer"><circle id="rg_'+id+'_'+k+'" cx="'+tx[k]+'" cy="252" r="22" fill="none" stroke="transparent" stroke-width="3"/><circle cx="'+tx[k]+'" cy="252" r="16" fill="#d11d1d" stroke="#600" stroke-width="2"/><circle cx="'+tx[k]+'" cy="252" r="6" fill="#ddd"/></g>';
+    else s+='<circle cx="70" cy="252" r="16" fill="#222" stroke="#000" stroke-width="2"/><circle cx="70" cy="252" r="6" fill="#777"/>';
+  }
+  s+='<g id="wr_'+id+'"></g>';
+  for(k=0;k<3;k++)s+='<text x="'+tx[k]+'" y="289" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff" style="paint-order:stroke;stroke:'+m.col+';stroke-width:4px">'+m.lbl[k]+'</text>';
+  s+='<circle cx="100" cy="336" r="6" fill="#ef4444"/><circle cx="220" cy="336" r="6" fill="#60a5fa"/>';
+  s+=T(100,348,'电源 +')+T(220,348,'电源 −');
+  return s+'</svg>';
+}
+function wire(sx,tx,col){return '<path d="M'+sx+' 336C'+sx+' 300 '+tx+' 306 '+tx+' 272" fill="none" stroke="'+col+'" stroke-width="5" stroke-linecap="round"/>';}
+function updMeter(id){
+  var c=MT[id],m=c.cfg,sc=(c.r===1)?m.s:m.b,v=c.v,eff=c.rev?-v:v,th,msg,tx=[70,160,250];
+  th=Math.max(-56,Math.min(56,-25+eff/sc.full*75));
+  $('#nd_'+id).style.transform='rotate('+th+'deg)';
+  $('#sc_'+id+'_s').style.opacity=(c.r===1||!c.show)?1:0.3;
+  $('#sc_'+id+'_b').style.opacity=(c.r===2||!c.show)?1:0.3;
+  $('#rg_'+id+'_1').style.stroke=(c.r===1)?'#facc15':'transparent';
+//峇株吧辖蔡逸众制作
+  $('#rg_'+id+'_2').style.stroke=(c.r===2)?'#facc15':'transparent';
+  $('#wr_'+id).innerHTML=wire(100,tx[c.rev?0:c.r],'#ef4444')+wire(220,tx[c.rev?c.r:0],'#60a5fa');
+  $('#mt_'+id).textContent=c.show?fmt(v,2)+' '+m.u:'？？？';
+  $('#ms_'+id).textContent=c.show?'🙈 隐藏实际数值':'👁 显示实际数值（核对答案）';
+  $('#ms_'+id).classList.toggle('on',!c.show);
+  $('#mb1_'+id).classList.toggle('on',c.r===1);
+  $('#mb2_'+id).classList.toggle('on',c.r===2);
+  $('#mr_'+id).textContent=c.rev?'✔ 恢复正确接法':'🔄 正负接反';
+  if(c.rev)msg='<span class="warn">⚠ 正负接线柱接反了！</span>电流必须从红色“+”接线柱流入、从黑色“−”接线柱流出，否则指针<b>反偏</b>（向左），会损坏电表。';
+  else if(v>sc.full+1e-9)msg=c.show?'<span class="warn">⚠ 超出量程！</span>实际'+m.name+' '+fmt(v,2)+' '+m.u+' 大于所选量程 '+sc.full+' '+m.u+'，指针打满偏，应改接大量程。':'<span class="warn">⚠ 超出量程！</span>指针打满偏，说明被测'+m.name+'大于所选量程 0～'+sc.full+' '+m.u+'，应改接大量程。';
+  else{
+    msg=c.show?'读数：<span class="out">'+m.name+' = '+fmt(v,2)+' '+m.u+'</span>（所选量程 0～'+sc.full+' '+m.u+'，每小格 '+sc.step+' '+m.u+'）':'👀 请观察指针，读出'+m.name+'是多少？（所选量程 0～'+sc.full+' '+m.u+'，每小格 '+sc.step+' '+m.u+'）读完后点「显示实际数值」核对。';
+    if(c.r===2&&v<=m.s.full)msg+='<br>💡 指针偏转太小，改用小量程（0～'+m.s.full+' '+m.u+'）读数更精确。';
+  }
+  $('#mm_'+id).innerHTML=msg;
+}
+function meterInit(id,m){
+  var box=$('#meter_'+id),c={cfg:m,r:2,rev:false,show:true,v:m.val};
+  MT[id]=c;
+  box.innerHTML='<div>'+meterSvg(id,m)+'</div>'
+   +'<div class="tool">实际'+m.name+' <input type="range" id="mv_'+id+'" min="0" max="'+m.max+'" step="'+m.sstep+'" value="'+m.val+'"><span class="out" id="mt_'+id+'"></span></div>'
+   +'<div class="tool"><button id="mb1_'+id+'">+ 接「'+m.lbl[1]+'」</button><button id="mb2_'+id+'">+ 接「'+m.lbl[2]+'」</button><button id="mr_'+id+'"></button><button id="ms_'+id+'"></button></div>'
+   +'<div class="fm" id="mm_'+id+'"></div>'
+   +'<small>点击红色接线柱也能换量程。不知道大小时，先用大量程试触，再换合适的量程。</small>';
+  $('#mv_'+id).oninput=function(){c.v=+this.value;updMeter(id);};
+  $('#mb1_'+id).onclick=function(){c.r=1;updMeter(id);};
+  $('#mb2_'+id).onclick=function(){c.r=2;updMeter(id);};
+  $('#mr_'+id).onclick=function(){c.rev=!c.rev;updMeter(id);};
+  $('#ms_'+id).onclick=function(){c.show=!c.show;updMeter(id);};
+  box.querySelectorAll('[data-r]').forEach(function(g){g.onclick=function(){c.r=+g.getAttribute('data-r');updMeter(id);};});
+  updMeter(id);
+}
+meterInit('amm',{sym:'A',name:'电流',u:'A',col:'#233a9a',lbl:['−','0.6A','3A'],s:{full:0.6,step:0.02,major:0.2,neg:-0.2},b:{full:3,step:0.1,major:1,neg:-1},max:3,sstep:0.02,val:0.4});
+meterInit('vol',{sym:'V',name:'电压',u:'V',col:'#0f6b4b',lbl:['−','3V','15V'],s:{full:3,step:0.1,major:1,neg:-1},b:{full:15,step:0.5,major:5,neg:-5},max:15,sstep:0.1,val:2.4});
+var sizes=[14,16,19],si=1;
+$('#fs').onclick=function(){
+  si=(si+1)%3;
+  document.documentElement.style.setProperty('--fs',sizes[si]+'px');
+  this.textContent=['A-','A','A+'][si];
+};
+$('#th').onclick=function(){
+  var h=document.documentElement;
+  h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark');
+};
+</script>
+</body>
+</html>
