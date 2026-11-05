@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>电生磁 · 磁生电 互动实验室</title>
+<style>
+:root{--bg:#0b1220;--pn:#121c30;--ln:#22314d;--cy:#38bdf8;--am:#fbbf24;--tx:#e2e8f0;--mu:#94a3b8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.7 "PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:26px 16px 8px;text-align:center}
+h1{margin:0;font-size:clamp(1.7rem,5.5vw,2.8rem);letter-spacing:.1em}
+header p{color:var(--mu);margin:6px 0 12px}
+#hero{display:block;width:100%;max-width:920px;margin:0 auto;border-radius:14px;background:#0e1830;touch-action:none}
+.wm{text-align:center;font-size:.55rem;color:rgba(56,189,248,.18);margin:4px 0}
+nav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:10px;position:sticky;top:0;background:rgba(11,18,32,.94);z-index:5}
+nav button,.b{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:20px;padding:6px 14px;cursor:pointer;font:inherit;font-size:.9rem}
+nav button.on,.b:hover{background:var(--cy);color:#04121f;border-color:var(--cy)}
+main{max-width:920px;margin:0 auto;padding:6px 14px 60px}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:12px 18px 16px;margin:10px 0}
+h2{margin:6px 0;font-size:1.35rem}
+ul{margin:6px 0;padding-left:1.2em}
+li{margin:3px 0}
+.cv{display:block;width:100%;background:#0b1428;border-radius:10px;touch-action:none}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:10px 0;color:var(--mu)}
+.ctl input[type=range]{width:130px;accent-color:var(--cy)}
+.st{color:var(--am);min-height:1.7em}
+.q .b{display:block;width:100%;text-align:left;margin:7px 0;border-radius:10px}
+.q .ok{background:#14532d;border-color:#22c55e;color:#fff}
+.q .no{background:#7f1d1d;border-color:#ef4444;color:#fff}
+</style>
+</head>
+<body>
+<header><h1>电生磁 · 磁生电</h1><p>初三科学 第6章 互动实验室　拖一拖、试一试，磁与电的秘密就藏在里面</p></header>
+<canvas id="hero"></canvas>
+<div class="wm">峇株吧辖华仁中学蔡逸众制作</div>
+<nav id="nav"></nav>
+<main id="box"></main>
+<script>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,L=(a,b,t)=>a+(b-a)*t,K=(v,a,b)=>Math.min(b,Math.max(a,v)),Z={};
+let P={x:0,y:0,d:false,s:''},ctx,fn,hc,hx=320,hy=130;
+const say=s=>{const e=$('#st');if(e)e.textContent=s};
+function txt(c,s,x,y,col,sz,al){
+ c.fillStyle=col||'#94a3b8';c.font=(sz||13)+'px sans-serif';
+ c.textAlign=al||'center';c.textBaseline='middle';c.fillText(s,x,y);
+}
+function cvs(id,h){
+ const e=$(id);e.width=1280;e.height=h*2;
+ const c=e.getContext('2d');c.scale(2,2);
+ const f=v=>{const r=e.getBoundingClientRect();P.x=(v.clientX-r.left)/r.width*640;P.y=(v.clientY-r.top)/r.height*h};
+ e.onpointerdown=v=>{f(v);P.d=true;P.s=id;e.setPointerCapture(v.pointerId)};
+ e.onpointermove=v=>{f(v);P.s=id};
+ e.onpointerleave=()=>{if(!P.d)P.s=''};
+ e.onpointerup=()=>{P.d=false};
+ return c;
+}
+function B(ps,x,y){
+ let bx=0,by=0;
+ for(const p of ps){const dx=x-p.x,dy=y-p.y,d=Math.pow(dx*dx+dy*dy+9,1.5);bx+=p.q*dx/d;by+=p.q*dy/d}
+ return[bx,by];
+}
+function mp(m){return[{x:m.x-m.w/2+10,y:m.y,q:m.f?-m.s:m.s},{x:m.x+m.w/2-10,y:m.y,q:m.f?m.s:-m.s}]}
+const polesOf=ms=>ms.flatMap(mp);
+function arw(c,x,y,X,Y,col){
+ const a=Math.atan2(Y-y,X-x);c.strokeStyle=c.fillStyle=col||'#fbbf24';c.lineWidth=2.5;
+ c.beginPath();c.moveTo(x,y);c.lineTo(X,Y);c.stroke();
+ c.save();c.translate(X,Y);c.rotate(a);c.beginPath();c.moveTo(0,0);c.lineTo(-9,-5);c.lineTo(-9,5);c.fill();c.restore();
+}
+function lines(c,ps,n){
+ c.strokeStyle=c.fillStyle='rgba(56,189,248,.75)';c.lineWidth=1.2;
+ for(const p of ps)if(p.q>0)for(let k=0;k<n;k++){
+  const a=(k+.5)/n*TAU;let x=p.x+9*Math.cos(a),y=p.y+9*Math.sin(a),ar=[];
+  c.beginPath();c.moveTo(x,y);
+  for(let i=0;i<450;i++){
+   const[bx,by]=B(ps,x,y),m=Math.hypot(bx,by)||1;x+=bx/m*3;y+=by/m*3;c.lineTo(x,y);
+   if(i%70==35)ar.push([x,y,Math.atan2(by,bx)]);
+   if(x<-5||x>645||y<-5||y>365||ps.some(s=>s.q<0&&Math.hypot(x-s.x,y-s.y)<7))break;
+  }
+  c.stroke();
+  for(const[x,y,t]of ar){c.save();c.translate(x,y);c.rotate(t);c.beginPath();c.moveTo(5,0);c.lineTo(-4,-3.5);c.lineTo(-4,3.5);c.fill();c.restore()}
+ }
+}
+function fil(c,ps,s){
+ c.strokeStyle='rgba(203,213,225,.45)';c.lineWidth=1;c.beginPath();
+ for(let x=8;x<640;x+=s)for(let y=8;y<360;y+=s){
+  const[bx,by]=B(ps,x,y),m=Math.hypot(bx,by)||1,dx=bx/m*5,dy=by/m*5;c.moveTo(x-dx,y-dy);c.lineTo(x+dx,y+dy);
+ }
+ c.stroke();
+}
+function needle(c,x,y,a,r){
+ c.save();c.translate(x,y);c.rotate(a);
+ c.fillStyle='#ef4444';c.beginPath();c.moveTo(r,0);c.lineTo(0,-r/4);c.lineTo(0,r/4);c.fill();
+ c.fillStyle='#3b82f6';c.beginPath();c.moveTo(-r,0);c.lineTo(0,-r/4);c.lineTo(0,r/4);c.fill();
+ c.restore();
+}
+function comp(c,x,y,a){
+ c.fillStyle='#0f1d3a';c.strokeStyle='#94a3b8';c.lineWidth=2;
+ c.beginPath();c.arc(x,y,22,0,TAU);c.fill();c.stroke();needle(c,x,y,a,18);
+}
+function magnet(c,m){
+ c.fillStyle=m.f?'#2563eb':'#dc2626';c.fillRect(m.x-m.w/2,m.y-m.h/2,m.w/2,m.h);
+ c.fillStyle=m.f?'#dc2626':'#2563eb';c.fillRect(m.x,m.y-m.h/2,m.w/2,m.h);
+ txt(c,m.f?'S':'N',m.x-m.w/4,m.y,'#fff',18);txt(c,m.f?'N':'S',m.x+m.w/4,m.y,'#fff',18);
+}
+//峇株吧辖蔡逸众制作
+function hero(t){
+ if(P.s=='#hero'){hx=L(hx,P.x,.25);hy=L(hy,P.y,.25)}else{hx=320+200*Math.sin(t/1800);hy=130+50*Math.sin(t/1100)}
+ hc.clearRect(0,0,640,260);
+ const m={x:hx,y:hy,w:120,h:30,f:0,s:2.5},ps=polesOf([m]);
+ for(let i=20;i<640;i+=40)for(let j=20;j<260;j+=40){const[bx,by]=B(ps,i,j);needle(hc,i,j,Math.atan2(by,bx),11)}
+ magnet(hc,m);
+}
+const M=[
+{t:'6.1 什么是磁体？　6.1.1 磁极和磁极间如何相互作用？',n:'6.1 磁体·磁极',
+k:['磁体：具有磁性的物质，能吸引铁、镍、钴。分天然磁体和人造磁体，都属永磁体；钕铁硼是目前磁力最强的永磁体','磁极：磁体吸引能力最强的两端。自由转动的磁体静止时，指北的是N极，指南的是S极','同名磁极相互排斥，异名磁极相互吸引','中国最早记载磁现象（《管子·地数篇》），司南是世界最早的指南针'],
+h:'<button class=b onclick="Z.f()">翻转右侧磁体</button><button class=b onclick="Z.c()">切开左侧磁体</button><span>拖动右侧磁体靠近左侧磁体</span>',
+r(c){
+ const A=[{x:190,y:180,w:140,h:36,f:0,s:2}],Bm={x:470,y:180,w:140,h:36,f:0,s:2};
+ Z.f=()=>{Bm.f^=1};
+ Z.c=()=>{if(A.length==1){A[0]={x:150,y:180,w:66,h:36,f:0,s:1};A.push({x:230,y:180,w:66,h:36,f:0,s:1})}else{A.length=1;A[0]={x:190,y:180,w:140,h:36,f:0,s:2}}};
+ return()=>{
+  const R=A[A.length-1];
+  if(P.d&&P.s=='#cv')Bm.x=K(P.x,R.x+R.w/2+Bm.w/2+8,600);
+  const ms=[...A,Bm],ps=polesOf(ms),pb=mp(Bm);
+  lines(c,ps,7);ms.forEach(m=>magnet(c,m));
+  let F=0;
+  for(const a of A)for(const p of mp(a))for(const q of pb)F+=p.q*q.q*(q.x-p.x)/Math.pow(Math.hypot(q.x-p.x,q.y-p.y),3);
+  const l=K(F*3e5,-90,90);if(Math.abs(l)>4)arw(c,Bm.x,Bm.y+44,Bm.x+l,Bm.y+44);
+  const same=mp(R)[1].q*pb[0].q>0;
+  say('靠近的两端是'+(same?'同名':'异名')+'磁极，相互'+(same?'排斥':'吸引')+(A.length>1?'；切开后，每一小块磁体仍然有N、S两个磁极':''));
+ };
+}},
+//Made by ecchua79
+{t:'6.1.2 什么是磁化和去磁？',n:'6.1.2 磁化与去磁',
+k:['磁化：原本没有磁性的物体在磁体或电流作用下获得磁性；只有能被磁体吸引的物质才能被磁化','软磁体（如铁）：磁性很快消失；硬磁体（如钢）：磁性长期保持，成为永磁体','磁化方法：①用磁极沿同一方向摩擦钢片；②钢片绕上绝缘导线通直流电','去磁：高温加热、捶打或撞击、交流电去磁法'],
+h:'<button class=b onclick="Z.n()">① 靠近磁体</button><button class=b onclick="Z.a()">② 移开磁体</button><button class=b onclick="Z.d(0)">高温加热</button><button class=b onclick="Z.d(1)">捶打撞击</button><button class=b onclick="Z.d(2)">交流电去磁</button>',
+r(c){
+ const s={n:0,y:0,i:0,t:0,mi:0,mt:0};
+ Z.n=()=>{s.n=1;s.i=s.t=1;say('磁体靠近：铁棒和钢棒都被磁化了（只有能被磁体吸引的物质才能磁化）')};
+ Z.a=()=>{s.n=0;s.i=0;say('移开磁体：铁棒磁性很快消失（软磁体）；钢棒磁性长期保持（硬磁体）')};
+ Z.d=k=>{s.i=s.t=0;say(['高温加热','捶打撞击','交流电去磁'][k]+'：钢棒的磁性也消失了，这就是去磁')};
+ say('点击“靠近磁体”，看看铁棒和钢棒有什么不同');
+ return()=>{
+  s.y=L(s.y,s.n,.08);s.mi=L(s.mi,s.i,.08);s.mt=L(s.mt,s.t,.08);
+  [[60,s.mi,'铁棒（软磁体）'],[360,s.mt,'钢棒（硬磁体）']].forEach(([x,m,nm])=>{
+   const by=210;c.fillStyle='#64748b';c.fillRect(x,by,220,26);
+   c.globalAlpha=m;c.fillStyle='#dc2626';c.fillRect(x,by,110,26);c.fillStyle='#2563eb';c.fillRect(x+110,by,110,26);c.globalAlpha=1;
+   if(m>.5){txt(c,'N',x+55,by+13,'#fff',16);txt(c,'S',x+165,by+13,'#fff',16)}
+   c.fillStyle='#cbd5e1';for(let k=0;k<Math.round(m*6);k++)c.fillRect(k%2?x+210:x+6,by+30+(k>>1)*9,4,8);
+   txt(c,nm,x+110,by+100,'#e2e8f0',14);
+   magnet(c,{x:x+110,y:L(40,165,s.y),w:110,h:34,f:0});
+  });
+ };
+}},
+//峇株吧辖华仁中学蔡逸众制作
+{t:'6.2 什么是磁场？　6.2.1 什么是磁场和磁场线？',n:'6.2.1 磁场与磁场线',
+k:['磁体周围存在看不见摸不着的磁场，磁场线能形象地描述磁场','磁体外部磁场线从N极出来回到S极；磁场线是闭合曲线、互不相交；越密磁场越强','异名磁极相对：磁场线汇聚；同名磁极相对：中间没有磁场线','地球是个大磁体：地磁南极在地理北极附近，所以指南针N极指北'],
+h:'<select onchange="Z.m(this.value)"><option value=0>条形磁体</option><option value=1>异名磁极相对</option><option value=2>同名磁极相对</option><option value=3>地球的磁场</option></select><label><input type=checkbox id=fl checked> 磁场线</label><label><input type=checkbox id=ff> 铁屑</label>',
+r(c){
+ let mode=0;const pr={x:490,y:90};Z.m=v=>{mode=+v};
+ const MS=[[{x:320,y:180,w:170,h:36,f:0,s:2.5}],[{x:195,y:180,w:130,h:34,f:0,s:2},{x:445,y:180,w:130,h:34,f:0,s:2}],[{x:195,y:180,w:130,h:34,f:0,s:2},{x:445,y:180,w:130,h:34,f:1,s:2}]];
+ return()=>{
+  const E=mode==3,ms=E?[]:MS[mode],ps=E?[{x:320,y:145,q:-3},{x:320,y:215,q:3}]:polesOf(ms);
+  if($('#ff').checked)fil(c,ps,14);
+  if($('#fl').checked)lines(c,ps,E?10:8);
+  ms.forEach(m=>magnet(c,m));
+  if(E){
+   c.fillStyle='#1d4ed8';c.strokeStyle='#38bdf8';c.beginPath();c.arc(320,180,55,0,TAU);c.fill();c.stroke();
+   txt(c,'地理北极',320,112,'#e2e8f0');txt(c,'地理南极',320,250,'#e2e8f0');txt(c,'地磁S极',320,150,'#fff',12);txt(c,'地磁N极',320,212,'#fff',12);
+  }
+  if(P.d&&P.s=='#cv'){pr.x=P.x;pr.y=P.y}
+  const[bx,by]=B(ps,pr.x,pr.y);comp(c,pr.x,pr.y,Math.atan2(by,bx));
+  txt(c,'拖动小磁针',pr.x,pr.y+36,'#fbbf24',12);
+  say(E?'地磁南极在地理北极附近，所以指南针的N极指向地理北方':'磁场线：外部从N极出发回到S极，越密磁场越强；小磁针N极指向磁场方向');
+ };
+}},
+//华仁中学蔡逸众制作
+{t:'6.3 磁铁在生活及大自然中有哪些应用？',n:'6.3 磁铁的应用',
+k:['磁悬浮列车：利用同名磁极相互排斥，使车体与轨道分离，减小摩擦，可以高速行驶','鸽子的生物罗盘：鸽子能感知地磁场来导航；给鸽子绑上小磁铁会干扰它，绑上铜板则没有影响','其他应用：指南针、磁卡、扬声器、电动机、磁共振成像等'],
+h:'<label>磁力强度 <input type=range id=m1 min=0 max=10 value=0></label><button class=b onclick="Z.p()">切换：鸽子绑铜板 / 磁铁</button>',
+r(c){
+ const s={x:40,v:0,lift:0,p:0,g:{x:420,y:300,h:-1.2}};
+ Z.p=()=>{s.p^=1};
+ return()=>{
+  const f=+$('#m1').value;
+  s.lift=L(s.lift,f*3.2,.08);s.v=L(s.v,s.lift>12?(f-3)*1.2:0,.02);s.x+=s.v;if(s.x>230)s.x=-130;
+  txt(c,'磁悬浮列车',150,30,'#e2e8f0',14);
+  c.fillStyle='#475569';c.fillRect(10,262,290,14);
+  for(let x=20;x<290;x+=40){c.fillStyle='#dc2626';c.fillRect(x,254,14,8)}
+  const ty=250-s.lift-36;
+  c.fillStyle='#38bdf8';c.fillRect(s.x+40,ty,120,36);c.fillStyle='#dc2626';c.fillRect(s.x+50,ty+36,100,6);
+  txt(c,'N',s.x+100,ty+18,'#04121f',16);
+  if(f>0)for(let k=0;k<3;k++)arw(c,s.x+70+k*30,262-6,s.x+70+k*30,Math.max(ty+50,262-6-f*3),'#fbbf24');
+  txt(c,f<4?'磁力太小，车体还没有浮起来':'同名磁极相互排斥，车体浮起，摩擦减小，开始前进',150,310,'#fbbf24',12);
+  txt(c,'鸽子的生物罗盘',480,30,'#e2e8f0',14);
+  const g=s.g,hx=590,hy=70;
+  if(s.p){g.h+=(Math.random()-.5)*.5}else{let a=Math.atan2(hy-g.y,hx-g.x)-g.h;a=Math.atan2(Math.sin(a),Math.cos(a));g.h+=a*.06}
+  g.x+=Math.cos(g.h)*1.3;g.y+=Math.sin(g.h)*1.3;
+  if(g.x<340||g.x>630||g.y<50||g.y>335||Math.hypot(hx-g.x,hy-g.y)<12){g.x=420;g.y=300;g.h=-1.2}
+  txt(c,'家',hx,hy,'#4ade80',16);
+  c.save();c.translate(g.x,g.y);c.rotate(g.h);c.fillStyle=s.p?'#ef4444':'#e2e8f0';c.beginPath();c.moveTo(12,0);c.lineTo(-8,-7);c.lineTo(-8,7);c.fill();c.restore();
+  txt(c,s.p?'绑了小磁铁：地磁场被干扰，鸽子迷失方向':'绑了铜板：不影响地磁场，鸽子顺利回家',480,330,'#fbbf24',12);
+  say('同名磁极排斥让列车悬浮；鸽子靠感知地磁场导航（拖动滑块、切换鸽子的“装备”试试）');
+ };
+}},
+{t:'6.4 什么是电生磁？　6.4.1 电流的磁场方向与电流方向之间有什么关系？',n:'6.4.1 电流的磁效应',
+k:['1820年奥斯特偶然发现：通电导线能使旁边的磁针偏转——电流的磁效应','通电导体周围存在磁场；电流反向，磁针偏转方向也反向，说明磁场方向与电流方向有关','通电直导线的磁场线是同心圆，离导线越近磁场越强','安培定则1：右手握导线，拇指指向电流方向，弯曲的四指就是磁场方向'],
+h:'<button class=b onclick="Z.o()">接通 / 断开电源</button><button class=b onclick="Z.r()">改变电流方向</button><label>电流 <input type=range id=i1 min=1 max=10 value=6></label>',
+r(c){
+ const s={on:0,dir:1,a:0};Z.o=()=>{s.on^=1};Z.r=()=>{s.dir*=-1};
+ return()=>{
+  const I=+$('#i1').value*s.on;s.a=L(s.a,s.dir*Math.atan(I/5),.1);
+  txt(c,'俯视：磁针在导线正下方，导线沿南北方向',190,30,'#94a3b8',12);
+  comp(c,190,200,-Math.PI/2-s.a);
+  c.globalAlpha=.6;c.strokeStyle=I?'#fbbf24':'#64748b';c.lineWidth=5;c.beginPath();c.moveTo(190,60);c.lineTo(190,340);c.stroke();c.globalAlpha=1;
+  if(I)arw(c,190,170,190,s.dir>0?120:220);
+  const cx=470,cy=190,o=s.dir>0;
+  c.fillStyle=I?'#fbbf24':'#64748b';c.beginPath();c.arc(cx,cy,9,0,TAU);c.fill();
+  for(let k=1;k<=3;k++){
+   const r=24*k;c.strokeStyle='rgba(56,189,248,'+(I?(.95-k*.2)*Math.min(1,.3+I/8):.15)+')';c.lineWidth=1.5;
+   c.beginPath();c.arc(cx,cy,r,0,TAU);c.stroke();
+   if(I)for(let q=0;q<4;q++){
+    const f=q*Math.PI/2+.5,x=cx+r*Math.cos(f),y=cy+r*Math.sin(f),tx=o?Math.sin(f):-Math.sin(f),ty=o?-Math.cos(f):Math.cos(f);
+    arw(c,x-tx*6,y-ty*6,x+tx*6,y+ty*6,'#38bdf8');
+   }
+  }
+  txt(c,'横截面：电流'+(o?'垂直纸面向外 ⊙':'垂直纸面向内 ⊗'),cx,98,'#e2e8f0',13);
+  txt(c,'右手握导线：拇指=电流方向，四指=磁场方向',cx,300,'#94a3b8',12);
+  say(I?'电流'+(s.dir>0?'向北':'向南')+'：磁针发生偏转；改变电流方向，偏转方向相反；电流越大偏转越大':'没有电流：磁针不偏转（接通电源试试）');
+ };
+}},
+{t:'6.4.2 磁场线如何分布？',n:'6.4.2 磁场线分布',
+k:['磁场线的分布情况取决于通电导体的形状：通电直导线的磁场线是同心圆；通电螺线管的磁场线与条形磁体相似','安培定则2：右手四指弯曲方向与电流方向一致，大拇指所指的一端是N极','电流方向改变，螺线管的N、S极互换，磁场线形状不变'],
+h:'<button class=b onclick="Z.r()">改变电流方向</button><span>观察N极在哪一端</span>',
+r(c){return M[6].r(c)}},
+{t:'6.4.3 什么是电磁铁？　6.4.4 电磁铁的磁性强弱受哪些因素影响？',n:'6.4.3-4 电磁铁',
+k:['通电螺线管的磁场与条形磁体相似；电流方向改变，磁场方向也改变，形状不变','安培定则2：右手四指弯曲方向与电流方向一致，大拇指所指的一端是N极','电磁铁：内部插有铁芯的通电螺线管，通电有磁性，断电无磁性','磁性强弱：电流越大越强；匝数越多越强；有铁芯更强','应用：电磁起重机、电铃、扬声器'],
+h:'<label>电压 <input type=range id=v1 min=2 max=12 value=6></label><label>匝数 <input type=range id=n1 min=4 max=20 value=10></label><label><input type=checkbox id=k1 checked> 插入铁芯</label><button class=b onclick="Z.r()">改变电流方向</button>',
+r(c){
+ const s={dir:1};Z.r=()=>{s.dir*=-1};
+ return()=>{
+  const I=$('#v1')?+$('#v1').value:6,n=$('#n1')?+$('#n1').value:10,core=$('#k1')?$('#k1').checked:false,S=I*n*(core?4:1)/20,d=s.dir;
+  lines(c,[{x:210,y:150,q:-d*S},{x:430,y:150,q:d*S}],K(Math.round(2+S/3),2,12));
+  if(core){c.fillStyle='#94a3b8';c.fillRect(205,138,230,24)}
+  c.strokeStyle='#f59e0b';c.lineWidth=3;
+  for(let i=0;i<n;i++){const x=225+i*(190/(n-1));c.beginPath();c.moveTo(x-4,122);c.lineTo(x+4,178);c.stroke()}
+  arw(c,320,d>0?126:174,320,d>0?174:126,'#fff');
+  txt(c,'N',d>0?462:178,150,'#ef4444',22);txt(c,'S',d>0?178:462,150,'#3b82f6',22);
+  const cn=$('#v1')?Math.min(12,Math.floor(S/3)):0;c.strokeStyle='#cbd5e1';c.lineWidth=2;
+  for(const x of[210,430])for(let i=0;i<cn;i++)c.strokeRect(x-8,184+i*9,16,6);
+  if($('#v1'))txt(c,'电压 '+I+' V　匝数 '+n+'　'+(core?'有铁芯':'无铁芯'),320,28,'#e2e8f0',14);
+  say('右手四指顺着电流方向，拇指指向'+(d>0?'右':'左')+'端，该端是N极'+($('#v1')?'；两端各吸起回形针 '+cn+' 枚':''));
+ };
+}},
+//峇株吧辖华仁中学蔡逸众制作
+{t:'6.4.5 什么是继电器？',n:'6.4.5 继电器',
+k:['继电器：利用电磁铁，用低电压、弱电流去控制高电压、强电流的装置，让操作更安全','①闭合开关，线圈通电 ②铁芯被磁化 ③吸下衔铁 ④动、静触点接触，工作电路接通','⑤断开开关，电磁铁失去磁性 ⑥弹簧拉回衔铁，触点分开，工作电路断开'],
+h:'<button class=b onclick="Z.s()">闭合 / 断开控制开关</button><span>也可以直接点击画面左下角的开关</span>',
+r(c){
+ const s={on:0,k:0,h:0};Z.s=()=>{s.on^=1};
+ const W=(p,on)=>{c.strokeStyle=on?'#fbbf24':'#64748b';c.lineWidth=2.5;c.beginPath();p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.stroke()};
+ return()=>{
+  if(P.d&&P.s=='#cv'&&P.y>290&&P.x<215){if(!s.h)s.on^=1;s.h=1}else if(!P.d)s.h=0;
+  s.k=L(s.k,s.on,.12);const pull=s.k>.92,on=!!s.on;
+  W([[100,210],[100,330],[120,330]],on);W([[160,330],[180,330]],on);W([[187,330],[210,330],[210,210],[180,210]],on);
+  c.strokeStyle=on?'#fbbf24':'#e2e8f0';c.lineWidth=3;c.beginPath();c.moveTo(120,330);c.lineTo(on?160:156,on?330:312);c.stroke();
+  c.fillStyle='#e2e8f0';c.fillRect(179,318,3,24);c.fillRect(186,324,3,12);
+  W([[360,106],[560,106],[560,148]],pull);W([[560,192],[560,300],[438,300]],pull);W([[428,300],[250,300],[250,128]],pull);
+  c.fillStyle='#e2e8f0';c.fillRect(437,288,3,24);c.fillRect(430,294,3,12);
+  c.fillStyle='#78350f';c.fillRect(100,150,80,60);
+  c.strokeStyle='#f59e0b';c.lineWidth=3;for(let y=156;y<210;y+=9){c.beginPath();c.moveTo(100,y);c.lineTo(180,y);c.stroke()}
+  c.fillStyle=on?'#e2e8f0':'#64748b';c.fillRect(128,128,24,82);
+  c.fillStyle='#94a3b8';c.fillRect(242,122,16,6);
+  c.save();c.translate(360,106);c.rotate(-0.0719*s.k);c.fillStyle='#cbd5e1';c.fillRect(-250,-4,270,8);c.fillStyle='#fbbf24';c.fillRect(-118,4,16,4);c.restore();
+  c.fillStyle='#e2e8f0';c.beginPath();c.arc(360,106,5,0,TAU);c.fill();
+  c.strokeStyle='#94a3b8';c.lineWidth=2;c.beginPath();c.moveTo(330,100);[[324,92],[336,84],[324,76],[336,68],[330,60]].forEach(q=>c.lineTo(q[0],q[1]));c.stroke();
+  c.fillStyle=pull?'#fde047':'#1e293b';c.strokeStyle='#94a3b8';c.lineWidth=2;
+  c.save();if(pull){c.shadowColor='#fde047';c.shadowBlur=30}c.beginPath();c.arc(560,170,22,0,TAU);c.fill();c.restore();
+  c.beginPath();c.arc(560,170,22,0,TAU);c.stroke();txt(c,'灯',560,170,pull?'#78350f':'#64748b',16);
+  txt(c,'衔铁',200,88,'#e2e8f0',12);txt(c,'弹簧',330,44,'#e2e8f0',12);txt(c,'动触点',280,92,'#e2e8f0',12);txt(c,'静触点',296,136,'#e2e8f0',12);
+  txt(c,'线圈 铁芯',140,226,'#e2e8f0',12);txt(c,'控制电路（低压弱电流）',150,352,'#94a3b8',12);txt(c,'工作电路（高压强电流）',450,330,'#94a3b8',12);txt(c,'开关',140,296,'#fbbf24',12);
+  say(on?'①闭合开关，线圈通电 → ②铁芯被磁化 → ③吸下衔铁 → ④动、静触点接触，工作电路接通，灯亮':'⑤断开开关，电磁铁失去磁性 → ⑥弹簧拉回衔铁，触点分开，工作电路断开，灯灭');
+ };
+}},
+//Made by ecchua79
+{t:'6.5 什么是磁生电？　6.5.1 感应电流是如何产生的？它的大小受哪些因素影响？',n:'6.5.1 电磁感应',
+k:['1831年法拉第、亨利发现：闭合电路的一部分导体在磁场中做切割磁场线运动，导体中就产生感应电流——电磁感应','条件：①闭合电路 ②一部分导体 ③切割磁场线运动，缺一不可','磁场越强、导体运动越快，感应电流越大','动动脑：试试看，棒静止或上下移动时，为什么没有电流？'],
+h:'<label><input type=checkbox id=c1 checked> 电路闭合</label><label>磁场强度 <input type=range id=b1 min=1 max=10 value=6></label><span>拖动导体棒：左右 vs 上下</span>',
+r(c){
+ const s={x:300,y:180,px:300,sx:300,sy:180,I:0};
+ return()=>{
+  if(P.d&&P.s=='#cv'){s.sx=K(P.x,135,445);s.sy=K(P.y,85,275)}
+  s.x=L(s.x,s.sx,.35);s.y=L(s.y,s.sy,.35);const vx=s.x-s.px;s.px=s.x;
+  const closed=$('#c1').checked,b=+$('#b1').value,cut=Math.abs(vx)>.4;
+  s.I=L(s.I,closed?K(vx*b*.08,-1.2,1.2):0,.25);
+  c.fillStyle='#b91c1c';c.fillRect(110,22,360,40);c.fillStyle='#1d4ed8';c.fillRect(110,298,360,40);
+  txt(c,'N',290,42,'#fff',22);txt(c,'S',290,318,'#fff',22);
+  for(let x=140;x<=440;x+=30)arw(c,x,75,x,285,'rgba(56,189,248,'+(.15+b/14)+')');
+  c.save();if(cut&&closed){c.shadowColor='#fbbf24';c.shadowBlur=22}
+  c.fillStyle='#fbbf24';c.beginPath();c.arc(s.x,s.y,13,0,TAU);c.fill();c.restore();
+  txt(c,'导体棒',s.x,s.y+28,'#fbbf24',12);
+  c.fillStyle='#0f1d3a';c.strokeStyle='#94a3b8';c.lineWidth=2;c.beginPath();c.arc(548,200,56,0,TAU);c.fill();c.stroke();
+  for(let k=-4;k<=4;k++){const a=-Math.PI/2+k*.25;c.beginPath();c.moveTo(548+46*Math.cos(a),200+46*Math.sin(a));c.lineTo(548+52*Math.cos(a),200+52*Math.sin(a));c.stroke()}
+  const na=-Math.PI/2+s.I*.9;c.strokeStyle='#ef4444';c.lineWidth=3;c.beginPath();c.moveTo(548,200);c.lineTo(548+44*Math.cos(na),200+44*Math.sin(na));c.stroke();
+  txt(c,'电流表',548,270,'#94a3b8',12);
+  txt(c,(closed?'✔':'✘')+' 闭合电路',490,36,closed?'#4ade80':'#f87171',12,'left');
+  txt(c,'✔ 在磁场中',490,56,'#4ade80',12,'left');
+  txt(c,(cut?'✔':'✘')+' 切割磁场线',490,76,cut?'#4ade80':'#f87171',12,'left');
+  say(!closed?'电路断开：没有闭合电路，不会产生电流':!cut?'静止或沿磁场线方向（上下）运动：没有切割磁场线，没有感应电流':'切割磁场线！产生感应电流；运动越快、磁场越强，电流越大；换个方向运动，电流方向也相反');
+ };
+}},
+//峇株吧辖蔡逸众制作
+{t:'6.5.2 电动机及发电机的工作原理是什么？',n:'6.5.2 电动机与发电机',x:1,
+k:['发电机把机械能转化为电能；电动机把电能转化为机械能，反向使用电动机就成了发电机','手摇发电机：线圈在永磁体的磁场中转动，切割磁场线产生电流','所有发电机的共同点：磁场 + 线圈 + 切割磁场线的运动','发电厂靠水力、火力、核能等让发电机持续转动，就能持续发电','电动机：通电线圈在磁场中受力转动，把电能转化为机械能'],
+h:'<label>转速 <input type=range id=w1 min=0 max=8 step=.1 value=3></label><label>磁场强度 <input type=range id=g1 min=1 max=10 value=6></label>',
+r(c){
+ const s={a:0,t:0,h:[]};
+ return(t)=>{
+  const dt=s.t?(t-s.t)/1000:0;s.t=t;const w=+$('#w1').value,b=+$('#g1').value;
+  s.a+=w*dt;const e=Math.cos(s.a)*w*b;s.h.push(e);if(s.h.length>240)s.h.shift();
+  c.fillStyle='#b91c1c';c.fillRect(50,100,50,160);c.fillStyle='#1d4ed8';c.fillRect(300,100,50,160);
+  txt(c,'N',75,180,'#fff',22);txt(c,'S',325,180,'#fff',22);
+  for(let y=130;y<=230;y+=25)arw(c,110,y,290,y,'rgba(56,189,248,'+(.15+b/14)+')');
+  const cx=200,cy=180,x1=cx+62*Math.cos(s.a),y1=cy+62*Math.sin(s.a);
+  c.strokeStyle='#f59e0b';c.lineWidth=4;c.beginPath();c.moveTo(2*cx-x1,2*cy-y1);c.lineTo(x1,y1);c.stroke();
+  c.fillStyle='#fbbf24';for(const q of[1,-1]){c.beginPath();c.arc(cx+q*(x1-cx),cy+q*(y1-cy),9,0,TAU);c.fill()}
+  const gx=380,gy=50,gw=250,gh=150,mid=gy+gh/2;
+  c.strokeStyle='#334155';c.lineWidth=1;c.strokeRect(gx,gy,gw,gh);c.beginPath();c.moveTo(gx,mid);c.lineTo(gx+gw,mid);c.stroke();
+  c.strokeStyle='#38bdf8';c.lineWidth=2;c.beginPath();
+  s.h.forEach((v,i)=>{const x=gx+i*gw/240,y=mid-v/80*gh/2*.9;i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+  txt(c,'感应电流随时间变化（交流电）',gx+gw/2,gy-14,'#94a3b8',12);
+  const br=Math.min(1,Math.abs(e)/60);
+  c.save();c.fillStyle='rgba(253,224,71,'+(.12+br*.88)+')';if(br>.3){c.shadowColor='#fde047';c.shadowBlur=28*br}
+  c.beginPath();c.arc(455,250,22,0,TAU);c.fill();c.restore();
+  c.strokeStyle='#94a3b8';c.lineWidth=2;c.beginPath();c.arc(455,250,22,0,TAU);c.stroke();txt(c,'灯',455,250,'#e2e8f0',15);
+  [['磁场',b>0,90],['线圈',true,200],['切割运动',w>.05,310]].forEach(([n,ok,x])=>{
+   c.fillStyle=ok?'#14532d':'#1e293b';c.fillRect(x-48,298,96,28);txt(c,(ok?'✔ ':'')+n,x,312,'#e2e8f0',13);
+  });
+  txt(c,'发电机三要素',200,342,'#94a3b8',12);
+  say('机械能 → 电能：线圈平面与磁场线平行时切割最快，电流最大；垂直时不切割，电流为0；转得越快、磁场越强，电流越大');
+ };
+}},
+//华仁中学蔡逸众制作
+{t:'通关挑战',n:'通关挑战',q:1,k:['10道题，检验你是否掌握了本章所有知识点']}
+];
+function quiz(){
+ const Q=[
+ ['两块磁铁的N极靠在一起，会发生什么？','相互排斥','相互吸引','先吸引后排斥','没有作用','同名磁极相互排斥，异名磁极相互吸引。'],
+ ['磁体外部的磁场线方向是？','从N极到S极','从S极到N极','围绕磁体顺时针旋转','沿磁体中心线向外','外部从N极出来回到S极，每条磁场线都是闭合曲线，互不相交。'],
+ ['钢棒被磁化后磁性能长期保持，所以钢属于？','硬磁体（永磁体）','软磁体','非磁性材料','电磁铁','铁是软磁体，磁性很快消失；钢是硬磁体，可制成永磁体。'],
+ ['1820年，谁发现了电流的磁效应？','奥斯特','法拉第','牛顿','安培','丹麦物理学家奥斯特发现通电导线使磁针偏转，开启了电磁学。'],
+ ['右手四指弯曲方向与螺线管中的电流方向一致，拇指所指的一端是？','N极','S极','中间位置','无法确定','这是安培定则2：大拇指指向通电螺线管的N极。'],
+ ['下列哪种做法不能增强电磁铁的磁性？','抽出铁芯','增大电流','增加线圈匝数','插入铁芯','增大电流、增加匝数、插入铁芯都能增强磁性，抽出铁芯则变弱。'],
+ ['继电器的主要作用是？','用低压弱电流控制高压强电流','把电能转化为机械能','储存电能','把机械能转化为电能','继电器利用电磁铁，间接控制强电流电路的通断，更安全。'],
+ ['产生感应电流的条件是？','闭合电路的一部分导体做切割磁场线运动','导体静止在磁场中','只要有磁铁在附近','导体沿磁场线方向运动','电路要闭合，且部分导体切割磁场线，缺一不可。'],
+ ['发电机工作时的能量转化是？','机械能→电能','电能→机械能','化学能→电能','内能→机械能','发电机把机械能转化为电能；电动机则相反。'],
+ ['给鸽子绑上小磁铁会失去定向能力，绑铜板则没有影响，说明？','鸽子靠地磁场导航','鸽子靠视觉导航','铜板太重','鸽子靠太阳导航','磁铁干扰了鸽子对地磁场的感知，铜板不影响，说明鸽子靠地磁场导航。']
+ ];
+ const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ const qs=sh(Q);let i=0,sc=0;const box=$('#box');
+ const show=()=>{
+  if(i>=qs.length){
+   box.innerHTML='<div class="card"><h2>挑战完成！得分 '+sc+' / '+qs.length+'</h2><p>回到章首的两个问题，现在你能回答了：</p><ul><li>电流通过导体时如何产生磁场？通电导体周围会产生磁场（电生磁），方向用安培定则判断；通电螺线管插入铁芯就成了电磁铁。</li><li>磁场又如何引起电流的产生？闭合电路的一部分导体在磁场中做切割磁场线运动，就会产生感应电流（电磁感应），发电机就是这样工作的。</li></ul><button class="b" onclick="go(10)">再来一次（题目和选项会重新随机排列）</button></div>';
+   return;
+  }
+  const q=qs[i],ok=q[1],os=sh(q.slice(1,5));
+  box.innerHTML='<div class="card q"><h2>第 '+(i+1)+' 题 / '+qs.length+'</h2><p>'+q[0]+'</p>'+os.map((o,j)=>'<button class="b" data-j="'+j+'">'+'ABCD'[j]+'．'+o+'</button>').join('')+'<p class="st" id="st"></p></div>';
+  box.querySelectorAll('button[data-j]').forEach(b=>b.onclick=()=>{
+   const j=+b.dataset.j;
+   box.querySelectorAll('button[data-j]').forEach(x=>{x.disabled=true;if(os[+x.dataset.j]==ok)x.classList.add('ok')});
+   if(os[j]!=ok)b.classList.add('no');else sc++;
+   say(q[5]);
+   box.querySelector('.q').insertAdjacentHTML('beforeend','<button class="b" onclick="Z.n()">'+(i+1<qs.length?'下一题':'看结果')+'</button>');
+  });
+ };
+ Z.n=()=>{i++;show()};
+ show();
+}
+//Made by ecchua79
+let stop3d=null;
+function loadThree(cb){
+ if(window.THREE)return cb(1);
+ const u=['https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'];
+ let i=0;
+ const nx=()=>{
+  if(i>=u.length)return cb(0);
+  const e=document.createElement('script');e.src=u[i++];
+  e.onload=()=>cb(1);e.onerror=()=>{e.remove();nx()};document.head.appendChild(e);
+ };
+ nx();
+}
+function gen3d(){
+ const box=$('#t3d');
+ loadThree(ok=>{
+  if($('#t3d')!==box)return;
+  if(!ok){$('#t3m').textContent='3D 组件加载失败（网络受限），请检查网络后刷新页面；上面的平面演示不受影响';return}
+  $('#t3m').textContent='按住拖动旋转视角，滚轮或双指缩放';
+  const T=THREE,W=box.clientWidth,H=box.clientHeight;
+  const rd=new T.WebGLRenderer({antialias:true});rd.setPixelRatio(Math.min(2,devicePixelRatio||1));rd.setSize(W,H);
+  const dom=rd.domElement;dom.style.width='100%';dom.style.height='100%';dom.style.touchAction='none';box.appendChild(dom);
+  const sc=new T.Scene();sc.background=new T.Color(0x0b1428);
+  const cam=new T.PerspectiveCamera(45,W/H,.1,100);
+  sc.add(new T.AmbientLight(0xffffff,.65));
+  const dl=new T.DirectionalLight(0xffffff,.9);dl.position.set(5,8,6);sc.add(dl);
+  const mat=(c,e)=>new T.MeshStandardMaterial({color:c,roughness:.5,metalness:.3,emissive:e||0});
+  const add=(g,m,x,y,z,p)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);(p||sc).add(o);return o};
+  const lab=(s,x,y,z)=>{
+   const cv=document.createElement('canvas');cv.width=cv.height=64;const g=cv.getContext('2d');
+   g.fillStyle='#fff';g.font='bold 48px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(s,32,34);
+   const sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(cv),transparent:true}));
+   sp.position.set(x,y,z);sp.scale.set(1.3,1.3,1);sc.add(sp);
+  };
+  add(new T.BoxGeometry(1.6,3.6,3),mat(0xdc2626),-4.2,0,0);add(new T.BoxGeometry(1.6,3.6,3),mat(0x2563eb),4.2,0,0);
+  lab('N',-4.2,0,1.9);lab('S',4.2,0,1.9);
+  add(new T.BoxGeometry(12,.2,6),mat(0x1e293b),0,-2.3,0);
+  for(const y of[-1,0,1])for(const z of[-.9,.9])sc.add(new T.ArrowHelper(new T.Vector3(1,0,0),new T.Vector3(-3.3,y,z),6.6,0x38bdf8,.35,.2));
+  const sm=mat(0xf59e0b),coil=new T.Group();sc.add(coil);
+  const r=1.5,Lh=1.4;
+  for(const q of[1,-1]){
+   const a=add(new T.CylinderGeometry(.08,.08,2*Lh,12),sm,q*r,0,0,coil);a.rotation.x=Math.PI/2;
+   const b=add(new T.CylinderGeometry(.08,.08,2*r,12),mat(0xd97706),0,0,q*Lh,coil);b.rotation.z=Math.PI/2;
+  }
+  const ax=add(new T.CylinderGeometry(.07,.07,5.6,12),mat(0x94a3b8),0,0,.5,coil);ax.rotation.x=Math.PI/2;
+  for(const z of[2.0,2.5])add(new T.TorusGeometry(.3,.06,10,24),mat(0xcbd5e1),0,0,z,coil);
+//峇株吧辖蔡逸众制作
+  for(const z of[2.0,2.5])add(new T.BoxGeometry(.14,.2,.14),mat(0x64748b),0,.36,z);
+  const bm=new T.MeshStandardMaterial({color:0xfde047,emissive:0xfde047,emissiveIntensity:.1,roughness:.3});
+  add(new T.SphereGeometry(.45,24,16),bm,0,2.7,2.25);add(new T.CylinderGeometry(.22,.22,.3,16),mat(0x64748b),0,2.15,2.25);
+  const pl=new T.PointLight(0xfde047,0,10);pl.position.set(0,2.7,2.25);sc.add(pl);
+  const wire=(a,b)=>{
+   const d=new T.Vector3().subVectors(b,a),m=new T.Mesh(new T.CylinderGeometry(.03,.03,d.length(),6),mat(0x94a3b8));
+   m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());sc.add(m);
+  };
+  wire(new T.Vector3(0,.46,2.0),new T.Vector3(-.12,2.0,2.25));wire(new T.Vector3(0,.46,2.5),new T.Vector3(.12,2.0,2.25));
+  let th=.9,ph=1.15,rad=11,a=0,t0=0,raf=0;const pts=new Map();
+  const upd=()=>{cam.position.set(rad*Math.sin(ph)*Math.sin(th),rad*Math.cos(ph),rad*Math.sin(ph)*Math.cos(th));cam.lookAt(0,.3,0)};
+  dom.onpointerdown=v=>{pts.set(v.pointerId,{x:v.clientX,y:v.clientY});dom.setPointerCapture(v.pointerId)};
+  dom.onpointerup=dom.onpointercancel=v=>{pts.delete(v.pointerId)};
+  dom.onpointermove=v=>{
+   const p=pts.get(v.pointerId);if(!p)return;
+   if(pts.size==1){th-=(v.clientX-p.x)*.01;ph=K(ph-(v.clientY-p.y)*.01,.15,3)}
+   else{
+    const o=[...pts.entries()].find(e=>e[0]!=v.pointerId)[1];
+    rad=K(rad*Math.hypot(p.x-o.x,p.y-o.y)/Math.hypot(v.clientX-o.x,v.clientY-o.y),5,20);
+   }
+   p.x=v.clientX;p.y=v.clientY;
+  };
+  dom.addEventListener('wheel',v=>{v.preventDefault();rad=K(rad*(1+v.deltaY*.001),5,20)},{passive:false});
+  const onr=()=>{const w=box.clientWidth;if(w&&Math.abs(w-W)>2){rd.setSize(w,box.clientHeight);cam.aspect=w/box.clientHeight;cam.updateProjectionMatrix()}};
+  addEventListener('resize',onr);
+  const loop=t=>{
+   raf=requestAnimationFrame(loop);
+   const dt=t0?Math.min(.05,(t-t0)/1000):0;t0=t;
+   const w=+$('#w3').value,b=+$('#g3').value;
+   a+=w*dt;coil.rotation.z=a;
+   const k=Math.abs(Math.cos(a)),e=Math.cos(a)*w*b,br=Math.min(1,Math.abs(e)/60);
+   bm.emissiveIntensity=.1+br*1.6;pl.intensity=br*1.5;sm.emissive.setRGB(k*.5,k*.25,0);
+   $('#t3r').textContent=k>.85?'线圈平面与磁场线平行：切割最快，电流最大':k<.15?'线圈平面与磁场线垂直（中性面）：不切割，电流为0':'线圈正在切割磁场线：转得越快、磁场越强，灯越亮';
+   upd();rd.render(sc,cam);
+  };
+  raf=requestAnimationFrame(loop);
+  stop3d=()=>{
+   cancelAnimationFrame(raf);removeEventListener('resize',onr);
+   sc.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){[].concat(o.material).forEach(m=>{if(m.map)m.map.dispose();m.dispose()})}});
+   rd.dispose();
+  };
+ });
+}
+//峇株吧辖华仁中学蔡逸众制作
+function go(n){
+ if(stop3d){stop3d();stop3d=null}
+ const m=M[n];fn=null;
+ document.querySelectorAll('#nav button').forEach((b,i)=>b.classList.toggle('on',i==n));
+ if(m.q)return quiz();
+ $('#box').innerHTML='<div class="card"><h2>'+m.t+'</h2><ul>'+m.k.map(x=>'<li>'+x+'</li>').join('')+'</ul><canvas id="cv" class="cv"></canvas><div class="ctl">'+m.h+'</div><div class="st" id="st"></div></div>'+(m.x?'<div class="card"><h2>3D 立体手摇发电机（可旋转、缩放）</h2><div id="t3d" class="cv" style="height:440px"></div><div class="ctl"><label>转速 <input type="range" id="w3" min="0" max="8" step=".1" value="2"></label><label>磁场强度 <input type="range" id="g3" min="1" max="10" value="6"></label><span id="t3m">正在加载 3D 组件…</span></div><div class="st" id="t3r"></div></div>':'');
+ ctx=cvs('#cv',360);fn=m.r(ctx);
+ if(m.x)gen3d();
+}
+function loop(t){
+ if(fn){ctx.clearRect(0,0,640,360);fn(t)}
+ hero(t);requestAnimationFrame(loop);
+}
+//华仁中学蔡逸众制作
+$('#nav').innerHTML=M.map((m,i)=>'<button onclick="go('+i+')">'+(m.n||m.t)+'</button>').join('');
+hc=cvs('#hero',260);
+go(0);requestAnimationFrame(loop);
+</script>
+</body>
+</html>
